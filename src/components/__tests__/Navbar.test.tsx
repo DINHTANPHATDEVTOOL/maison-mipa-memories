@@ -1,12 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { Navbar } from '../Navbar';
+import { MemoryRouter } from 'react-router-dom';
+import { Navbar, type NavbarProps } from '../Navbar';
+import type { User, UserRole } from '../../types';
 
 describe('Navbar Component', () => {
-  const defaultProps = {
+  const defaultProps: NavbarProps = {
     currentUser: null,
-    currentRole: 'GUEST' as const,
+    currentRole: 'GUEST',
     onRoleChange: vi.fn(),
     activeTab: 'home',
     setActiveTab: vi.fn(),
@@ -17,8 +19,16 @@ describe('Navbar Component', () => {
     onLogout: vi.fn(),
   };
 
+  const renderNavbar = (props: NavbarProps = defaultProps) => {
+    return render(
+      <MemoryRouter>
+        <Navbar {...props} />
+      </MemoryRouter>
+    );
+  };
+
   it('renders brand name and navigation items', () => {
-    render(<Navbar {...defaultProps} />);
+    renderNavbar();
     expect(screen.getByText(/MAISON MIPA/i)).toBeInTheDocument();
     expect(screen.getByText(/Dịch Vụ/i)).toBeInTheDocument();
     expect(screen.getByText(/Bảng Giá/i)).toBeInTheDocument();
@@ -26,7 +36,7 @@ describe('Navbar Component', () => {
   });
 
   it('calls onOpenBooking when clicking booking button', () => {
-    render(<Navbar {...defaultProps} />);
+    renderNavbar();
     const bookingButtons = screen.getAllByRole('button', { name: /ĐẶT LỊCH/i });
     expect(bookingButtons.length).toBeGreaterThan(0);
     fireEvent.click(bookingButtons[0]);
@@ -34,7 +44,7 @@ describe('Navbar Component', () => {
   });
 
   it('calls onOpenAuthModal when clicking login button as guest', () => {
-    render(<Navbar {...defaultProps} />);
+    renderNavbar();
     const loginButton = screen.getByRole('button', { name: /Đăng Nhập/i });
     fireEvent.click(loginButton);
     expect(defaultProps.onOpenAuthModal).toHaveBeenCalledWith('LOGIN');
@@ -54,7 +64,7 @@ describe('Navbar Component', () => {
         createdAt: '2026-01-01',
       },
     };
-    render(<Navbar {...loggedInProps} />);
+    renderNavbar(loggedInProps);
     const userLabel = screen.getByText(/Nguyễn Minh Anh/i);
     expect(userLabel).toBeInTheDocument();
 

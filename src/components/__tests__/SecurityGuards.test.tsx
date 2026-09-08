@@ -9,13 +9,14 @@ import { App } from '../../App';
 describe('SecurityGuards and Access Control in App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.pushState({}, '', '/');
   });
 
   it('allows guest to access public tabs freely', () => {
     render(<App />);
     const servicesBtn = screen.getByRole('button', { name: /Dịch Vụ/i });
     fireEvent.click(servicesBtn);
-    expect(screen.getByText(/Bạn muốn lưu giữ khoảnh khắc nào\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeInTheDocument();
   });
 
   it('blocks unauthenticated guest from booking and shows login prompt', () => {
@@ -62,7 +63,7 @@ describe('SecurityGuards and Access Control in App', () => {
     render(<App />);
 
     // Login as Customer
-    fireEvent.click(screen.getByRole('button', { name: /Đăng Nhập/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng Nhập' }));
     fireEvent.change(screen.getByPlaceholderText(/Nhập email/i), { target: { value: 'minhanh.nguyen@gmail.com' } });
     fireEvent.change(screen.getByPlaceholderText(/••••••••/i), { target: { value: 'securePass123' } });
     fireEvent.click(screen.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }));

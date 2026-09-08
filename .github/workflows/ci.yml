@@ -26,6 +26,9 @@ jobs:
       - name: Check code linting
         run: npm run lint
 
+      - name: Generate and Validate Sitemap
+        run: npm run generate:sitemap
+
       - name: Typecheck and Production Build
         run: npm run build
 

@@ -1,7 +1,9 @@
 // ==============================================================================
-// Maison MIPA Memories - App Component with Production Auth & RBAC
+// Maison MIPA Memories - App Component with Real Routing & SEO Consistency
 // ==============================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import type { User, UserRole, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
 import { getBookings, updateBookingStatus, assignBookingStaff } from './services/bookingService';
@@ -10,25 +12,31 @@ import { isSupabaseConfigured } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
-import { HeroSection } from './components/public/HeroSection';
-import { ServicesSection } from './components/public/ServicesSection';
-import { PackagesSection } from './components/public/PackagesSection';
-import { PortfolioSection } from './components/public/PortfolioSection';
 import { BookingWizard } from './components/booking/BookingWizard';
-import { CustomerPortal } from './components/customer/CustomerPortal';
-import { StaffPortal } from './components/staff/StaffPortal';
-import { ManagerDashboard } from './components/management/ManagerDashboard';
-import { StudioCalendar } from './components/management/StudioCalendar';
-import { CustomerCRM } from './components/management/CustomerCRM';
-import { AdminPortal } from './components/admin/AdminPortal';
 import { AuthModal } from './components/auth/AuthModal';
-import { Search, Calendar, ShieldCheck, Users, Clock, LayoutDashboard } from 'lucide-react';
+import { Search } from 'lucide-react';
+
+// Public Pages
+import { HomePage } from './pages/HomePage';
+import { ServicesPage } from './pages/ServicesPage';
+import { ServiceDetailPage } from './pages/ServiceDetailPage';
+import { PricingPage } from './pages/PricingPage';
+import { PortfolioPage } from './pages/PortfolioPage';
+import { BookingPage } from './pages/BookingPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+
+// Lazy-loaded Private Pages to optimize initial public bundle size
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+const StaffPage = lazy(() => import('./pages/StaffPage'));
+const ManagementPage = lazy(() => import('./pages/ManagementPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 function AppContent() {
   const { user: currentUser, role: currentRole, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [adminUsersList, setAdminUsersList] = useState<User[]>(INITIAL_USERS);
-  const [activeTab, setActiveTab] = useState<string>('home');
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authInitialTab, setAuthInitialTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
@@ -39,6 +47,18 @@ function AppContent() {
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [studios, setStudios] = useState(INITIAL_STUDIO_ROOMS);
+
+  // Handle legacy hash navigation redirects (#services -> /dich-vu, etc.)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === '#services') {
+      navigate('/dich-vu', { replace: true });
+    } else if (hash === '#packages') {
+      navigate('/bang-gia', { replace: true });
+    } else if (hash === '#portfolio') {
+      navigate('/portfolio', { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -69,72 +89,17 @@ function AppContent() {
     setIsAuthModalOpen(true);
   };
 
-  // Route Security Interceptor for URL / Tab Navigation Guarding (401 & 403)
-  // Security authority is backed by Supabase RLS; frontend route guard ensures clean UX.
-  const handleTabSelect = (tabId: string) => {
-    // 1. Public Routes: Anyone can access freely
-    const publicTabs = ['home', 'services', 'packages', 'portfolio'];
-    if (publicTabs.includes(tabId)) {
-      setActiveTab(tabId);
-      return;
-    }
-
-    // 2. Unauthenticated check -> 401 Unauthorized
-    if (!currentUser || currentRole === 'GUEST') {
-      handleOpenAuthModal('LOGIN', `🔒 HTTP 401 Unauthorized: Vui lòng đăng nhập để truy cập khu vực ${tabId.replace('_', ' ').toUpperCase()}`);
-      return;
-    }
-
-    // 3. Customer Portal (/account)
-    if (tabId === 'customer_portal') {
-      setActiveTab(tabId);
-      return;
-    }
-
-    // 4. Staff Portal (/staff)
-    if (tabId === 'staff_portal') {
-      if (['STAFF', 'MANAGER', 'ADMIN'].includes(currentRole)) {
-        setActiveTab(tabId);
-      } else {
-        alert(`🚫 HTTP 403 Forbidden: Tài khoản ${currentRole} không được quyền truy cập /staff.`);
-      }
-      return;
-    }
-
-    // 5. Manager Portals (/management)
-    if (['manager_dashboard', 'studio_calendar', 'customer_crm'].includes(tabId)) {
-      if (['MANAGER', 'ADMIN'].includes(currentRole)) {
-        setActiveTab(tabId);
-      } else {
-        alert(`🚫 HTTP 403 Forbidden: Chỉ Quản Lý (Manager) hoặc Admin mới được phép truy cập /management.`);
-      }
-      return;
-    }
-
-    // 6. System Admin Portal (/admin)
-    if (tabId === 'admin_portal') {
-      if (currentRole === 'ADMIN') {
-        setActiveTab(tabId);
-      } else {
-        alert(`🚫 HTTP 403 Forbidden: Quyền Admin tối cao bị từ chối cho tài khoản ${currentRole}. Hành động này đã được ghi vào Audit Log.`);
-      }
-      return;
-    }
-
-    setActiveTab(tabId);
-  };
-
   const handleAuthSuccess = (user: User) => {
-    if (user.role === 'GUEST') setActiveTab('home');
-    else if (user.role === 'CUSTOMER') setActiveTab('customer_portal');
-    else if (user.role === 'STAFF') setActiveTab('staff_portal');
-    else if (user.role === 'MANAGER') setActiveTab('manager_dashboard');
-    else if (user.role === 'ADMIN') setActiveTab('admin_portal');
+    setIsAuthModalOpen(false);
+    if (user.role === 'CUSTOMER') navigate('/account');
+    else if (user.role === 'STAFF') navigate('/staff');
+    else if (user.role === 'MANAGER') navigate('/management');
+    else if (user.role === 'ADMIN') navigate('/admin');
   };
 
   const handleLogout = async () => {
     await logout();
-    setActiveTab('home');
+    navigate('/');
     setSearchQuery('');
     setIsAuthModalOpen(false);
   };
@@ -170,6 +135,14 @@ function AppContent() {
     }
   };
 
+  const handleOpenBooking = () => {
+    if (!currentUser || currentRole === 'GUEST') {
+      handleOpenAuthModal('LOGIN', '🔒 Quý khách vui lòng Đăng Nhập (hoặc Đăng Ký tài khoản mới) để tiến hành Đặt Lịch Chụp Ảnh tại Maison MIPA');
+      return;
+    }
+    setIsBookingOpen(true);
+  };
+
   // Search filter
   const searchResults = searchQuery.trim().length > 1
     ? bookings.filter(b =>
@@ -179,13 +152,7 @@ function AppContent() {
       )
     : [];
 
-  const handleOpenBooking = () => {
-    if (!currentUser || currentRole === 'GUEST') {
-      handleOpenAuthModal('LOGIN', '🔒 Quý khách vui lòng Đăng Nhập (hoặc Đăng Ký tài khoản mới) để tiến hành Đặt Lịch Chụp Ảnh tại Maison MIPA');
-      return;
-    }
-    setIsBookingOpen(true);
-  };
+  const isPublicPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname) || location.pathname.startsWith('/dich-vu/');
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mipa-background)' }}>
@@ -193,8 +160,6 @@ function AppContent() {
       <Navbar
         currentUser={currentUser}
         currentRole={currentRole}
-        activeTab={activeTab}
-        setActiveTab={handleTabSelect}
         onOpenBooking={handleOpenBooking}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -202,98 +167,7 @@ function AppContent() {
         onLogout={handleLogout}
       />
 
-      {/* Global Management Navigation Sub-bar when Manager or Admin */}
-      {(currentRole === 'MANAGER' || currentRole === 'ADMIN') && ['manager_dashboard', 'studio_calendar', 'customer_crm', 'admin_portal'].includes(activeTab) && (
-        <div className="mipa-manager-subbar" style={{
-          backgroundColor: '#604634',
-          color: '#EFE6C9',
-          padding: '0.45rem 1rem',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '0.75rem',
-          fontSize: '0.82rem',
-          borderBottom: '1px solid rgba(239, 230, 201, 0.15)',
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
-        }}>
-          <button
-            onClick={() => setActiveTab('manager_dashboard')}
-            style={{
-              border: 'none',
-              background: activeTab === 'manager_dashboard' ? '#8C6E53' : 'transparent',
-              color: '#FFFDF6',
-              padding: '0.35rem 0.9rem',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <LayoutDashboard size={15} color="#EFE6C9" /> Overview Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('studio_calendar')}
-            style={{
-              border: 'none',
-              background: activeTab === 'studio_calendar' ? '#8C6E53' : 'transparent',
-              color: '#FFFDF6',
-              padding: '0.35rem 0.9rem',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Clock size={15} color="#EFE6C9" /> Lịch Phòng Studio
-          </button>
-          <button
-            onClick={() => setActiveTab('customer_crm')}
-            style={{
-              border: 'none',
-              background: activeTab === 'customer_crm' ? '#8C6E53' : 'transparent',
-              color: '#FFFDF6',
-              padding: '0.35rem 0.9rem',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Users size={15} color="#EFE6C9" /> CRM & Khách Hàng
-          </button>
-          {currentRole === 'ADMIN' && (
-            <button
-              onClick={() => setActiveTab('admin_portal')}
-              style={{
-                border: 'none',
-                background: activeTab === 'admin_portal' ? '#9D174D' : 'transparent',
-                color: '#FFFDF6',
-                padding: '0.35rem 0.9rem',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <ShieldCheck size={15} color="#EFE6C9" /> Quản Trị Hệ Thống
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Main App Presentation Body */}
+      {/* Main Presentation Body */}
       <main style={{ flex: 1 }}>
 
         {/* Global Search Results Dropdown Overlay */}
@@ -356,94 +230,88 @@ function AppContent() {
           </div>
         )}
 
-        {/* Public Homepage: Hero, Services, Packages, Portfolio */}
-        {activeTab === 'home' && (
-          <>
-            <HeroSection
-              onOpenBooking={handleOpenBooking}
-              onExplorePackages={() => setActiveTab('packages')}
-            />
-            <ServicesSection
-              onSelectService={handleOpenBooking}
-            />
-            <PackagesSection
-              onOpenBooking={handleOpenBooking}
-            />
-            <PortfolioSection />
-          </>
-        )}
-
-        {/* Individual Public Tabs */}
-        {activeTab === 'services' && (
-          <div style={{ paddingTop: '1rem' }}>
-            <ServicesSection onSelectService={handleOpenBooking} />
+        {/* Real URL Router Routes */}
+        <Suspense fallback={
+          <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8C6E53' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: '3px solid #EFE6C9',
+                borderTopColor: '#8C6E53',
+                animation: 'spin 0.8s linear infinite',
+                margin: '0 auto 1rem',
+              }} />
+              <span>Đang tải nội dung...</span>
+            </div>
           </div>
-        )}
+        }>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/dich-vu" element={<ServicesPage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/dich-vu/:slug" element={<ServiceDetailPage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/bang-gia" element={<PricingPage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/portfolio" element={<PortfolioPage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/booking" element={
+              <BookingPage
+                onBookingSuccess={handleBookingSuccess}
+                existingBookings={bookings}
+                onOpenAuthModal={handleOpenAuthModal}
+              />
+            } />
 
-        {activeTab === 'packages' && (
-          <div style={{ paddingTop: '1rem' }}>
-            <PackagesSection onOpenBooking={handleOpenBooking} />
-          </div>
-        )}
+            {/* Protected Private Routes with RBAC Guards */}
+            <Route
+              path="/account"
+              element={
+                <AccountPage
+                  bookings={bookings}
+                  onOpenBooking={handleOpenBooking}
+                  onRequireAuth={() => handleOpenAuthModal('LOGIN', '🔒 Quý khách vui lòng Đăng Nhập để xem lịch cá nhân')}
+                />
+              }
+            />
+            <Route
+              path="/staff"
+              element={
+                <StaffPage
+                  bookings={bookings}
+                  onUpdateStatus={handleUpdateStatus}
+                  onRequireAuth={() => handleOpenAuthModal('LOGIN', '🔒 Khu vực dành cho nhân viên. Vui lòng đăng nhập.')}
+                />
+              }
+            />
+            <Route
+              path="/management"
+              element={
+                <ManagementPage
+                  bookings={bookings}
+                  employees={employees}
+                  studios={studios}
+                  onOpenBooking={handleOpenBooking}
+                  onUpdateStatus={handleUpdateStatus}
+                  onAssignStaff={handleAssignStaff}
+                  onRequireAuth={() => handleOpenAuthModal('LOGIN', '🔒 Khu vực dành cho Quản Lý Studio.')}
+                />
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminPage
+                  usersList={adminUsersList}
+                  onUpdateUsersList={setAdminUsersList}
+                  onRequireAuth={() => handleOpenAuthModal('LOGIN', '🔒 Khu vực Quản Trị Viên (Admin).')}
+                />
+              }
+            />
 
-        {activeTab === 'portfolio' && (
-          <div style={{ paddingTop: '1rem' }}>
-            <PortfolioSection />
-          </div>
-        )}
-
-        {/* Customer Self-Service Portal (/account) */}
-        {activeTab === 'customer_portal' && currentUser && (
-          <CustomerPortal
-            bookings={bookings}
-            onOpenBooking={handleOpenBooking}
-          />
-        )}
-
-        {/* Staff Workspace Portal (/staff) */}
-        {activeTab === 'staff_portal' && currentUser && (
-          <StaffPortal
-            bookings={bookings}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        )}
-
-        {/* Manager Dashboard */}
-        {activeTab === 'manager_dashboard' && (
-          <ManagerDashboard
-            bookings={bookings}
-            employees={employees}
-            studios={studios}
-            onOpenBooking={handleOpenBooking}
-            onUpdateStatus={handleUpdateStatus}
-            onAssignStaff={handleAssignStaff}
-            onNavigateTab={setActiveTab}
-          />
-        )}
-
-        {/* Studio Calendar */}
-        {activeTab === 'studio_calendar' && (
-          <StudioCalendar
-            bookings={bookings}
-            studios={studios}
-            onOpenBooking={handleOpenBooking}
-          />
-        )}
-
-        {/* Customer CRM */}
-        {activeTab === 'customer_crm' && (
-          <CustomerCRM
-            bookings={bookings}
-          />
-        )}
-
-        {/* Admin Portal */}
-        {activeTab === 'admin_portal' && (
-          <AdminPortal
-            usersList={adminUsersList}
-            onUpdateUsersList={setAdminUsersList}
-          />
-        )}
+            {/* 404 Catch-All Route */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
 
       </main>
 
@@ -468,8 +336,8 @@ function AppContent() {
         initialTab={authInitialTab}
       />
 
-      {/* Floating Sticky Mobile Booking Bar (Visible on mobile screens) */}
-      {['home', 'services', 'packages', 'portfolio'].includes(activeTab) && (
+      {/* Floating Sticky Mobile Booking Bar (Visible on public pages on mobile screens) */}
+      {isPublicPage && (
         <div
           className="mipa-mobile-show"
           style={{
@@ -507,9 +375,13 @@ function AppContent() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <HelmetProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

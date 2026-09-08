@@ -1,5 +1,7 @@
 import React from 'react';
-import { Camera, MapPin, Phone, Mail, Clock, Share2, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MapPin, Phone, Mail, Share2, Globe, Clock } from 'lucide-react';
+import { SITE_CONFIG } from '../config/site';
 
 export const Footer: React.FC = () => {
   return (
@@ -51,12 +53,35 @@ export const Footer: React.FC = () => {
         {/* Studio Info */}
         <div>
           <h4 style={{ fontSize: '1.1rem', color: '#EFE6C9', marginBottom: '1rem', borderBottom: '1px solid rgba(217, 201, 165, 0.2)', paddingBottom: '0.5rem' }}>
-            Địa Chỉ & Liện Hệ
+            Địa Chỉ & Liên Hệ
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem', color: '#D9C9A5' }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}><MapPin size={16} color="#C6A45F" /> 88 Phan Sào Nam, Quận Tân Bình, TP. Hồ Chí Minh</div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}><Phone size={16} color="#C6A45F" /> Hotline: 0966 616 546 (08:00 - 21:00)</div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}><Mail size={16} color="#C6A45F" /> contact@maisonmipa.vn</div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <MapPin size={16} color="#C6A45F" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>{SITE_CONFIG.contact.address.formatted}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Phone size={16} color="#C6A45F" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>
+                Hotline:{' '}
+                <a
+                  href={`tel:${SITE_CONFIG.contact.phoneE164}`}
+                  style={{ color: '#EFE6C9', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  {SITE_CONFIG.contact.hotline}
+                </a>{' '}
+                ({SITE_CONFIG.contact.openingHours.schemaOpens} - {SITE_CONFIG.contact.openingHours.schemaCloses})
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Mail size={16} color="#C6A45F" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <a
+                href={`mailto:${SITE_CONFIG.contact.email}`}
+                style={{ color: '#EFE6C9', textDecoration: 'none' }}
+              >
+                {SITE_CONFIG.contact.email}
+              </a>
+            </div>
           </div>
         </div>
 
@@ -66,24 +91,50 @@ export const Footer: React.FC = () => {
             Giờ Mở Cửa Studio
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: '#D9C9A5' }}>
-            <div>Thứ Hai - Thứ Sáu: <strong>08:30 — 19:00</strong></div>
-            <div>Thứ Bảy - Chủ Nhật: <strong>08:00 — 20:30</strong></div>
-            <div style={{ fontSize: '0.78rem', color: '#C6A45F', marginTop: '0.4rem' }}>* Khuyến khích đặt lịch trực tuyến trước 24h</div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Clock size={15} color="#C6A45F" />
+              <span>Thứ Hai - Thứ Sáu: <strong>{SITE_CONFIG.contact.openingHours.weekday}</strong></span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Clock size={15} color="#C6A45F" />
+              <span>Thứ Bảy - Chủ Nhật: <strong>{SITE_CONFIG.contact.openingHours.weekend}</strong></span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#C6A45F', marginTop: '0.4rem' }}>
+              * Khuyến khích đặt lịch trực tuyến trước 24h
+            </div>
           </div>
         </div>
 
         {/* Quick Links */}
         <div>
           <h4 style={{ fontSize: '1.1rem', color: '#EFE6C9', marginBottom: '1rem', borderBottom: '1px solid rgba(217, 201, 165, 0.2)', paddingBottom: '0.5rem' }}>
-            Kết Nối MIPA
+            Liên Kết & Kết Nối
           </h4>
-          <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(239, 230, 201, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            <Link to="/dich-vu" style={{ color: '#D9C9A5', textDecoration: 'none' }}>→ Dịch vụ chụp ảnh</Link>
+            <Link to="/bang-gia" style={{ color: '#D9C9A5', textDecoration: 'none' }}>→ Bảng giá trọn gói</Link>
+            <Link to="/portfolio" style={{ color: '#D9C9A5', textDecoration: 'none' }}>→ Portfolio nghệ thuật</Link>
+            <Link to="/booking" style={{ color: '#D9C9A5', textDecoration: 'none' }}>→ Đặt lịch trực tuyến</Link>
+          </div>
+          <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <a
+              href={SITE_CONFIG.social.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook Maison MIPA"
+              style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(239, 230, 201, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               <Share2 size={18} color="#C6A45F" />
-            </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(239, 230, 201, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            </a>
+            <a
+              href={SITE_CONFIG.social.zalo}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Zalo Maison MIPA"
+              style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(239, 230, 201, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               <Globe size={18} color="#C6A45F" />
-            </div>
+            </a>
           </div>
         </div>
       </div>
@@ -97,8 +148,10 @@ export const Footer: React.FC = () => {
         fontSize: '0.8rem',
         color: '#D9C9A5',
       }}>
-        © 2026 Maison MIPA Memories. All Rights Reserved. Designed & Built for Studio Management & Customer Booking.
+        © 2026 {SITE_CONFIG.siteName}. All Rights Reserved. Hotline: {SITE_CONFIG.contact.hotline} • {SITE_CONFIG.contact.address.formatted}
       </div>
     </footer>
   );
 };
+
+export default Footer;
