@@ -174,6 +174,8 @@ export interface Booking {
   staffNote?: string;
   occasion?: string;
   assignments: BookingAssignment[];
+  startAt?: string;
+  endAt?: string;
   createdAt: string;
   updatedAt: string;
   startTimeActual?: string;

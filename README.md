@@ -84,6 +84,51 @@ npm run test:e2e
 
 ---
 
+## 🗄️ Kiến Trúc Cơ Sở Dữ Liệu & Supabase (Issue #1 & #2)
+
+Hệ thống sử dụng **PostgreSQL + Supabase** làm nguồn dữ liệu chính thức duy nhất (Single Source of Truth) cho Đặt lịch, Catalog, RBAC và Ngăn chặn Đặt lịch trùng lặp.
+
+### 1. Biến Môi Trường Cần Thiết (`.env`):
+Sao chép `.env.example` sang `.env.local` hoặc `.env`:
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_ENABLE_DEMO_MODE=false
+```
+
+### 2. Chuỗi Migration:
+- Migration #1: `supabase/migrations/20260908000001_auth_rbac_schema.sql` (Auth, Profiles, RBAC, RLS).
+- Migration #2: `supabase/migrations/20260908000002_booking_persistence_schema.sql` (Services, Packages, Addons, Studio Rooms, Bookings, Anti-Double-Booking Exclusion Constraint, Authoritative RPC `create_booking`).
+
+### 3. Thiết Lập Local Supabase & Reset Database:
+```bash
+# Khởi chạy local Supabase
+npx supabase start
+
+# Áp dụng toàn bộ migrations
+npx supabase migration up
+
+# Reset database về trạng thái sạch kèm seed data
+npx supabase db reset
+```
+
+### 4. Cơ Chế Chống Double-Booking (P0):
+Được bảo vệ trực tiếp ở tầng Database thông qua **PostgreSQL Exclusion Constraint**:
+```sql
+ALTER TABLE public.bookings
+ADD CONSTRAINT prevent_double_booking
+EXCLUDE USING gist (
+  studio_room_id WITH =,
+  tstzrange(start_at, end_at, '[)') WITH &&
+)
+WHERE (booking_status NOT IN ('CANCELLED'));
+```
+- **Interval nửa mở `[)`**: Cho phép các ca chụp liền kề (10:00–11:00 và 11:00–12:00) hoạt động trơn tru.
+- **Filter `booking_status NOT IN ('CANCELLED')`**: Tự động giải phóng khung giờ khi đơn trước bị huỷ.
+- **RPC `create_booking`**: Tính toán giá dịch vụ, tiền cọc và thời lượng authoritatively trên server; client không thể giả mạo `totalAmount`.
+
+---
+
 ## 🛡️ CI Quality Gate & Quy Trình Đóng Góp
 
 Dự án áp dụng **Quality Gate** bắt buộc trên mọi Pull Request:
