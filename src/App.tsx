@@ -1,6 +1,10 @@
+// ==============================================================================
+// Maison MIPA Memories - App Component with Production Auth & RBAC
+// ==============================================================================
 import React, { useState } from 'react';
 import type { User, UserRole, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HeroSection } from './components/public/HeroSection';
@@ -17,10 +21,10 @@ import { AdminPortal } from './components/admin/AdminPortal';
 import { AuthModal } from './components/auth/AuthModal';
 import { Search, Calendar, ShieldCheck, Users, Clock, LayoutDashboard } from 'lucide-react';
 
-export function App() {
-  const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentRole, setCurrentRole] = useState<UserRole>('GUEST');
+function AppContent() {
+  const { user: currentUser, role: currentRole, logout } = useAuth();
+
+  const [adminUsersList, setAdminUsersList] = useState<User[]>(INITIAL_USERS);
   const [activeTab, setActiveTab] = useState<string>('home');
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -33,23 +37,6 @@ export function App() {
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [studios, setStudios] = useState(INITIAL_STUDIO_ROOMS);
 
-  const handleRoleChange = (newRole: UserRole) => {
-    setCurrentRole(newRole);
-    if (newRole === 'GUEST') {
-      setCurrentUser(null);
-      setActiveTab('home');
-      return;
-    }
-    const matchingUser = usersList.find(u => u.role === newRole);
-    if (matchingUser) {
-      setCurrentUser(matchingUser);
-    }
-    if (newRole === 'CUSTOMER') setActiveTab('customer_portal');
-    if (newRole === 'STAFF') setActiveTab('staff_portal');
-    if (newRole === 'MANAGER') setActiveTab('manager_dashboard');
-    if (newRole === 'ADMIN') setActiveTab('admin_portal');
-  };
-
   const handleOpenAuthModal = (tab: 'LOGIN' | 'REGISTER' = 'LOGIN', msg?: string) => {
     setAuthInitialTab(tab);
     setAuthTargetMessage(msg || '');
@@ -57,6 +44,7 @@ export function App() {
   };
 
   // Route Security Interceptor for URL / Tab Navigation Guarding (401 & 403)
+  // Security authority is backed by Supabase RLS; frontend route guard ensures clean UX.
   const handleTabSelect = (tabId: string) => {
     // 1. Public Routes: Anyone can access freely
     const publicTabs = ['home', 'services', 'packages', 'portfolio'];
@@ -110,24 +98,16 @@ export function App() {
     setActiveTab(tabId);
   };
 
-  const handleLoginSuccess = (user: User) => {
-    setCurrentUser(user);
-    setCurrentRole(user.role);
+  const handleAuthSuccess = (user: User) => {
     if (user.role === 'GUEST') setActiveTab('home');
-    if (user.role === 'CUSTOMER') setActiveTab('customer_portal');
-    if (user.role === 'STAFF') setActiveTab('staff_portal');
-    if (user.role === 'MANAGER') setActiveTab('manager_dashboard');
-    if (user.role === 'ADMIN') setActiveTab('admin_portal');
+    else if (user.role === 'CUSTOMER') setActiveTab('customer_portal');
+    else if (user.role === 'STAFF') setActiveTab('staff_portal');
+    else if (user.role === 'MANAGER') setActiveTab('manager_dashboard');
+    else if (user.role === 'ADMIN') setActiveTab('admin_portal');
   };
 
-  const handleRegisterSuccess = (newUser: User) => {
-    setUsersList(prev => [newUser, ...prev]);
-    handleLoginSuccess(newUser);
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentRole('GUEST');
+  const handleLogout = async () => {
+    await logout();
     setActiveTab('home');
     setSearchQuery('');
     setIsAuthModalOpen(false);
@@ -138,33 +118,46 @@ export function App() {
   };
 
   const handleUpdateStatus = (bookingId: string, newStatus: BookingStatus, note?: string) => {
-    setBookings(bookings.map(b => b.id === bookingId ? { ...b, bookingStatus: newStatus } : b));
-  };
-
-  const handleAssignStaff = (bookingId: string, employeeId: string, role: string) => {
-    const emp = employees.find(e => e.id === employeeId);
-    if (!emp) return;
-
-    setBookings(bookings.map(b => {
+    setBookings(prev => prev.map(b => {
       if (b.id === bookingId) {
-        const updatedAsgs = b.assignments.filter(a => a.assignmentRole !== role);
-        updatedAsgs.push({
-          id: `asg_${Date.now()}`,
-          bookingId: b.bookingCode,
-          employeeId: emp.id,
-          employeeName: emp.name,
-          assignmentRole: role as any,
-          startTime: b.startTime,
-          endTime: b.endTime,
-        });
-        return { ...b, assignments: updatedAsgs };
+        return {
+          ...b,
+          bookingStatus: newStatus,
+          staffNote: note ? `${b.staffNote || ''} [${new Date().toLocaleTimeString('vi-VN')}]: ${note}` : b.staffNote,
+          updatedAt: new Date().toISOString(),
+        };
       }
       return b;
     }));
   };
 
-  // Search Results Filter
-  const filteredSearchResults = searchQuery.trim() !== ''
+  const handleAssignStaff = (bookingId: string, employeeId: string) => {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    setBookings(prev => prev.map(b => {
+      if (b.id === bookingId) {
+        const newAssignment = {
+          id: `as_${Date.now()}`,
+          bookingId,
+          employeeId: employee.id,
+          employeeName: employee.name,
+          assignmentRole: employee.role,
+          startTime: b.startTime,
+          endTime: b.endTime,
+        };
+        return {
+          ...b,
+          assignments: [...b.assignments.filter(a => a.assignmentRole !== employee.role), newAssignment],
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return b;
+    }));
+  };
+
+  // Search filter
+  const searchResults = searchQuery.trim().length > 1
     ? bookings.filter(b =>
         b.bookingCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
         b.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,12 +175,10 @@ export function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mipa-background)' }}>
-      
       {/* Top Sticky Navigation */}
       <Navbar
         currentUser={currentUser}
         currentRole={currentRole}
-        onRoleChange={handleRoleChange}
         activeTab={activeTab}
         setActiveTab={handleTabSelect}
         onOpenBooking={handleOpenBooking}
@@ -245,7 +236,7 @@ export function App() {
               transition: 'all 0.2s ease',
             }}
           >
-            <Calendar size={15} color="#EFE6C9" /> Studio Calendar
+            <Clock size={15} color="#EFE6C9" /> Lịch Phòng Studio
           </button>
           <button
             onClick={() => setActiveTab('customer_crm')}
@@ -263,14 +254,14 @@ export function App() {
               transition: 'all 0.2s ease',
             }}
           >
-            <Users size={15} color="#EFE6C9" /> Customer CRM & Insights
+            <Users size={15} color="#EFE6C9" /> CRM & Khách Hàng
           </button>
           {currentRole === 'ADMIN' && (
             <button
               onClick={() => setActiveTab('admin_portal')}
               style={{
                 border: 'none',
-                background: activeTab === 'admin_portal' ? '#8C6E53' : 'transparent',
+                background: activeTab === 'admin_portal' ? '#9D174D' : 'transparent',
                 color: '#FFFDF6',
                 padding: '0.35rem 0.9rem',
                 borderRadius: '12px',
@@ -282,41 +273,67 @@ export function App() {
                 transition: 'all 0.2s ease',
               }}
             >
-              <ShieldCheck size={15} color="#EFE6C9" /> Admin Control & Vouchers
+              <ShieldCheck size={15} color="#EFE6C9" /> Quản Trị Hệ Thống
             </button>
           )}
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* Main App Presentation Body */}
       <main style={{ flex: 1 }}>
-        
-        {/* Global Search Results Popup Overlay if searching */}
-        {searchQuery.trim() !== '' && (
-          <div style={{ maxWidth: '1200px', margin: '1.5rem auto', padding: '0 1.5rem' }}>
-            <div className="mipa-card-gold" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+
+        {/* Global Search Results Dropdown Overlay */}
+        {searchQuery.trim().length > 1 && (
+          <div className="mipa-container" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="mipa-card" style={{ padding: '1.5rem', border: '2px solid #8C6E53' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.2rem', color: '#604634', margin: 0 }}>
-                  🔍 Kết quả tìm kiếm cho: "{searchQuery}" ({filteredSearchResults.length} đơn)
+                <h3 style={{ fontFamily: 'var(--mipa-font-heading)', color: '#604634', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                  <Search size={20} color="#8C6E53" />
+                  Kết Quả Tra Cứu ({searchResults.length})
                 </h3>
-                <button onClick={() => setSearchQuery('')} className="btn-mipa-secondary" style={{ fontSize: '0.8rem' }}>
-                  Xóa Tìm Kiếm
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{ background: 'none', border: 'none', color: '#8C6E53', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  ✕ Đóng tìm kiếm
                 </button>
               </div>
 
-              {filteredSearchResults.length === 0 ? (
-                <p style={{ color: '#6E5F55', fontSize: '0.9rem' }}>Không tìm thấy mã đơn hoặc khách hàng phù hợp.</p>
+              {searchResults.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0', color: '#8C6E53' }}>
+                  Không tìm thấy đơn đặt lịch nào khớp với từ khóa: <strong>"{searchQuery}"</strong>
+                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                  {filteredSearchResults.map((b) => (
-                    <div key={b.id} style={{ padding: '0.9rem', borderRadius: '12px', backgroundColor: '#FFFFFF', border: '1px solid var(--mipa-beige)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {searchResults.map(b => (
+                    <div
+                      key={b.id}
+                      style={{
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        backgroundColor: '#FFFDF6',
+                        border: '1px solid var(--mipa-beige)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <div>
-                        <strong>{b.bookingCode}</strong> — {b.packageName} ({b.serviceName})
-                        <div style={{ fontSize: '0.8rem', color: '#6E5F55' }}>Khách: {b.customerName} ({b.customerPhone}) • Ngày: {b.bookingDate} lúc {b.startTime}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ fontWeight: 700, color: '#604634' }}>{b.bookingCode}</span>
+                          <span className="mipa-badge" style={{ backgroundColor: '#EFE6C9', color: '#604634' }}>{b.packageName}</span>
+                          <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>({b.bookingDate} • {b.startTime} - {b.endTime})</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#8C6E53', marginTop: '0.2rem' }}>
+                          Khách: <strong>{b.customerName}</strong> • SĐT: {b.customerPhone} • Studio: {b.studioName}
+                        </div>
                       </div>
-                      <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                        ● {b.bookingStatus}
-                      </span>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: '#604634' }}>{b.totalAmount.toLocaleString('vi-VN')} đ</div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: b.paymentStatus === 'FULLY_PAID' ? '#16A34A' : '#D97706' }}>
+                          {b.paymentStatus === 'FULLY_PAID' ? 'Đã Thanh Toán Đủ' : 'Đã Đặt Cọc'}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -325,8 +342,8 @@ export function App() {
           </div>
         )}
 
-        {/* Public Website View */}
-        {activeTab === 'home' && searchQuery.trim() === '' && (
+        {/* Public Homepage: Hero, Services, Packages, Portfolio */}
+        {activeTab === 'home' && (
           <>
             <HeroSection
               onOpenBooking={handleOpenBooking}
@@ -342,28 +359,35 @@ export function App() {
           </>
         )}
 
+        {/* Individual Public Tabs */}
         {activeTab === 'services' && (
-          <ServicesSection onSelectService={handleOpenBooking} />
+          <div style={{ paddingTop: '1rem' }}>
+            <ServicesSection onSelectService={handleOpenBooking} />
+          </div>
         )}
 
         {activeTab === 'packages' && (
-          <PackagesSection onOpenBooking={handleOpenBooking} />
+          <div style={{ paddingTop: '1rem' }}>
+            <PackagesSection onOpenBooking={handleOpenBooking} />
+          </div>
         )}
 
         {activeTab === 'portfolio' && (
-          <PortfolioSection />
+          <div style={{ paddingTop: '1rem' }}>
+            <PortfolioSection />
+          </div>
         )}
 
-        {/* Customer Portal */}
-        {activeTab === 'customer_portal' && (
+        {/* Customer Self-Service Portal (/account) */}
+        {activeTab === 'customer_portal' && currentUser && (
           <CustomerPortal
             bookings={bookings}
             onOpenBooking={handleOpenBooking}
           />
         )}
 
-        {/* Staff Portal */}
-        {activeTab === 'staff_portal' && (
+        {/* Staff Workspace Portal (/staff) */}
+        {activeTab === 'staff_portal' && currentUser && (
           <StaffPortal
             bookings={bookings}
             onUpdateStatus={handleUpdateStatus}
@@ -402,8 +426,8 @@ export function App() {
         {/* Admin Portal */}
         {activeTab === 'admin_portal' && (
           <AdminPortal
-            usersList={usersList}
-            onUpdateUsersList={setUsersList}
+            usersList={adminUsersList}
+            onUpdateUsersList={setAdminUsersList}
           />
         )}
 
@@ -423,9 +447,8 @@ export function App() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        usersList={usersList}
-        onLoginSuccess={handleLoginSuccess}
-        onRegisterSuccess={handleRegisterSuccess}
+        onSuccess={handleAuthSuccess}
+        onLoginSuccess={handleAuthSuccess}
         targetFeatureMessage={authTargetMessage}
         initialTab={authInitialTab}
       />
@@ -466,6 +489,13 @@ export function App() {
     </div>
   );
 }
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
 export default App;
-
-

@@ -1,906 +1,698 @@
+// ==============================================================================
+// Maison MIPA Memories - Refactored Production Auth Modal
+// Secure Authentication UI: Delegates all authentication to useAuth() hook
+// No hardcoded passwords, OTP bypasses, or client-side role elevation.
+// ==============================================================================
 import React, { useState, useEffect } from 'react';
-import type { User, UserRole, StaffRole } from '../../types';
-import { DEMO_ACCOUNTS } from '../../mockData';
-import { sendRealSmsOtp } from '../../utils/smsGateway';
-import { Shield, Key, Mail, Lock, UserCheck, ArrowRight, X, Sparkles, User as UserIcon, Briefcase, Camera, Phone, UserPlus, CheckCircle2, MessageSquare, RefreshCw, Smartphone, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import type { User, UserRole } from '../../types';
+import { Mail, Lock, User as UserIcon, Phone, UserPlus, LogIn, X, AlertCircle, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  usersList: User[];
-  onLoginSuccess: (user: User) => void;
-  onRegisterSuccess: (newUser: User) => void;
   targetFeatureMessage?: string;
   initialTab?: 'LOGIN' | 'REGISTER';
+  onSuccess?: (user: User) => void;
+  // Backward compatibility props
+  usersList?: User[];
+  onLoginSuccess?: (user: User) => void;
+  onRegisterSuccess?: (newUser: User) => void;
 }
-
-// Helper: Normalize Vietnamese Phone
-const normalizePhoneE164 = (phone: string): string => {
-  let cleaned = phone.replace(/[^0-9+]/g, '');
-  if (cleaned.startsWith('0')) {
-    cleaned = '+84' + cleaned.substring(1);
-  }
-  return cleaned;
-};
-
-// Helper: Check if string is Email or Phone
-const isEmailFormat = (input: string): boolean => {
-  return input.includes('@');
-};
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  usersList,
-  onLoginSuccess,
-  onRegisterSuccess,
   targetFeatureMessage,
   initialTab = 'LOGIN',
+  onSuccess,
+  onLoginSuccess,
+  onRegisterSuccess,
 }) => {
+  const { login, register, isLoading, authError, clearError, isDemoMode, loginAsDemoRole } = useAuth();
+
   const [authTab, setAuthTab] = useState<'LOGIN' | 'REGISTER'>(initialTab);
-  const [loginMethod, setLoginMethod] = useState<'PASSWORD' | 'OTP'>('PASSWORD');
 
-  // Universal Identifier (Email or Phone)
-  const [identifier, setIdentifier] = useState<string>('');
+  // Login Form State
+  const [loginEmail, setLoginEmail] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
-  const [loginError, setLoginError] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>('');
 
-  // OTP State (for OTP Login or OTP Registration)
-  const [otpStep, setOtpStep] = useState<'REQUEST' | 'VERIFY'>('REQUEST');
-  const [otpChannel, setOtpChannel] = useState<'SMS' | 'EMAIL'>('SMS');
-  const [generatedOtp, setGeneratedOtp] = useState<string>('');
-  const [userOtpInput, setUserOtpInput] = useState<string[]>(['', '', '', '', '', '']);
-  const [otpCountdown, setOtpCountdown] = useState<number>(300); // 5 mins
-  const [otpTimerActive, setOtpTimerActive] = useState<boolean>(false);
-
-  // MFA State (for Manager / Admin logins)
-  const [mfaStepRequired, setMfaStepRequired] = useState<boolean>(false);
-  const [pendingMfaUser, setPendingMfaUser] = useState<User | null>(null);
-  const [mfaInput, setMfaInput] = useState<string>('');
-  const [mfaError, setMfaError] = useState<string>('');
-
-  // Fast Phone + OTP Register State
-  const [regStep, setRegStep] = useState<1 | 2 | 3 | 4>(1); // 1: Phone -> 2: OTP -> 3: Name -> 4: Email Optional
-  const [regPhone, setRegPhone] = useState<string>('');
+  // Register Form State
   const [regFullName, setRegFullName] = useState<string>('');
   const [regEmail, setRegEmail] = useState<string>('');
-  const [regRole, setRegRole] = useState<UserRole>('CUSTOMER');
+  const [regPhone, setRegPhone] = useState<string>('');
   const [regPassword, setRegPassword] = useState<string>('');
-  const [regError, setRegError] = useState<string>('');
 
-  // Countdown timer effect
-  useEffect(() => {
-    let interval: any = null;
-    if (otpTimerActive && otpCountdown > 0) {
-      interval = setInterval(() => {
-        setOtpCountdown((prev) => prev - 1);
-      }, 1000);
-    } else if (otpCountdown === 0) {
-      setOtpTimerActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [otpTimerActive, otpCountdown]);
-
-  // Complete Reset of Form State whenever Modal opens or initialTab changes
+  // Reset form when modal opens or initialTab changes
   useEffect(() => {
     if (isOpen) {
       setAuthTab(initialTab);
-      setLoginMethod('PASSWORD');
-      setIdentifier('');
+      setLoginEmail('');
       setLoginPassword('');
-      setLoginError('');
-
-      setOtpStep('REQUEST');
-      setGeneratedOtp('');
-      setUserOtpInput(['', '', '', '', '', '']);
-      setOtpCountdown(300);
-      setOtpTimerActive(false);
-
-      setMfaStepRequired(false);
-      setPendingMfaUser(null);
-      setMfaInput('');
-      setMfaError('');
-
-      setRegStep(1);
-      setRegPhone('');
       setRegFullName('');
       setRegEmail('');
-      setRegRole('CUSTOMER');
+      setRegPhone('');
       setRegPassword('');
-      setRegError('');
+      setValidationError('');
+      clearError();
     }
-  }, [isOpen, initialTab]);
+  }, [isOpen, initialTab, clearError]);
 
   if (!isOpen) return null;
 
-  // Format seconds to mm:ss
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  // Find user by Email or Phone (E164 / Raw digits)
-  const findUserByIdentifier = (input: string): User | undefined => {
-    const clean = input.trim().toLowerCase();
-    const cleanDigits = input.replace(/[^0-9]/g, '');
-
-    return usersList.find((u) => {
-      // Check email
-      if (u.email.toLowerCase() === clean) return true;
-      // Check phone raw
-      if (u.phone.replace(/[^0-9]/g, '') === cleanDigits && cleanDigits.length >= 8) return true;
-      // Check linked emails
-      if (u.emails?.some((e) => e.email.toLowerCase() === clean)) return true;
-      // Check linked phones
-      if (u.phones?.some((p) => p.phoneRaw.replace(/[^0-9]/g, '') === cleanDigits)) return true;
-
-      return false;
-    });
-  };
-
-  // Trigger Send OTP & Dispatch Real SMS API
-  const handleSendOtp = (targetPhoneOrEmail: string) => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setOtpStep('VERIFY');
-    setOtpCountdown(300);
-    setOtpTimerActive(true);
-    setUserOtpInput(['', '', '', '', '', '']);
-
-    // Trigger Real SMS Gateway dispatch
-    sendRealSmsOtp(targetPhoneOrEmail, code).then((res) => {
-      console.log('Real SMS Dispatch Result:', res);
-    });
-  };
-
-  // Handle Login Submission
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
+    setValidationError('');
 
-    const targetUser = findUserByIdentifier(identifier);
-
-    if (!targetUser) {
-      setLoginError('Email hoặc Số điện thoại chưa được đăng ký trong hệ thống.');
+    const email = loginEmail.trim();
+    if (!email) {
+      setValidationError('Vui lòng nhập địa chỉ Email hoặc Số điện thoại.');
       return;
     }
 
-    if (loginMethod === 'PASSWORD') {
-      if (targetUser.password && targetUser.password !== loginPassword) {
-        setLoginError('Mật khẩu không đúng! Mật khẩu thử nghiệm là: mipa123');
-        return;
+    if (!loginPassword) {
+      setValidationError('Vui lòng nhập mật khẩu.');
+      return;
+    }
+
+    const res = await login(email, loginPassword);
+    if (res.success) {
+      if (res.user) {
+        onSuccess?.(res.user);
+        onLoginSuccess?.(res.user);
       }
-      
-      // Check MFA requirement for Staff / Manager / Admin
-      if (targetUser.mfaEnabled || targetUser.role === 'MANAGER' || targetUser.role === 'ADMIN') {
-        setPendingMfaUser(targetUser);
-        setMfaStepRequired(true);
-        return;
-      }
-
-      onLoginSuccess(targetUser);
-      onClose();
-    } else {
-      // OTP Login Request
-      handleSendOtp(identifier);
-    }
-  };
-
-  // Handle OTP Verification for Login
-  const handleVerifyLoginOtp = () => {
-    const enteredCode = userOtpInput.join('');
-    if (enteredCode !== generatedOtp && enteredCode !== '483921') {
-      setLoginError('Mã OTP không đúng hoặc đã hết hạn! Thử mã mẫu: 483921');
-      return;
-    }
-
-    const targetUser = findUserByIdentifier(identifier);
-    if (targetUser) {
-      onLoginSuccess(targetUser);
-    } else {
-      // Auto-create Customer account if loggin in with unverified new phone/email
-      const isEmail = isEmailFormat(identifier);
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        fullName: isEmail ? identifier.split('@')[0] : 'Khách Hàng Mới',
-        email: isEmail ? identifier : `user_${Date.now()}@maisonmipa.vn`,
-        phone: isEmail ? '0901234567' : identifier,
-        role: 'CUSTOMER',
-        status: 'ACTIVE',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-      };
-      onRegisterSuccess(newUser);
-    }
-    onClose();
-  };
-
-  // Handle MFA Verification Submit
-  const handleMfaSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setMfaError('');
-    if (mfaInput !== '654321' && mfaInput !== '123456') {
-      setMfaError('Mã xác thực MFA 2 lớp không đúng. Thử mã thử nghiệm: 654321');
-      return;
-    }
-    if (pendingMfaUser) {
-      onLoginSuccess(pendingMfaUser);
       onClose();
     }
   };
 
-  // Direct Frictionless Registration Handler (Phone or Email format validation, no compulsory OTP)
-  const handleDirectRegistration = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRegError('');
+    setValidationError('');
 
-    const cleanName = regFullName.trim();
-    const cleanIdentifier = regPhone.trim(); // Universal phone or email input
-    const cleanPass = regPassword.trim();
+    const fullName = regFullName.trim();
+    const email = regEmail.trim();
+    const password = regPassword.trim();
+    const phone = regPhone.trim();
 
-    if (!cleanName) {
-      setRegError('Vui lòng nhập Họ và tên của bạn.');
+    if (!fullName) {
+      setValidationError('Vui lòng nhập Họ và tên.');
       return;
     }
 
-    if (!cleanIdentifier) {
-      setRegError('Vui lòng nhập Số điện thoại hoặc địa chỉ Email.');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setValidationError('Vui lòng nhập địa chỉ Email hợp lệ (ví dụ: user@example.com).');
       return;
     }
 
-    const isEmail = isEmailFormat(cleanIdentifier);
-    const cleanDigits = cleanIdentifier.replace(/[^0-9]/g, '');
-
-    if (!isEmail && cleanDigits.length < 9) {
-      setRegError('Vui lòng nhập Số điện thoại hợp lệ (tối thiểu 9-11 chữ số) hoặc địa chỉ Email đúng định dạng.');
+    if (!password || password.length < 6) {
+      setValidationError('Mật khẩu phải có tối thiểu 6 ký tự.');
       return;
     }
 
-    if (isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdentifier)) {
-      setRegError('Định dạng Email không hợp lệ (ví dụ: user@example.com).');
-      return;
+    const res = await register({
+      email,
+      password,
+      fullName,
+      phone,
+    });
+
+    if (res.success) {
+      if (res.user) {
+        onSuccess?.(res.user);
+        onRegisterSuccess?.(res.user);
+      }
+      onClose();
     }
-
-    if (!cleanPass || cleanPass.length < 4) {
-      setRegError('Vui lòng tạo Mật khẩu có tối thiểu 4 ký tự.');
-      return;
-    }
-
-    const userEmail = isEmail ? cleanIdentifier : `user_${cleanDigits || Date.now()}@maisonmipa.vn`;
-    const userPhone = isEmail ? '0966 616 546' : cleanIdentifier;
-
-    const newUser: User = {
-      id: `user_${Date.now()}`,
-      fullName: cleanName,
-      email: userEmail,
-      phone: userPhone,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-      password: cleanPass,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-      emails: [{ id: `em_${Date.now()}`, userId: `user_${Date.now()}`, email: userEmail, isPrimary: true, verifiedAt: new Date().toISOString() }],
-      phones: [{ id: `ph_${Date.now()}`, userId: `user_${Date.now()}`, phoneRaw: userPhone, phoneE164: normalizePhoneE164(userPhone), isPrimary: true, verifiedAt: new Date().toISOString() }],
-    };
-
-    onRegisterSuccess(newUser);
-    onClose();
   };
 
-  // Quick 1-click test login
-  const handleQuickLogin = (role: UserRole) => {
-    const defaultUser = usersList.find((u) => u.role === role) || {
-      id: `user_${role.toLowerCase()}`,
-      fullName: `User ${role}`,
-      email: `${role.toLowerCase()}@maisonmipa.vn`,
-      phone: '0900 000 000',
-      role,
-      password: 'mipa123',
-    };
-    onLoginSuccess(defaultUser);
-    onClose();
+  const handleDemoLogin = (demoRole: UserRole) => {
+    if (loginAsDemoRole) {
+      loginAsDemoRole(demoRole);
+      onClose();
+    }
   };
+
+  const activeError = validationError || authError;
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 3000,
-      backgroundColor: 'rgba(44, 34, 30, 0.82)',
-      backdropFilter: 'blur(10px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1.5rem',
-    }}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3000,
+        backgroundColor: 'rgba(44, 34, 30, 0.82)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.5rem',
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className="mipa-card-gold"
         style={{
           width: '100%',
-          maxWidth: '680px',
+          maxWidth: '520px',
           borderRadius: '24px',
           backgroundColor: '#FFFDF6',
-          boxShadow: '0 20px 50px rgba(96, 70, 52, 0.38)',
+          boxShadow: '0 25px 60px rgba(96, 70, 52, 0.35)',
           overflow: 'hidden',
           animation: 'fadeIn 0.25s ease-out',
+          position: 'relative',
         }}
       >
-        {/* Header Bar */}
-        <div style={{
-          backgroundColor: '#604634',
-          color: '#FFFDF6',
-          padding: '1.4rem 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '2px solid #C6A45F',
-        }}>
+        {/* Modal Header */}
+        <div
+          style={{
+            backgroundColor: '#604634',
+            color: '#FFFDF6',
+            padding: '1.4rem 1.8rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '2px solid #C6A45F',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(239, 230, 201, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#EFE6C9',
-            }}>
-              <Key size={22} />
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(239, 230, 201, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#EFE6C9',
+                fontFamily: 'var(--mipa-font-heading)',
+                fontSize: '1.2rem',
+              }}
+            >
+              M
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#EFE6C9', fontWeight: 600 }}>
+              <div
+                style={{
+                  fontFamily: 'var(--mipa-font-heading)',
+                  fontSize: '1.15rem',
+                  letterSpacing: '0.04em',
+                  fontWeight: 700,
+                }}
+              >
                 MAISON MIPA MEMORIES AUTH
               </div>
-              <h3 style={{ fontSize: '1.35rem', color: '#FFFDF6', margin: 0, fontFamily: 'var(--mipa-font-heading)' }}>
-                {mfaStepRequired ? 'Xác Thực 2 Lớp (MFA Security)' : authTab === 'LOGIN' ? 'Welcome Back ♡ Đăng Nhập' : 'Đăng Ký Tài Khoản Nhanh'}
-              </h3>
+              <div style={{ fontSize: '0.75rem', color: '#EFE6C9', opacity: 0.9 }}>
+                Hệ thống Định danh & Phân quyền Bảo mật Cao cấp
+              </div>
             </div>
           </div>
-
           <button
             onClick={onClose}
+            aria-label="Đóng hộp thoại"
             style={{
+              background: 'none',
               border: 'none',
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: '#FFFDF6',
-              width: '34px',
-              height: '34px',
-              borderRadius: '50%',
+              color: '#EFE6C9',
               cursor: 'pointer',
+              padding: '0.4rem',
+              borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        {/* Feature Notice Alert if restricted access triggered */}
+        {/* Security Notification Banner if target feature required auth */}
         {targetFeatureMessage && (
-          <div style={{
-            backgroundColor: '#FDF2F8',
-            borderBottom: '1px solid #F472B6',
-            padding: '0.85rem 2rem',
-            color: '#9D174D',
-            fontSize: '0.85rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.6rem',
-            fontWeight: 500,
-          }}>
-            <Sparkles size={16} />
+          <div
+            style={{
+              backgroundColor: '#FEF3C7',
+              color: '#92400E',
+              padding: '0.75rem 1.5rem',
+              fontSize: '0.82rem',
+              borderBottom: '1px solid #FCD34D',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              fontWeight: 500,
+            }}
+          >
+            <ShieldAlert size={18} style={{ flexShrink: 0 }} />
             <span>{targetFeatureMessage}</span>
           </div>
         )}
 
-        {/* Main Body */}
-        <div style={{ padding: '1.8rem 2rem' }}>
-          
-          {/* STEP: MFA MANDATORY VERIFICATION FOR MANAGER / ADMIN */}
-          {mfaStepRequired ? (
-            <form onSubmit={handleMfaSubmit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', textAlign: 'center' }}>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  backgroundColor: '#FDF2F8',
-                  color: '#9D174D',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto',
-                }}>
-                  <Shield size={32} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '1.2rem', color: '#604634', margin: '0 0 0.3rem 0' }}>Yêu Cầu Xác Thực 2 Lớp (MFA)</h4>
-                  <p style={{ fontSize: '0.88rem', color: '#6E5F55', margin: 0 }}>
-                    Tài khoản <strong>{pendingMfaUser?.fullName}</strong> có quyền quản trị cao cấp. Vui lòng nhập mã Security Code 6 chữ số.
+        {/* Tabs Switcher */}
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--mipa-beige)',
+            backgroundColor: '#FDFBF7',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab('LOGIN');
+              setValidationError('');
+              clearError();
+            }}
+            style={{
+              flex: 1,
+              padding: '0.9rem',
+              border: 'none',
+              borderBottom: authTab === 'LOGIN' ? '3px solid #8C6E53' : '3px solid transparent',
+              backgroundColor: authTab === 'LOGIN' ? '#FFFDF6' : 'transparent',
+              color: authTab === 'LOGIN' ? '#604634' : '#8C6E53',
+              fontWeight: authTab === 'LOGIN' ? 700 : 500,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <LogIn size={16} /> ĐĂNG NHẬP
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab('REGISTER');
+              setValidationError('');
+              clearError();
+            }}
+            style={{
+              flex: 1,
+              padding: '0.9rem',
+              border: 'none',
+              borderBottom: authTab === 'REGISTER' ? '3px solid #8C6E53' : '3px solid transparent',
+              backgroundColor: authTab === 'REGISTER' ? '#FFFDF6' : 'transparent',
+              color: authTab === 'REGISTER' ? '#604634' : '#8C6E53',
+              fontWeight: authTab === 'REGISTER' ? 700 : 500,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <UserPlus size={16} /> ĐĂNG KÝ NHANH
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div style={{ padding: '1.6rem 2rem' }}>
+          {authTab === 'LOGIN' ? (
+            <form onSubmit={handleLoginSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                <div style={{ textAlign: 'center', marginBottom: '0.2rem' }}>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--mipa-font-heading)',
+                      color: '#604634',
+                      fontSize: '1.3rem',
+                      margin: 0,
+                    }}
+                  >
+                    Welcome Back ♡ Đăng Nhập
+                  </h3>
+                  <p style={{ color: '#8C6E53', fontSize: '0.82rem', margin: '0.3rem 0 0 0' }}>
+                    Đăng nhập để xem lịch chụp, duyệt album ảnh & quản lý tài khoản
                   </p>
                 </div>
 
-                <div style={{
-                  backgroundColor: '#FFFBEB',
-                  border: '1px dashed #F59E0B',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '12px',
-                  fontSize: '0.82rem',
-                  color: '#92400E',
-                }}>
-                  🔑 <strong>Mã MFA Thử Nghiệm:</strong> <code style={{ fontWeight: 'bold', fontSize: '1.1rem', letterSpacing: '0.15em' }}>654321</code>
+                <div>
+                  <label className="mipa-label">Email hoặc Số điện thoại (*):</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#8C6E53',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      className="mipa-input"
+                      style={{ paddingLeft: '40px' }}
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="Nhập email (ví dụ: customer@gmail.com)"
+                      autoFocus
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="mipa-label">Mã OTP Authenticator (6 chữ số):</label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    className="mipa-input"
-                    style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.4em', fontWeight: 700, height: '52px' }}
-                    value={mfaInput}
-                    onChange={(e) => setMfaInput(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="654321"
-                    autoFocus
-                    required
-                  />
+                  <label className="mipa-label">Mật khẩu (*):</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#8C6E53',
+                      }}
+                    />
+                    <input
+                      type="password"
+                      className="mipa-input"
+                      style={{ paddingLeft: '40px' }}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
                 </div>
 
-                {mfaError && (
-                  <div style={{ color: '#9D174D', fontSize: '0.85rem', backgroundColor: '#FDF2F8', padding: '0.6rem 0.9rem', borderRadius: '10px' }}>
-                    ⚠️ {mfaError}
+                {activeError && (
+                  <div
+                    style={{
+                      color: '#9D174D',
+                      fontSize: '0.82rem',
+                      backgroundColor: '#FDF2F8',
+                      padding: '0.65rem 0.9rem',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{activeError}</span>
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
-                  <button
-                    type="button"
-                    className="btn-mipa-secondary"
-                    style={{ flex: 1 }}
-                    onClick={() => setMfaStepRequired(false)}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn-mipa-gold"
+                  style={{
+                    width: '100%',
+                    height: '46px',
+                    fontSize: '0.95rem',
+                    marginTop: '0.4rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    opacity: isLoading ? 0.75 : 1,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" /> Đang xác thực...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={18} /> ĐĂNG NHẬP VÀO HỆ THỐNG
+                    </>
+                  )}
+                </button>
+
+                <div style={{ textAlign: 'center', fontSize: '0.86rem', color: '#604634', marginTop: '0.3rem' }}>
+                  Chưa có tài khoản?{' '}
+                  <strong
+                    onClick={() => {
+                      setAuthTab('REGISTER');
+                      setValidationError('');
+                      clearError();
+                    }}
+                    style={{ color: '#8C6E53', cursor: 'pointer', textDecoration: 'underline' }}
                   >
-                    Quay Lại
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-mipa-gold"
-                    style={{ flex: 2, height: '46px', fontSize: '0.95rem' }}
-                  >
-                    Xác Nhận & Đăng Nhập
-                  </button>
+                    Đăng ký tài khoản mới
+                  </strong>
                 </div>
               </div>
             </form>
           ) : (
-            <>
-              {/* Main Auth Tabs Switcher */}
-              <div style={{
-                display: 'flex',
-                backgroundColor: '#F8F3E6',
-                padding: '0.3rem',
-                borderRadius: '16px',
-                marginBottom: '1.5rem',
-                border: '1px solid var(--mipa-beige)',
-              }}>
-                <button
-                  onClick={() => {
-                    setAuthTab('LOGIN');
-                    setOtpStep('REQUEST');
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.65rem 1rem',
-                    borderRadius: '12px',
-                    border: 'none',
-                    backgroundColor: authTab === 'LOGIN' ? '#8C6E53' : 'transparent',
-                    color: authTab === 'LOGIN' ? '#FFFDF6' : '#604634',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                  }}
-                >
-                  <UserCheck size={18} /> ĐĂNG NHẬP
-                </button>
-                <button
-                  onClick={() => {
-                    setAuthTab('REGISTER');
-                    setRegStep(1);
-                    setOtpStep('REQUEST');
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.65rem 1rem',
-                    borderRadius: '12px',
-                    border: 'none',
-                    backgroundColor: authTab === 'REGISTER' ? '#8C6E53' : 'transparent',
-                    color: authTab === 'REGISTER' ? '#FFFDF6' : '#604634',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                  }}
-                >
-                  <UserPlus size={18} /> ĐĂNG KÝ NHANH (OTP)
-                </button>
-              </div>
+            <form onSubmit={handleRegisterSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ textAlign: 'center', marginBottom: '0.2rem' }}>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--mipa-font-heading)',
+                      color: '#604634',
+                      fontSize: '1.3rem',
+                      margin: 0,
+                    }}
+                  >
+                    Tạo Tài Khoản Khách Hàng
+                  </h3>
+                  <p style={{ color: '#8C6E53', fontSize: '0.82rem', margin: '0.3rem 0 0 0' }}>
+                    Tài khoản mới được tạo tự động với vai trò Khách Hàng (CUSTOMER)
+                  </p>
+                </div>
 
-              {/* TAB 1: LOGIN FORM */}
-              {authTab === 'LOGIN' && (
                 <div>
-                  {otpStep === 'VERIFY' ? (
-                    /* OTP VERIFICATION VIEW */
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', textAlign: 'center' }}>
-                      
-                      {otpChannel === 'EMAIL' || isEmailFormat(identifier) ? (
-                        <div style={{
-                          backgroundColor: '#FFFDF0',
-                          border: '1.5px solid #D97706',
-                          borderRadius: '16px',
-                          padding: '1rem',
-                          textAlign: 'left',
-                          display: 'flex',
-                          gap: '0.8rem',
-                          alignItems: 'flex-start',
-                          boxShadow: '0 4px 12px rgba(217, 119, 6, 0.12)',
-                        }}>
-                          <Mail size={22} color="#D97706" style={{ marginTop: '2px' }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#B45309', fontWeight: 700 }}>
-                                📧 HỆ THỐNG EMAIL TỰ ĐỘNG • MAISON MIPA
-                              </div>
-                              <span
-                                onClick={() => setOtpChannel('SMS')}
-                                style={{ fontSize: '0.75rem', color: '#0284C7', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
-                              >
-                                Đổi sang SMS 📲
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.88rem', color: '#78350F', marginTop: '0.25rem', lineHeight: 1.4 }}>
-                              Mã OTP đã được gửi tới Email: <strong style={{ textDecoration: 'underline', color: '#92400E' }}>{identifier.includes('@') ? identifier : 'minhanh.nguyen@gmail.com'}</strong>. Mã của bạn là: <strong style={{ fontSize: '1.15rem', color: '#B45309', letterSpacing: '0.08em' }}>{generatedOtp || '711169'}</strong> (Hiệu lực 5 phút).
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{
-                          backgroundColor: '#F0F9FF',
-                          border: '1.5px solid #0284C7',
-                          borderRadius: '16px',
-                          padding: '1rem',
-                          textAlign: 'left',
-                          display: 'flex',
-                          gap: '0.8rem',
-                          alignItems: 'flex-start',
-                          boxShadow: '0 4px 12px rgba(2, 132, 199, 0.1)',
-                        }}>
-                          <MessageSquare size={22} color="#0284C7" style={{ marginTop: '2px' }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0369A1', fontWeight: 700 }}>
-                                📲 TỔNG ĐÀI SMS BRANDNAME • MAISON MIPA
-                              </div>
-                              <span
-                                onClick={() => setOtpChannel('EMAIL')}
-                                style={{ fontSize: '0.75rem', color: '#D97706', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
-                              >
-                                Gửi qua Email 📧
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.88rem', color: '#0C4A6E', marginTop: '0.25rem', lineHeight: 1.4 }}>
-                              Mã OTP xác minh SĐT của bạn là: <strong style={{ fontSize: '1.15rem', color: '#0369A1', letterSpacing: '0.08em' }}>{generatedOtp || '711169'}</strong> (Hiệu lực 5 phút).
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <p style={{ fontSize: '0.88rem', color: '#6E5F55', margin: 0 }}>
-                        Nhập mã OTP 6 chữ số đã được gửi đến <strong>{identifier}</strong>:
-                      </p>
-
-                      {/* 6 Digit Input boxes */}
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.6rem' }}>
-                        {[0, 1, 2, 3, 4, 5].map((idx) => (
-                          <input
-                            key={idx}
-                            id={`otp_input_${idx}`}
-                            type="text"
-                            maxLength={1}
-                            style={{
-                              width: '46px',
-                              height: '52px',
-                              borderRadius: '12px',
-                              border: '1.5px solid var(--mipa-beige)',
-                              textAlign: 'center',
-                              fontSize: '1.4rem',
-                              fontWeight: 700,
-                              color: '#604634',
-                              backgroundColor: '#FFFFFF',
-                            }}
-                            value={userOtpInput[idx] || ''}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9]/g, '');
-                              const updated = [...userOtpInput];
-                              updated[idx] = val;
-                              setUserOtpInput(updated);
-                              if (val && idx < 5) {
-                                const nextElem = document.getElementById(`otp_input_${idx + 1}`);
-                                nextElem?.focus();
-                              }
-                            }}
-                          />
-                        ))}
-                      </div>
-
-                      <div style={{ fontSize: '0.82rem', color: '#8C6E53', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem' }}>
-                        <span>⏱️ Mã hết hạn sau: <strong>{formatTime(otpCountdown)}</strong></span>
-                        <button
-                          type="button"
-                          onClick={() => handleSendOtp(identifier)}
-                          style={{ border: 'none', background: 'transparent', color: '#8C6E53', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
-                        >
-                          Gửi lại mã
-                        </button>
-                      </div>
-
-                      {loginError && (
-                        <div style={{ color: '#9D174D', fontSize: '0.82rem', backgroundColor: '#FDF2F8', padding: '0.6rem 0.9rem', borderRadius: '10px' }}>
-                          ⚠️ {loginError}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
-                        <button
-                          type="button"
-                          className="btn-mipa-secondary"
-                          style={{ flex: 1 }}
-                          onClick={() => setOtpStep('REQUEST')}
-                        >
-                          Quay Lại
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-mipa-gold"
-                          style={{ flex: 2, height: '46px', fontSize: '0.95rem' }}
-                          onClick={handleVerifyLoginOtp}
-                        >
-                          Xác Nhận & Đăng Nhập
-                        </button>
-                      </div>
-
-                    </div>
-                  ) : (
-                    /* NORMAL IDENTIFIER FORM */
-                    <form onSubmit={handleLoginSubmit}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                        
-                        {/* Single Unified Input for Email OR Phone */}
-                        <div>
-                          <label className="mipa-label">Email hoặc Số điện thoại đăng nhập:</label>
-                          <div style={{ position: 'relative' }}>
-                            {isEmailFormat(identifier) ? (
-                              <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                            ) : (
-                              <Phone size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                            )}
-                            <input
-                              type="text"
-                              className="mipa-input"
-                              style={{ paddingLeft: '40px' }}
-                              value={identifier}
-                              onChange={(e) => setIdentifier(e.target.value)}
-                              placeholder="Nhập email (abc@gmail.com) hoặc SĐT (0901234567)"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        {/* Login Method Sub-Toggle */}
-                        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--mipa-beige)', paddingBottom: '0.8rem' }}>
-                          <label style={{ fontSize: '0.85rem', color: '#604634', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: loginMethod === 'PASSWORD' ? 700 : 400 }}>
-                            <input
-                              type="radio"
-                              name="loginMethod"
-                              checked={loginMethod === 'PASSWORD'}
-                              onChange={() => setLoginMethod('PASSWORD')}
-                            />
-                            Đăng nhập bằng Mật Khẩu
-                          </label>
-                          <label style={{ fontSize: '0.85rem', color: '#604634', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: loginMethod === 'OTP' ? 700 : 400 }}>
-                            <input
-                              type="radio"
-                              name="loginMethod"
-                              checked={loginMethod === 'OTP'}
-                              onChange={() => setLoginMethod('OTP')}
-                            />
-                            Đăng nhập bằng Mã OTP (SMS/Email)
-                          </label>
-                        </div>
-
-                        {loginMethod === 'PASSWORD' && (
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <label className="mipa-label">Mật Khẩu:</label>
-                              <span style={{ fontSize: '0.78rem', color: '#8C6E53', cursor: 'pointer' }}>Quên mật khẩu?</span>
-                            </div>
-                            <div style={{ position: 'relative' }}>
-                              <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                              <input
-                                type="password"
-                                className="mipa-input"
-                                style={{ paddingLeft: '40px' }}
-                                value={loginPassword}
-                                onChange={(e) => setLoginPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {loginError && (
-                          <div style={{ color: '#9D174D', fontSize: '0.82rem', backgroundColor: '#FDF2F8', padding: '0.65rem 0.9rem', borderRadius: '10px' }}>
-                            ⚠️ {loginError}
-                          </div>
-                        )}
-
-                        <button
-                          type="submit"
-                          className="btn-mipa-gold"
-                          style={{ width: '100%', height: '46px', fontSize: '0.95rem', marginTop: '0.3rem' }}
-                        >
-                          {loginMethod === 'PASSWORD' ? (
-                            <> <UserCheck size={18} /> ĐĂNG NHẬP VÀO HỆ THỐNG </>
-                          ) : (
-                            <> <MessageSquare size={18} /> GỬI MÃ XÁC NHẬN OTP </>
-                          )}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* Switch to Register link */}
-                  <div style={{ marginTop: '1.2rem', textAlign: 'center', fontSize: '0.88rem', color: '#604634' }}>
-                    Chưa có tài khoản?{' '}
-                    <strong
-                      onClick={() => {
-                        setAuthTab('REGISTER');
-                        setRegError('');
+                  <label className="mipa-label">Họ và tên (*):</label>
+                  <div style={{ position: 'relative' }}>
+                    <UserIcon
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#8C6E53',
                       }}
-                      style={{ color: '#8C6E53', cursor: 'pointer', textDecoration: 'underline' }}
-                    >
-                      Đăng ký ngay
-                    </strong>
+                    />
+                    <input
+                      type="text"
+                      className="mipa-input"
+                      style={{ paddingLeft: '40px' }}
+                      value={regFullName}
+                      onChange={(e) => setRegFullName(e.target.value)}
+                      placeholder="Nguyễn Văn A"
+                      autoFocus
+                      required
+                    />
                   </div>
-
-                  {/* Commercial Clean Login Footer */}
-                  <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px dashed var(--mipa-beige)', textAlign: 'center', fontSize: '0.82rem', color: '#6E5F55' }}>
-                    <span>Đăng nhập được bảo mật bằng mã hóa 256-bit SSL.</span>
-                  </div>
-
                 </div>
-              )}
 
-              {/* TAB 2: STREAMLINED DIRECT REGISTRATION (PHONE OR EMAIL) */}
-              {authTab === 'REGISTER' && (
                 <div>
-                  <form onSubmit={handleDirectRegistration}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                      <div>
-                        <label className="mipa-label">Họ và Tên của bạn (*):</label>
-                        <div style={{ position: 'relative' }}>
-                          <UserIcon size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                          <input
-                            type="text"
-                            className="mipa-input"
-                            style={{ paddingLeft: '40px' }}
-                            value={regFullName}
-                            onChange={(e) => setRegFullName(e.target.value)}
-                            placeholder="Nguyễn Văn A"
-                            autoFocus
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mipa-label">Số điện thoại hoặc Email (*):</label>
-                        <div style={{ position: 'relative' }}>
-                          {regPhone.includes('@') ? (
-                            <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                          ) : (
-                            <Phone size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                          )}
-                          <input
-                            type="text"
-                            className="mipa-input"
-                            style={{ paddingLeft: '40px' }}
-                            value={regPhone}
-                            onChange={(e) => setRegPhone(e.target.value)}
-                            placeholder="0901234567 hoặc yourname@gmail.com"
-                            required
-                          />
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#8C6E53', marginTop: '0.3rem' }}>
-                          Có thể chọn đăng ký bằng SĐT hoặc Email (chỉ cần đúng định dạng là tạo được tài khoản).
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mipa-label">Tạo Mật khẩu tài khoản (*):</label>
-                        <div style={{ position: 'relative' }}>
-                          <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-                          <input
-                            type="password"
-                            className="mipa-input"
-                            style={{ paddingLeft: '40px' }}
-                            value={regPassword}
-                            onChange={(e) => setRegPassword(e.target.value)}
-                            placeholder="Mật khẩu của bạn"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      {regError && (
-                        <div style={{ color: '#9D174D', fontSize: '0.82rem', backgroundColor: '#FDF2F8', padding: '0.65rem 0.9rem', borderRadius: '10px' }}>
-                          ⚠️ {regError}
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        className="btn-mipa-gold"
-                        style={{ width: '100%', height: '46px', fontSize: '0.95rem', marginTop: '0.3rem' }}
-                      >
-                        <UserPlus size={18} /> ĐĂNG KÝ TÀI KHOẢN NGAY
-                      </button>
-
-                      <div style={{ marginTop: '0.8rem', textAlign: 'center', fontSize: '0.88rem', color: '#604634' }}>
-                        Đã có tài khoản?{' '}
-                        <strong
-                          onClick={() => {
-                            setAuthTab('LOGIN');
-                            setLoginError('');
-                          }}
-                          style={{ color: '#8C6E53', cursor: 'pointer', textDecoration: 'underline' }}
-                        >
-                          Đăng nhập ngay
-                        </strong>
-                      </div>
-                    </div>
-                  </form>
+                  <label className="mipa-label">Địa chỉ Email (*):</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#8C6E53',
+                      }}
+                    />
+                    <input
+                      type="email"
+                      className="mipa-input"
+                      style={{ paddingLeft: '40px' }}
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      required
+                    />
+                  </div>
                 </div>
-              )}
-            </>
+
+                <div>
+                  <label className="mipa-label">Số điện thoại:</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#8C6E53',
+                      }}
+                    />
+                    <input
+                      type="tel"
+                      className="mipa-input"
+                      style={{ paddingLeft: '40px' }}
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      placeholder="0901234567"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mipa-label">Tạo Mật khẩu (* tối thiểu 6 ký tự):</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#8C6E53',
+                      }}
+                    />
+                    <input
+                      type="password"
+                      className="mipa-input"
+                      style={{ paddingLeft: '40px' }}
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="Mật khẩu của bạn"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {activeError && (
+                  <div
+                    style={{
+                      color: '#9D174D',
+                      fontSize: '0.82rem',
+                      backgroundColor: '#FDF2F8',
+                      padding: '0.65rem 0.9rem',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{activeError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn-mipa-gold"
+                  style={{
+                    width: '100%',
+                    height: '46px',
+                    fontSize: '0.95rem',
+                    marginTop: '0.4rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    opacity: isLoading ? 0.75 : 1,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" /> Đang tạo tài khoản...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={18} /> ĐĂNG KÝ TÀI KHOẢN NGAY
+                    </>
+                  )}
+                </button>
+
+                <div style={{ textAlign: 'center', fontSize: '0.86rem', color: '#604634', marginTop: '0.3rem' }}>
+                  Đã có tài khoản?{' '}
+                  <strong
+                    onClick={() => {
+                      setAuthTab('LOGIN');
+                      setValidationError('');
+                      clearError();
+                    }}
+                    style={{ color: '#8C6E53', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Đăng nhập ngay
+                  </strong>
+                </div>
+              </div>
+            </form>
           )}
 
+          {/* Demo Mode Only Helper (Strictly hidden and disabled in production) */}
+          {isDemoMode && (
+            <div
+              style={{
+                marginTop: '1.4rem',
+                padding: '0.85rem',
+                backgroundColor: '#FFFBEB',
+                border: '1px dashed #D97706',
+                borderRadius: '12px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: '#B45309',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                <Sparkles size={14} /> DEMO TESTING MODE (VITE_ENABLE_DEMO_MODE=true)
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {(['CUSTOMER', 'STAFF', 'MANAGER', 'ADMIN'] as UserRole[]).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => handleDemoLogin(r)}
+                    style={{
+                      padding: '0.3rem 0.6rem',
+                      fontSize: '0.72rem',
+                      borderRadius: '8px',
+                      border: '1px solid #D97706',
+                      backgroundColor: '#FFFFFF',
+                      color: '#92400E',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer info banner */}
-        <div style={{
-          backgroundColor: '#F8F3E6',
-          padding: '0.85rem 2rem',
-          borderTop: '1px solid var(--mipa-beige)',
-          fontSize: '0.78rem',
-          color: '#6E5F55',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <span>🔒 Mã hóa xác thực đa tầng & liên kết Identity Phone/Email.</span>
+        {/* Modal Footer */}
+        <div
+          style={{
+            backgroundColor: '#F8F3E6',
+            padding: '0.85rem 2rem',
+            borderTop: '1px solid var(--mipa-beige)',
+            fontSize: '0.78rem',
+            color: '#6E5F55',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span>🔒 Xác thực phân quyền RBAC & Row Level Security (RLS)</span>
           <span style={{ fontWeight: 600, color: '#8C6E53' }}>Maison MIPA Memories</span>
         </div>
-
       </div>
     </div>
   );

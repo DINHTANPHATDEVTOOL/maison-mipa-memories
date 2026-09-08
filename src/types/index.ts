@@ -44,7 +44,6 @@ export interface User {
   email: string;
   phone: string;
   role: UserRole;
-  password?: string;
   avatar?: string;
   staffRole?: StaffRole;
   status?: UserStatus;
