@@ -1,17 +1,39 @@
-import React, { useState } from 'react';
+// ==============================================================================
+// Maison MIPA Memories - Booking Wizard with Real Availability & Persistence
+// Connected to Catalog, Pricing, Availability, and Booking Services.
+// ==============================================================================
+import React, { useState, useEffect, useCallback } from 'react';
 import type { ServiceCategory, PackageItem, Addon, StudioRoom, Booking } from '../../types';
 import { INITIAL_SERVICES, INITIAL_PACKAGES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS } from '../../mockData';
-import { X, Check, Calendar as CalendarIcon, Clock, Sparkles, Heart, ChevronRight, ChevronLeft, CreditCard, ShieldCheck, UserCheck } from 'lucide-react';
+import { getServices, getPackages, getAddons, getStudioRooms } from '../../services/catalogService';
+import { getAvailableSlots, getAvailableSlotsSync, type TimeSlot } from '../../services/availabilityService';
+import { isSupabaseConfigured } from '../../lib/supabase';
+import { calculatePricing } from '../../services/pricingService';
+import { createBooking, createBookingInMemory, BookingConflictError } from '../../services/bookingService';
+import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface BookingWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onBookingSuccess: (newBooking: Booking) => void;
+  existingBookings?: Booking[];
 }
 
-export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, onBookingSuccess }) => {
+export const BookingWizard: React.FC<BookingWizardProps> = ({
+  isOpen,
+  onClose,
+  onBookingSuccess,
+  existingBookings,
+}) => {
   const [step, setStep] = useState<number>(1);
+
+  // Catalog State (Dynamic from Catalog Service with initial fallback)
+  const [services, setServices] = useState<ServiceCategory[]>(INITIAL_SERVICES);
+  const [packages, setPackages] = useState<PackageItem[]>(INITIAL_PACKAGES);
+  const [addons, setAddons] = useState<Addon[]>(INITIAL_ADDONS);
+  const [studios, setStudios] = useState<StudioRoom[]>(INITIAL_STUDIO_ROOMS);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState<boolean>(false);
 
   // Form State
   const [selectedService, setSelectedService] = useState<ServiceCategory>(INITIAL_SERVICES[0]);
@@ -20,7 +42,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('13:30');
   const [selectedStudio, setSelectedStudio] = useState<StudioRoom>(INITIAL_STUDIO_ROOMS[0]);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([INITIAL_ADDONS[0]]); // default makeup
-  
+
+  // Availability State
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>(() =>
+    getAvailableSlotsSync({
+      date: '2026-08-15',
+      studioId: INITIAL_STUDIO_ROOMS[0].id,
+      durationMinutes: 120,
+    })
+  );
+  const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
+
   // Customer details
   const [customerName, setCustomerName] = useState<string>('Nguyễn Minh Anh');
   const [customerPhone, setCustomerPhone] = useState<string>('0908 123 456');
@@ -28,43 +60,117 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
   const [occasion, setOccasion] = useState<string>('Kỷ niệm');
   const [customerNote, setCustomerNote] = useState<string>('Mong muốn tone màu sáng tự nhiên & rèm lụa.');
   const [voucherCode, setVoucherCode] = useState<string>('');
-  const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [isVoucherApplied, setIsVoucherApplied] = useState<boolean>(false);
 
-  // Payment simulated state
-  const [paymentMethod, setPaymentMethod] = useState<'QR' | 'BANK' | 'COUNTER'>('QR');
+  // Submission & Confirmation state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Load catalog on mount
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    let mounted = true;
+    async function loadCatalog() {
+      setIsLoadingCatalog(true);
+      try {
+        const [srvs, pkgs, adds, stds] = await Promise.all([
+          getServices(),
+          getPackages(),
+          getAddons(),
+          getStudioRooms(),
+        ]);
+        if (mounted) {
+          if (srvs.length > 0) setServices(srvs);
+          if (pkgs.length > 0) setPackages(pkgs);
+          if (adds.length > 0) setAddons(adds);
+          if (stds.length > 0) setStudios(stds);
+        }
+      } catch (err) {
+        console.warn('Could not load catalog dynamically, using default catalog fixtures:', err);
+      } finally {
+        if (mounted) setIsLoadingCatalog(false);
+      }
+    }
+    loadCatalog();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Filter packages by selected service when service changes
+  const availablePackages = packages.filter(p => p.serviceId === selectedService.id);
+  const displayedPackages = availablePackages.length > 0 ? availablePackages : packages;
+
+  // Realtime Price & Duration Calculation (Single Source of Truth calculation)
+  const promo = isVoucherApplied ? {
+    discountPercent: voucherCode.trim().toUpperCase() === 'MIPA20' ? 20 : voucherCode.trim().toUpperCase() === 'SUMMERMEMORY' ? 10 : 0,
+    minOrder: 500000,
+    isActive: true,
+  } : null;
+
+  const pricing = calculatePricing({
+    packageItem: selectedPackage,
+    addons: selectedAddons,
+    promotion: promo,
+  });
+
+  const { subtotal, addonTotal, discountTotal, totalAmount, depositAmount, totalDurationMinutes } = pricing;
+
+  // Load availability slots whenever Date, Studio or Duration changes
+  const loadSlots = useCallback(async () => {
+    if (!selectedStudio || !selectedDate) return;
+    if (!isSupabaseConfigured()) {
+      const slots = getAvailableSlotsSync({
+        date: selectedDate,
+        studioId: selectedStudio.id,
+        durationMinutes: totalDurationMinutes,
+        existingBookings,
+      });
+      setAvailableSlots(slots);
+      return;
+    }
+
+    setIsLoadingSlots(true);
+    try {
+      const slots = await getAvailableSlots({
+        date: selectedDate,
+        studioId: selectedStudio.id,
+        durationMinutes: totalDurationMinutes,
+        existingBookings,
+      });
+      setAvailableSlots(slots);
+
+      // Auto-select first available slot if current slot is booked or absent
+      const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
+      if (!currentSlotObj || currentSlotObj.status === 'BOOKED') {
+        const firstAvail = slots.find(s => s.status === 'AVAILABLE');
+        if (firstAvail) {
+          setSelectedTimeSlot(firstAvail.time);
+        }
+      }
+    } catch (err) {
+      console.warn('Availability loading error:', err);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    loadSlots();
+  }, [isOpen, loadSlots]);
 
   if (!isOpen) return null;
 
-  // Realtime calculations
-  const addonTotal = selectedAddons.reduce((acc, a) => acc + a.price, 0);
-  const subtotal = selectedPackage.price + addonTotal;
-  const grandTotal = Math.max(0, subtotal - discountAmount);
-  const depositRequired = Math.round(grandTotal * 0.3); // 30% deposit
-
-  // Resource availability mock engine
-  const timeSlots = [
-    { time: '09:00', label: '09:00 - 11:00', status: 'AVAILABLE' },
-    { time: '10:30', label: '10:30 - 12:30', status: 'BOOKED', reason: 'Hết phòng Room 01' },
-    { time: '12:00', label: '12:00 - 14:00', status: 'AVAILABLE' },
-    { time: '13:30', label: '13:30 - 15:30', status: 'AVAILABLE', tag: 'Ưu tiên cho Couple' },
-    { time: '15:00', label: '15:00 - 17:00', status: 'LIMITED', tag: 'Còn 1 slot' },
-    { time: '16:30', label: '16:30 - 18:30', status: 'BOOKED', reason: 'Lịch bảo trì Studio' },
-  ];
-
   const handleApplyVoucher = () => {
-    if (voucherCode.trim().toUpperCase() === 'MIPA20') {
-      const disc = Math.round(subtotal * 0.2);
-      setDiscountAmount(disc);
+    const code = voucherCode.trim().toUpperCase();
+    if (code === 'MIPA20' || code === 'SUMMERMEMORY') {
       setIsVoucherApplied(true);
-    } else if (voucherCode.trim().toUpperCase() === 'SUMMERMEMORY') {
-      const disc = Math.round(subtotal * 0.1);
-      setDiscountAmount(disc);
-      setIsVoucherApplied(true);
+      setErrorMessage(null);
     } else {
-      alert('Mã giảm giá không hợp lệ. Thử mã MIPA20 hoặc SUMMERMEMORY');
+      setIsVoucherApplied(false);
+      setErrorMessage('Mã voucher không hợp lệ. Vui lòng thử mã MIPA20 hoặc SUMMERMEMORY.');
     }
   };
 
@@ -78,62 +184,55 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
 
   const handleConfirmAndPay = () => {
     setIsSubmitting(true);
+    setErrorMessage(null);
 
-    setTimeout(() => {
-      // Generate custom unique booking code: MIPA-260815-xxx
-      const randomSeq = Math.floor(100 + Math.random() * 900);
-      const code = `MIPA-26${selectedDate.slice(5, 7)}${selectedDate.slice(8, 10)}-${randomSeq}`;
-
-      const newBookingObj: Booking = {
-        id: `bk_${Date.now()}`,
-        bookingCode: code,
-        customerId: 'cust_01',
-        customerName,
-        customerPhone,
-        customerEmail,
-        serviceId: selectedService.id,
-        serviceName: selectedService.name,
-        packageId: selectedPackage.id,
-        packageName: selectedPackage.name,
-        packagePrice: selectedPackage.price,
-        bookingDate: selectedDate,
-        startTime: selectedTimeSlot,
-        endTime: '15:30',
-        studioId: selectedStudio.id,
-        studioName: selectedStudio.name,
-        addons: selectedAddons,
-        subtotal,
-        discount: discountAmount,
-        depositAmount: depositRequired,
-        totalAmount: grandTotal,
-        paymentStatus: 'DEPOSIT_PAID',
-        bookingStatus: 'CONFIRMED',
-        customerNote,
-        occasion,
-        assignments: [
-          { id: `asg_${Date.now()}_1`, bookingId: code, employeeId: 'emp_minh', employeeName: 'Hoàng Minh (Tự động gán)', assignmentRole: 'PHOTOGRAPHER', startTime: selectedTimeSlot, endTime: '15:30' },
-          { id: `asg_${Date.now()}_2`, bookingId: code, employeeId: 'emp_huong', employeeName: 'Phạm Thanh Hương (Tự động gán)', assignmentRole: 'MAKEUP', startTime: '12:30', endTime: selectedTimeSlot },
-        ],
-        createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        updatedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-      };
-
-      setConfirmedBooking(newBookingObj);
-      setIsSubmitting(false);
-      setStep(7); // Final step
-
-      // Launch celebration confetti
+    const executeBooking = async () => {
       try {
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#C6A45F', '#8C6E53', '#EFE6C9'],
-        });
-      } catch (e) {}
+        const payload = {
+          serviceId: selectedService.id,
+          packageId: selectedPackage.id,
+          studioId: selectedStudio.id,
+          date: selectedDate,
+          timeSlot: selectedTimeSlot,
+          addonIds: selectedAddons.map(a => a.id),
+          voucherCode: isVoucherApplied ? voucherCode.trim().toUpperCase() : undefined,
+          customerName,
+          customerPhone,
+          customerEmail,
+          occasion,
+          customerNote,
+        };
 
-      onBookingSuccess(newBookingObj);
-    }, 1200);
+        const newBooking = isSupabaseConfigured()
+          ? await createBooking(payload)
+          : createBookingInMemory(payload);
+
+        setConfirmedBooking(newBooking);
+        setStep(7); // Final success step
+
+        // Launch celebration confetti
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#C6A45F', '#8C6E53', '#EFE6C9'],
+          });
+        } catch {}
+
+        onBookingSuccess(newBooking);
+      } catch (err: any) {
+        if (err instanceof BookingConflictError || err.name === 'BookingConflictError') {
+          setErrorMessage(`⚠️ TRÙNG LỊCH: ${err.message || 'Phòng studio đã có người đặt trong khung giờ này.'} Vui lòng quay lại Bước 3 để chọn khung giờ khác.`);
+        } else {
+          setErrorMessage(err.message || 'Không thể tạo đơn đặt lịch. Vui lòng kiểm tra lại thông tin.');
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    setTimeout(executeBooking, 50);
   };
 
   return (
@@ -208,6 +307,43 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
           </div>
         )}
 
+        {/* Global Error Banner */}
+        {errorMessage && (
+          <div style={{
+            backgroundColor: '#FEF2F2',
+            borderBottom: '1px solid #F87171',
+            padding: '0.75rem 1.8rem',
+            color: '#B91C1C',
+            fontSize: '0.88rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={18} color="#B91C1C" />
+              <span>{errorMessage}</span>
+            </div>
+            {step === 6 && (
+              <button
+                onClick={() => { setErrorMessage(null); setStep(3); }}
+                style={{
+                  backgroundColor: '#DC2626',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.3rem 0.6rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Đổi khung giờ (Bước 3)
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Scrollable Step Content Body */}
         <div style={{ padding: '1.8rem', overflowY: 'auto', flex: 1 }}>
           
@@ -215,10 +351,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
           {step === 1 && (
             <div>
               <p style={{ color: '#6E5F55', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
-                Bạn muốn lưu giữ khoảnh khắc đáng nhớ nào cùng Maison MIPA?
+                Bạn muốn lưu giữ khoảnh khắc đáng nhớ nào cùng Maison MIPA? {isLoadingCatalog && '(Đang đồng bộ...)'}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.2rem' }}>
-                {INITIAL_SERVICES.map((srv) => {
+                {services.map((srv) => {
                   const isSelected = selectedService.id === srv.id;
                   return (
                     <div
@@ -266,8 +402,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
               <p style={{ color: '#6E5F55', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
                 Gói dịch vụ chọn cho loại hình <strong>{selectedService.name}</strong>:
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.2rem' }}>
-                {INITIAL_PACKAGES.map((pkg) => {
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.2rem' }}>
+                {displayedPackages.map((pkg) => {
                   const isSelected = selectedPackage.id === pkg.id;
                   return (
                     <div
@@ -346,7 +482,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                   <div style={{ marginTop: '1.5rem' }}>
                     <label className="mipa-label">2. Chọn Phòng Studio / Phân khu</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {INITIAL_STUDIO_ROOMS.map((std) => {
+                      {studios.map((std) => {
                         const isSel = selectedStudio.id === std.id;
                         return (
                           <div
@@ -365,7 +501,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                           >
                             <div>
                               <div style={{ fontWeight: 600, color: '#604634', fontSize: '0.9rem' }}>{std.name}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#6E5F55' }}>Sức chứa: {std.capacity} người • {std.description.slice(0, 50)}...</div>
+                              <div style={{ fontSize: '0.75rem', color: '#6E5F55' }}>
+                                Sức chứa: {std.capacity} người • {std.description ? `${std.description.slice(0, 45)}...` : ''}
+                              </div>
                             </div>
                             {isSel && <Check size={18} color="#8C6E53" />}
                           </div>
@@ -376,53 +514,66 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                 </div>
 
                 <div>
-                  <label className="mipa-label">3. Kiểm tra Lịch Khả Dụng (Resource Scheduling Engine)</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="mipa-label">3. Kiểm tra Lịch Khả Dụng (Real Engine)</label>
+                    {isLoadingSlots && (
+                      <span style={{ fontSize: '0.75rem', color: '#8C6E53', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <RefreshCw size={12} className="animate-spin" /> Đang tính toán...
+                      </span>
+                    )}
+                  </div>
                   <p style={{ fontSize: '0.8rem', color: '#8C6E53', marginBottom: '0.8rem' }}>
-                    * Hệ thống tự động đồng bộ thời lượng gói ({selectedPackage.durationMinutes} phút) & kiểm tra lịch của Photographer + Makeup.
+                    * Tổng thời lượng buổi chụp: <strong>{totalDurationMinutes} phút</strong> (Gói {selectedPackage.durationMinutes}p + Add-ons {pricing.totalDurationMinutes - selectedPackage.durationMinutes}p).
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {timeSlots.map((slot) => {
-                      const isSel = selectedTimeSlot === slot.time;
-                      const isBooked = slot.status === 'BOOKED';
-                      return (
-                        <button
-                          key={slot.time}
-                          disabled={isBooked}
-                          onClick={() => setSelectedTimeSlot(slot.time)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.8rem 1rem',
-                            borderRadius: '12px',
-                            border: isSel ? '2px solid #C6A45F' : '1px solid var(--mipa-beige)',
-                            backgroundColor: isBooked ? '#F3F4F6' : isSel ? '#FFFDF6' : '#FFFFFF',
-                            opacity: isBooked ? 0.5 : 1,
-                            cursor: isBooked ? 'not-allowed' : 'pointer',
-                            textAlign: 'left',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Clock size={16} color={isSel ? '#C6A45F' : '#8C6E53'} />
-                            <div>
-                              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#2C221E' }}>{slot.time}</span>
-                              <span style={{ fontSize: '0.8rem', color: '#6E5F55', marginLeft: '0.5rem' }}>({slot.label})</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '350px', overflowY: 'auto' }}>
+                    {availableSlots.length === 0 ? (
+                      <div style={{ padding: '1rem', textAlign: 'center', color: '#6E5F55', fontSize: '0.85rem' }}>
+                        Không có khung giờ khả dụng cho ngày này. Vui lòng chọn ngày khác.
+                      </div>
+                    ) : (
+                      availableSlots.map((slot) => {
+                        const isSel = selectedTimeSlot === slot.time;
+                        const isBooked = slot.status === 'BOOKED';
+                        return (
+                          <button
+                            key={slot.time}
+                            disabled={isBooked}
+                            onClick={() => setSelectedTimeSlot(slot.time)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '0.8rem 1rem',
+                              borderRadius: '12px',
+                              border: isSel ? '2px solid #C6A45F' : '1px solid var(--mipa-beige)',
+                              backgroundColor: isBooked ? '#F3F4F6' : isSel ? '#FFFDF6' : '#FFFFFF',
+                              opacity: isBooked ? 0.55 : 1,
+                              cursor: isBooked ? 'not-allowed' : 'pointer',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <Clock size={16} color={isSel ? '#C6A45F' : '#8C6E53'} />
+                              <div>
+                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#2C221E' }}>{slot.time}</span>
+                                <span style={{ fontSize: '0.8rem', color: '#6E5F55', marginLeft: '0.5rem' }}>({slot.label})</span>
+                              </div>
                             </div>
-                          </div>
 
-                          <div>
-                            {isBooked ? (
-                              <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>Hết chỗ ({slot.reason})</span>
-                            ) : slot.tag ? (
-                              <span style={{ fontSize: '0.72rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 600 }}>{slot.tag}</span>
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>✓ Còn chỗ</span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+                            <div>
+                              {isBooked ? (
+                                <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>{slot.reason || 'Đã có lịch'}</span>
+                              ) : slot.tag ? (
+                                <span style={{ fontSize: '0.72rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 600 }}>{slot.tag}</span>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>✓ Còn chỗ</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -436,7 +587,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                 Chọn thêm dịch vụ đi kèm nâng cao trải nghiệm buổi chụp:
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                {INITIAL_ADDONS.map((addon) => {
+                {addons.map((addon) => {
                   const isChecked = selectedAddons.some(a => a.id === addon.id);
                   return (
                     <div
@@ -489,7 +640,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                     Gói <strong>{selectedPackage.name}</strong> ({selectedPackage.price.toLocaleString('vi-VN')}đ) + Add-ons ({addonTotal.toLocaleString('vi-VN')}đ)
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#8C6E53' }}>
-                    Tiền cọc giữ lịch bắt buộc (30%): <strong>{depositRequired.toLocaleString('vi-VN')}đ</strong>
+                    Tiền cọc giữ lịch bắt buộc (30%): <strong>{depositAmount.toLocaleString('vi-VN')}đ</strong>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -526,7 +677,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                     placeholder="090x xxx xxx..."
                   />
                   <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.3rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <ShieldCheck size={14} /> Tự động khởi tạo / liên kết Hồ sơ Khách hàng VIP theo SĐT này (Không bắt buộc tạo mật khẩu phức tạp).
+                    <ShieldCheck size={14} /> Hồ sơ Khách hàng liên kết theo SĐT này.
                   </div>
                 </div>
                 <div>
@@ -585,7 +736,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                 </div>
                 {isVoucherApplied && (
                   <div style={{ marginTop: '0.5rem', color: '#047857', fontSize: '0.82rem', fontWeight: 600 }}>
-                    ✓ Đã áp dụng voucher thành công! Giảm: -{discountAmount.toLocaleString('vi-VN')}đ
+                    ✓ Đã áp dụng voucher thành công! Giảm: -{discountTotal.toLocaleString('vi-VN')}đ
                   </div>
                 )}
               </div>
@@ -610,7 +761,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6E5F55' }}>Thời gian:</span>
-                      <strong>{selectedDate} • {selectedTimeSlot} (120 phút)</strong>
+                      <strong>{selectedDate} • {selectedTimeSlot} ({totalDurationMinutes} phút)</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6E5F55' }}>Không gian chụp:</span>
@@ -635,15 +786,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                       <span>Tổng tiền Add-ons:</span>
                       <span>+{addonTotal.toLocaleString('vi-VN')}đ</span>
                     </div>
-                    {discountAmount > 0 && (
+                    {discountTotal > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#047857' }}>
                         <span>Voucher giảm giá:</span>
-                        <span>-{discountAmount.toLocaleString('vi-VN')}đ</span>
+                        <span>-{discountTotal.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, color: '#604634', marginTop: '0.5rem' }}>
                       <span>Tổng tiền dịch vụ:</span>
-                      <span>{grandTotal.toLocaleString('vi-VN')}đ</span>
+                      <span>{totalAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
 
                     <div style={{
@@ -658,7 +809,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                       alignItems: 'center',
                     }}>
                       <span>TIỀN CỌC GIỮ LỊCH (30%):</span>
-                      <span style={{ fontSize: '1.2rem' }}>{depositRequired.toLocaleString('vi-VN')}đ</span>
+                      <span style={{ fontSize: '1.2rem' }}>{depositAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
                   </div>
                 </div>
@@ -668,7 +819,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                   <div style={{ padding: '1rem', backgroundColor: '#F8F3E6', borderRadius: '16px', border: '1px solid #C6A45F', textAlign: 'center' }}>
                     <h5 style={{ fontSize: '0.95rem', color: '#604634', marginBottom: '0.5rem' }}>Quét Mã VietQR Thanh Toán Cọc</h5>
                     
-                    {/* Simulated VietQR Generator Image */}
                     <div style={{
                       width: '170px',
                       height: '170px',
@@ -684,7 +834,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                       position: 'relative',
                     }}>
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MAISON_MIPA_DEPOSIT_${depositRequired}_${customerName}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MAISON_MIPA_DEPOSIT_${depositAmount}_${encodeURIComponent(customerName)}`}
                         alt="QR Code"
                         style={{ width: '140px', height: '140px' }}
                       />
@@ -707,11 +857,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                     style={{ width: '100%', padding: '0.9rem', fontSize: '1rem' }}
                   >
                     {isSubmitting ? (
-                      <span>Đang xác nhận tiền cọc...</span>
+                      <span>Đang xác nhận đặt lịch...</span>
                     ) : (
                       <>
                         <ShieldCheck size={18} />
-                        XÁC NHẬN ĐÃ CHUYỂN CỌC ({depositRequired.toLocaleString('vi-VN')}đ)
+                        XÁC NHẬN ĐÃ CHUYỂN CỌC ({depositAmount.toLocaleString('vi-VN')}đ)
                       </>
                     )}
                   </button>
@@ -793,7 +943,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
           }}>
             {step > 1 ? (
               <button
-                onClick={() => setStep(step - 1)}
+                onClick={() => { setErrorMessage(null); setStep(step - 1); }}
                 className="btn-mipa-secondary"
                 style={{ fontSize: '0.85rem' }}
               >
@@ -806,11 +956,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ isOpen, onClose, o
                 Tạm tính: {subtotal.toLocaleString('vi-VN')}đ
               </span>
               <button
-                onClick={() => setStep(step + 1)}
+                onClick={() => {
+                  setErrorMessage(null);
+                  if (step === 6) {
+                    handleConfirmAndPay();
+                  } else {
+                    setStep(step + 1);
+                  }
+                }}
+                disabled={isSubmitting}
                 className="btn-mipa-primary"
                 style={{ fontSize: '0.85rem' }}
               >
-                {step === 6 ? 'Tiến Hành Đặt Cọc' : 'Tiếp Theo'} <ChevronRight size={16} />
+                {step === 6 ? 'Xác Nhận Đặt Lịch' : 'Tiếp Theo'} <ChevronRight size={16} />
               </button>
             </div>
           </div>

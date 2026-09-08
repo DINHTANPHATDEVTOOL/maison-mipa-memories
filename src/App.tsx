@@ -1,9 +1,12 @@
 // ==============================================================================
 // Maison MIPA Memories - App Component with Production Auth & RBAC
 // ==============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { User, UserRole, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
+import { getBookings, updateBookingStatus, assignBookingStaff } from './services/bookingService';
+import { getStudioRooms, getEmployees } from './services/catalogService';
+import { isSupabaseConfigured } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -32,10 +35,33 @@ function AppContent() {
   const [authTargetMessage, setAuthTargetMessage] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Main system state
+  // Main system state with backend persistence
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [studios, setStudios] = useState(INITIAL_STUDIO_ROOMS);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    let active = true;
+    async function initData() {
+      try {
+        const [bks, stds, emps] = await Promise.all([
+          getBookings(),
+          getStudioRooms(),
+          getEmployees(),
+        ]);
+        if (active) {
+          if (bks.length > 0) setBookings(bks);
+          if (stds.length > 0) setStudios(stds);
+          if (emps.length > 0) setEmployees(emps);
+        }
+      } catch (e) {
+        console.warn('Initial data fetch error:', e);
+      }
+    }
+    initData();
+    return () => { active = false; };
+  }, []);
 
   const handleOpenAuthModal = (tab: 'LOGIN' | 'REGISTER' = 'LOGIN', msg?: string) => {
     setAuthInitialTab(tab);
@@ -114,46 +140,34 @@ function AppContent() {
   };
 
   const handleBookingSuccess = (newBooking: Booking) => {
-    setBookings([newBooking, ...bookings]);
+    setBookings(prev => [newBooking, ...prev.filter(b => b.id !== newBooking.id)]);
   };
 
-  const handleUpdateStatus = (bookingId: string, newStatus: BookingStatus, note?: string) => {
-    setBookings(prev => prev.map(b => {
-      if (b.id === bookingId) {
-        return {
-          ...b,
-          bookingStatus: newStatus,
-          staffNote: note ? `${b.staffNote || ''} [${new Date().toLocaleTimeString('vi-VN')}]: ${note}` : b.staffNote,
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      return b;
-    }));
+  const handleUpdateStatus = async (bookingId: string, newStatus: BookingStatus, note?: string) => {
+    try {
+      const updated = await updateBookingStatus(bookingId, newStatus, note);
+      setBookings(prev => prev.map(b => (b.id === bookingId || b.bookingCode === bookingId ? updated : b)));
+    } catch (err: any) {
+      alert(`Không thể cập nhật trạng thái: ${err.message}`);
+    }
   };
 
-  const handleAssignStaff = (bookingId: string, employeeId: string) => {
-    const employee = employees.find(e => e.id === employeeId);
-    if (!employee) return;
-
-    setBookings(prev => prev.map(b => {
-      if (b.id === bookingId) {
-        const newAssignment = {
-          id: `as_${Date.now()}`,
-          bookingId,
-          employeeId: employee.id,
-          employeeName: employee.name,
-          assignmentRole: employee.role,
-          startTime: b.startTime,
-          endTime: b.endTime,
-        };
-        return {
-          ...b,
-          assignments: [...b.assignments.filter(a => a.assignmentRole !== employee.role), newAssignment],
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      return b;
-    }));
+  const handleAssignStaff = async (bookingId: string, employeeId: string) => {
+    try {
+      const asg = await assignBookingStaff(bookingId, employeeId);
+      setBookings(prev => prev.map(b => {
+        if (b.id === bookingId || b.bookingCode === bookingId) {
+          return {
+            ...b,
+            assignments: [...b.assignments.filter(a => a.assignmentRole !== asg.assignmentRole), asg],
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return b;
+      }));
+    } catch (err: any) {
+      alert(`Không thể phân công nhân viên: ${err.message}`);
+    }
   };
 
   // Search filter
@@ -441,6 +455,7 @@ function AppContent() {
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
         onBookingSuccess={handleBookingSuccess}
+        existingBookings={bookings}
       />
 
       {/* Real Auth Modal (Login & Register) */}
