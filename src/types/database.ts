@@ -589,6 +589,124 @@ export interface Database {
           }
         ];
       };
+      otp_challenges: {
+        Row: {
+          id: string;
+          phone: string;
+          phone_hash: string;
+          purpose: 'LOGIN' | 'REGISTER' | 'VERIFY_PHONE' | 'SENSITIVE_ACTION';
+          otp_hash: string;
+          expires_at: string;
+          attempts: number;
+          max_attempts: number;
+          resend_after: string;
+          consumed_at: string | null;
+          ip_fingerprint: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          phone: string;
+          phone_hash: string;
+          purpose: 'LOGIN' | 'REGISTER' | 'VERIFY_PHONE' | 'SENSITIVE_ACTION';
+          otp_hash: string;
+          expires_at?: string;
+          attempts?: number;
+          max_attempts?: number;
+          resend_after?: string;
+          consumed_at?: string | null;
+          ip_fingerprint?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          phone?: string;
+          phone_hash?: string;
+          purpose?: 'LOGIN' | 'REGISTER' | 'VERIFY_PHONE' | 'SENSITIVE_ACTION';
+          otp_hash?: string;
+          expires_at?: string;
+          attempts?: number;
+          max_attempts?: number;
+          resend_after?: string;
+          consumed_at?: string | null;
+          ip_fingerprint?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          booking_id: string;
+          payment_type: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
+          method: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          status: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
+          amount: number;
+          currency: string;
+          provider: string;
+          provider_reference: string | null;
+          idempotency_key: string | null;
+          transfer_reference: string;
+          transfer_submitted_at: string | null;
+          paid_at: string | null;
+          failed_at: string | null;
+          expired_at: string | null;
+          refunded_at: string | null;
+          metadata: unknown;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          payment_type?: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
+          method?: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
+          amount: number;
+          currency?: string;
+          provider?: string;
+          provider_reference?: string | null;
+          idempotency_key?: string | null;
+          transfer_reference: string;
+          transfer_submitted_at?: string | null;
+          paid_at?: string | null;
+          failed_at?: string | null;
+          expired_at?: string | null;
+          refunded_at?: string | null;
+          metadata?: unknown;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          payment_type?: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
+          method?: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
+          amount?: number;
+          currency?: string;
+          provider?: string;
+          provider_reference?: string | null;
+          idempotency_key?: string | null;
+          transfer_reference?: string;
+          transfer_submitted_at?: string | null;
+          paid_at?: string | null;
+          failed_at?: string | null;
+          expired_at?: string | null;
+          refunded_at?: string | null;
+          metadata?: unknown;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payments_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -632,6 +750,26 @@ export interface Database {
         };
         Returns: unknown;
       };
+      create_deposit_payment: {
+        Args: {
+          p_booking_id: string;
+          p_method?: string;
+        };
+        Returns: unknown;
+      };
+      mark_transfer_submitted: {
+        Args: {
+          p_payment_id: string;
+        };
+        Returns: unknown;
+      };
+      confirm_manual_payment: {
+        Args: {
+          p_payment_id: string;
+          p_note?: string | null;
+        };
+        Returns: unknown;
+      };
     };
     Enums: {
       user_role: DatabaseRole;
@@ -656,3 +794,13 @@ export type BookingRow = Database['public']['Tables']['bookings']['Row'];
 export type BookingAddonRow = Database['public']['Tables']['booking_addons']['Row'];
 export type BookingAssignmentRow = Database['public']['Tables']['booking_assignments']['Row'];
 export type AuditLogRow = Database['public']['Tables']['audit_logs']['Row'];
+export type OtpChallengeRow = Database['public']['Tables']['otp_challenges']['Row'];
+export type PaymentRow = Database['public']['Tables']['payments']['Row'];
+export type PaymentInsert = Database['public']['Tables']['payments']['Insert'];
+export type PaymentUpdate = Database['public']['Tables']['payments']['Update'];
+
+export type PaymentStatus = PaymentRow['status'];
+export type PaymentMethod = PaymentRow['method'];
+export type PaymentType = PaymentRow['payment_type'];
+export type OtpPurpose = OtpChallengeRow['purpose'];
+

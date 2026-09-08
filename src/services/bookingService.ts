@@ -55,6 +55,20 @@ export function getInMemoryBookings(): Booking[] {
   return inMemoryBookings;
 }
 
+export const getBookingsInMemory = getInMemoryBookings;
+
+export function updateBookingInMemory(bookingId: string, updates: Partial<Booking>): Booking | null {
+  const index = inMemoryBookings.findIndex(b => b.id === bookingId || b.bookingCode === bookingId);
+  if (index === -1) return null;
+  inMemoryBookings[index] = {
+    ...inMemoryBookings[index],
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  return inMemoryBookings[index];
+}
+
+
 /**
  * Creates a new booking with database-level anti-double-booking protection
  * and authoritative server-side price calculation.
