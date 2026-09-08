@@ -1,32 +1,88 @@
-# React + TypeScript + Vite
+# Maison MIPA Memories 📸
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> Studio Chụp Ảnh Phong Cách Pháp & Nền Tảng Đặt Lịch Online
 
-Currently, two official plugins are available:
+![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?logo=vite)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)
+![AI Code Review](https://img.shields.io/badge/AI%20Review-GPT--4o-00A67E?logo=openai)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Maison MIPA Memories là nền tảng web ứng dụng dành cho studio chụp ảnh phong cách Pháp ấm áp & tinh tế, tích hợp quy trình đặt lịch trực tuyến, quản lý lịch chụp, CRM khách hàng, và cổng thông tin dành cho Staff / Admin / Khách hàng.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🤖 Tích Hợp AI & GPT Code Review
 
-## Expanding the Oxlint configuration
+Repository này được cấu hình sẵn để **GPT (ChatGPT, GitHub Actions, AI Agent)** có thể:
+1. **Tự động Review Pull Request**: Thông qua [GitHub Actions AI Code Review](.github/workflows/ai-code-review.yml).
+2. **Thao tác quyền đầy đủ (Đọc, Commit, Tạo PR, Merge)**: Cấp quyền qua GitHub Fine-grained Personal Access Token.
+3. **Tương tác trực tiếp qua CodeRabbit AI hoặc ChatGPT web**.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+👉 **Xem hướng dẫn chi tiết tại**: [GPT_INTEGRATION_GUIDE.md](GPT_INTEGRATION_GUIDE.md)
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+---
+
+## ✨ Tính Năng Nổi Bật
+
+- **Booking Wizard**: Quy trình đặt lịch chụp ảnh online 4 bước trực quan (chọn gói, dịch vụ thêm, chọn ngày/giờ, thông tin cá nhân & thanh toán cọc).
+- **Public Showcase**: Hero section sang trọng, danh mục dịch vụ (Couple, Portrait, Family, Graduation, Concept Signature), portfolio ảnh chất lượng cao.
+- **Portals Đa Vai Trò**:
+  - **Khách hàng**: Tra cứu lịch hẹn, trạng thái hợp đồng, link tải album ảnh.
+  - **Nhân viên (Staff)**: Xem lịch làm việc theo ngày, check-in buổi chụp, cập nhật trạng thái trả ảnh.
+  - **Quản lý (Admin & Manager)**: Studio calendar, doanh thu, thống kê, CRM khách hàng.
+- **State Machine & SMS Gateway Mock**: Mô phỏng gửi SMS xác nhận và quy trình xử lý đơn đặt lịch chuẩn.
+
+---
+
+## 🛠️ Công Nghệ Sử Dụng
+
+- **Frontend**: React 19, TypeScript
+- **Bundler**: Vite
+- **Styling**: Vanilla CSS (tối ưu hiệu năng, responsive mượt mà)
+- **Icons**: Lucide React
+- **Hiệu ứng**: Canvas Confetti
+- **Linter**: Oxlint
+
+---
+
+## 🚀 Khởi Chạy Dự Án
+
+### Cài đặt thư viện:
+```bash
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Chạy môi trường phát triển (Dev):
+```bash
+npm run dev
+```
+
+### Build cho môi trường sản phẩm:
+```bash
+npm run build
+```
+
+---
+
+## 📂 Cấu Trúc Thư Mục
+
+```
+├── public/                 # Favicon, robots.txt, sitemap, hình ảnh tĩnh
+├── src/
+│   ├── assets/             # Hình ảnh và media
+│   ├── components/         # Các components React (Navbar, Footer, Wizard, Portals)
+│   │   ├── admin/          # Giao diện Admin
+│   │   ├── auth/           # Modal đăng nhập / Demo role
+│   │   ├── booking/        # Wizard đặt lịch
+│   │   ├── customer/       # Giao diện khách hàng
+│   │   ├── management/     # CRM & Studio Calendar
+│   │   ├── public/         # Giao diện trang chủ (Hero, Packages, Portfolio...)
+│   │   └── staff/          # Giao diện nhân viên
+│   ├── types/              # TypeScript definitions
+│   ├── utils/              # State machine, SMS Gateway
+│   ├── App.tsx             # Component chính điều phối view
+│   └── main.tsx            # Entry point
+├── .github/workflows/      # GitHub Actions CI & AI Code Review
+└── GPT_INTEGRATION_GUIDE.md # Hướng dẫn cấp quyền và tương tác với GPT
+```

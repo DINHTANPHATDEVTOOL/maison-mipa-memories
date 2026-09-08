@@ -1,0 +1,114 @@
+name: AI Code Review (GPT)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run GPT Code Review
+        uses: actions/github-script@v7
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          script: |
+            const apiKey = process.env.OPENAI_API_KEY;
+            if (!apiKey) {
+              console.log("No OPENAI_API_KEY found in GitHub Secrets. Skipping GPT review.");
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: "💡 **AI Code Reviewer**: Để kích hoạt review tự động bằng GPT, hãy thêm secret `OPENAI_API_KEY` vào **Settings > Secrets and variables > Actions** của repository này."
+              });
+              return;
+            }
+
+            const base = context.payload.pull_request.base.sha;
+            const head = context.payload.pull_request.head.sha;
+
+            const response = await github.rest.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base,
+              head
+            });
+
+            const files = response.data.files || [];
+            let diffSummary = "";
+            for (const file of files) {
+              if (file.filename.includes("package-lock.json") || file.filename.includes("dist/") || file.filename.endsWith(".png") || file.filename.endsWith(".svg")) continue;
+              diffSummary += `\n### File: ${file.filename} (${file.status})\n\`\`\`diff\n${file.patch || "Binary or large diff"}\n\`\`\`\n`;
+            }
+
+            if (!diffSummary.trim()) {
+              console.log("No reviewable code changes.");
+              return;
+            }
+
+            if (diffSummary.length > 30000) {
+              diffSummary = diffSummary.substring(0, 30000) + "\n... (diff truncated for length)";
+            }
+
+            const prompt = `Bạn là một Senior Tech Lead và AI Code Reviewer giàu kinh nghiệm. Hãy review Pull Request sau:
+            
+Title: ${context.payload.pull_request.title}
+Description: ${context.payload.pull_request.body || "No description provided."}
+
+Code Changes:
+${diffSummary}
+
+Hãy xuất bản nhận xét đánh giá chi tiết bằng tiếng Việt theo định dạng Markdown:
+1. 📋 **Tóm tắt thay đổi** (ngắn gọn 2-3 câu).
+2. 🔍 **Đánh giá chất lượng code** (Clean Code, Architecture, Performance, Security, UI/UX).
+3. ⚠️ **Các vấn đề tiềm ẩn / Bug / Cần cải thiện** (chỉ rõ file và dòng code nếu có).
+4. 💡 **Đề xuất cải tiến** (kèm ví dụ code nếu cần).
+5. 🎯 **Kết luận & Đánh giá**: (Approve / Needs Work / LGTM).`;
+
+            try {
+              const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                  model: "gpt-4o-mini",
+                  messages: [
+                    { role: "system", content: "You are a professional software engineering code review bot." },
+                    { role: "user", content: prompt }
+                  ],
+                  temperature: 0.3
+                })
+              });
+
+              if (!res.ok) {
+                const err = await res.text();
+                throw new Error(`OpenAI API error: ${res.status} ${err}`);
+              }
+
+              const data = await res.json();
+              const reviewText = data.choices[0].message.content;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `## 🤖 AI Code Review (GPT-4o-mini)\n\n${reviewText}\n\n---\n*Được review tự động bởi GitHub Actions AI Reviewer.*`
+              });
+              console.log("Review comment posted successfully.");
+            } catch (err) {
+              console.error("Failed to run GPT review:", err);
+            }
