@@ -1,5 +1,6 @@
 import type {
   User,
+  UserRole,
   ServiceCategory,
   PackageItem,
   Addon,

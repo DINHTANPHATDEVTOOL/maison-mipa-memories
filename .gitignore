@@ -26,3 +26,7 @@ dist-ssr
 # Archives and build artifacts
 *.zip
 dist.zip
+
+# Test outputs
+test-results/
+playwright-report/
