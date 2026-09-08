@@ -10,7 +10,17 @@ import { getAvailableSlots, getAvailableSlotsSync, type TimeSlot } from '../../s
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { calculatePricing } from '../../services/pricingService';
 import { createBooking, createBookingInMemory, BookingConflictError } from '../../services/bookingService';
-import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  createDepositPayment,
+  createDepositPaymentSync,
+  markTransferSubmitted,
+  markTransferSubmittedSync,
+  confirmManualPaymentSync,
+  subscribePaymentStatus,
+} from '../../services/paymentService';
+import { BANK_CONFIG, generateVietQrUrl } from '../../config/bankConfig';
+import type { PaymentRow } from '../../types/database';
+import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw, Copy, QrCode } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface BookingWizardProps {
@@ -64,7 +74,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Submission & Confirmation state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+  const [currentPayment, setCurrentPayment] = useState<PaymentRow | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+  const [isCopiedRef, setIsCopiedRef] = useState<boolean>(false);
+  const [isTransferSubmitted, setIsTransferSubmitted] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load catalog on mount
@@ -156,6 +170,38 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot]);
 
+  // Realtime subscription for payment status updates
+  useEffect(() => {
+    if (!isOpen || !currentPayment?.id) return;
+    const unsubscribe = subscribePaymentStatus(currentPayment.id, (updatedPay) => {
+      setCurrentPayment(updatedPay);
+      if (updatedPay.status === 'PAID') {
+        if (createdBooking) {
+          const finalB: Booking = {
+            ...createdBooking,
+            paymentStatus: 'DEPOSIT_PAID',
+            bookingStatus: 'CONFIRMED',
+          };
+          setConfirmedBooking(finalB);
+          onBookingSuccess(finalB);
+        }
+        setStep(7);
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#C6A45F', '#8C6E53', '#EFE6C9'],
+          });
+        } catch {}
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isOpen, currentPayment?.id, createdBooking, onBookingSuccess]);
+
   useEffect(() => {
     if (!isOpen) return;
     loadSlots();
@@ -182,57 +228,114 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   };
 
-  const handleConfirmAndPay = () => {
+  // Proceed from Step 5 to Step 6: Create Booking and Authoritative Payment
+  const handleProceedToPayment = async () => {
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const payload = {
+        serviceId: selectedService.id,
+        packageId: selectedPackage.id,
+        studioId: selectedStudio.id,
+        date: selectedDate,
+        timeSlot: selectedTimeSlot,
+        addonIds: selectedAddons.map(a => a.id),
+        voucherCode: isVoucherApplied ? voucherCode.trim().toUpperCase() : undefined,
+        customerName,
+        customerPhone,
+        customerEmail,
+        occasion,
+        customerNote,
+      };
+
+      if (!isSupabaseConfigured()) {
+        const newBooking = createBookingInMemory(payload);
+        setCreatedBooking(newBooking);
+        const payment = createDepositPaymentSync(newBooking.id, 'BANK_TRANSFER');
+        setCurrentPayment(payment);
+        setStep(6);
+        return;
+      }
+
+      const newBooking = await createBooking(payload);
+      setCreatedBooking(newBooking);
+
+      // Create backend-authoritative deposit payment
+      const payment = await createDepositPayment(newBooking.id, 'BANK_TRANSFER');
+      setCurrentPayment(payment);
+      setStep(6);
+    } catch (err: any) {
+      if (err instanceof BookingConflictError || err.name === 'BookingConflictError') {
+        setErrorMessage(`⚠️ TRÙNG LỊCH: ${err.message || 'Phòng studio đã có người đặt trong khung giờ này.'} Vui lòng quay lại Bước 3 để chọn khung giờ khác.`);
+      } else {
+        setErrorMessage(err.message || 'Không thể tạo đơn đặt lịch. Vui lòng kiểm tra lại thông tin.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 6: Customer clicks "Xác Nhận Đã Chuyển Cọc"
+  const handleConfirmTransfer = async () => {
+    if (!currentPayment) return;
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const executeBooking = async () => {
-      try {
-        const payload = {
-          serviceId: selectedService.id,
-          packageId: selectedPackage.id,
-          studioId: selectedStudio.id,
-          date: selectedDate,
-          timeSlot: selectedTimeSlot,
-          addonIds: selectedAddons.map(a => a.id),
-          voucherCode: isVoucherApplied ? voucherCode.trim().toUpperCase() : undefined,
-          customerName,
-          customerPhone,
-          customerEmail,
-          occasion,
-          customerNote,
-        };
+    // In offline / demo mode, emulate instant manager confirmation
+    if (!isSupabaseConfigured()) {
+      const updated = markTransferSubmittedSync(currentPayment.id);
+      setCurrentPayment(updated);
+      setIsTransferSubmitted(true);
 
-        const newBooking = isSupabaseConfigured()
-          ? await createBooking(payload)
-          : createBookingInMemory(payload);
-
-        setConfirmedBooking(newBooking);
-        setStep(7); // Final success step
-
-        // Launch celebration confetti
+      setTimeout(() => {
         try {
-          confetti({
-            particleCount: 120,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#C6A45F', '#8C6E53', '#EFE6C9'],
-          });
-        } catch {}
-
-        onBookingSuccess(newBooking);
-      } catch (err: any) {
-        if (err instanceof BookingConflictError || err.name === 'BookingConflictError') {
-          setErrorMessage(`⚠️ TRÙNG LỊCH: ${err.message || 'Phòng studio đã có người đặt trong khung giờ này.'} Vui lòng quay lại Bước 3 để chọn khung giờ khác.`);
-        } else {
-          setErrorMessage(err.message || 'Không thể tạo đơn đặt lịch. Vui lòng kiểm tra lại thông tin.');
+          const confirmedPay = confirmManualPaymentSync(currentPayment.id, 'Tự động duyệt cọc (Chế độ Thử nghiệm)');
+          setCurrentPayment(confirmedPay);
+          if (createdBooking) {
+            const finalB: Booking = {
+              ...createdBooking,
+              paymentStatus: 'DEPOSIT_PAID',
+              bookingStatus: 'CONFIRMED',
+            };
+            setConfirmedBooking(finalB);
+            onBookingSuccess(finalB);
+          }
+          setStep(7);
+          try {
+            confetti({
+              particleCount: 120,
+              spread: 80,
+              origin: { y: 0.6 },
+              colors: ['#C6A45F', '#8C6E53', '#EFE6C9'],
+            });
+          } catch {}
+        } catch (e: any) {
+          console.warn('Auto confirmation error:', e);
+        } finally {
+          setIsSubmitting(false);
         }
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
+      }, 50);
+      return;
+    }
 
-    setTimeout(executeBooking, 50);
+    try {
+      const updated = await markTransferSubmitted(currentPayment.id);
+      setCurrentPayment(updated);
+      setIsTransferSubmitted(true);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Không thể ghi nhận thông tin chuyển khoản.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyTransferRef = () => {
+    const textToCopy = currentPayment?.transfer_reference || `MIPA ${customerPhone}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      setIsCopiedRef(true);
+      setTimeout(() => setIsCopiedRef(false), 2000);
+    }
   };
 
   return (
@@ -755,10 +858,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <h4 style={{ fontSize: '1.2rem', color: '#604634', margin: 0 }}>{selectedService.name}</h4>
                       <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontWeight: 600 }}>{selectedPackage.name}</span>
                     </div>
-                    <span className="badge-status badge-pending">CHỜ ĐẶT CỌC</span>
+                    {currentPayment?.status === 'PAID' ? (
+                      <span className="badge-status badge-confirmed">ĐÃ NHẬN CỌC</span>
+                    ) : isTransferSubmitted ? (
+                      <span className="badge-status badge-pending" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>CHỜ ĐỐI SOÁT</span>
+                    ) : (
+                      <span className="badge-status badge-pending">CHỜ ĐẶT CỌC</span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6E5F55' }}>Mã đặt lịch:</span>
+                      <strong>{createdBooking?.bookingCode || 'Đang tạo...'}</strong>
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6E5F55' }}>Thời gian:</span>
                       <strong>{selectedDate} • {selectedTimeSlot} ({totalDurationMinutes} phút)</strong>
@@ -809,15 +922,22 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       alignItems: 'center',
                     }}>
                       <span>TIỀN CỌC GIỮ LỊCH (30%):</span>
-                      <span style={{ fontSize: '1.2rem' }}>{depositAmount.toLocaleString('vi-VN')}đ</span>
+                      <span style={{ fontSize: '1.2rem' }}>
+                        {(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* QR Code / Payment Gateway Simulation */}
+                {/* Bank Transfer & VietQR Payment Box */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div style={{ padding: '1rem', backgroundColor: '#F8F3E6', borderRadius: '16px', border: '1px solid #C6A45F', textAlign: 'center' }}>
-                    <h5 style={{ fontSize: '0.95rem', color: '#604634', marginBottom: '0.5rem' }}>Quét Mã VietQR Thanh Toán Cọc</h5>
+                    <h5 style={{ fontSize: '0.95rem', color: '#604634', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                      <QrCode size={18} color="#8C6E53" /> Quét Mã VietQR Thanh Toán Cọc
+                    </h5>
+                    <div style={{ fontSize: '0.75rem', color: '#8C6E53', marginBottom: '0.6rem' }}>
+                      Tự động điền số tài khoản, số tiền & cú pháp đối soát chính xác
+                    </div>
                     
                     <div style={{
                       width: '170px',
@@ -834,34 +954,78 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       position: 'relative',
                     }}>
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MAISON_MIPA_DEPOSIT_${depositAmount}_${encodeURIComponent(customerName)}`}
-                        alt="QR Code"
-                        style={{ width: '140px', height: '140px' }}
+                        src={generateVietQrUrl(
+                          currentPayment?.amount || depositAmount,
+                          currentPayment?.transfer_reference || `MIPA ${customerPhone}`
+                        )}
+                        alt="Maison MIPA VietQR Code"
+                        style={{ width: '140px', height: '140px', objectFit: 'contain' }}
                       />
-                      <div style={{ position: 'absolute', background: '#604634', color: '#FFF', fontSize: '0.55rem', padding: '1px 6px', borderRadius: '4px' }}>
-                        MIPA QR
+                      <div style={{ position: 'absolute', bottom: '4px', background: '#604634', color: '#FFF', fontSize: '0.52rem', padding: '1px 6px', borderRadius: '4px' }}>
+                        MIPA VIETQR
                       </div>
                     </div>
 
-                    <div style={{ fontSize: '0.8rem', color: '#604634', marginTop: '0.5rem' }}>
-                      Ngân hàng: <strong>MB BANK — Maison MIPA</strong><br />
-                      Số tài khoản: <strong>8888 6666 9999</strong><br />
-                      Nội dung: <strong>COC {customerPhone}</strong>
+                    <div style={{ fontSize: '0.8rem', color: '#604634', marginTop: '0.5rem', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.75rem', borderRadius: '10px', border: '1px solid #EFE6C9' }}>
+                      <div>Ngân hàng: <strong>{BANK_CONFIG.bankName}</strong></div>
+                      <div>Số tài khoản: <strong>{BANK_CONFIG.accountNumber}</strong></div>
+                      <div>Chủ tài khoản: <strong>{BANK_CONFIG.accountName}</strong></div>
+                      <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FEF3C7', padding: '0.35rem 0.5rem', borderRadius: '6px' }}>
+                        <span>Nội dung CK: <strong style={{ color: '#B45309' }}>{currentPayment?.transfer_reference || `MIPA ${customerPhone}`}</strong></span>
+                        <button
+                          type="button"
+                          onClick={handleCopyTransferRef}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#92400E',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.2rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <Copy size={13} /> {isCopiedRef ? 'Đã sao chép!' : 'Sao chép'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
+                  {isTransferSubmitted && currentPayment?.status === 'PENDING' && (
+                    <div style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#FEF3C7',
+                      borderRadius: '10px',
+                      color: '#92400E',
+                      fontSize: '0.82rem',
+                      textAlign: 'center',
+                      border: '1px solid #FCD34D',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                    }}>
+                      <RefreshCw size={16} className="animate-spin" />
+                      <span>Đã gửi thông tin chuyển khoản. Đang chờ Studio đối soát & xác nhận...</span>
+                    </div>
+                  )}
+
                   <button
                     disabled={isSubmitting}
-                    onClick={handleConfirmAndPay}
+                    onClick={handleConfirmTransfer}
                     className="btn-mipa-gold"
                     style={{ width: '100%', padding: '0.9rem', fontSize: '1rem' }}
                   >
                     {isSubmitting ? (
-                      <span>Đang xác nhận đặt lịch...</span>
+                      <span>Đang xử lý thông tin...</span>
+                    ) : isTransferSubmitted ? (
+                      <span>ĐÃ GỬI XÁC NHẬN • CHỜ STUDIO XÁC NHẬN</span>
                     ) : (
                       <>
                         <ShieldCheck size={18} />
-                        XÁC NHẬN ĐÃ CHUYỂN CỌC ({depositAmount.toLocaleString('vi-VN')}đ)
+                        XÁC NHẬN ĐÃ CHUYỂN CỌC ({(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ)
                       </>
                     )}
                   </button>
@@ -958,8 +1122,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               <button
                 onClick={() => {
                   setErrorMessage(null);
-                  if (step === 6) {
-                    handleConfirmAndPay();
+                  if (step === 5) {
+                    handleProceedToPayment();
+                  } else if (step === 6) {
+                    handleConfirmTransfer();
                   } else {
                     setStep(step + 1);
                   }

@@ -99,6 +99,7 @@ VITE_ENABLE_DEMO_MODE=false
 ### 2. Chuỗi Migration:
 - Migration #1: `supabase/migrations/20260908000001_auth_rbac_schema.sql` (Auth, Profiles, RBAC, RLS).
 - Migration #2: `supabase/migrations/20260908000002_booking_persistence_schema.sql` (Services, Packages, Addons, Studio Rooms, Bookings, Anti-Double-Booking Exclusion Constraint, Authoritative RPC `create_booking`).
+- Migration #3: `supabase/migrations/20260908000003_otp_payment_schema.sql` (OTP Challenges with attempt locks/expiry, Payments table with backend-enforced amounts, RPC `create_deposit_payment`, `mark_transfer_submitted`, and idempotent `confirm_manual_payment`).
 
 ### 3. Thiết Lập Local Supabase & Reset Database:
 ```bash
@@ -112,7 +113,24 @@ npx supabase migration up
 npx supabase db reset
 ```
 
-### 4. Cơ Chế Chống Double-Booking (P0):
+### 4. Supabase Edge Functions & Server Secrets (Issue #3):
+Hệ thống sử dụng các Edge Functions server-side đảm bảo tuyệt đối không lộ API key/secret và không để client tự tạo/so sánh OTP:
+- `supabase/functions/request-otp/`: Tạo OTP 6 số CSPRNG, hash SHA-256 kèm server pepper, kiểm tra rate limit & cooldown 60s, dispatch qua SMS Provider (eSMS / SpeedSMS).
+- `supabase/functions/verify-otp/`: Xác thực OTP, khóa challenge sau 5 lần nhập sai, kiểm tra hạn 5 phút và chống dùng lại mã đã tiêu thụ.
+- `supabase/functions/payment-webhook/`: Xác thực chữ ký HMAC-SHA256, kiểm tra số tiền cọc, bảo vệ chống replay và cập nhật trạng thái đơn đặt lịch sang `DEPOSIT_PAID` một cách transaction-safe.
+
+Thiết lập secrets trên Supabase:
+```bash
+npx supabase secrets set \
+  SMS_PROVIDER=esms \
+  SMS_API_KEY=your_esms_key \
+  SMS_SECRET=your_esms_secret \
+  SMS_BRANDNAME=MIPA \
+  OTP_PEPPER=your_secure_server_pepper \
+  PAYMENT_WEBHOOK_SECRET=your_hmac_secret
+```
+
+### 5. Cơ Chế Chống Double-Booking (P0):
 Được bảo vệ trực tiếp ở tầng Database thông qua **PostgreSQL Exclusion Constraint**:
 ```sql
 ALTER TABLE public.bookings
@@ -125,7 +143,8 @@ WHERE (booking_status NOT IN ('CANCELLED'));
 ```
 - **Interval nửa mở `[)`**: Cho phép các ca chụp liền kề (10:00–11:00 và 11:00–12:00) hoạt động trơn tru.
 - **Filter `booking_status NOT IN ('CANCELLED')`**: Tự động giải phóng khung giờ khi đơn trước bị huỷ.
-- **RPC `create_booking`**: Tính toán giá dịch vụ, tiền cọc và thời lượng authoritatively trên server; client không thể giả mạo `totalAmount`.
+- **RPC `create_booking` & `create_deposit_payment`**: Tính toán giá dịch vụ, tiền cọc và thời lượng authoritatively trên server; client không thể giả mạo `totalAmount` hay `deposit_amount`.
+
 
 ---
 
