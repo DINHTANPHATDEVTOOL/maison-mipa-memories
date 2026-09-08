@@ -1,0 +1,15 @@
+# Robots.txt for Maison MIPA Memories
+User-agent: *
+Allow: /
+Allow: /services
+Allow: /packages
+Allow: /portfolio
+Allow: /booking
+
+# Protect Internal Management Portals
+Disallow: /admin
+Disallow: /management
+Disallow: /staff
+Disallow: /api/
+
+Sitemap: https://maisonmipa.io.vn/sitemap.xml

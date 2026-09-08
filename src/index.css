@@ -1,0 +1,398 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap');
+
+:root {
+  --mipa-cream: #EFE6C9;
+  --mipa-beige: #D9C9A5;
+  --mipa-brown: #8C6E53;
+  --mipa-dark-brown: #604634;
+  --mipa-gold: #C6A45F;
+  --mipa-background: #FFFDF6;
+  --mipa-white: #FFFFFF;
+  
+  --mipa-text-main: #2C221E;
+  --mipa-text-muted: #6E5F55;
+  --mipa-text-light: #A39385;
+  
+  --mipa-border: rgba(140, 110, 83, 0.18);
+  --mipa-border-hover: rgba(198, 164, 95, 0.5);
+  
+  --mipa-shadow-sm: 0 2px 8px rgba(96, 70, 52, 0.04);
+  --mipa-shadow-md: 0 10px 30px rgba(96, 70, 52, 0.08);
+  --mipa-shadow-lg: 0 20px 40px rgba(96, 70, 52, 0.12);
+  
+  --mipa-font-heading: 'Cormorant Garamond', Georgia, serif;
+  --mipa-font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--mipa-font-body);
+  background-color: var(--mipa-background);
+  color: var(--mipa-text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--mipa-background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--mipa-beige);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mipa-brown);
+}
+
+/* Headings */
+h1, h2, h3, h4, .font-heading {
+  font-family: var(--mipa-font-heading);
+  letter-spacing: -0.01em;
+  color: var(--mipa-dark-brown);
+}
+
+/* Luxury Buttons */
+.btn-mipa-primary {
+  background-color: var(--mipa-brown);
+  color: var(--mipa-background);
+  font-family: var(--mipa-font-body);
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(140, 110, 83, 0.25);
+  text-decoration: none;
+}
+
+.btn-mipa-primary:hover {
+  background-color: var(--mipa-dark-brown);
+  color: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(96, 70, 52, 0.35);
+}
+
+.btn-mipa-secondary {
+  background-color: transparent;
+  color: var(--mipa-dark-brown);
+  font-family: var(--mipa-font-body);
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mipa-brown);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-mipa-secondary:hover {
+  background-color: var(--mipa-cream);
+  border-color: var(--mipa-dark-brown);
+  transform: translateY(-1px);
+}
+
+.btn-mipa-gold {
+  background: linear-gradient(135deg, #C6A45F 0%, #D9C9A5 100%);
+  color: var(--mipa-dark-brown);
+  font-family: var(--mipa-font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.6rem;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(198, 164, 95, 0.3);
+}
+
+.btn-mipa-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(198, 164, 95, 0.45);
+}
+
+/* Glassmorphism Cards */
+.mipa-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--mipa-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--mipa-shadow-sm);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mipa-card:hover {
+  border-color: var(--mipa-border-hover);
+  box-shadow: var(--mipa-shadow-md);
+}
+
+.mipa-card-gold {
+  background: linear-gradient(145deg, #FFFDF6 0%, #F8F3E6 100%);
+  border: 1px solid rgba(198, 164, 95, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 25px rgba(198, 164, 95, 0.1);
+}
+
+/* Status Badges */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-draft { background: #F3F4F6; color: #4B5563; }
+.badge-pending { background: #FEF3C7; color: #92400E; }
+.badge-deposit { background: #E0E7FF; color: #3730A3; }
+.badge-confirmed { background: #D1FAE5; color: #065F46; }
+.badge-checkedin { background: #DDD6FE; color: #5B21B6; }
+.badge-shooting { background: #FCE7F3; color: #9D174D; border: 1px solid #F472B6; }
+.badge-completed { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+.badge-editing { background: #FEF3C7; color: #B45309; }
+.badge-ready { background: #DBEAFE; color: #1E40AF; }
+.badge-cancelled { background: #FEE2E2; color: #991B1B; }
+
+/* Custom Inputs */
+.mipa-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: rgba(255, 253, 246, 0.9);
+  border: 1px solid var(--mipa-beige);
+  border-radius: var(--radius-sm);
+  font-family: var(--mipa-font-body);
+  font-size: 0.9rem;
+  color: var(--mipa-text-main);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.mipa-input:focus {
+  border-color: var(--mipa-brown);
+  box-shadow: 0 0 0 3px rgba(140, 110, 83, 0.15);
+  background-color: #FFFFFF;
+}
+
+.mipa-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mipa-dark-brown);
+  margin-bottom: 0.35rem;
+}
+
+/* Custom Modal Backdrop */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 34, 30, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ensure strict zero horizontal overflow globally */
+html, body, #root {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  position: relative;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   MOBILE & TABLET / IPAD RESPONSIVE SYSTEM (320px - 1024px)
+   ========================================================================== */
+
+/* Utility Visibility Classes */
+@media (max-width: 768px) {
+  .mipa-mobile-hide,
+  .mipa-desktop-only {
+    display: none !important;
+  }
+  .mipa-mobile-show {
+    display: flex !important;
+  }
+  .mipa-card,
+  .mipa-card-gold {
+    transform: none !important;
+    padding: 1rem !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mipa-mobile-only {
+    display: none !important;
+  }
+  .mipa-mobile-show {
+    display: none !important;
+  }
+}
+
+/* Tablet & iPad (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .mipa-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .mipa-grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .mipa-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile Devices & Small Tablets (max-width: 768px) */
+@media (max-width: 768px) {
+  html {
+    font-size: 13px;
+  }
+
+  body {
+    padding-bottom: 3.5rem;
+  }
+
+  /* Structural Containers */
+  .mipa-container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .mipa-grid-4,
+  .mipa-grid-3,
+  .mipa-grid-2,
+  .mipa-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+
+  /* Responsive Headers */
+  h1, .hero-title {
+    font-size: 1.95rem !important;
+    line-height: 1.2 !important;
+  }
+  h2 {
+    font-size: 1.55rem !important;
+  }
+  h3 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Responsive Buttons */
+  .btn-mipa-primary,
+  .btn-mipa-secondary,
+  .btn-mipa-gold {
+    width: 100%;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+  }
+
+  /* Responsive Modals */
+  .modal-overlay {
+    padding: 0.5rem !important;
+    align-items: flex-end; /* Slide up like native mobile sheet */
+  }
+
+  .modal-content {
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    padding: 1.2rem !important;
+  }
+
+  /* Data Tables Mobile Touch Scroll */
+  .mipa-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Flex Wrap Controls */
+  .mipa-flex-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Top sub-bar for managers */
+  .mipa-manager-subbar {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    font-size: 0.78rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+}
+
+/* Extra Small Phones (max-width: 480px) */
+@media (max-width: 480px) {
+  h1, .hero-title {
+    font-size: 1.7rem !important;
+  }
+  .modal-overlay {
+    padding: 0.25rem !important;
+  }
+}
