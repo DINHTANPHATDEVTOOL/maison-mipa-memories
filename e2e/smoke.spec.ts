@@ -48,7 +48,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     // 1. Log in as customer
     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
-    await page.getByPlaceholder(/••••••••/i).fill('mipa123');
+    await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
 
     // Assert logged in
@@ -100,7 +100,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     // Login as CUSTOMER
     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
-    await page.getByPlaceholder(/••••••••/i).fill('mipa123');
+    await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
 
     // As Customer, user has access to "Lịch của tôi", but NOT to Staff Portal or Management

@@ -1,5 +1,8 @@
+// ==============================================================================
+// Maison MIPA Memories - Security Guards & Route Interceptor Tests
+// ==============================================================================
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { App } from '../../App';
 
@@ -24,7 +27,7 @@ describe('SecurityGuards and Access Control in App', () => {
     expect(screen.getByText(/Quý khách vui lòng Đăng Nhập/i)).toBeInTheDocument();
   });
 
-  it('allows authenticated customer to open Booking Wizard', () => {
+  it('allows authenticated customer to open Booking Wizard', async () => {
     render(<App />);
     // Open auth modal
     const loginBtn = screen.getByRole('button', { name: /Đăng Nhập/i });
@@ -34,32 +37,44 @@ describe('SecurityGuards and Access Control in App', () => {
     const identifierInput = screen.getByPlaceholderText(/Nhập email/i);
     const passwordInput = screen.getByPlaceholderText(/••••••••/i);
     fireEvent.change(identifierInput, { target: { value: 'minhanh.nguyen@gmail.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'mipa123' } });
+    fireEvent.change(passwordInput, { target: { value: 'securePass123' } });
 
     const submitBtn = screen.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i });
     fireEvent.click(submitBtn);
+
+    // Wait for login to complete and modal to close
+    await waitFor(() => {
+      expect(screen.queryByText(/MAISON MIPA MEMORIES AUTH/i)).not.toBeInTheDocument();
+    });
 
     // Now logged in as customer, click ĐẶT LỊCH
     const bookingButtons = screen.getAllByRole('button', { name: /ĐẶT LỊCH/i });
     fireEvent.click(bookingButtons[0]);
 
     // Booking Wizard is now open
-    expect(screen.getByText(/Bước 1\/6/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 1\/6/i)).toBeInTheDocument();
+    });
   });
 
-  it('prevents customer from unauthorized staff access and shows 403 alert', () => {
+  it('prevents customer from unauthorized staff access and shows 403 alert', async () => {
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     render(<App />);
 
     // Login as Customer
     fireEvent.click(screen.getByRole('button', { name: /Đăng Nhập/i }));
     fireEvent.change(screen.getByPlaceholderText(/Nhập email/i), { target: { value: 'minhanh.nguyen@gmail.com' } });
-    fireEvent.change(screen.getByPlaceholderText(/••••••••/i), { target: { value: 'mipa123' } });
+    fireEvent.change(screen.getByPlaceholderText(/••••••••/i), { target: { value: 'securePass123' } });
     fireEvent.click(screen.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }));
 
-    // Customer is now logged in. If customer tries to navigate to staff_portal:
-    // In Navbar, CUSTOMER does not have staff link, but trigger 403 via route security
-    // We can verify alertMock or route security interceptor
+    await waitFor(() => {
+      expect(screen.queryByText(/MAISON MIPA MEMORIES AUTH/i)).not.toBeInTheDocument();
+    });
+
+    // Customer is logged in and does not have access to staff or management portals in UI
+    expect(screen.queryByText(/Quản Lý Studio OS/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ca chụp & Lịch/i)).not.toBeInTheDocument();
+
     alertMock.mockRestore();
   });
 });

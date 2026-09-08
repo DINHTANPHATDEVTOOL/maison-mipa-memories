@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import type { User, UserRole } from '../types';
 import { CURRENT_USER_PROFILES, INITIAL_NOTIFICATIONS } from '../mockData';
-import { Camera, Search, Bell, Calendar, User as UserIcon, Shield, Briefcase, ChevronDown, Check, X, Lock, Key, LogOut, UserPlus, LogIn, Menu, LayoutDashboard, ShieldCheck, Home, Layers, Tag, Image as ImageIcon, Sparkles, Users, Sliders } from 'lucide-react';
+import { Camera, Search, Bell, Calendar, User as UserIcon, Shield, Briefcase, ChevronDown, X, LogOut, UserPlus, LogIn, Menu, LayoutDashboard, Home, Layers, Tag, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: User | null;
   currentRole: UserRole;
-  onRoleChange: (role: UserRole) => void;
+  onRoleChange?: (role: UserRole) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenBooking: () => void;
@@ -19,7 +19,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   currentRole,
-  onRoleChange,
+  onRoleChange: _onRoleChange,
   activeTab,
   setActiveTab,
   onOpenBooking,

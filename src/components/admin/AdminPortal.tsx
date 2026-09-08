@@ -80,7 +80,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [formFullName, setFormFullName] = useState<string>('');
   const [formPhone, setFormPhone] = useState<string>('');
   const [formEmail, setFormEmail] = useState<string>('');
-  const [formPassword, setFormPassword] = useState<string>('mipa123');
   const [formRole, setFormRole] = useState<UserRole>('CUSTOMER');
   const [formStaffRole, setFormStaffRole] = useState<StaffRole>('PHOTOGRAPHER');
   const [formError, setFormError] = useState<string>('');
@@ -95,7 +94,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setFormFullName('');
     setFormPhone('');
     setFormEmail('');
-    setFormPassword('mipa123');
     setFormRole('CUSTOMER');
     setFormStaffRole('PHOTOGRAPHER');
     setFormError('');
@@ -122,7 +120,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       phone: formPhone.trim() || '0900 000 000',
       role: formRole,
       staffRole: formRole === 'STAFF' ? formStaffRole : undefined,
-      password: formPassword.trim() || 'mipa123',
       status: 'ACTIVE',
       avatar: formRole === 'STAFF'
         ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
@@ -143,7 +140,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setFormFullName(u.fullName);
     setFormPhone(u.phone);
     setFormEmail(u.email);
-    setFormPassword(u.password || 'mipa123');
     setFormRole(u.role);
     setFormStaffRole(u.staffRole || 'PHOTOGRAPHER');
     setFormError('');
@@ -165,7 +161,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           fullName: formFullName.trim(),
           phone: formPhone.trim(),
           email: formEmail.trim(),
-          password: formPassword.trim() || 'mipa123',
           role: formRole,
           staffRole: formRole === 'STAFF' ? formStaffRole : u.staffRole,
         };
@@ -792,15 +787,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </div>
                 )}
 
-                <div>
-                  <label className="mipa-label">Mật Khẩu Ban Đầu (Mặc định: mipa123):</label>
-                  <input
-                    type="password"
-                    className="mipa-input"
-                    value={formPassword}
-                    onChange={(e) => setFormPassword(e.target.value)}
-                    placeholder="mipa123"
-                  />
+                <div style={{ backgroundColor: '#F8F3E6', padding: '0.6rem 0.8rem', borderRadius: '10px', fontSize: '0.78rem', color: '#8C6E53' }}>
+                  🔒 Mật khẩu và thông tin đăng nhập sẽ được gửi qua email kích hoạt an toàn của hệ thống.
                 </div>
 
                 {formError && (
@@ -901,14 +889,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </div>
                 )}
 
-                <div>
-                  <label className="mipa-label">Đổi Mật Khẩu (Để trống nếu giữ nguyên):</label>
-                  <input
-                    type="password"
-                    className="mipa-input"
-                    value={formPassword}
-                    onChange={(e) => setFormPassword(e.target.value)}
-                  />
+                <div style={{ backgroundColor: '#F8F3E6', padding: '0.6rem 0.8rem', borderRadius: '10px', fontSize: '0.78rem', color: '#8C6E53' }}>
+                  🔒 Đặt lại mật khẩu được gửi qua email an toàn theo tiêu chuẩn bảo mật hệ thống.
                 </div>
 
                 {formError && (
