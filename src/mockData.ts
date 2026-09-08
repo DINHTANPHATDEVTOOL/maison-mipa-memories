@@ -176,6 +176,15 @@ export const INITIAL_SERVICES: ServiceCategory[] = [
     icon: 'Gift',
     image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80',
   },
+  {
+    id: 'srv_graduation',
+    name: 'Graduation & Concept',
+    slug: 'graduation',
+    description: 'Bộ ảnh kỷ yếu tốt nghiệp thanh xuân với phong cách hiện đại, trẻ trung, lưu giữ dấu ấn rực rỡ của tuổi trẻ.',
+    icon: 'Sparkles',
+    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
+    badge: 'Trending',
+  },
 ];
 
 export const INITIAL_PACKAGES: PackageItem[] = [

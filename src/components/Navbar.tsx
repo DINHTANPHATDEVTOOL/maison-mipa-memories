@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { User, UserRole } from '../types';
 import { CURRENT_USER_PROFILES, INITIAL_NOTIFICATIONS } from '../mockData';
 import { Camera, Search, Bell, Calendar, User as UserIcon, Shield, Briefcase, ChevronDown, X, LogOut, UserPlus, LogIn, Menu, LayoutDashboard, Home, Layers, Tag, Image as ImageIcon, Sparkles } from 'lucide-react';
 
-interface NavbarProps {
+export interface NavbarProps {
   currentUser: User | null;
   currentRole: UserRole;
   onRoleChange?: (role: UserRole) => void;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
   onOpenBooking: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -19,9 +20,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   currentRole,
-  onRoleChange: _onRoleChange,
-  activeTab,
-  setActiveTab,
+  activeTab: _legacyActiveTab,
+  setActiveTab: legacySetActiveTab,
   onOpenBooking,
   searchQuery,
   setSearchQuery,
@@ -31,6 +31,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const displayUser = currentUser || CURRENT_USER_PROFILES.GUEST;
 
@@ -42,44 +45,44 @@ export const Navbar: React.FC<NavbarProps> = ({
     ADMIN: { label: 'Quản trị viên (Admin)', icon: Shield, color: '#9D174D' },
   };
 
-  // Dynamic Navigation Links: Structured cleanly per role with Lucide SVG Icons
+  // Structured real URL paths per role
   const getNavLinksForRole = (role: UserRole) => {
     switch (role) {
       case 'GUEST':
         return [
-          { id: 'home', label: 'Trang chủ', icon: Home },
-          { id: 'services', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', label: 'Portfolio', icon: ImageIcon },
+          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
+          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
+          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
+          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
         ];
       case 'CUSTOMER':
         return [
-          { id: 'customer_portal', label: 'Lịch của tôi', icon: Sparkles, isHighlight: true },
-          { id: 'home', label: 'Trang chủ', icon: Home },
-          { id: 'services', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', label: 'Portfolio', icon: ImageIcon },
+          { id: 'customer_portal', to: '/account', label: 'Lịch của tôi', icon: Sparkles, isHighlight: true },
+          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
+          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
+          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
+          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
         ];
       case 'STAFF':
         return [
-          { id: 'staff_portal', label: 'Ca chụp & Lịch', icon: Calendar, isHighlight: true },
-          { id: 'home', label: 'Trang chủ Studio', icon: Home },
-          { id: 'services', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', label: 'Bảng giá', icon: Tag },
+          { id: 'staff_portal', to: '/staff', label: 'Ca chụp & Lịch', icon: Calendar, isHighlight: true },
+          { id: 'home', to: '/', label: 'Trang chủ Studio', icon: Home },
+          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
+          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
         ];
       case 'MANAGER':
       case 'ADMIN':
         return [
-          { id: 'home', label: 'Trang chủ', icon: Home },
-          { id: 'services', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', label: 'Portfolio', icon: ImageIcon },
-          { 
-            id: 'manager_dashboard', 
-            label: 'Quản Lý Studio OS', 
-            icon: LayoutDashboard, 
+          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
+          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
+          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
+          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
+          {
+            id: 'manager_dashboard',
+            to: '/management',
+            label: 'Quản Lý Studio OS',
+            icon: LayoutDashboard,
             isHighlight: true,
-            isManagementGroup: true 
           },
         ];
       default:
@@ -88,6 +91,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const navLinks = getNavLinksForRole(currentRole);
+
+  const isRouteActive = (to: string) => {
+    if (to === '/') return location.pathname === '/';
+    return location.pathname.startsWith(to);
+  };
+
+  const handleLinkClick = (to: string, id: string) => {
+    if (legacySetActiveTab) legacySetActiveTab(id);
+    navigate(to);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <header style={{
@@ -109,15 +123,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         gap: '0.5rem',
         width: '100%',
       }}>
-        {/* Brand Logo */}
-        <div 
-          onClick={() => {
-            if (currentRole === 'CUSTOMER') setActiveTab('customer_portal');
-            else if (currentRole === 'STAFF') setActiveTab('staff_portal');
-            else if (currentRole === 'MANAGER' || currentRole === 'ADMIN') setActiveTab('manager_dashboard');
-            else setActiveTab('home');
-          }}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}
+        {/* Brand Logo Link */}
+        <Link
+          to="/"
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}
         >
           <div style={{
             width: '36px',
@@ -158,9 +167,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               Memories Studio
             </div>
           </div>
-        </div>
+        </Link>
 
-        {/* Global Search Bar (Hidden on small mobile, accessible in drawer) */}
+        {/* Global Search Bar */}
         <div className="mipa-mobile-hide" style={{ flex: 1, maxWidth: '280px', position: 'relative' }}>
           <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
           <input
@@ -183,14 +192,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <nav className="mipa-mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           {navLinks.map((link) => {
             const Icon = link.icon;
-            const isManagementGroupActive = (link as any).isManagementGroup && ['manager_dashboard', 'studio_calendar', 'customer_crm', 'admin_portal'].includes(activeTab);
-            const isActive = activeTab === link.id || isManagementGroupActive;
-            const isHighlight = (link as any).isHighlight;
+            const isActive = isRouteActive(link.to);
+            const isHighlight = link.isHighlight;
 
             return (
-              <button
+              <NavLink
                 key={link.id}
-                onClick={() => setActiveTab(link.id)}
+                to={link.to}
+                role="button"
+                onClick={() => {
+                  if (legacySetActiveTab) legacySetActiveTab(link.id);
+                }}
                 style={{
                   background: isActive
                     ? (isHighlight ? 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)' : '#8C6E53')
@@ -206,12 +218,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
+                  textDecoration: 'none',
                   boxShadow: isActive && isHighlight ? '0 4px 12px rgba(96, 70, 52, 0.2)' : 'none',
                 }}
               >
                 {Icon && <Icon size={15} style={{ color: isActive ? '#EFE6C9' : (isHighlight ? '#8C6E53' : '#6E5F55') }} />}
                 {link.label}
-              </button>
+              </NavLink>
             );
           })}
         </nav>
@@ -244,7 +257,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ĐẶT LỊCH
           </button>
 
-          {/* Notifications button (Only for Logged-in Staff / Customer / Management) */}
+          {/* Notifications button */}
           {currentRole !== 'GUEST' && (
             <div style={{ position: 'relative' }}>
               <button
@@ -402,7 +415,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     padding: '0.6rem',
                     zIndex: 2000,
                   }}>
-                    
                     {/* Account Header */}
                     <div style={{ padding: '0.6rem', backgroundColor: '#FFFDF6', borderRadius: '12px', marginBottom: '0.5rem', border: '1px solid var(--mipa-beige)' }}>
                       <div style={{ fontWeight: 700, color: '#604634', fontSize: '0.9rem' }}>{displayUser.fullName}</div>
@@ -418,6 +430,66 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>Quyền truy cập:</span>
                       <strong style={{ color: '#8C6E53' }}>{roleLabels[currentRole].label}</strong>
                     </div>
+
+                    {currentRole === 'CUSTOMER' && (
+                      <Link
+                        to="/account"
+                        onClick={() => setShowRoleDropdown(false)}
+                        style={{
+                          display: 'block',
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: '#F8F3E6',
+                          borderRadius: '10px',
+                          color: '#604634',
+                          textDecoration: 'none',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          marginBottom: '0.4rem',
+                        }}
+                      >
+                        → Đến trang Quản lý đơn & Album
+                      </Link>
+                    )}
+
+                    {(currentRole === 'MANAGER' || currentRole === 'ADMIN') && (
+                      <Link
+                        to="/management"
+                        onClick={() => setShowRoleDropdown(false)}
+                        style={{
+                          display: 'block',
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: '#F8F3E6',
+                          borderRadius: '10px',
+                          color: '#604634',
+                          textDecoration: 'none',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          marginBottom: '0.4rem',
+                        }}
+                      >
+                        → Đến Studio Manager OS
+                      </Link>
+                    )}
+
+                    {currentRole === 'ADMIN' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setShowRoleDropdown(false)}
+                        style={{
+                          display: 'block',
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: '#9D174D',
+                          borderRadius: '10px',
+                          color: '#FFF',
+                          textDecoration: 'none',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          marginBottom: '0.4rem',
+                        }}
+                      >
+                        → Bảng Quản Trị Tối Cao (Admin)
+                      </Link>
+                    )}
 
                     <div style={{ borderTop: '1px solid var(--mipa-beige)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
                       <button
@@ -444,13 +516,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <LogOut size={15} /> ĐĂNG XUẤT TÀI KHOẢN
                       </button>
                     </div>
-
                   </div>
                 )}
               </div>
             )}
           </div>
-
         </div>
       </div>
 
@@ -483,15 +553,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {navLinks.map((link) => {
               const Icon = link.icon;
-              const isManagementGroupActive = (link as any).isManagementGroup && ['manager_dashboard', 'studio_calendar', 'customer_crm', 'admin_portal'].includes(activeTab);
-              const isActive = activeTab === link.id || isManagementGroupActive;
+              const isActive = isRouteActive(link.to);
               return (
-                <button
+                <NavLink
                   key={link.id}
-                  onClick={() => {
-                    setActiveTab(link.id);
-                    setIsMobileMenuOpen(false);
-                  }}
+                  to={link.to}
+                  role="button"
+                  onClick={() => handleLinkClick(link.to, link.id)}
                   style={{
                     background: isActive ? '#8C6E53' : 'rgba(239, 230, 201, 0.3)',
                     color: isActive ? '#FFFDF6' : '#2C221E',
@@ -505,11 +573,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.6rem',
+                    textDecoration: 'none',
                   }}
                 >
                   {Icon && <Icon size={18} style={{ color: isActive ? '#EFE6C9' : '#8C6E53' }} />}
                   {link.label}
-                </button>
+                </NavLink>
               );
             })}
           </div>
@@ -518,6 +587,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', paddingTop: '0.6rem', borderTop: '1px solid var(--mipa-beige)' }}>
             <button
               onClick={() => {
+                navigate('/booking');
                 onOpenBooking();
                 setIsMobileMenuOpen(false);
               }}
@@ -581,3 +651,5 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+
+export default Navbar;

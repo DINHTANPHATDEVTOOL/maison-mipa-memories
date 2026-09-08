@@ -109,4 +109,53 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.getByRole('button', { name: /Ca chụp & Lịch/i })).not.toBeVisible();
   });
 
+  test('5. Deep link trực tiếp vào /portfolio và refresh không bị 404', async ({ page }) => {
+    await page.goto('/portfolio');
+    await expect(page).toHaveURL(/\/portfolio/);
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeVisible();
+
+    // Refresh page
+    await page.reload();
+    await expect(page).toHaveURL(/\/portfolio/);
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeVisible();
+  });
+
+  test('6. Deep link trực tiếp vào /dich-vu/couple và refresh không bị 404', async ({ page }) => {
+    await page.goto('/dich-vu/couple');
+    await expect(page).toHaveURL(/\/dich-vu\/couple/);
+    await expect(page.getByRole('heading', { name: /Chụp Ảnh Couple & Kỷ Niệm Tình Yêu/i })).toBeVisible();
+
+    // Refresh page
+    await page.reload();
+    await expect(page).toHaveURL(/\/dich-vu\/couple/);
+    await expect(page.getByRole('heading', { name: /Chụp Ảnh Couple & Kỷ Niệm Tình Yêu/i })).toBeVisible();
+  });
+
+  test('7. Điều hướng Back & Forward trên trình duyệt đúng UI', async ({ page }) => {
+    // 1. Start at Home
+    await page.goto('/');
+    await expect(page.locator('text=MAISON MIPA').first()).toBeVisible();
+
+    // 2. Click Dịch vụ in Navbar
+    await page.getByRole('button', { name: 'Dịch vụ', exact: true }).click();
+    await expect(page).toHaveURL(/\/dich-vu/);
+    await expect(page.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeVisible();
+
+    // 3. Click Couple detail
+    await page.locator('a[href="/dich-vu/couple"]').first().click();
+    await expect(page).toHaveURL(/\/dich-vu\/couple/);
+    await expect(page.getByRole('heading', { name: /Chụp Ảnh Couple & Kỷ Niệm Tình Yêu/i })).toBeVisible();
+
+    // 4. Browser Back -> should return to /dich-vu
+    await page.goBack();
+    await expect(page).toHaveURL(/\/dich-vu/);
+    await expect(page.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeVisible();
+
+    // 5. Browser Forward -> should return to /dich-vu/couple
+    await page.goForward();
+    await expect(page).toHaveURL(/\/dich-vu\/couple/);
+    await expect(page.getByRole('heading', { name: /Chụp Ảnh Couple & Kỷ Niệm Tình Yêu/i })).toBeVisible();
+  });
+
 });
+
