@@ -99,14 +99,14 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
 
                 <div style={{ textAlign: 'right' }}>
                   <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                    ● {{
+                    ● {({
                       DEPOSIT_PAID: '✓ Đã Xác Nhận & Cọc',
                       CONFIRMED: '✓ Đã Duyệt Lịch',
                       CHECKED_IN: '● Đã Đến Studio',
                       SHOOTING: '● Đang Chụp Tại Studio',
                       READY_FOR_REVIEW: '★ Album Đã Sẵn Sàng',
                       COMPLETED: '✓ Hoàn Tất Đơn',
-                    }[b.bookingStatus] || b.bookingStatus}
+                    } as Record<string, string>)[b.bookingStatus] || b.bookingStatus}
                   </span>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#8C6E53', marginTop: '0.4rem' }}>
                     {b.totalAmount.toLocaleString('vi-VN')}đ

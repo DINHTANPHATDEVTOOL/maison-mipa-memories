@@ -63,6 +63,35 @@ npm run dev
 npm run build
 ```
 
+### Typecheck độc lập:
+```bash
+npm run typecheck
+```
+
+### Kiểm thử Unit & Integration (Vitest):
+```bash
+# Chạy interactive
+npm run test
+
+# Chạy một lần (CI mode)
+npm run test:run
+```
+
+### Kiểm thử E2E Smoke Tests (Playwright):
+```bash
+npm run test:e2e
+```
+
+---
+
+## 🛡️ CI Quality Gate & Quy Trình Đóng Góp
+
+Dự án áp dụng **Quality Gate** bắt buộc trên mọi Pull Request:
+- **GitHub Actions CI Workflow** (`.github/workflows/ci.yml`): Tự động chạy `npm ci`, `npm run lint`, `npm run build`, `npm run test:run`, `npm run test:e2e`.
+- **Merge Contract**: Chỉ merge khi toàn bộ checks xanh và review đạt chuẩn qua phương thức **Squash Merge**.
+
+👉 **Xem hướng dẫn chi tiết tại**: [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ---
 
 ## 📂 Cấu Trúc Thư Mục
