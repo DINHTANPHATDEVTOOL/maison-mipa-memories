@@ -37,7 +37,9 @@ jobs:
 
       - name: Install Playwright Chromium
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome*
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
           npx playwright install --with-deps chromium
 
       - name: Run Playwright E2E Smoke Tests
