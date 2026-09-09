@@ -1,14 +1,13 @@
 // ==============================================================================
-// Maison MIPA Memories - Booking Service & Persistence Layer
+// Maison MIPA Memories - Booking Service & Persistence Layer (Fail-Closed)
 // Handles authoritative booking creation, anti-double-booking protection,
-// status state machine transitions, and staff assignments.
+// status state machine transitions, staff assignments, and customer acknowledgements.
 // ==============================================================================
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
 import type {
   Booking,
   BookingStatus,
   BookingAssignment,
-  StaffRole,
   Addon,
 } from '../types';
 import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS, INITIAL_EMPLOYEES } from '../mockData';
@@ -44,18 +43,19 @@ export interface CreateBookingRequest {
   customerNote?: string;
 }
 
-// In-memory persistent store for offline mode, unit tests & dev without live Supabase
+// In-memory store for explicit demo mode and offline unit tests
 let inMemoryBookings: Booking[] = [...INITIAL_BOOKINGS];
 
 export function resetInMemoryBookings(initial: Booking[] = INITIAL_BOOKINGS): void {
   inMemoryBookings = [...initial];
 }
 
-export function getInMemoryBookings(): Booking[] {
+export function getBookingsInMemory(): Booking[] {
   return inMemoryBookings;
 }
 
-export const getBookingsInMemory = getInMemoryBookings;
+export const getBookingsStore = getBookingsInMemory;
+export const getInMemoryBookings = getBookingsInMemory;
 
 export function updateBookingInMemory(bookingId: string, updates: Partial<Booking>): Booking | null {
   const index = inMemoryBookings.findIndex(b => b.id === bookingId || b.bookingCode === bookingId);
@@ -67,7 +67,6 @@ export function updateBookingInMemory(bookingId: string, updates: Partial<Bookin
   };
   return inMemoryBookings[index];
 }
-
 
 /**
  * Creates a new booking with database-level anti-double-booking protection
@@ -82,59 +81,51 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
     throw new BookingValidationError('Vui lòng chọn ngày và khung giờ chụp ảnh.');
   }
 
-  // If live Supabase is configured, execute the Postgres stored procedure (create_booking RPC)
+  // If Supabase is configured, execute the Postgres stored procedure (create_booking RPC)
   if (isSupabaseConfigured()) {
-    try {
-      const startIso = `${request.date}T${request.timeSlot}:00+07:00`;
+    const startIso = `${request.date}T${request.timeSlot}:00+07:00`;
 
-      const { data, error } = await supabase.rpc('create_booking', {
-        p_service_id: request.serviceId,
-        p_package_id: request.packageId,
-        p_studio_room_id: request.studioId,
-        p_start_at: startIso,
-        p_addon_ids: request.addonIds || [],
-        p_voucher_code: request.voucherCode || null,
-        p_customer_name: request.customerName || null,
-        p_customer_phone: request.customerPhone || null,
-        p_customer_email: request.customerEmail || null,
-        p_occasion: request.occasion || null,
-        p_customer_note: request.customerNote || null,
-      });
+    const { data, error } = await supabase.rpc('create_booking', {
+      p_service_id: request.serviceId,
+      p_package_id: request.packageId,
+      p_studio_room_id: request.studioId,
+      p_start_at: startIso,
+      p_addon_ids: request.addonIds || [],
+      p_voucher_code: request.voucherCode || null,
+      p_customer_name: request.customerName || null,
+      p_customer_phone: request.customerPhone || null,
+      p_customer_email: request.customerEmail || null,
+      p_occasion: request.occasion || null,
+      p_customer_note: request.customerNote || null,
+    });
 
-      if (error) {
-        // Check for exclusion constraint violation (code 23P01) or conflict message
-        if (error.code === '23P01' || error.message.includes('already booked') || error.message.includes('conflict')) {
-          throw new BookingConflictError(error.message || 'Phòng studio đã có lịch đặt trong khoảng thời gian này.');
-        }
-        throw new Error(error.message);
+    if (error) {
+      if (error.code === '23P01' || error.message?.includes('already booked') || error.message?.includes('conflict')) {
+        throw new BookingConflictError(error.message || 'Phòng studio đã có lịch đặt trong khoảng thời gian này.');
       }
-
-      const result = data as any;
-      const newBooking = mapDatabaseRecordToDomain(result);
-      inMemoryBookings = [newBooking, ...inMemoryBookings];
-      return newBooking;
-    } catch (err: any) {
-      if (err instanceof BookingConflictError || err.name === 'BookingConflictError') {
-        throw err;
-      }
-      // If network fails, fall back to offline simulation
-      if (!err.message?.includes('already booked') && !err.message?.includes('conflict')) {
-        console.warn('Supabase create_booking fallback to offline engine:', err.message);
-      } else {
-        throw err;
-      }
+      throw new Error(`Lỗi tạo đơn đặt lịch: ${error.message}`);
     }
+
+    if (!data) {
+      throw new Error('Hệ thống không phản hồi dữ liệu đơn đặt lịch.');
+    }
+
+    const newBooking = mapDatabaseRecordToDomain(data as any);
+    return newBooking;
   }
 
-  return createBookingInMemory(request);
+  // In demo or test mode
+  if (isDemoModeEnabled()) {
+    return createBookingInMemory(request);
+  }
+
+  throw new Error('Hệ thống cơ sở dữ liệu chưa được kích hoạt.');
 }
 
 /**
- * Offline / In-Memory Authoritative Engine:
- * Enforces the EXACT SAME exclusion constraint and pricing rules as the PostgreSQL schema.
+ * In-Memory Booking Engine for offline tests
  */
 export function createBookingInMemory(request: CreateBookingRequest): Booking {
-  // Input Validation
   if (!request.serviceId || !request.packageId || !request.studioId) {
     throw new BookingValidationError('Vui lòng chọn đầy đủ Dịch vụ, Gói chụp và Phòng Studio.');
   }
@@ -150,7 +141,30 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     .map(id => INITIAL_ADDONS.find(a => a.id === id))
     .filter((a): a is Addon => Boolean(a));
 
-  // Authoritative Pricing calculation (client cannot dictate totalAmount)
+  const totalDuration = pkg.durationMinutes + selectedAddons.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
+
+  const startMinutes = timeToMinutes(request.timeSlot);
+  const endMinutes = startMinutes + totalDuration;
+  const endTimeStr = minutesToTime(endMinutes);
+
+  // Anti-double-booking interval check
+  const conflicting = inMemoryBookings.find(b => {
+    if (b.bookingDate !== request.date) return false;
+    if (b.studioId !== studio.id) return false;
+    if (b.bookingStatus === 'CANCELLED') return false;
+
+    const existingStart = timeToMinutes(b.startTime);
+    const existingEnd = timeToMinutes(b.endTime);
+
+    return isIntervalOverlapping(startMinutes, endMinutes, existingStart, existingEnd);
+  });
+
+  if (conflicting) {
+    throw new BookingConflictError(
+      `Phòng ${studio.name} đã có lịch đặt từ ${conflicting.startTime} đến ${conflicting.endTime}. Vui lòng chọn khung giờ khác.`
+    );
+  }
+
   const promo = request.voucherCode ? {
     discountPercent: request.voucherCode.toUpperCase() === 'MIPA20' ? 20 : request.voucherCode.toUpperCase() === 'SUMMERMEMORY' ? 10 : 0,
     minOrder: 500000,
@@ -163,38 +177,8 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     promotion: promo,
   });
 
-  // Calculate start and end minutes
-  const startMinutes = timeToMinutes(request.timeSlot);
-  const endMinutes = startMinutes + pricing.totalDurationMinutes;
-  const endTimeStr = minutesToTime(endMinutes);
-
-  // Anti-Double-Booking Check (Exclusion Constraint Simulation)
-  // Non-cancelled bookings on the same studio and date must NOT overlap
-  const conflictingBooking = inMemoryBookings.find(b => {
-    const isSameStudio = b.studioId === request.studioId;
-    const isSameDate = b.bookingDate === request.date;
-    const isNotCancelled = b.bookingStatus !== 'CANCELLED';
-
-    if (!isSameStudio || !isSameDate || !isNotCancelled) {
-      return false;
-    }
-
-    const existingStart = timeToMinutes(b.startTime);
-    const existingEnd = timeToMinutes(b.endTime);
-
-    // Half-open interval overlap check [start, end)
-    return isIntervalOverlapping(startMinutes, endMinutes, existingStart, existingEnd);
-  });
-
-  if (conflictingBooking) {
-    throw new BookingConflictError(
-      `Phòng studio ${studio.name} đã có lịch đặt trùng (${conflictingBooking.startTime} - ${conflictingBooking.endTime}). Vui lòng chọn khung giờ khác.`
-    );
-  }
-
-  // Generate Collision-Resistant Unique Booking Code: MIPA-YYMMDD-XXXX
   const dateCompact = request.date.replace(/-/g, '').slice(2);
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const bookingCode = `MIPA-${dateCompact}-${randomSuffix}`;
 
   const newBooking: Booking = {
@@ -219,7 +203,7 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     discount: pricing.discountTotal,
     depositAmount: pricing.depositAmount,
     totalAmount: pricing.totalAmount,
-    paymentStatus: 'UNPAID', // Initial status is UNPAID (Payment gateway is in Issue #3)
+    paymentStatus: 'UNPAID',
     bookingStatus: 'PENDING_PAYMENT',
     customerNote: request.customerNote,
     occasion: request.occasion,
@@ -235,212 +219,341 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
 }
 
 /**
- * Fetch all bookings (or filtered for a customer).
+ * Fetch bookings with strict fail-closed policy.
  */
 export async function getBookings(customerId?: string): Promise<Booking[]> {
   if (isSupabaseConfigured()) {
-    try {
-      let query = supabase
-        .from('bookings')
-        .select('*')
-        .order('created_at', { ascending: false });
+    let query = supabase
+      .from('bookings')
+      .select('*, booking_assignments(*)');
 
-      if (customerId) {
-        query = query.eq('customer_id', customerId);
-      }
-
-      const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        return data.map(mapDatabaseRecordToDomain);
-      }
-    } catch {
-      // Fallback
+    if (customerId) {
+      query = query.eq('customer_id', customerId);
     }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load bookings from database:', error.message);
+      throw new Error(`Không thể tải dữ liệu đơn đặt lịch: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    return data.map(mapDatabaseRecordToDomain);
   }
 
-  if (customerId) {
-    return inMemoryBookings.filter(b => b.customerId === customerId);
+  // Demo mode
+  if (isDemoModeEnabled()) {
+    if (customerId) {
+      return inMemoryBookings.filter(b => b.customerId === customerId);
+    }
+    return [...inMemoryBookings];
   }
-  return [...inMemoryBookings];
+
+  return [];
 }
 
+export const getCustomerBookings = getBookings;
+
 /**
- * Updates booking status with state machine validation and persistence.
+ * Updates booking status with authoritative backend state machine.
  */
 export async function updateBookingStatus(
   bookingId: string,
   newStatus: BookingStatus,
   staffNote?: string
 ): Promise<Booking> {
-  // State machine validations
-  const existing = inMemoryBookings.find(b => b.id === bookingId || b.bookingCode === bookingId);
-  if (existing) {
-    if (existing.bookingStatus === 'COMPLETED' && ['DRAFT', 'PENDING_PAYMENT'].includes(newStatus)) {
-      throw new Error(`Illegal state transition from COMPLETED to ${newStatus}`);
-    }
-    if (existing.bookingStatus === 'CANCELLED' && newStatus !== 'CANCELLED') {
-      throw new Error('Cannot update a cancelled booking.');
-    }
-  }
-
   if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase.rpc('update_booking_status', {
-        p_booking_id: bookingId,
-        p_new_status: newStatus,
-        p_staff_note: staffNote || null,
-      });
+    const { data, error } = await supabase.rpc('update_booking_status', {
+      p_booking_id: bookingId,
+      p_new_status: newStatus,
+      p_staff_note: staffNote || null,
+    });
 
-      if (!error && data) {
-        const updated = mapDatabaseRecordToDomain(data as any);
-        inMemoryBookings = inMemoryBookings.map(b => (b.id === bookingId ? updated : b));
-        return updated;
-      }
-    } catch {
-      // Fallback to in-memory mutation
+    if (error) {
+      throw new Error(error.message || `Không thể chuyển trạng thái sang ${newStatus}`);
     }
+
+    if (!data) {
+      throw new Error('Dữ liệu trạng thái không hợp lệ.');
+    }
+
+    return mapDatabaseRecordToDomain(data as any);
   }
 
-  // Offline / In-memory mutation
-  let updatedBooking: Booking | null = null;
-  inMemoryBookings = inMemoryBookings.map(b => {
-    if (b.id === bookingId || b.bookingCode === bookingId) {
-      const newStaffNote = staffNote
-        ? `${b.staffNote || ''} [${new Date().toLocaleTimeString('vi-VN')}]: ${staffNote}`
-        : b.staffNote;
-
-      updatedBooking = {
-        ...b,
-        bookingStatus: newStatus,
-        staffNote: newStaffNote,
-        updatedAt: new Date().toISOString(),
-      };
-      return updatedBooking;
-    }
-    return b;
-  });
-
-  if (!updatedBooking) {
-    throw new Error('Booking not found.');
+  // In-Memory state transitions for tests
+  const existing = inMemoryBookings.find(b => b.id === bookingId || b.bookingCode === bookingId);
+  if (!existing) {
+    throw new Error('Booking not found in memory store.');
   }
 
-  return updatedBooking;
+  if (existing.bookingStatus === 'COMPLETED' && ['DRAFT', 'PENDING_PAYMENT'].includes(newStatus)) {
+    throw new Error(`Illegal state transition from COMPLETED to ${newStatus}`);
+  }
+
+  const updated: Booking = {
+    ...existing,
+    bookingStatus: newStatus,
+    staffNote: staffNote ? `${existing.staffNote || ''}\n${staffNote}`.trim() : existing.staffNote,
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
+  return updated;
 }
 
 /**
- * Assigns an employee to a booking with role validation and audit.
+ * Customer Acknowledgements
+ */
+export async function acknowledgeCustomerSchedule(bookingId: string): Promise<Booking> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('acknowledge_customer_schedule', {
+      p_booking_id: bookingId,
+    });
+    if (error) throw new Error(error.message);
+    return mapDatabaseRecordToDomain(data as any);
+  }
+
+  const updated = updateBookingInMemory(bookingId, {
+    customerScheduleConfirmedAt: new Date().toISOString(),
+  });
+  if (!updated) throw new Error('Booking not found');
+  return updated;
+}
+
+export async function acknowledgeCustomerShoot(bookingId: string): Promise<Booking> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('acknowledge_customer_shoot', {
+      p_booking_id: bookingId,
+    });
+    if (error) throw new Error(error.message);
+    return mapDatabaseRecordToDomain(data as any);
+  }
+
+  const updated = updateBookingInMemory(bookingId, {
+    customerShootAckAt: new Date().toISOString(),
+  });
+  if (!updated) throw new Error('Booking not found');
+  return updated;
+}
+
+export async function requestBookingReschedule(
+  bookingId: string,
+  newDate: string,
+  newSlot: string,
+  reason?: string
+): Promise<Booking> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('request_booking_reschedule', {
+      p_booking_id: bookingId,
+      p_new_date: newDate,
+      p_new_slot: newSlot,
+      p_reason: reason || null,
+    });
+    if (error) throw new Error(error.message);
+    return mapDatabaseRecordToDomain(data as any);
+  }
+
+  const updated = updateBookingInMemory(bookingId, {
+    rescheduleRequestedAt: new Date().toISOString(),
+    rescheduleRequestedDate: newDate,
+    rescheduleRequestedSlot: newSlot,
+    rescheduleRequestedReason: reason,
+  });
+  if (!updated) throw new Error('Booking not found');
+  return updated;
+}
+
+export async function requestBookingCancel(bookingId: string, reason?: string): Promise<Booking> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('request_booking_cancel', {
+      p_booking_id: bookingId,
+      p_reason: reason || undefined,
+    });
+    if (error) throw new Error(error.message);
+    return mapDatabaseRecordToDomain(data as any);
+  }
+
+  const updated = updateBookingInMemory(bookingId, {
+    cancelRequestedAt: new Date().toISOString(),
+    cancelRequestedReason: reason,
+  });
+  if (!updated) throw new Error('Booking not found');
+  return updated;
+}
+
+/**
+ * Staff Tasks (Makeup, Styling)
+ */
+export async function getStaffTasks(employeeId?: string): Promise<any[]> {
+  if (isSupabaseConfigured()) {
+    let query = supabase.from('staff_tasks').select('*, bookings(booking_code, start_at, customer_name)');
+    if (employeeId) {
+      query = query.eq('employee_id', employeeId);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+  return [];
+}
+
+export async function updateStaffTask(taskId: string, newStatus: string, notes?: string): Promise<any> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('update_staff_task_status', {
+      p_task_id: taskId,
+      p_new_status: newStatus,
+      p_notes: notes || null,
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  return { id: taskId, status: newStatus, notes };
+}
+
+/**
+ * Assign staff to a booking
  */
 export async function assignBookingStaff(
   bookingId: string,
   employeeId: string,
-  assignmentRole?: StaffRole
+  assignmentRole: string = 'PHOTOGRAPHER'
 ): Promise<BookingAssignment> {
-  const employee = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
-  const role = assignmentRole || employee?.role || 'PHOTOGRAPHER';
-
   if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase.rpc('assign_booking_staff', {
-        p_booking_id: bookingId,
-        p_employee_id: employeeId,
-        p_assignment_role: role,
-      });
+    const { data: booking, error: bErr } = await supabase
+      .from('bookings')
+      .select('start_at, end_at')
+      .eq('id', bookingId)
+      .single();
 
-      if (!error && data) {
-        const res = data as any;
-        return {
-          id: res.id,
-          bookingId: res.booking_id,
-          employeeId: res.employee_id,
-          employeeName: employee?.name || 'Nhân viên MIPA',
-          assignmentRole: role as StaffRole,
-          startTime: res.start_at || '09:00',
-          endTime: res.end_at || '11:00',
-        };
-      }
-    } catch {
-      // Fallback
-    }
+    if (bErr || !booking) throw new Error('Booking not found');
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, staff_role')
+      .eq('id', employeeId)
+      .single();
+
+    const role = (profile?.staff_role || assignmentRole) as any;
+
+    const { data, error } = await supabase
+      .from('booking_assignments')
+      .insert({
+        booking_id: bookingId,
+        employee_id: employeeId,
+        assignment_role: role,
+        start_at: booking.start_at,
+        end_at: booking.end_at,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    return {
+      id: data.id,
+      bookingId: data.booking_id,
+      employeeId: data.employee_id,
+      employeeName: profile?.full_name || 'Chuyên Viên MIPA',
+      assignmentRole: data.assignment_role,
+      startTime: data.start_at,
+      endTime: data.end_at,
+    };
   }
 
-  // Offline / in-memory mutation
-  const targetBooking = inMemoryBookings.find(b => b.id === bookingId || b.bookingCode === bookingId);
-  if (!targetBooking) {
-    throw new Error('Booking not found');
-  }
-
-  const newAssignment: BookingAssignment = {
+  // In-memory fallback
+  const booking = inMemoryBookings.find(b => b.id === bookingId || b.bookingCode === bookingId);
+  const employee = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
+  const asg: BookingAssignment = {
     id: `asg_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-    bookingId: targetBooking.id,
+    bookingId,
     employeeId,
-    employeeName: employee?.name || 'Nhân viên MIPA',
-    assignmentRole: role as StaffRole,
-    startTime: targetBooking.startTime,
-    endTime: targetBooking.endTime,
+    employeeName: employee ? employee.name : 'Chuyên Viên Phân Công',
+    assignmentRole: assignmentRole as any,
+    startTime: booking ? booking.startTime : '09:00',
+    endTime: booking ? booking.endTime : '11:00',
   };
 
-  inMemoryBookings = inMemoryBookings.map(b => {
-    if (b.id === targetBooking.id) {
-      return {
-        ...b,
-        assignments: [
-          ...b.assignments.filter(a => a.assignmentRole !== role),
-          newAssignment,
-        ],
-        updatedAt: new Date().toISOString(),
-      };
+  if (booking) {
+    if (!booking.assignments) booking.assignments = [];
+    const existingIndex = booking.assignments.findIndex(a => a.assignmentRole === assignmentRole);
+    if (existingIndex >= 0) {
+      booking.assignments[existingIndex] = asg;
+    } else {
+      booking.assignments.push(asg);
     }
-    return b;
-  });
+  }
 
-  return newAssignment;
+  return asg;
 }
 
 /**
- * Mapper from Supabase database row to frontend Booking domain model
+ * Map database record to frontend domain model
  */
-function mapDatabaseRecordToDomain(row: any): Booking {
-  const startD = row.start_at ? new Date(row.start_at) : null;
-  const endD = row.end_at ? new Date(row.end_at) : null;
+export function mapDatabaseRecordToDomain(record: any): Booking {
+  const startAt = record.start_at || record.startAt || '';
+  const endAt = record.end_at || record.endAt || '';
 
-  const bookingDate = startD ? startD.toISOString().slice(0, 10) : '2026-09-08';
-  const startTime = startD ? `${String(startD.getHours()).padStart(2, '0')}:${String(startD.getMinutes()).padStart(2, '0')}` : '09:00';
-  const endTime = endD ? `${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}` : '11:00';
+  const bookingDate = startAt ? startAt.split('T')[0] : record.bookingDate || '';
+  const startTime = startAt ? startAt.substring(11, 16) : record.startTime || '';
+  const endTime = endAt ? endAt.substring(11, 16) : record.endTime || '';
 
-  const service = INITIAL_SERVICES.find(s => s.id === row.service_id) || INITIAL_SERVICES[0];
-  const pkg = INITIAL_PACKAGES.find(p => p.id === row.package_id) || INITIAL_PACKAGES[0];
-  const studio = INITIAL_STUDIO_ROOMS.find(st => st.id === row.studio_room_id) || INITIAL_STUDIO_ROOMS[0];
+  const assignments: BookingAssignment[] = Array.isArray(record.booking_assignments)
+    ? record.booking_assignments.map((a: any) => ({
+        id: a.id,
+        bookingId: a.booking_id,
+        employeeId: a.employee_id,
+        employeeName: a.employee_name || 'Chuyên Viên MIPA',
+        assignmentRole: a.assignment_role,
+        startTime: a.start_at,
+        endTime: a.end_at,
+      }))
+    : record.assignments || [];
 
   return {
-    id: row.id,
-    bookingCode: row.booking_code,
-    customerId: row.customer_id,
-    customerName: row.customer_name || 'Khách Hàng',
-    customerPhone: row.customer_phone || '',
-    customerEmail: row.customer_email || '',
-    serviceId: row.service_id,
-    serviceName: service.name,
-    packageId: row.package_id,
-    packageName: pkg.name,
-    packagePrice: Number(row.subtotal || pkg.price),
+    id: record.id,
+    bookingCode: record.booking_code || record.bookingCode,
+    customerId: record.customer_id || record.customerId,
+    customerName: record.customer_name || record.customerName || 'Khách Hàng MIPA',
+    customerPhone: record.customer_phone || record.customerPhone || '',
+    customerEmail: record.customer_email || record.customerEmail || '',
+    serviceId: record.service_id || record.serviceId,
+    serviceName: record.service_name || record.serviceName || 'Dịch Vụ MIPA',
+    packageId: record.package_id || record.packageId,
+    packageName: record.package_name || record.packageName || 'Gói Chụp MIPA',
+    packagePrice: Number(record.package_price || record.packagePrice || record.subtotal || 0),
     bookingDate,
     startTime,
     endTime,
-    studioId: row.studio_room_id,
-    studioName: studio.name,
-    addons: [],
-    subtotal: Number(row.subtotal || 0),
-    discount: Number(row.discount_total || 0),
-    depositAmount: Number(row.deposit_amount || 0),
-    totalAmount: Number(row.total_amount || 0),
-    paymentStatus: (row.payment_status || 'UNPAID') as any,
-    bookingStatus: (row.booking_status || 'PENDING_PAYMENT') as any,
-    customerNote: row.customer_note || undefined,
-    occasion: row.occasion || undefined,
-    assignments: [],
-    startAt: row.start_at,
-    endAt: row.end_at,
-    createdAt: row.created_at || new Date().toISOString(),
-    updatedAt: row.updated_at || new Date().toISOString(),
+    studioId: record.studio_room_id || record.studioId || '',
+    studioName: record.studio_name || record.studioName || 'Phòng Studio MIPA',
+    addons: record.addons || [],
+    subtotal: Number(record.subtotal || 0),
+    discount: Number(record.discount_total || record.discount || 0),
+    depositAmount: Number(record.deposit_amount || record.depositAmount || 0),
+    totalAmount: Number(record.total_amount || record.totalAmount || 0),
+    paymentStatus: record.payment_status || record.paymentStatus || 'UNPAID',
+    bookingStatus: record.booking_status || record.bookingStatus || 'PENDING_PAYMENT',
+    customerNote: record.customer_note || record.customerNote,
+    staffNote: record.staff_note || record.staffNote,
+    occasion: record.occasion,
+    assignments,
+    startAt,
+    endAt,
+    customerScheduleConfirmedAt: record.customer_schedule_confirmed_at,
+    customerShootAckAt: record.customer_shoot_ack_at,
+    rescheduleRequestedAt: record.reschedule_requested_at,
+    rescheduleRequestedDate: record.reschedule_requested_date,
+    rescheduleRequestedSlot: record.reschedule_requested_slot,
+    rescheduleRequestedReason: record.reschedule_requested_reason,
+    cancelRequestedAt: record.cancel_requested_at,
+    cancelRequestedReason: record.cancel_requested_reason,
+    driveFolderUrl: record.drive_folder_url,
+    driveReadyForCustomer: record.drive_ready_for_customer,
+    createdAt: record.created_at || record.createdAt || new Date().toISOString(),
+    updatedAt: record.updated_at || record.updatedAt || new Date().toISOString(),
   };
 }

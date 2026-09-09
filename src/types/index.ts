@@ -41,6 +41,7 @@ export interface UserPhoneIdentity {
 export interface User {
   id: string;
   fullName: string;
+  name?: string;
   email: string;
   phone: string;
   role: UserRole;
@@ -82,6 +83,7 @@ export interface Addon {
   price: number;
   description: string;
   category: 'makeup' | 'styling' | 'time' | 'concept' | 'album' | 'edit';
+  durationMinutes?: number;
 }
 
 export interface StudioRoom {
@@ -181,8 +183,18 @@ export interface Booking {
   startTimeActual?: string;
   endTimeActual?: string;
   editedPhotosUrl?: string;
-  albumId?: string;
   bookingHoldTTL?: number; // Temporary Redis hold TTL in seconds (e.g. 600s)
+  customerScheduleConfirmedAt?: string;
+  customerShootAckAt?: string;
+  rescheduleRequestedAt?: string;
+  rescheduleRequestedDate?: string;
+  rescheduleRequestedSlot?: string;
+  rescheduleRequestedReason?: string;
+  cancelRequestedAt?: string;
+  cancelRequestedReason?: string;
+  driveFolderUrl?: string;
+  driveReadyForCustomer?: boolean;
+  albumId?: string;
 }
 
 export type PhotoType = 'RAW' | 'PREVIEW' | 'SELECTED' | 'FINAL';

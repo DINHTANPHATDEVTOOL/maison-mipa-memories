@@ -1,20 +1,24 @@
 // ==============================================================================
-// Maison MIPA Memories - App Component with Real Routing & SEO Consistency
+// Maison MIPA Memories - App Component with Canonical Funnel & Fail-Closed Data
+// Hardened for Issues #7 & #17:
+// - Removes duplicate BookingWizard modal (canonical /booking funnel)
+// - Removes public PII search dropdown
+// - Fail-closed initial state (empty [] in production, no mock fallback)
+// - Route /auth/reset-password for password recovery
 // ==============================================================================
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import type { User, UserRole, Booking, BookingStatus } from './types';
+import type { User, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
 import { getBookings, updateBookingStatus, assignBookingStaff } from './services/bookingService';
 import { getStudioRooms, getEmployees } from './services/catalogService';
-import { isSupabaseConfigured } from './lib/supabase';
+import { isSupabaseConfigured, isDemoModeEnabled } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
-import { BookingWizard } from './components/booking/BookingWizard';
 import { AuthModal } from './components/auth/AuthModal';
-import { Search } from 'lucide-react';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
@@ -36,17 +40,18 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [adminUsersList, setAdminUsersList] = useState<User[]>(INITIAL_USERS);
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
+  const useMockFallback = !isSupabaseConfigured() && isDemoModeEnabled();
+
+  const [adminUsersList, setAdminUsersList] = useState<User[]>(useMockFallback ? INITIAL_USERS : []);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authInitialTab, setAuthInitialTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [authTargetMessage, setAuthTargetMessage] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Main system state with backend persistence
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
-  const [studios, setStudios] = useState(INITIAL_STUDIO_ROOMS);
+  // Main system state with backend persistence (empty [] by default in production)
+  const [bookings, setBookings] = useState<Booking[]>(useMockFallback ? INITIAL_BOOKINGS : []);
+  const [employees, setEmployees] = useState(useMockFallback ? INITIAL_EMPLOYEES : []);
+  const [studios, setStudios] = useState(useMockFallback ? INITIAL_STUDIO_ROOMS : []);
 
   // Handle legacy hash navigation redirects (#services -> /dich-vu, etc.)
   useEffect(() => {
@@ -63,6 +68,7 @@ function AppContent() {
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     let active = true;
+
     async function initData() {
       try {
         const [bks, stds, emps] = await Promise.all([
@@ -71,12 +77,12 @@ function AppContent() {
           getEmployees(),
         ]);
         if (active) {
-          if (bks.length > 0) setBookings(bks);
-          if (stds.length > 0) setStudios(stds);
-          if (emps.length > 0) setEmployees(emps);
+          setBookings(bks);
+          setStudios(stds);
+          setEmployees(emps);
         }
       } catch (e) {
-        console.warn('Initial data fetch error:', e);
+        console.warn('Initial data fetch warning:', e);
       }
     }
     initData();
@@ -100,13 +106,12 @@ function AppContent() {
   const handleLogout = async () => {
     await logout();
     navigate('/');
-    setSearchQuery('');
     setIsAuthModalOpen(false);
   };
 
-  const handleBookingSuccess = (newBooking: Booking) => {
+  const handleBookingSuccess = useCallback((newBooking: Booking) => {
     setBookings(prev => [newBooking, ...prev.filter(b => b.id !== newBooking.id)]);
-  };
+  }, []);
 
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingStatus, note?: string) => {
     try {
@@ -117,9 +122,9 @@ function AppContent() {
     }
   };
 
-  const handleAssignStaff = async (bookingId: string, employeeId: string) => {
+  const handleAssignStaff = async (bookingId: string, employeeId: string, role?: string) => {
     try {
-      const asg = await assignBookingStaff(bookingId, employeeId);
+      const asg = await assignBookingStaff(bookingId, employeeId, role);
       setBookings(prev => prev.map(b => {
         if (b.id === bookingId || b.bookingCode === bookingId) {
           return {
@@ -136,21 +141,9 @@ function AppContent() {
   };
 
   const handleOpenBooking = () => {
-    if (!currentUser || currentRole === 'GUEST') {
-      handleOpenAuthModal('LOGIN', '🔒 Quý khách vui lòng Đăng Nhập (hoặc Đăng Ký tài khoản mới) để tiến hành Đặt Lịch Chụp Ảnh tại Maison MIPA');
-      return;
-    }
-    setIsBookingOpen(true);
+    // Canonical booking funnel
+    navigate('/booking');
   };
-
-  // Search filter
-  const searchResults = searchQuery.trim().length > 1
-    ? bookings.filter(b =>
-        b.bookingCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.customerPhone.includes(searchQuery)
-      )
-    : [];
 
   const isPublicPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname) || location.pathname.startsWith('/dich-vu/');
 
@@ -169,67 +162,6 @@ function AppContent() {
 
       {/* Main Presentation Body */}
       <main style={{ flex: 1 }}>
-
-        {/* Global Search Results Dropdown Overlay */}
-        {searchQuery.trim().length > 1 && (
-          <div className="mipa-container" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-            <div className="mipa-card" style={{ padding: '1.5rem', border: '2px solid #8C6E53' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontFamily: 'var(--mipa-font-heading)', color: '#604634', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Search size={20} color="#8C6E53" />
-                  Kết Quả Tra Cứu ({searchResults.length})
-                </h3>
-                <button
-                  onClick={() => setSearchQuery('')}
-                  style={{ background: 'none', border: 'none', color: '#8C6E53', cursor: 'pointer', fontSize: '0.85rem' }}
-                >
-                  ✕ Đóng tìm kiếm
-                </button>
-              </div>
-
-              {searchResults.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem 0', color: '#8C6E53' }}>
-                  Không tìm thấy đơn đặt lịch nào khớp với từ khóa: <strong>"{searchQuery}"</strong>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {searchResults.map(b => (
-                    <div
-                      key={b.id}
-                      style={{
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: '#FFFDF6',
-                        border: '1px solid var(--mipa-beige)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <span style={{ fontWeight: 700, color: '#604634' }}>{b.bookingCode}</span>
-                          <span className="mipa-badge" style={{ backgroundColor: '#EFE6C9', color: '#604634' }}>{b.packageName}</span>
-                          <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>({b.bookingDate} • {b.startTime} - {b.endTime})</span>
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: '#8C6E53', marginTop: '0.2rem' }}>
-                          Khách: <strong>{b.customerName}</strong> • SĐT: {b.customerPhone} • Studio: {b.studioName}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, color: '#604634' }}>{b.totalAmount.toLocaleString('vi-VN')} đ</div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: b.paymentStatus === 'FULLY_PAID' ? '#16A34A' : '#D97706' }}>
-                          {b.paymentStatus === 'FULLY_PAID' ? 'Đã Thanh Toán Đủ' : 'Đã Đặt Cọc'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Real URL Router Routes */}
         <Suspense fallback={
           <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8C6E53' }}>
@@ -261,6 +193,7 @@ function AppContent() {
                 onOpenAuthModal={handleOpenAuthModal}
               />
             } />
+            <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected Private Routes with RBAC Guards */}
             <Route
@@ -318,14 +251,6 @@ function AppContent() {
       {/* Footer */}
       <Footer />
 
-      {/* Interactive 6-Step Booking Wizard Modal */}
-      <BookingWizard
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        onBookingSuccess={handleBookingSuccess}
-        existingBookings={bookings}
-      />
-
       {/* Real Auth Modal (Login & Register) */}
       <AuthModal
         isOpen={isAuthModalOpen}
@@ -336,7 +261,7 @@ function AppContent() {
         initialTab={authInitialTab}
       />
 
-      {/* Floating Sticky Mobile Booking Bar (Visible on public pages on mobile screens) */}
+      {/* Floating Sticky Mobile Booking Bar */}
       {isPublicPage && (
         <div
           className="mipa-mobile-show"

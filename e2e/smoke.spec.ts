@@ -88,22 +88,19 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
   });
 
   test('4. Protected area không cho guest/customer trái quyền truy cập', async ({ page }) => {
+    // 1. As GUEST, navigating to /staff or /management triggers guard
+    await page.goto('/staff');
+    await expect(page.getByText('403 FORBIDDEN')).toBeVisible();
+
+    // 2. Login as CUSTOMER
     await page.goto('/');
-
-    // As GUEST, try clicking Booking -> Route Guard blocks and opens Auth Modal
-    await page.getByRole('button', { name: /ĐẶT LỊCH/i }).first().click();
-    await expect(page.locator('text=Quý khách vui lòng Đăng Nhập')).toBeVisible();
-
-    // Close Auth modal
-    await page.locator('button:has(svg.lucide-x)').first().click();
-
-    // Login as CUSTOMER
     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
 
     // As Customer, user has access to "Lịch của tôi", but NOT to Staff Portal or Management
+    await expect(page.locator('text=Nguyễn Minh Anh').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Lịch của tôi', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /Quản Lý Studio OS/i })).not.toBeVisible();
     await expect(page.getByRole('button', { name: /Ca chụp & Lịch/i })).not.toBeVisible();

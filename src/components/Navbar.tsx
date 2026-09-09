@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { User, UserRole } from '../types';
 import { CURRENT_USER_PROFILES, INITIAL_NOTIFICATIONS } from '../mockData';
-import { Camera, Search, Bell, Calendar, User as UserIcon, Shield, Briefcase, ChevronDown, X, LogOut, UserPlus, LogIn, Menu, LayoutDashboard, Home, Layers, Tag, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Camera, Bell, Calendar, User as UserIcon, Shield, Briefcase, ChevronDown, X, LogOut, UserPlus, LogIn, Menu, LayoutDashboard, Home, Layers, Tag, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 export interface NavbarProps {
   currentUser: User | null;
@@ -11,8 +11,8 @@ export interface NavbarProps {
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   onOpenBooking: () => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
   onOpenAuthModal: (tab?: 'LOGIN' | 'REGISTER', msg?: string) => void;
   onLogout: () => void;
 }
@@ -23,8 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab: _legacyActiveTab,
   setActiveTab: legacySetActiveTab,
   onOpenBooking,
-  searchQuery,
-  setSearchQuery,
+  searchQuery: _searchQuery,
+  setSearchQuery: _setSearchQuery,
   onOpenAuthModal,
   onLogout,
 }) => {
@@ -169,24 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </Link>
 
-        {/* Global Search Bar */}
-        <div className="mipa-mobile-hide" style={{ flex: 1, maxWidth: '280px', position: 'relative' }}>
-          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-          <input
-            type="text"
-            placeholder="Tìm mã đơn MIPA-xxxx, SĐT..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="mipa-input"
-            style={{
-              paddingLeft: '34px',
-              height: '36px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              backgroundColor: 'rgba(239, 230, 201, 0.3)',
-            }}
-          />
-        </div>
+
 
         {/* Dynamic Navigation Links (Desktop) */}
         <nav className="mipa-mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -536,18 +519,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           boxShadow: '0 10px 25px rgba(96, 70, 52, 0.15)',
           animation: 'slideUp 0.25s ease-out',
         }}>
-          {/* Mobile Search Input */}
-          <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
-            <input
-              type="text"
-              placeholder="Tìm mã đơn MIPA-xxxx, SĐT..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="mipa-input"
-              style={{ paddingLeft: '36px', height: '40px', borderRadius: '12px' }}
-            />
-          </div>
+
 
           {/* Mobile Nav Links */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

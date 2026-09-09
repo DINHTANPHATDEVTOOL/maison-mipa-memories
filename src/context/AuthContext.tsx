@@ -1,10 +1,16 @@
 // ==============================================================================
 // Maison MIPA Memories - Production Authentication & RBAC Context
+// Hardened for Issue #7 and #17:
+// - Denies login/session for SUSPENDED and DISABLED accounts
+// - Authoritative Supabase Auth integration
+// - Password reset & update password support
+// - Verification email resend support
+// - Strict fail-closed production behavior
 // ==============================================================================
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
-import type { User, UserRole, StaffRole } from '../types';
+import type { User, UserRole } from '../types';
 import type { ProfileRow } from '../types/database';
 import { CURRENT_USER_PROFILES } from '../mockData';
 import { mapProfileToUser } from './authHelpers';
@@ -19,6 +25,9 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>;
   register: (params: { email: string; password: string; fullName: string; phone?: string }) => Promise<{ success: boolean; error?: string; user?: User }>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
   // Demo-only helper strictly disabled in production
@@ -72,6 +81,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!session?.user?.id) return;
     const freshUser = await fetchProfile(session.user.id);
     if (freshUser) {
+      if (freshUser.status === 'SUSPENDED' || freshUser.status === 'DISABLED') {
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng hoạt động.');
+        return;
+      }
       setUser(freshUser);
     }
   }, [session, fetchProfile]);
@@ -85,14 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         if (!isSupabaseConfigured()) {
-          // If Supabase is not configured, finish loading in unauthenticated GUEST state
           if (isMounted) {
             setIsLoading(false);
           }
           return;
         }
 
-        // Get initial session
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -100,19 +114,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (initialSession?.user && isMounted) {
-          setSession(initialSession);
           const userProfile = await fetchProfile(initialSession.user.id);
-          if (isMounted) {
+
+          // Security check: Deny suspended/disabled accounts
+          if (userProfile && (userProfile.status === 'SUSPENDED' || userProfile.status === 'DISABLED')) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
+            }
+          } else if (isMounted) {
+            setSession(initialSession);
             if (userProfile) {
               setUser(userProfile);
             } else {
-              // Fallback if trigger was delayed: extract basic info from auth.user
               setUser({
                 id: initialSession.user.id,
                 fullName: initialSession.user.user_metadata?.full_name || initialSession.user.email?.split('@')[0] || 'Khách Hàng',
                 email: initialSession.user.email || '',
                 phone: initialSession.user.user_metadata?.phone || '',
-                role: 'CUSTOMER', // Default role is strictly CUSTOMER
+                role: 'CUSTOMER',
                 status: 'ACTIVE',
               });
             }
@@ -129,14 +151,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Subscribe to Auth State Changes (Restore session on refresh, handle expiry, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        setSession(currentSession);
         if (currentSession?.user) {
           const profile = await fetchProfile(currentSession.user.id);
+          if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
+            }
+            return;
+          }
+
+          setSession(currentSession);
           if (isMounted) {
             if (profile) {
               setUser(profile);
@@ -175,12 +206,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       if (!isSupabaseConfigured()) {
-        // In Demo Mode only: allow mock login for development testing if Supabase is unconfigured
         if (isDemoMode) {
           const matchedProfile = Object.values(CURRENT_USER_PROFILES).find(
             (p) => p.email.toLowerCase() === email.trim().toLowerCase()
           );
           if (matchedProfile) {
+            if (matchedProfile.status === 'SUSPENDED' || matchedProfile.status === 'DISABLED') {
+              const msg = 'Tài khoản của bạn đã bị khóa hoặc tạm ngưng.';
+              setAuthError(msg);
+              setIsLoading(false);
+              return { success: false, error: msg };
+            }
             setUser(matchedProfile);
             setIsLoading(false);
             return { success: true, user: matchedProfile };
@@ -198,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: true, user: defaultCustomer };
         }
 
-        const msg = 'Hệ thống xác thực Supabase chưa được cấu hình (Vui lòng thiết lập VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY).';
+        const msg = 'Hệ thống xác thực Supabase chưa được cấu hình.';
         setAuthError(msg);
         setIsLoading(false);
         return { success: false, error: msg };
@@ -218,8 +254,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
-        setSession(data.session);
         const profile = await fetchProfile(data.user.id);
+
+        // Security gate: Deny suspended/disabled
+        if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
+          await supabase.auth.signOut();
+          const denyMsg = 'Tài khoản này đã bị tạm ngưng hoặc khóa. Vui lòng liên hệ quản lý studio.';
+          setAuthError(denyMsg);
+          setIsLoading(false);
+          return { success: false, error: denyMsg };
+        }
+
+        setSession(data.session);
         resolvedUser = profile || {
           id: data.user.id,
           fullName: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Khách Hàng',
@@ -266,7 +312,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             fullName: fullName.trim(),
             email: email.trim(),
             phone: phone?.trim() || '',
-            role: 'CUSTOMER', // Always CUSTOMER
+            role: 'CUSTOMER',
             status: 'ACTIVE',
           };
           setUser(newDemoUser);
@@ -280,8 +326,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: msg };
       }
 
-      // Supabase Sign Up
-      // Role is NOT sent in metadata to avoid client tampering; DB trigger forces role='CUSTOMER'
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -325,6 +369,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchProfile, isDemoMode]);
 
   /**
+   * Password Reset Request
+   */
+  const resetPassword = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSupabaseConfigured()) {
+        const redirectTo = `${window.location.origin}/auth/reset-password`;
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo,
+        });
+
+        if (error) {
+          setAuthError(error.message);
+          setIsLoading(false);
+          return { success: false, error: error.message };
+        }
+      }
+
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { success: false, error: err?.message || 'Không thể gửi email đặt lại mật khẩu.' };
+    }
+  }, []);
+
+  /**
+   * Update Password (used on /auth/reset-password)
+   */
+  const updatePassword = useCallback(async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (error) {
+          setAuthError(error.message);
+          setIsLoading(false);
+          return { success: false, error: error.message };
+        }
+      }
+
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { success: false, error: err?.message || 'Không thể cập nhật mật khẩu.' };
+    }
+  }, []);
+
+  /**
+   * Resend Verification Email
+   */
+  const resendVerificationEmail = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email.trim(),
+        });
+
+        if (error) {
+          setAuthError(error.message);
+          setIsLoading(false);
+          return { success: false, error: error.message };
+        }
+      }
+
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { success: false, error: err?.message || 'Không thể gửi lại email xác thực.' };
+    }
+  }, []);
+
+  /**
    * Production Logout
    */
   const logout = useCallback(async (): Promise<void> => {
@@ -344,22 +474,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
-   * Demo Mode Quick Login (STRICTLY disabled unless VITE_ENABLE_DEMO_MODE=true)
+   * Demo Mode Quick Login
    */
   const loginAsDemoRole = useCallback((targetRole: UserRole) => {
     if (!isDemoMode) {
-      console.warn('Demo login is strictly disabled in production mode.');
+      console.warn('Demo quick-login is strictly disabled in production mode.');
       return;
     }
-    const profile = CURRENT_USER_PROFILES[targetRole] || CURRENT_USER_PROFILES.CUSTOMER;
-    setUser(profile);
+
+    const demoProfile = CURRENT_USER_PROFILES[targetRole];
+    if (demoProfile) {
+      setUser(demoProfile);
+    }
   }, [isDemoMode]);
 
-  const role: UserRole = user?.role || 'GUEST';
-
-  const value = useMemo<AuthContextType>(() => ({
+  const value = useMemo(() => ({
     user,
-    role,
+    role: user?.role || 'GUEST',
     session,
     isLoading,
     authError,
@@ -367,10 +498,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     register,
     logout,
+    resetPassword,
+    updatePassword,
+    resendVerificationEmail,
     refreshProfile,
     clearError,
     loginAsDemoRole,
-  }), [user, role, session, isLoading, authError, isDemoMode, login, register, logout, refreshProfile, clearError, loginAsDemoRole]);
+  }), [
+    user,
+    session,
+    isLoading,
+    authError,
+    isDemoMode,
+    login,
+    register,
+    logout,
+    resetPassword,
+    updatePassword,
+    resendVerificationEmail,
+    refreshProfile,
+    clearError,
+    loginAsDemoRole,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

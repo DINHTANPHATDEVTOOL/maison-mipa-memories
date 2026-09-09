@@ -383,6 +383,12 @@ export interface Database {
           occasion: string | null;
           customer_note: string | null;
           staff_note: string | null;
+          drive_folder_url?: string | null;
+          drive_delivery_ready_at?: string | null;
+          customer_schedule_confirmed_at?: string | null;
+          customer_shoot_ack_at?: string | null;
+          cancel_requested_at?: string | null;
+          reschedule_requested_at?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -408,6 +414,12 @@ export interface Database {
           occasion?: string | null;
           customer_note?: string | null;
           staff_note?: string | null;
+          drive_folder_url?: string | null;
+          drive_delivery_ready_at?: string | null;
+          customer_schedule_confirmed_at?: string | null;
+          customer_shoot_ack_at?: string | null;
+          cancel_requested_at?: string | null;
+          reschedule_requested_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -433,6 +445,12 @@ export interface Database {
           occasion?: string | null;
           customer_note?: string | null;
           staff_note?: string | null;
+          drive_folder_url?: string | null;
+          drive_delivery_ready_at?: string | null;
+          customer_schedule_confirmed_at?: string | null;
+          customer_shoot_ack_at?: string | null;
+          cancel_requested_at?: string | null;
+          reschedule_requested_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -707,6 +725,157 @@ export interface Database {
           }
         ];
       };
+      payment_settings: {
+        Row: {
+          id: string;
+          bank_code: string;
+          bank_bin: string;
+          bank_name: string;
+          account_number: string;
+          account_name: string;
+          branch: string | null;
+          qr_template: string;
+          active: boolean;
+          is_default: boolean;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          bank_code: string;
+          bank_bin: string;
+          bank_name: string;
+          account_number: string;
+          account_name: string;
+          branch?: string | null;
+          qr_template?: string;
+          active?: boolean;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          bank_code?: string;
+          bank_bin?: string;
+          bank_name?: string;
+          account_number?: string;
+          account_name?: string;
+          branch?: string | null;
+          qr_template?: string;
+          active?: boolean;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      notification_outbox: {
+        Row: {
+          id: string;
+          event_type: string;
+          recipient_user_id: string | null;
+          recipient_email: string;
+          entity_type: string;
+          entity_id: string;
+          template_key: string;
+          payload: Record<string, unknown>;
+          status: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
+          attempts: number;
+          max_attempts: number;
+          next_attempt_at: string;
+          provider_message_id: string | null;
+          last_error: string | null;
+          idempotency_key: string;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_type: string;
+          recipient_user_id?: string | null;
+          recipient_email: string;
+          entity_type: string;
+          entity_id: string;
+          template_key: string;
+          payload: Record<string, unknown>;
+          status?: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
+          attempts?: number;
+          max_attempts?: number;
+          next_attempt_at?: string;
+          provider_message_id?: string | null;
+          last_error?: string | null;
+          idempotency_key: string;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_type?: string;
+          recipient_user_id?: string | null;
+          recipient_email?: string;
+          entity_type?: string;
+          entity_id?: string;
+          template_key?: string;
+          payload?: Record<string, unknown>;
+          status?: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
+          attempts?: number;
+          max_attempts?: number;
+          next_attempt_at?: string;
+          provider_message_id?: string | null;
+          last_error?: string | null;
+          idempotency_key?: string;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      staff_tasks: {
+        Row: {
+          id: string;
+          booking_id: string;
+          employee_id: string;
+          task_type: string;
+          title: string;
+          status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          employee_id: string;
+          task_type: string;
+          title: string;
+          status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          employee_id?: string;
+          task_type?: string;
+          title?: string;
+          status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_tasks_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -770,6 +939,78 @@ export interface Database {
         };
         Returns: unknown;
       };
+      admin_save_payment_settings: {
+        Args: {
+          p_bank_code: string;
+          p_bank_bin: string;
+          p_bank_name: string;
+          p_account_number: string;
+          p_account_name: string;
+          p_branch?: string | null;
+          p_qr_template?: string;
+        };
+        Returns: unknown;
+      };
+      admin_update_user_role_and_status: {
+        Args: {
+          p_user_id: string;
+          p_new_role: string;
+          p_new_staff_role?: string | null;
+          p_new_status?: string;
+        };
+        Returns: unknown;
+      };
+      admin_update_user_role: {
+        Args: {
+          p_target_user_id: string;
+          p_new_role: string;
+          p_new_staff_role?: string | null;
+        };
+        Returns: unknown;
+      };
+      admin_update_user_status: {
+        Args: {
+          p_target_user_id: string;
+          p_new_status: string;
+        };
+        Returns: unknown;
+      };
+      acknowledge_customer_schedule: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: unknown;
+      };
+      acknowledge_customer_shoot: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: unknown;
+      };
+      request_booking_reschedule: {
+        Args: {
+          p_booking_id: string;
+          p_new_date: string;
+          p_new_slot: string;
+          p_reason?: string | null;
+        };
+        Returns: unknown;
+      };
+      request_booking_cancel: {
+        Args: {
+          p_booking_id: string;
+          p_reason?: string | null;
+        };
+        Returns: unknown;
+      };
+      update_staff_task_status: {
+        Args: {
+          p_task_id: string;
+          p_new_status: string;
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
     };
     Enums: {
       user_role: DatabaseRole;
@@ -798,6 +1039,10 @@ export type OtpChallengeRow = Database['public']['Tables']['otp_challenges']['Ro
 export type PaymentRow = Database['public']['Tables']['payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['payments']['Insert'];
 export type PaymentUpdate = Database['public']['Tables']['payments']['Update'];
+
+export type PaymentSettingsRow = Database['public']['Tables']['payment_settings']['Row'];
+export type NotificationOutboxRow = Database['public']['Tables']['notification_outbox']['Row'];
+export type StaffTaskRow = Database['public']['Tables']['staff_tasks']['Row'];
 
 export type PaymentStatus = PaymentRow['status'];
 export type PaymentMethod = PaymentRow['method'];

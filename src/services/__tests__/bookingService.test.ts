@@ -229,16 +229,16 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
 
       // Verify booking contains both assignments
       const bookingsAfter = getInMemoryBookings();
-      const target = bookingsAfter.find(item => item.id === b.id)!;
+      const target = bookingsAfter.find((item: any) => item.id === b.id)!;
       expect(target.assignments.length).toBe(2);
 
       // Re-assign photographer to another staff member
       const newPhotographer = INITIAL_EMPLOYEES[2];
       await assignBookingStaff(b.id, newPhotographer.id, 'PHOTOGRAPHER');
 
-      const updatedTarget = getInMemoryBookings().find(item => item.id === b.id)!;
+      const updatedTarget = getInMemoryBookings().find((item: any) => item.id === b.id)!;
       expect(updatedTarget.assignments.length).toBe(2);
-      const photoAsg = updatedTarget.assignments.find(a => a.assignmentRole === 'PHOTOGRAPHER')!;
+      const photoAsg = updatedTarget.assignments.find((a: any) => a.assignmentRole === 'PHOTOGRAPHER')!;
       expect(photoAsg.employeeId).toBe(newPhotographer.id);
     });
   });

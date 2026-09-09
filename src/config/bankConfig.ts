@@ -1,8 +1,15 @@
 // ==============================================================================
 // Maison MIPA Memories - Centralized Bank & Payment Configuration
-// Note: Bank display credentials (Account number, name, bank code) are public
-// payment instructions. Payment gateway private secrets remain server-only.
+// Issue #17: Replaced hardcoded fake MB account with authoritative backend settings.
+// Production Guard: Blocks fake/placeholder bank accounts.
 // ==============================================================================
+
+import {
+  type BusinessBankConfig,
+  DEMO_BANK_CONFIG,
+  isValidProductionBankConfig,
+  buildAuthoritativeVietQrUrl,
+} from '../services/paymentSettingsService';
 
 export interface BankConfig {
   bankCode: string;
@@ -13,21 +20,27 @@ export interface BankConfig {
   qrTemplate: string;
 }
 
+// Fallback configuration for tests only
 export const BANK_CONFIG: BankConfig = {
-  bankCode: 'MB', // MB Bank (Ngân hàng TMCP Quân Đội)
-  bankName: 'MB BANK (Ngân hàng Quân Đội)',
-  accountNumber: '888866669999',
-  accountName: 'MAISON MIPA MEMORIES',
-  branch: 'Chi nhánh Hà Nội',
-  qrTemplate: 'compact2',
+  bankCode: DEMO_BANK_CONFIG.bankCode,
+  bankName: DEMO_BANK_CONFIG.bankName,
+  accountNumber: DEMO_BANK_CONFIG.accountNumber,
+  accountName: DEMO_BANK_CONFIG.accountName,
+  branch: DEMO_BANK_CONFIG.branch,
+  qrTemplate: DEMO_BANK_CONFIG.qrTemplate,
 };
 
 /**
  * Generate standard VietQR quick-link URL
- * Standard: https://img.vietqr.io/image/<BANK_CODE>-<ACCOUNT_NO>-<TEMPLATE>.png?amount=<AMOUNT>&addInfo=<INFO>&accountName=<NAME>
  */
-export const generateVietQrUrl = (amount: number, transferReference: string): string => {
-  const safeRef = encodeURIComponent(transferReference.trim());
-  const safeName = encodeURIComponent(BANK_CONFIG.accountName);
-  return `https://img.vietqr.io/image/${BANK_CONFIG.bankCode}-${BANK_CONFIG.accountNumber}-${BANK_CONFIG.qrTemplate}.png?amount=${Math.round(amount)}&addInfo=${safeRef}&accountName=${safeName}`;
+export const generateVietQrUrl = (
+  amount: number,
+  transferReference: string,
+  customConfig?: BusinessBankConfig | null
+): string => {
+  const cfg = customConfig !== undefined ? customConfig : (DEMO_BANK_CONFIG as BusinessBankConfig);
+  if (!isValidProductionBankConfig(cfg)) {
+    return '';
+  }
+  return buildAuthoritativeVietQrUrl(cfg, amount, transferReference);
 };
