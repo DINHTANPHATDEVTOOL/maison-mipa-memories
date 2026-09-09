@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { ManagerDashboard } from '../components/management/ManagerDashboard';
 import { StudioCalendar } from '../components/management/StudioCalendar';
 import { CustomerCRM } from '../components/management/CustomerCRM';
+import { PortfolioCMS } from '../components/management/PortfolioCMS';
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
-import { LayoutDashboard, Clock, Users } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Camera } from 'lucide-react';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
 
 interface ManagementPageProps {
@@ -26,7 +27,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
   onAssignStaff,
   onRequireAuth,
 }) => {
-  const [subTab, setSubTab] = useState<'dashboard' | 'calendar' | 'crm'>('dashboard');
+  const [subTab, setSubTab] = useState<'dashboard' | 'calendar' | 'crm' | 'portfolio'>('dashboard');
 
   return (
     <RoleGuard
@@ -106,6 +107,24 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         >
           <Users size={15} color="#EFE6C9" /> CRM & Khách Hàng
         </button>
+        <button
+          onClick={() => setSubTab('portfolio')}
+          style={{
+            border: 'none',
+            background: subTab === 'portfolio' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.35rem 0.9rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Camera size={15} color="#EFE6C9" /> Portfolio & Concept CMS
+        </button>
       </div>
 
       {subTab === 'dashboard' && (
@@ -119,6 +138,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           onNavigateTab={(tab) => {
             if (tab === 'studio_calendar') setSubTab('calendar');
             else if (tab === 'customer_crm') setSubTab('crm');
+            else if (tab === 'portfolio_cms') setSubTab('portfolio');
             else setSubTab('dashboard');
           }}
         />
@@ -136,6 +156,10 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         <CustomerCRM
           bookings={bookings}
         />
+      )}
+
+      {subTab === 'portfolio' && (
+        <PortfolioCMS />
       )}
     </RoleGuard>
   );

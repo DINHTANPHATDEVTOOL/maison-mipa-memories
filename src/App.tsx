@@ -19,6 +19,8 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/auth/AuthModal';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { SITE_CONFIG } from './config/site';
+import { Phone } from 'lucide-react';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
@@ -26,6 +28,7 @@ import { ServicesPage } from './pages/ServicesPage';
 import { ServiceDetailPage } from './pages/ServiceDetailPage';
 import { PricingPage } from './pages/PricingPage';
 import { PortfolioPage } from './pages/PortfolioPage';
+import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { BookingPage } from './pages/BookingPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -145,7 +148,7 @@ function AppContent() {
     navigate('/booking');
   };
 
-  const isPublicPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname) || location.pathname.startsWith('/dich-vu/');
+  const isPublicPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname) || location.pathname.startsWith('/dich-vu/') || location.pathname.startsWith('/portfolio/');
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mipa-background)' }}>
@@ -186,6 +189,9 @@ function AppContent() {
             <Route path="/dich-vu/:slug" element={<ServiceDetailPage onOpenBooking={handleOpenBooking} />} />
             <Route path="/bang-gia" element={<PricingPage onOpenBooking={handleOpenBooking} />} />
             <Route path="/portfolio" element={<PortfolioPage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/portfolio/:slug" element={
+              <CollectionDetailPage onOpenBooking={(conceptSlug) => navigate(conceptSlug ? `/booking?concept=${conceptSlug}` : '/booking')} />
+            } />
             <Route path="/booking" element={
               <BookingPage
                 onBookingSuccess={handleBookingSuccess}
@@ -270,26 +276,86 @@ function AppContent() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(255, 253, 246, 0.96)',
+            backgroundColor: 'rgba(255, 253, 246, 0.98)',
             backdropFilter: 'blur(12px)',
-            borderTop: '2px solid var(--mipa-brown)',
-            padding: '0.65rem 1rem',
+            borderTop: '1px solid var(--mipa-beige)',
+            padding: '0.5rem 0.75rem',
             zIndex: 9000,
-            boxShadow: '0 -4px 25px rgba(96, 70, 52, 0.2)',
-            justifyContent: 'space-between',
+            boxShadow: '0 -4px 20px rgba(60, 40, 25, 0.12)',
+            display: 'flex',
+            gap: '0.5rem',
             alignItems: 'center',
+            boxSizing: 'border-box',
           }}
         >
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8C6E53' }}>MAISON MIPA MEMORIES</div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#604634' }}>Từ 1.290.000đ • Trọn gói</div>
-          </div>
+          {/* Call hotline */}
+          <a
+            href={`tel:${SITE_CONFIG.contact.phoneE164 || '0966616546'}`}
+            aria-label="Gọi hotline Maison MIPA"
+            style={{
+              minWidth: '44px',
+              minHeight: '44px',
+              width: '44px',
+              height: '44px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#EDE4D8',
+              color: '#604634',
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}
+          >
+            <Phone size={20} />
+          </a>
+
+          {/* Real Zalo URL if configured */}
+          {Boolean(SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo)) && (
+            <a
+              href={SITE_CONFIG.social.zalo}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Chat Zalo Maison MIPA"
+              style={{
+                minWidth: '44px',
+                minHeight: '44px',
+                height: '44px',
+                padding: '0 0.6rem',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#0068FF',
+                color: '#FFFFFF',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                flexShrink: 0,
+              }}
+            >
+              Zalo
+            </a>
+          )}
+
+          {/* Primary Booking CTA */}
           <button
             onClick={handleOpenBooking}
-            className="btn-mipa-gold"
-            style={{ padding: '0.55rem 1.2rem', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(198, 164, 95, 0.4)' }}
+            className="btn-mipa-primary"
+            style={{
+              flex: 1,
+              minHeight: '44px',
+              height: '44px',
+              padding: '0 1rem',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(96, 70, 52, 0.2)',
+            }}
           >
-            📷 ĐẶT LỊCH NGAY
+            Đặt Lịch
           </button>
         </div>
       )}

@@ -11,6 +11,7 @@ import type {
   Addon,
 } from '../types';
 import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS, INITIAL_EMPLOYEES } from '../mockData';
+import { DEMO_CONCEPTS } from './portfolioService';
 import { calculatePricing } from './pricingService';
 import { isIntervalOverlapping, timeToMinutes, minutesToTime } from './availabilityService';
 
@@ -41,6 +42,8 @@ export interface CreateBookingRequest {
   customerEmail?: string;
   occasion?: string;
   customerNote?: string;
+  conceptId?: string;
+  conceptIds?: string[];
 }
 
 // In-memory store for explicit demo mode and offline unit tests
@@ -81,6 +84,8 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
     throw new BookingValidationError('Vui lòng chọn ngày và khung giờ chụp ảnh.');
   }
 
+  const conceptIds = request.conceptIds || (request.conceptId ? [request.conceptId] : []);
+
   // If Supabase is configured, execute the Postgres stored procedure (create_booking RPC)
   if (isSupabaseConfigured()) {
     const startIso = `${request.date}T${request.timeSlot}:00+07:00`;
@@ -97,6 +102,7 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
       p_customer_email: request.customerEmail || null,
       p_occasion: request.occasion || null,
       p_customer_note: request.customerNote || null,
+      p_concept_ids: conceptIds,
     });
 
     if (error) {
@@ -136,6 +142,28 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
   const service = INITIAL_SERVICES.find(s => s.id === request.serviceId) || INITIAL_SERVICES[0];
   const pkg = INITIAL_PACKAGES.find(p => p.id === request.packageId) || INITIAL_PACKAGES[0];
   const studio = INITIAL_STUDIO_ROOMS.find(st => st.id === request.studioId) || INITIAL_STUDIO_ROOMS[0];
+
+  const conceptIds = request.conceptIds || (request.conceptId ? [request.conceptId] : []);
+  if (conceptIds.length > (pkg.conceptsCount || 1)) {
+    throw new BookingValidationError(
+      `Gói ${pkg.name} chỉ cho phép tối đa ${pkg.conceptsCount || 1} concept (bạn đã chọn ${conceptIds.length}).`
+    );
+  }
+
+  for (const cId of conceptIds) {
+    const concept = DEMO_CONCEPTS.find(c => c.id === cId || c.slug === cId);
+    if (!concept) {
+      throw new BookingValidationError(`Concept "${cId}" không tồn tại trên hệ thống.`);
+    }
+    if (!concept.active) {
+      throw new BookingValidationError(`Concept "${concept.name}" hiện đang tạm ngưng hoạt động.`);
+    }
+    if (!concept.bookable) {
+      throw new BookingValidationError(`Concept "${concept.name}" chưa mở nhận đặt lịch.`);
+    }
+  }
+
+  const primaryConcept = conceptIds.length > 0 ? DEMO_CONCEPTS.find(c => c.id === conceptIds[0] || c.slug === conceptIds[0]) : undefined;
 
   const selectedAddons: Addon[] = (request.addonIds || [])
     .map(id => INITIAL_ADDONS.find(a => a.id === id))
@@ -199,6 +227,9 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     studioId: studio.id,
     studioName: studio.name,
     addons: selectedAddons,
+    conceptId: primaryConcept?.id || conceptIds[0] || undefined,
+    conceptIds,
+    conceptName: primaryConcept?.name,
     subtotal: pricing.subtotal,
     discount: pricing.discountTotal,
     depositAmount: pricing.depositAmount,
@@ -531,6 +562,9 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     studioId: record.studio_room_id || record.studioId || '',
     studioName: record.studio_name || record.studioName || 'Phòng Studio MIPA',
     addons: record.addons || [],
+    conceptId: record.concept_id || record.conceptId,
+    conceptIds: record.concept_ids || (record.concept_id ? [record.concept_id] : []),
+    conceptName: record.concept_name || record.conceptName,
     subtotal: Number(record.subtotal || 0),
     discount: Number(record.discount_total || record.discount || 0),
     depositAmount: Number(record.deposit_amount || record.depositAmount || 0),

@@ -107,14 +107,14 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('renders pricing page at /bang-gia', async () => {
     renderRoute('/bang-gia');
-    expect(screen.getByRole('heading', { name: /Bảng Giá Dịch Vụ Chụp Ảnh Studio/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Bảng Giá Dịch Vụ Chụp Ảnh Studio/i })).toBeInTheDocument();
     expect(screen.getByText(/Cam kết không phát sinh chi phí ẩn/i)).toBeInTheDocument();
   });
 
   it('renders portfolio page at /portfolio', async () => {
     renderRoute('/portfolio');
-    expect(screen.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeInTheDocument();
-    expect(screen.getByText(/GALERIE DE MAISON MIPA/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/GALERIE DE MAISON MIPA/i).length).toBeGreaterThan(0);
   });
 
   it('renders dedicated booking page at /booking', async () => {

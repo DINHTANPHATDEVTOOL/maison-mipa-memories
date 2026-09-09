@@ -16,7 +16,7 @@ export const mapProfileToUser = (profile: ProfileRow): User => {
     role: profile.role,
     staffRole: (profile.staff_role as StaffRole) || undefined,
     status: profile.status,
-    avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+    avatar: profile.avatar_url || '/favicon.svg',
     lastLoginAt: new Date().toISOString(),
   };
 };

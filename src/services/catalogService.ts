@@ -11,7 +11,11 @@ import type {
   StudioRoom,
   Promotion,
   Employee,
+  Concept,
 } from '../types';
+import { getPublicConcepts } from './portfolioService';
+export { getPublicConcepts as getConcepts };
+
 import {
   INITIAL_SERVICES,
   INITIAL_PACKAGES,
@@ -230,7 +234,7 @@ export async function getEmployees(): Promise<Employee[]> {
       phone: e.profiles?.phone || '',
       email: e.profiles?.email || '',
       role: e.staff_role,
-      avatar: e.profiles?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+      avatar: e.profiles?.avatar_url || '/favicon.svg',
       skills: Array.isArray(e.skills) ? e.skills : [],
       rating: Number(e.rating || 5.0),
       totalSessions: e.total_sessions || 0,
