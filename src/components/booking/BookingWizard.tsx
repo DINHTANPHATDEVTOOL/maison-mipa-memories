@@ -18,7 +18,13 @@ import {
   confirmManualPaymentSync,
   subscribePaymentStatus,
 } from '../../services/paymentService';
-import { BANK_CONFIG, generateVietQrUrl } from '../../config/bankConfig';
+import { generateVietQrUrl } from '../../config/bankConfig';
+import {
+  getActivePaymentSettings,
+  isValidProductionBankConfig,
+  type BusinessBankConfig,
+} from '../../services/paymentSettingsService';
+import { useAuth } from '../../context/AuthContext';
 import type { PaymentRow } from '../../types/database';
 import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw, Copy, QrCode } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -62,15 +68,26 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     })
   );
   const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
+  const { user } = useAuth();
+  const [activeBankConfig, setActiveBankConfig] = useState<BusinessBankConfig | null>(null);
 
-  // Customer details
-  const [customerName, setCustomerName] = useState<string>('Nguyễn Minh Anh');
-  const [customerPhone, setCustomerPhone] = useState<string>('0908 123 456');
-  const [customerEmail, setCustomerEmail] = useState<string>('minhanh.nguyen@gmail.com');
+  // Customer details (pre-filled from authenticated user if available)
+  const [customerName, setCustomerName] = useState<string>(user?.fullName || 'Khách Hàng MIPA');
+  const [customerPhone, setCustomerPhone] = useState<string>(user?.phone || '0908 123 456');
+  const [customerEmail, setCustomerEmail] = useState<string>(user?.email || 'khachhang@maisonmipa.vn');
   const [occasion, setOccasion] = useState<string>('Kỷ niệm');
   const [customerNote, setCustomerNote] = useState<string>('Mong muốn tone màu sáng tự nhiên & rèm lụa.');
   const [voucherCode, setVoucherCode] = useState<string>('');
   const [isVoucherApplied, setIsVoucherApplied] = useState<boolean>(false);
+
+  // Sync user info if user logs in during booking
+  useEffect(() => {
+    if (user) {
+      if (user.fullName) setCustomerName(user.fullName);
+      if (user.phone) setCustomerPhone(user.phone);
+      if (user.email) setCustomerEmail(user.email);
+    }
+  }, [user]);
 
   // Submission & Confirmation state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -78,35 +95,43 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [currentPayment, setCurrentPayment] = useState<PaymentRow | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [isCopiedRef, setIsCopiedRef] = useState<boolean>(false);
+  const [isCopiedAccount, setIsCopiedAccount] = useState<boolean>(false);
+  const [isCopiedAmount, setIsCopiedAmount] = useState<boolean>(false);
   const [isTransferSubmitted, setIsTransferSubmitted] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load catalog on mount
+  // Load catalog and payment settings on mount
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
     let mounted = true;
-    async function loadCatalog() {
-      setIsLoadingCatalog(true);
-      try {
-        const [srvs, pkgs, adds, stds] = await Promise.all([
-          getServices(),
-          getPackages(),
-          getAddons(),
-          getStudioRooms(),
-        ]);
-        if (mounted) {
-          if (srvs.length > 0) setServices(srvs);
-          if (pkgs.length > 0) setPackages(pkgs);
-          if (adds.length > 0) setAddons(adds);
-          if (stds.length > 0) setStudios(stds);
+    async function loadInitialData() {
+      if (isSupabaseConfigured()) {
+        setIsLoadingCatalog(true);
+        try {
+          const [srvs, pkgs, adds, stds, bank] = await Promise.all([
+            getServices(),
+            getPackages(),
+            getAddons(),
+            getStudioRooms(),
+            getActivePaymentSettings(),
+          ]);
+          if (mounted) {
+            if (srvs.length > 0) setServices(srvs);
+            if (pkgs.length > 0) setPackages(pkgs);
+            if (adds.length > 0) setAddons(adds);
+            if (stds.length > 0) setStudios(stds);
+            setActiveBankConfig(bank);
+          }
+        } catch (err) {
+          console.warn('Could not load data dynamically:', err);
+        } finally {
+          if (mounted) setIsLoadingCatalog(false);
         }
-      } catch (err) {
-        console.warn('Could not load catalog dynamically, using default catalog fixtures:', err);
-      } finally {
-        if (mounted) setIsLoadingCatalog(false);
+      } else {
+        const bank = await getActivePaymentSettings();
+        if (mounted) setActiveBankConfig(bank);
       }
     }
-    loadCatalog();
+    loadInitialData();
     return () => {
       mounted = false;
     };
@@ -335,6 +360,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       navigator.clipboard.writeText(textToCopy);
       setIsCopiedRef(true);
       setTimeout(() => setIsCopiedRef(false), 2000);
+    }
+  };
+
+  const handleCopyAccount = () => {
+    if (!activeBankConfig?.accountNumber) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(activeBankConfig.accountNumber);
+      setIsCopiedAccount(true);
+      setTimeout(() => setIsCopiedAccount(false), 2000);
+    }
+  };
+
+  const handleCopyAmount = () => {
+    const amt = (currentPayment?.amount || depositAmount).toString();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(amt);
+      setIsCopiedAmount(true);
+      setTimeout(() => setIsCopiedAmount(false), 2000);
     }
   };
 
@@ -931,67 +974,125 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
                 {/* Bank Transfer & VietQR Payment Box */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ padding: '1rem', backgroundColor: '#F8F3E6', borderRadius: '16px', border: '1px solid #C6A45F', textAlign: 'center' }}>
-                    <h5 style={{ fontSize: '0.95rem', color: '#604634', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                      <QrCode size={18} color="#8C6E53" /> Quét Mã VietQR Thanh Toán Cọc
-                    </h5>
-                    <div style={{ fontSize: '0.75rem', color: '#8C6E53', marginBottom: '0.6rem' }}>
-                      Tự động điền số tài khoản, số tiền & cú pháp đối soát chính xác
-                    </div>
-                    
+                  {!isValidProductionBankConfig(activeBankConfig) ? (
                     <div style={{
-                      width: '170px',
-                      height: '170px',
-                      margin: '0.5rem auto',
-                      backgroundColor: '#FFFFFF',
-                      padding: '0.5rem',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
+                      padding: '1.2rem',
+                      backgroundColor: '#FEF3C7',
+                      borderRadius: '16px',
+                      border: '1px solid #F59E0B',
+                      color: '#92400E',
+                      textAlign: 'center',
                     }}>
-                      <img
-                        src={generateVietQrUrl(
-                          currentPayment?.amount || depositAmount,
-                          currentPayment?.transfer_reference || `MIPA ${customerPhone}`
-                        )}
-                        alt="Maison MIPA VietQR Code"
-                        style={{ width: '140px', height: '140px', objectFit: 'contain' }}
-                      />
-                      <div style={{ position: 'absolute', bottom: '4px', background: '#604634', color: '#FFF', fontSize: '0.52rem', padding: '1px 6px', borderRadius: '4px' }}>
-                        MIPA VIETQR
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                        <AlertCircle size={20} color="#D97706" /> Chưa cấu hình tài khoản nhận cọc
                       </div>
+                      <p style={{ fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+                        Hệ thống ngân hàng nhận thanh toán đang được cấu hình. Quý khách vui lòng liên hệ Studio Hotline <strong>0908 123 456</strong> để được hỗ trợ chuyển khoản đối soát trực tiếp.
+                      </p>
                     </div>
+                  ) : (
+                    <div style={{ padding: '1rem', backgroundColor: '#F8F3E6', borderRadius: '16px', border: '1px solid #C6A45F', textAlign: 'center' }}>
+                      <h5 style={{ fontSize: '0.95rem', color: '#604634', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                        <QrCode size={18} color="#8C6E53" /> Quét Mã VietQR Thanh Toán Cọc
+                      </h5>
+                      <div style={{ fontSize: '0.75rem', color: '#8C6E53', marginBottom: '0.6rem' }}>
+                        Tự động điền số tài khoản, số tiền & cú pháp đối soát chính xác
+                      </div>
+                      
+                      <div style={{
+                        width: '170px',
+                        height: '170px',
+                        margin: '0.5rem auto',
+                        backgroundColor: '#FFFFFF',
+                        padding: '0.5rem',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                      }}>
+                        <img
+                          src={generateVietQrUrl(
+                            currentPayment?.amount || depositAmount,
+                            currentPayment?.transfer_reference || `MIPA ${customerPhone}`,
+                            activeBankConfig
+                          )}
+                          alt="Maison MIPA VietQR Code"
+                          style={{ width: '140px', height: '140px', objectFit: 'contain' }}
+                        />
+                        <div style={{ position: 'absolute', bottom: '4px', background: '#604634', color: '#FFF', fontSize: '0.52rem', padding: '1px 6px', borderRadius: '4px' }}>
+                          MIPA VIETQR
+                        </div>
+                      </div>
 
-                    <div style={{ fontSize: '0.8rem', color: '#604634', marginTop: '0.5rem', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.75rem', borderRadius: '10px', border: '1px solid #EFE6C9' }}>
-                      <div>Ngân hàng: <strong>{BANK_CONFIG.bankName}</strong></div>
-                      <div>Số tài khoản: <strong>{BANK_CONFIG.accountNumber}</strong></div>
-                      <div>Chủ tài khoản: <strong>{BANK_CONFIG.accountName}</strong></div>
-                      <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FEF3C7', padding: '0.35rem 0.5rem', borderRadius: '6px' }}>
-                        <span>Nội dung CK: <strong style={{ color: '#B45309' }}>{currentPayment?.transfer_reference || `MIPA ${customerPhone}`}</strong></span>
-                        <button
-                          type="button"
-                          onClick={handleCopyTransferRef}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#92400E',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.2rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <Copy size={13} /> {isCopiedRef ? 'Đã sao chép!' : 'Sao chép'}
-                        </button>
+                      <div style={{ fontSize: '0.8rem', color: '#604634', marginTop: '0.5rem', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.75rem', borderRadius: '10px', border: '1px solid #EFE6C9', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <div>Ngân hàng: <strong>{activeBankConfig.bankName}</strong></div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>Số tài khoản: <strong>{activeBankConfig.accountNumber}</strong></span>
+                          <button
+                            type="button"
+                            onClick={handleCopyAccount}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#92400E',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <Copy size={13} /> {isCopiedAccount ? 'Đã sao chép!' : 'Sao chép'}
+                          </button>
+                        </div>
+                        <div>Chủ tài khoản: <strong>{activeBankConfig.accountName}</strong></div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>Số tiền cọc: <strong style={{ color: '#B45309' }}>{(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ</strong></span>
+                          <button
+                            type="button"
+                            onClick={handleCopyAmount}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#92400E',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <Copy size={13} /> {isCopiedAmount ? 'Đã sao chép!' : 'Sao chép'}
+                          </button>
+                        </div>
+                        <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FEF3C7', padding: '0.35rem 0.5rem', borderRadius: '6px' }}>
+                          <span>Nội dung CK: <strong style={{ color: '#B45309' }}>{currentPayment?.transfer_reference || `MIPA ${customerPhone}`}</strong></span>
+                          <button
+                            type="button"
+                            onClick={handleCopyTransferRef}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#92400E',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <Copy size={13} /> {isCopiedRef ? 'Đã sao chép!' : 'Sao chép'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {isTransferSubmitted && currentPayment?.status === 'PENDING' && (
                     <div style={{

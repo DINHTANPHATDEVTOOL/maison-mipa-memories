@@ -58,17 +58,15 @@ describe('bookingStateMachine - getNextActionForBooking', () => {
     updatedAt: '2026-08-01',
   };
 
-  it('should return pay deposit action for CUSTOMER when status is PENDING_PAYMENT', () => {
+  it('should enforce Phase C: CUSTOMER cannot directly mutate PENDING_PAYMENT to DEPOSIT_PAID', () => {
     const action = getNextActionForBooking(baseBooking, 'CUSTOMER');
-    expect(action).not.toBeNull();
-    expect(action?.targetStatus).toBe('DEPOSIT_PAID');
-    expect(action?.label).toContain('THANH TOÁN TIỀN CỌC');
+    expect(action).toBeNull();
   });
 
-  it('should return reschedule option for CUSTOMER when status is CONFIRMED', () => {
+  it('should enforce Phase C: CUSTOMER cannot directly mutate CONFIRMED to RESCHEDULED', () => {
     const confirmedBooking = { ...baseBooking, bookingStatus: 'CONFIRMED' as BookingStatus };
     const action = getNextActionForBooking(confirmedBooking, 'CUSTOMER');
-    expect(action?.targetStatus).toBe('RESCHEDULED');
+    expect(action).toBeNull();
   });
 
   it('should return check-in action for STAFF when booking is CONFIRMED', () => {

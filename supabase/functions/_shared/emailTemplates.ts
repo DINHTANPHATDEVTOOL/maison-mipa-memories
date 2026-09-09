@@ -1,0 +1,185 @@
+// ==============================================================================
+// Maison MIPA Memories - Brand Transactional Email Templates
+// Responsive, accessible, mobile-safe HTML email templates
+// ==============================================================================
+
+export interface TemplateData {
+  customerName?: string;
+  bookingCode?: string;
+  serviceName?: string;
+  packageName?: string;
+  totalAmount?: number;
+  depositAmount?: number;
+  startAt?: string;
+  transferReference?: string;
+  albumUrl?: string;
+  resetLink?: string;
+  verifyLink?: string;
+  [key: string]: any;
+}
+
+const BRAND_GOLD = '#C6A45F';
+const BRAND_DARK = '#2C221E';
+const BRAND_BG = '#FFFDF6';
+const BRAND_CARD = '#FFFFFF';
+const BRAND_MUTED = '#8C6E53';
+
+const emailHeader = `
+  <div style="background-color: ${BRAND_DARK}; padding: 24px; text-align: center; border-radius: 12px 12px 0 0;">
+    <h1 style="color: ${BRAND_GOLD}; font-family: 'Playfair Display', Georgia, serif; font-size: 24px; margin: 0; letter-spacing: 2px;">
+      MAISON MIPA MEMORIES
+    </h1>
+    <p style="color: #EFE6C9; font-size: 12px; margin: 6px 0 0 0; text-transform: uppercase; letter-spacing: 1px;">
+      Studio Nhiếp Ảnh & Lưu Giữ Kỷ Niệm Cao Cấp
+    </p>
+  </div>
+`;
+
+const emailFooter = `
+  <div style="padding: 20px; text-align: center; color: ${BRAND_MUTED}; font-size: 12px; border-top: 1px solid #EFE6C9; margin-top: 30px;">
+    <p style="margin: 0 0 6px 0;"><strong>Maison MIPA Memories Studio</strong></p>
+    <p style="margin: 0 0 6px 0;">Hotline: 0908 123 456 • Email: contact@maisonmipa.io.vn</p>
+    <p style="margin: 0; color: #A39385;">Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email hoặc liên hệ hỗ trợ.</p>
+  </div>
+`;
+
+export function renderEmailHtml(templateKey: string, data: TemplateData): { subject: string; html: string } {
+  const name = data.customerName || 'Quý khách';
+
+  let subject = 'Thông báo từ Maison MIPA Memories';
+  let bodyContent = '';
+
+  switch (templateKey) {
+    case 'booking_created':
+      subject = `[Maison MIPA] Xác nhận đặt lịch #${data.bookingCode || ''}`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Xin chào ${name},</h2>
+        <p style="color: #604634; line-height: 1.6;">
+          Cảm ơn bạn đã lựa chọn Maison MIPA Memories. Đơn đặt lịch chụp ảnh của bạn đã được ghi nhận trên hệ thống.
+        </p>
+        <div style="background: #FDFBF7; border: 1px solid #EFE6C9; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK};"><strong>Mã đơn:</strong> ${data.bookingCode}</p>
+          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK};"><strong>Thời gian:</strong> ${data.startAt || 'Theo thỏa thuận'}</p>
+          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK};"><strong>Tổng chi phí:</strong> ${data.totalAmount ? Number(data.totalAmount).toLocaleString('vi-VN') + ' đ' : ''}</p>
+          <p style="margin: 0; color: #B45309;"><strong>Tiền đặt cọc giữ lịch:</strong> ${data.depositAmount ? Number(data.depositAmount).toLocaleString('vi-VN') + ' đ' : ''}</p>
+        </div>
+        <p style="color: #604634; line-height: 1.6;">
+          Quý khách vui lòng tiến hành chuyển khoản cọc theo thông tin VietQR trong hệ thống để Maison MIPA giữ lịch và chuẩn bị kíp chụp tốt nhất.
+        </p>
+      `;
+      break;
+
+    case 'deposit_received':
+      subject = `[Maison MIPA] Đã nhận thanh toán tiền cọc #${data.bookingCode || ''}`;
+      bodyContent = `
+        <h2 style="color: #16A34A; font-size: 20px; margin-top: 0;">✓ Thanh Toán Cọc Thành Công</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Maison MIPA Memories xác nhận đã nhận khoản tiền cọc <strong>${data.amount ? Number(data.amount).toLocaleString('vi-VN') + ' đ' : ''}</strong> cho đơn đặt lịch <strong>${data.bookingCode}</strong>.
+        </p>
+        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 6px 0; color: #166534;"><strong>Mã giao dịch:</strong> ${data.transferReference || 'N/A'}</p>
+          <p style="margin: 0; color: #166534;"><strong>Trạng thái:</strong> ĐÃ XÁC NHẬN GIỮ LỊCH</p>
+        </div>
+        <p style="color: #604634; line-height: 1.6;">
+          Bộ phận điều phối sẽ phân công chuyên viên nhiếp ảnh và makeup phù hợp nhất với concept của bạn.
+        </p>
+      `;
+      break;
+
+    case 'booking_confirmed':
+      subject = `[Maison MIPA] Lịch chụp đã được duyệt & gán kíp #${data.bookingCode || ''}`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Lịch Chụp Đã Sẵn Sàng</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Đơn chụp <strong>${data.bookingCode}</strong> đã được studio phê duyệt và sắp xếp phòng studio hoàn tất. Bạn có thể đăng nhập vào cổng khách hàng để xác nhận lịch chụp.
+        </p>
+      `;
+      break;
+
+    case 'booking_rescheduled':
+      subject = `[Maison MIPA] Thông báo đổi lịch chụp #${data.bookingCode || ''}`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Cập Nhật Lịch Chụp Mới</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Yêu cầu đổi lịch cho đơn <strong>${data.bookingCode}</strong> đã được cập nhật thành công sang khung giờ mới: <strong>${data.startAt || ''}</strong>.
+        </p>
+      `;
+      break;
+
+    case 'booking_cancelled':
+      subject = `[Maison MIPA] Thông báo hủy lịch chụp #${data.bookingCode || ''}`;
+      bodyContent = `
+        <h2 style="color: #DC2626; font-size: 20px; margin-top: 0;">Lịch Chụp Đã Hủy</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Đơn đặt lịch <strong>${data.bookingCode}</strong> của bạn đã được hủy theo yêu cầu. Nếu có bất kỳ thắc mắc nào về chính sách bảo lưu cọc, vui lòng liên hệ hotline của chúng tôi.
+        </p>
+      `;
+      break;
+
+    case 'album_ready':
+      subject = `[Maison MIPA] Bộ ảnh của bạn đã sẵn sàng! #${data.bookingCode || ''}`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Bộ Ảnh Của Bạn Đã Hoàn Tất!</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Maison MIPA Memories đã hoàn thiện hậu kỳ cho bộ ảnh của bạn. Bạn có thể truy cập ngay vào Google Drive hoặc cổng khách hàng để thưởng thức và tải ảnh chất lượng cao.
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.albumUrl || 'https://maisonmipa.io.vn/account'}" style="background-color: ${BRAND_GOLD}; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Xem & Tải Ảnh Ngay
+          </a>
+        </div>
+      `;
+      break;
+
+    case 'password_reset':
+      subject = `[Maison MIPA] Yêu cầu đặt lại mật khẩu tài khoản`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Đặt Lại Mật Khẩu</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Maison MIPA của bạn. Vui lòng bấm vào nút bên dưới để tạo mật khẩu mới.
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.resetLink || '#'}" style="background-color: ${BRAND_GOLD}; color: #FFFFFF; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Đặt Lại Mật Khẩu
+          </a>
+        </div>
+        <p style="color: #8C6E53; font-size: 13px;">Liên kết này có hiệu lực trong vòng 60 phút.</p>
+      `;
+      break;
+
+    default:
+      subject = `[Maison MIPA] Thông báo hệ thống`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Kính chào ${name},</h2>
+        <p style="color: #604634; line-height: 1.6;">${data.message || 'Bạn có thông báo mới từ Maison MIPA Memories.'}</p>
+      `;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="margin: 0; padding: 20px; background-color: #F8F6F0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: ${BRAND_CARD}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        ${emailHeader}
+        <div style="padding: 30px;">
+          ${bodyContent}
+        </div>
+        ${emailFooter}
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}

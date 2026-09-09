@@ -11,39 +11,39 @@ export interface BookingActivityLog {
   notes?: string;
 }
 
-// 1. State Machine Allowed Transitions Graph
+// 1. State Machine Allowed Transitions Graph (Strictly enforced at backend)
 export const ALLOWED_TRANSITIONS: Record<BookingStatus, { next: BookingStatus[]; allowedRoles: (UserRole | StaffRole)[] }[]> = {
   DRAFT: [
     { next: ['PENDING_PAYMENT'], allowedRoles: ['CUSTOMER', 'GUEST', 'MANAGER', 'ADMIN'] },
   ],
   PENDING_PAYMENT: [
-    { next: ['DEPOSIT_PAID'], allowedRoles: ['CUSTOMER', 'MANAGER', 'ADMIN'] },
+    // Note: DEPOSIT_PAID transition is STRICTLY backend-authoritative (Manager/Admin or Payment Webhook)
+    { next: ['DEPOSIT_PAID'], allowedRoles: ['MANAGER', 'ADMIN'] },
     { next: ['CANCELLED'], allowedRoles: ['CUSTOMER', 'MANAGER', 'ADMIN'] },
   ],
   DEPOSIT_PAID: [
     { next: ['CONFIRMED'], allowedRoles: ['MANAGER', 'ADMIN'] },
-    { next: ['CANCELLED'], allowedRoles: ['MANAGER', 'ADMIN', 'CUSTOMER'] },
-    { next: ['RESCHEDULED'], allowedRoles: ['MANAGER', 'ADMIN', 'CUSTOMER'] },
+    { next: ['CANCELLED'], allowedRoles: ['MANAGER', 'ADMIN'] },
+    { next: ['RESCHEDULED'], allowedRoles: ['MANAGER', 'ADMIN'] },
   ],
   CONFIRMED: [
     { next: ['CHECKED_IN'], allowedRoles: ['RECEPTIONIST', 'STAFF', 'MANAGER', 'ADMIN'] },
-    { next: ['RESCHEDULED'], allowedRoles: ['MANAGER', 'ADMIN', 'CUSTOMER'] },
     { next: ['CANCELLED'], allowedRoles: ['MANAGER', 'ADMIN'] },
   ],
   CHECKED_IN: [
-    { next: ['SHOOTING'], allowedRoles: ['PHOTOGRAPHER', 'STAFF', 'MANAGER', 'ADMIN'] },
+    { next: ['SHOOTING'], allowedRoles: ['PHOTOGRAPHER', 'MANAGER', 'ADMIN'] },
   ],
   SHOOTING: [
-    { next: ['SHOOT_COMPLETED'], allowedRoles: ['PHOTOGRAPHER', 'STAFF', 'MANAGER', 'ADMIN'] },
+    { next: ['SHOOT_COMPLETED'], allowedRoles: ['PHOTOGRAPHER', 'MANAGER', 'ADMIN'] },
   ],
   SHOOT_COMPLETED: [
-    { next: ['EDITING'], allowedRoles: ['EDITOR', 'STAFF', 'MANAGER', 'ADMIN'] },
+    { next: ['EDITING'], allowedRoles: ['EDITOR', 'MANAGER', 'ADMIN'] },
   ],
   EDITING: [
-    { next: ['READY_FOR_REVIEW'], allowedRoles: ['EDITOR', 'STAFF', 'MANAGER', 'ADMIN'] },
+    { next: ['READY_FOR_REVIEW'], allowedRoles: ['EDITOR', 'MANAGER', 'ADMIN'] },
   ],
   READY_FOR_REVIEW: [
-    { next: ['DELIVERED'], allowedRoles: ['MANAGER', 'ADMIN', 'CUSTOMER'] },
+    { next: ['DELIVERED'], allowedRoles: ['MANAGER', 'ADMIN'] },
   ],
   DELIVERED: [
     { next: ['COMPLETED'], allowedRoles: ['CUSTOMER', 'MANAGER', 'ADMIN'] },
@@ -55,7 +55,7 @@ export const ALLOWED_TRANSITIONS: Record<BookingStatus, { next: BookingStatus[];
   ],
 };
 
-// 2. Compute "Next Action" Button Label and Target Status based on current role & booking status
+// 2. Compute "Next Action" Button Label and Target Status based on user role & staff_role
 export const getNextActionForBooking = (
   booking: Booking,
   userRole: UserRole,
@@ -63,29 +63,66 @@ export const getNextActionForBooking = (
 ): { label: string; targetStatus: BookingStatus; buttonClass: string } | null => {
   const status = booking.bookingStatus;
 
-  // Customer Actions
+  // Customer Actions: Acknowledgements & Deliveries (Never operational mutations)
   if (userRole === 'CUSTOMER') {
-    if (status === 'PENDING_PAYMENT') return { label: '💳 THANH TOÁN TIỀN CỌC 30%', targetStatus: 'DEPOSIT_PAID', buttonClass: 'btn-mipa-gold' };
-    if (status === 'DEPOSIT_PAID' || status === 'CONFIRMED') return { label: '📅 YÊU CẦU ĐỔI LỊCH CHỤP', targetStatus: 'RESCHEDULED', buttonClass: 'btn-mipa-secondary' };
-    if (status === 'READY_FOR_REVIEW') return { label: '🖼️ CHỌN ẢNH BÌA & VÀO GALLERY', targetStatus: 'DELIVERED', buttonClass: 'btn-mipa-gold' };
-    if (status === 'DELIVERED') return { label: '⭐ ĐÁNH GIÁ TRẢI NGHIỆM MAISON MIPA', targetStatus: 'COMPLETED', buttonClass: 'btn-mipa-gold' };
+    if (status === 'DELIVERED') {
+      return { label: '⭐ HOÀN TẤT & ĐÁNH GIÁ', targetStatus: 'COMPLETED', buttonClass: 'btn-mipa-gold' };
+    }
+    return null;
   }
 
-  // Staff (Photographer / Editor / Receptionist) Actions
+  // Staff Actions: Strictly filtered by specialized staff_role
   if (userRole === 'STAFF') {
-    if (status === 'CONFIRMED') return { label: '📌 XÁC NHẬN KHÁCH CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
+    // RECEPTIONIST: Check-in only
+    if (userStaffRole === 'RECEPTIONIST') {
+      if (status === 'CONFIRMED') {
+        return { label: '📌 XÁC NHẬN KHÁCH CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
+      }
+      return null;
+    }
+
+    // PHOTOGRAPHER: Shoot Start & Shoot Complete
+    if (userStaffRole === 'PHOTOGRAPHER') {
+      if (status === 'CHECKED_IN') {
+        return { label: '📷 BẮT ĐẦU BUỔI CHỤP', targetStatus: 'SHOOTING', buttonClass: 'btn-mipa-gold' };
+      }
+      if (status === 'SHOOTING') {
+        return { label: '✅ HOÀN TẤT BUỔI CHỤP (LƯU VÀO DRIVE)', targetStatus: 'SHOOT_COMPLETED', buttonClass: 'btn-mipa-primary' };
+      }
+      return null;
+    }
+
+    // EDITOR: Editing Start & Finish for Review
+    if (userStaffRole === 'EDITOR') {
+      if (status === 'SHOOT_COMPLETED') {
+        return { label: '🎨 NHẬN TASK HẬU KỲ', targetStatus: 'EDITING', buttonClass: 'btn-mipa-gold' };
+      }
+      if (status === 'EDITING') {
+        return { label: '✨ HOÀN TẤT HẬU KỲ (SẴN SÀNG DUYỆT)', targetStatus: 'READY_FOR_REVIEW', buttonClass: 'btn-mipa-gold' };
+      }
+      return null;
+    }
+
+    // MAKEUP: Does not mutate main booking operational state
+    if (userStaffRole === 'MAKEUP') {
+      return null;
+    }
+
+    // Generic fallback for staff without specific staff_role set
+    if (status === 'CONFIRMED') return { label: '📌 XÁC NHẬN CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
     if (status === 'CHECKED_IN') return { label: '📷 BẮT ĐẦU BUỔI CHỤP', targetStatus: 'SHOOTING', buttonClass: 'btn-mipa-gold' };
-    if (status === 'SHOOTING') return { label: '✅ HOÀN THÀNH BỘ ẢNH (BẮT ĐẦU HẬU KỲ)', targetStatus: 'SHOOT_COMPLETED', buttonClass: 'btn-mipa-primary' };
-    if (status === 'SHOOT_COMPLETED') return { label: '🎨 NHẬN TASK HẬU KỲ & ĐỔI TONE', targetStatus: 'EDITING', buttonClass: 'btn-mipa-gold' };
-    if (status === 'EDITING') return { label: '✨ UPLOAD ALBUM CHẤT LƯỢNG CAO', targetStatus: 'READY_FOR_REVIEW', buttonClass: 'btn-mipa-gold' };
+    if (status === 'SHOOTING') return { label: '✅ HOÀN TẤT BUỔI CHỤP', targetStatus: 'SHOOT_COMPLETED', buttonClass: 'btn-mipa-primary' };
+    if (status === 'SHOOT_COMPLETED') return { label: '🎨 NHẬN TASK HẬU KỲ', targetStatus: 'EDITING', buttonClass: 'btn-mipa-gold' };
+    if (status === 'EDITING') return { label: '✨ HOÀN TẤT HẬU KỲ', targetStatus: 'READY_FOR_REVIEW', buttonClass: 'btn-mipa-gold' };
   }
 
   // Manager & Admin Actions
   if (userRole === 'MANAGER' || userRole === 'ADMIN') {
     if (status === 'DEPOSIT_PAID') return { label: '✔️ XÁC NHẬN CỌC & GÁN KÍP CHỤP', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-gold' };
     if (status === 'CONFIRMED' && booking.assignments.length === 0) return { label: '👤 GÁN PHOTOGRAPHER & MAKEUP', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-secondary' };
-    if (status === 'READY_FOR_REVIEW') return { label: '📩 GỬI LINK ALBUM CHO KHÁCH HÀNG', targetStatus: 'DELIVERED', buttonClass: 'btn-mipa-gold' };
-    if (status === 'DELIVERED') return { label: '🏁 HOÀN TẤT & LƯU HỒ SƠ CỦA KHÁCH', targetStatus: 'COMPLETED', buttonClass: 'btn-mipa-primary' };
+    if (status === 'CONFIRMED') return { label: '📌 XÁC NHẬN KHÁCH CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
+    if (status === 'READY_FOR_REVIEW') return { label: '📩 DUYỆT BỘ ẢNH & MỞ DRIVE CHO KHÁCH', targetStatus: 'DELIVERED', buttonClass: 'btn-mipa-gold' };
+    if (status === 'DELIVERED') return { label: '🏁 HOÀN TẤT ĐƠN', targetStatus: 'COMPLETED', buttonClass: 'btn-mipa-primary' };
   }
 
   return null;
@@ -99,37 +136,31 @@ export const filterBookingsForRole = (
 ): Booking[] => {
   if (!user || role === 'GUEST') return [];
 
-  if (role === 'ADMIN') {
-    // Admin sees ALL bookings
-    return bookings;
-  }
-
-  if (role === 'MANAGER') {
-    // Manager sees all studio branch bookings
+  if (role === 'ADMIN' || role === 'MANAGER') {
     return bookings;
   }
 
   if (role === 'STAFF') {
-    // Staff sees ONLY bookings assigned to them (or matching name/id)
+    const staffRole = user.staffRole;
+
+    // Receptionist sees today's bookings for front desk check-in
+    if (staffRole === 'RECEPTIONIST') {
+      const today = new Date().toISOString().split('T')[0];
+      return bookings.filter(b => b.bookingDate === today || b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'CHECKED_IN');
+    }
+
+    // Photographer, Makeup, Editor see ONLY assigned bookings
+    const userFirstName = (user.fullName || user.name || '').split(' ')[0]?.toLowerCase();
     return bookings.filter((b) => {
-      // Check assignment by employeeId or employeeName substring
-      const isAssigned = b.assignments.some(
-        (a) => a.employeeId === user.id || a.employeeName.toLowerCase().includes(user.fullName.split(' ')[0].toLowerCase())
+      return b.assignments.some(
+        (a) => a.employeeId === user.id || (Boolean(userFirstName) && a.employeeName.toLowerCase().includes(userFirstName))
       );
-      // Also allow staff to view today's confirmed/checked-in bookings for studio coordination
-      return isAssigned || b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'CHECKED_IN' || b.bookingStatus === 'SHOOTING';
     });
   }
 
   if (role === 'CUSTOMER') {
-    // Customer sees ONLY bookings belonging to their customerId or matching email/phone
-    const userPhoneDigits = user.phone.replace(/[^0-9]/g, '');
-    return bookings.filter((b) => {
-      if (b.customerId === user.id) return true;
-      if (b.customerEmail.toLowerCase() === user.email.toLowerCase()) return true;
-      if (userPhoneDigits.length >= 8 && b.customerPhone.replace(/[^0-9]/g, '') === userPhoneDigits) return true;
-      return false;
-    });
+    // Customer sees strictly their own bookings
+    return bookings.filter((b) => b.customerId === user.id);
   }
 
   return [];
