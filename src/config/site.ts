@@ -76,7 +76,7 @@ export const SITE_CONFIG = {
       h1: 'Chụp Ảnh Couple & Kỷ Niệm Tình Yêu — Maison MIPA',
       description: 'Lưu giữ khoảnh khắc ngọt ngào, ấm áp & tự nhiên của hai bạn trong không gian studio thơ mộng phong cách Pháp tại Maison MIPA Memories.',
       keywords: 'chụp ảnh couple, chụp ảnh đôi studio, chụp ảnh kỷ niệm tình yêu sài gòn, studio tân bình',
-      image: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80',
+      image: '/hero.png',
     },
     {
       slug: 'portrait',
@@ -85,7 +85,7 @@ export const SITE_CONFIG = {
       h1: 'Chụp Ảnh Chân Dung Nghệ Thuật & Concept Cá Nhân — Maison MIPA',
       description: 'Chân dung nghệ thuật cá nhân, tôn vinh nét đẹp & thần thái độc bản của riêng bạn với ánh sáng chuẩn studio điện ảnh.',
       keywords: 'chụp ảnh chân dung, personal portrait studio, chụp ảnh concept cá nhân, studio sài gòn',
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+      image: '/studio.png',
     },
     {
       slug: 'family',
@@ -94,7 +94,7 @@ export const SITE_CONFIG = {
       h1: 'Chụp Ảnh Gia Đình & Em Bé Ấm Áp — Maison MIPA',
       description: 'Kỷ niệm gia đình ấm áp, lưu giữ nụ cười và sự gắn kết qua từng thế hệ trong không gian studio riêng tư, thoải mái.',
       keywords: 'chụp ảnh gia đình, chụp ảnh em bé, chụp ảnh thôi nôi gia đình studio, chụp ảnh kỷ niệm gia đình',
-      image: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=800&q=80',
+      image: '/hero.png',
     },
     {
       slug: 'graduation',
@@ -103,7 +103,7 @@ export const SITE_CONFIG = {
       h1: 'Chụp Ảnh Kỷ Yếu & Tốt Nghiệp Thanh Xuân — Maison MIPA',
       description: 'Bộ ảnh kỷ yếu tốt nghiệp thanh xuân với phong cách hiện đại, trẻ trung, lưu giữ dấu ấn rực rỡ của tuổi trẻ.',
       keywords: 'chụp ảnh kỷ yếu, chụp ảnh tốt nghiệp studio, concept cử nhân thanh xuân, studio chụp ảnh tốt nghiệp',
-      image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
+      image: '/studio.png',
     },
   ],
 } as const;

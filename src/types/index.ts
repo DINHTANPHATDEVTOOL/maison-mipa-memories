@@ -195,6 +195,9 @@ export interface Booking {
   driveFolderUrl?: string;
   driveReadyForCustomer?: boolean;
   albumId?: string;
+  conceptId?: string;
+  conceptIds?: string[];
+  conceptName?: string;
 }
 
 export type PhotoType = 'RAW' | 'PREVIEW' | 'SELECTED' | 'FINAL';
@@ -264,3 +267,86 @@ export interface NotificationItem {
   type: 'booking' | 'payment' | 'album' | 'system';
   targetRole?: UserRole;
 }
+
+// ==============================================================================
+// Portfolio CMS & Concept Collections Domain Models (#16)
+// ==============================================================================
+
+export interface Concept {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  coverPhotoId?: string;
+  coverPhotoUrl?: string;
+  serviceId?: string;
+  active: boolean;
+  bookable: boolean;
+  displayOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CollectionStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface PhotoVariantInfo {
+  url: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+}
+
+export interface PhotoVariants {
+  thumbnail?: PhotoVariantInfo;
+  card?: PhotoVariantInfo;
+  gallery?: PhotoVariantInfo;
+  hero?: PhotoVariantInfo;
+}
+
+export interface PortfolioPhoto {
+  id: string;
+  collectionId: string;
+  webAssetKey?: string;
+  url: string;
+  filename: string;
+  width: number;
+  height: number;
+  focalX: number; // 0 - 100
+  focalY: number; // 0 - 100
+  altText: string;
+  caption?: string;
+  sortOrder: number;
+  featured: boolean;
+  variants?: PhotoVariants;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PortfolioCollection {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  conceptId?: string;
+  conceptName?: string;
+  conceptSlug?: string;
+  serviceId?: string;
+  status: CollectionStatus;
+  featured: boolean;
+  coverPhotoId?: string;
+  coverPhotoUrl?: string;
+  createdBy?: string;
+  publishedBy?: string;
+  publishedAt?: string;
+  displayOrder: number;
+  photos?: PortfolioPhoto[];
+  photosCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FocalPoint {
+  x: number; // percentage 0 - 100
+  y: number; // percentage 0 - 100
+}
+

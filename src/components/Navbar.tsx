@@ -370,7 +370,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                 >
                   <img
-                    src={displayUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'}
+                    src={displayUser.avatar || '/favicon.svg'}
                     alt={displayUser.fullName}
                     style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
                   />

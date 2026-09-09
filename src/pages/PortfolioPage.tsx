@@ -94,7 +94,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
       </header>
 
       {/* Gallery Section */}
-      <PortfolioSection />
+      <PortfolioSection onOpenBooking={onOpenBooking} hideHeader={true} />
 
       {/* Booking Prompt */}
       {onOpenBooking && (

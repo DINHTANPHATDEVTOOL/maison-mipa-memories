@@ -154,5 +154,59 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.getByRole('heading', { name: /Chụp Ảnh Couple & Kỷ Niệm Tình Yêu/i })).toBeVisible();
   });
 
+  test('8. Collection detail page mở lightbox xem ảnh và đóng bằng Escape', async ({ page }) => {
+    await page.goto('/portfolio/parisian-romance-autumn');
+    await expect(page).toHaveURL(/\/portfolio\/parisian-romance-autumn/);
+    await expect(page.getByRole('heading', { level: 1, name: /Parisian Romance/i })).toBeVisible();
+
+    // Click on the first gallery photo to open lightbox
+    const firstPhoto = page.getByRole('button', { name: /Xem ảnh/i }).first();
+    await expect(firstPhoto).toBeVisible();
+    await firstPhoto.click();
+
+    // Lightbox modal should appear
+    const dialog = page.getByRole('dialog', { name: /Chi tiết ảnh/i });
+    await expect(dialog).toBeVisible();
+
+    // Close lightbox by pressing Escape
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('9. Guest booking funnel mở với concept slug query param', async ({ page }) => {
+    await page.goto('/booking?concept=parisian-romance-autumn');
+    await expect(page).toHaveURL(/\/booking\?concept=parisian-romance-autumn/);
+
+    // Wizard should be open
+    await expect(page.locator('text=Bước 1/6')).toBeVisible();
+
+    // Proceed to Step 2 to verify concept selector
+    await page.getByRole('button', { name: /Tiếp Theo/i }).click();
+    await expect(page.locator('text=Bước 2/6')).toBeVisible();
+    await expect(page.getByText(/Chọn Concept Nghệ Thuật/i)).toBeVisible();
+  });
+
+  test('10. Studio Manager có thể truy cập Portfolio CMS', async ({ page }) => {
+    await page.goto('/');
+
+    // Log in as Manager
+    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByPlaceholder(/Nhập email/i).fill('phat.manager@maisonmipa.vn');
+    await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
+    await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
+
+    // Assert Manager logged in
+    await expect(page.locator('text=Lê Tấn Phát').first()).toBeVisible();
+
+    // Navigate to Management OS
+    await page.getByRole('button', { name: /Quản Lý Studio OS/i }).click();
+    await expect(page).toHaveURL(/\/management/);
+
+    // Switch to Portfolio & Concept CMS tab
+    await page.getByRole('button', { name: /Portfolio & Concept CMS/i }).click();
+    await expect(page.getByText('Portfolio & Concept Collections CMS')).toBeVisible();
+    await expect(page.getByText('Hệ thống quản trị bộ ảnh concept')).toBeVisible();
+  });
+
 });
 

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Home, Sparkles } from 'lucide-react';
-import { INITIAL_SERVICES } from '../mockData';
+import { getServices } from '../services/catalogService';
+import type { ServiceCategory } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 
@@ -10,6 +11,15 @@ interface ServicesPageProps {
 }
 
 export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => {
+  const [services, setServices] = useState<ServiceCategory[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getServices().then((res) => {
+      if (active && res.length > 0) setServices(res);
+    });
+    return () => { active = false; };
+  }, []);
 
   const breadcrumbs = [
     { name: 'Trang chủ', url: getCanonicalUrl('/') },
@@ -97,7 +107,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
       {/* Services Grid */}
       <main className="mipa-container" style={{ maxWidth: '1350px', margin: '0 auto', padding: '0 1rem' }}>
         <div className="mipa-grid-3" style={{ display: 'grid', gap: '2rem' }}>
-          {INITIAL_SERVICES.map((srv) => (
+          {services.map((srv) => (
             <article
               key={srv.id}
               className="mipa-card"

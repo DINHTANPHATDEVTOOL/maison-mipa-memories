@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Camera, Check, ChevronRight, Home, Sparkles } from 'lucide-react';
-import { INITIAL_PACKAGES, INITIAL_SERVICES } from '../mockData';
+import { getServices, getPackages } from '../services/catalogService';
+import type { ServiceCategory, PackageItem } from '../types';
 import { SeoHead, generateServiceSchema, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { SITE_CONFIG, getCanonicalUrl } from '../config/site';
 import { NotFoundPage } from './NotFoundPage';
@@ -12,10 +13,23 @@ interface ServiceDetailPageProps {
 
 export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBooking }) => {
   const { slug } = useParams<{ slug: string }>();
+  const [services, setServices] = useState<ServiceCategory[]>([]);
+  const [packages, setPackages] = useState<PackageItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getServices(), getPackages()]).then(([srvs, pkgs]) => {
+      if (active) {
+        if (srvs.length > 0) setServices(srvs);
+        if (pkgs.length > 0) setPackages(pkgs);
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   // Find configuration for this service slug
   const serviceConfig = SITE_CONFIG.services.find((s) => s.slug === slug);
-  const serviceData = INITIAL_SERVICES.find((s) => s.slug === slug);
+  const serviceData = services.find((s) => s.slug === slug);
 
   // If slug is not found in either config or data, render NotFound
   if (!serviceConfig && !serviceData) {
@@ -196,7 +210,10 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
         </div>
 
         <div className="mipa-grid-3" style={{ display: 'grid', gap: '2rem' }}>
-          {INITIAL_PACKAGES.map((pkg) => (
+          {(packages.filter(p => serviceData?.id ? p.serviceId === serviceData.id : true).length > 0
+            ? packages.filter(p => serviceData?.id ? p.serviceId === serviceData.id : true)
+            : packages
+          ).map((pkg) => (
             <div
               key={pkg.id}
               className={`mipa-card ${pkg.recommended ? 'mipa-card-gold' : ''}`}

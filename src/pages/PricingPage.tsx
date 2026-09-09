@@ -89,7 +89,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
           margin: '0 auto',
           lineHeight: 1.6,
         }}>
-          Maison MIPA cam kết công khai bảng giá rõ ràng từ {SITE_CONFIG.pricing.formattedMin} đến {SITE_CONFIG.pricing.formattedMax}. Tất cả các gói đều bao gồm file gốc chất lượng cao và hậu kỳ tỉ mỉ.
+          Maison MIPA cam kết công khai bảng giá rõ ràng từ {SITE_CONFIG.pricing.formattedMin} đến {SITE_CONFIG.pricing.formattedMax}. Cam kết không phát sinh chi phí ẩn. Tất cả các gói đều bao gồm file gốc chất lượng cao và hậu kỳ tỉ mỉ.
         </p>
       </header>
 

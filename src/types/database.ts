@@ -383,6 +383,7 @@ export interface Database {
           occasion: string | null;
           customer_note: string | null;
           staff_note: string | null;
+          concept_id?: string | null;
           drive_folder_url?: string | null;
           drive_delivery_ready_at?: string | null;
           customer_schedule_confirmed_at?: string | null;
@@ -414,6 +415,7 @@ export interface Database {
           occasion?: string | null;
           customer_note?: string | null;
           staff_note?: string | null;
+          concept_id?: string | null;
           drive_folder_url?: string | null;
           drive_delivery_ready_at?: string | null;
           customer_schedule_confirmed_at?: string | null;
@@ -445,6 +447,7 @@ export interface Database {
           occasion?: string | null;
           customer_note?: string | null;
           staff_note?: string | null;
+          concept_id?: string | null;
           drive_folder_url?: string | null;
           drive_delivery_ready_at?: string | null;
           customer_schedule_confirmed_at?: string | null;
@@ -876,6 +879,220 @@ export interface Database {
           }
         ];
       };
+      concepts: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          description: string | null;
+          cover_photo_id: string | null;
+          service_id: string | null;
+          active: boolean;
+          bookable: boolean;
+          display_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          description?: string | null;
+          cover_photo_id?: string | null;
+          service_id?: string | null;
+          active?: boolean;
+          bookable?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          name?: string;
+          description?: string | null;
+          cover_photo_id?: string | null;
+          service_id?: string | null;
+          active?: boolean;
+          bookable?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'concepts_service_id_fkey';
+            columns: ['service_id'];
+            referencedRelation: 'services';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      portfolio_collections: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          description: string | null;
+          concept_id: string | null;
+          service_id: string | null;
+          status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+          featured: boolean;
+          cover_photo_id: string | null;
+          created_by: string | null;
+          published_by: string | null;
+          published_at: string | null;
+          display_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          description?: string | null;
+          concept_id?: string | null;
+          service_id?: string | null;
+          status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+          featured?: boolean;
+          cover_photo_id?: string | null;
+          created_by?: string | null;
+          published_by?: string | null;
+          published_at?: string | null;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          title?: string;
+          description?: string | null;
+          concept_id?: string | null;
+          service_id?: string | null;
+          status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+          featured?: boolean;
+          cover_photo_id?: string | null;
+          created_by?: string | null;
+          published_by?: string | null;
+          published_at?: string | null;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'portfolio_collections_concept_id_fkey';
+            columns: ['concept_id'];
+            referencedRelation: 'concepts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'portfolio_collections_service_id_fkey';
+            columns: ['service_id'];
+            referencedRelation: 'services';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      portfolio_photos: {
+        Row: {
+          id: string;
+          collection_id: string;
+          web_asset_key: string | null;
+          url: string;
+          filename: string;
+          width: number;
+          height: number;
+          focal_x: number;
+          focal_y: number;
+          alt_text: string;
+          caption: string | null;
+          sort_order: number;
+          featured: boolean;
+          variants: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          web_asset_key?: string | null;
+          url: string;
+          filename: string;
+          width?: number;
+          height?: number;
+          focal_x?: number;
+          focal_y?: number;
+          alt_text?: string;
+          caption?: string | null;
+          sort_order?: number;
+          featured?: boolean;
+          variants?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          web_asset_key?: string | null;
+          url?: string;
+          filename?: string;
+          width?: number;
+          height?: number;
+          focal_x?: number;
+          focal_y?: number;
+          alt_text?: string;
+          caption?: string | null;
+          sort_order?: number;
+          featured?: boolean;
+          variants?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'portfolio_photos_collection_id_fkey';
+            columns: ['collection_id'];
+            referencedRelation: 'portfolio_collections';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      booking_concepts: {
+        Row: {
+          booking_id: string;
+          concept_id: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          concept_id: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          concept_id?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_concepts_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'booking_concepts_concept_id_fkey';
+            columns: ['concept_id'];
+            referencedRelation: 'concepts';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -898,6 +1115,14 @@ export interface Database {
           p_customer_email?: string | null;
           p_occasion?: string | null;
           p_customer_note?: string | null;
+          p_concept_ids?: string[];
+        };
+        Returns: unknown;
+      };
+      publish_portfolio_collection: {
+        Args: {
+          p_collection_id: string;
+          p_publish: boolean;
         };
         Returns: unknown;
       };
@@ -1043,6 +1268,20 @@ export type PaymentUpdate = Database['public']['Tables']['payments']['Update'];
 export type PaymentSettingsRow = Database['public']['Tables']['payment_settings']['Row'];
 export type NotificationOutboxRow = Database['public']['Tables']['notification_outbox']['Row'];
 export type StaffTaskRow = Database['public']['Tables']['staff_tasks']['Row'];
+
+export type ConceptRow = Database['public']['Tables']['concepts']['Row'];
+export type ConceptInsert = Database['public']['Tables']['concepts']['Insert'];
+export type ConceptUpdate = Database['public']['Tables']['concepts']['Update'];
+
+export type PortfolioCollectionRow = Database['public']['Tables']['portfolio_collections']['Row'];
+export type PortfolioCollectionInsert = Database['public']['Tables']['portfolio_collections']['Insert'];
+export type PortfolioCollectionUpdate = Database['public']['Tables']['portfolio_collections']['Update'];
+
+export type PortfolioPhotoRow = Database['public']['Tables']['portfolio_photos']['Row'];
+export type PortfolioPhotoInsert = Database['public']['Tables']['portfolio_photos']['Insert'];
+export type PortfolioPhotoUpdate = Database['public']['Tables']['portfolio_photos']['Update'];
+
+export type BookingConceptRow = Database['public']['Tables']['booking_concepts']['Row'];
 
 export type PaymentStatus = PaymentRow['status'];
 export type PaymentMethod = PaymentRow['method'];

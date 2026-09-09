@@ -14,18 +14,18 @@ describe('SecurityGuards and Access Control in App', () => {
 
   it('allows guest to access public tabs freely', () => {
     render(<App />);
-    const servicesBtn = screen.getByRole('button', { name: /Dịch Vụ/i });
+    const servicesBtn = screen.getAllByRole('button', { name: /Dịch Vụ/i })[0];
     fireEvent.click(servicesBtn);
     expect(screen.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeInTheDocument();
   });
 
-  it('blocks unauthenticated guest from booking and shows login prompt', () => {
+  it('allows unauthenticated guest to enter booking funnel and access booking wizard freely', () => {
     render(<App />);
     const bookingButtons = screen.getAllByRole('button', { name: /ĐẶT LỊCH/i });
     fireEvent.click(bookingButtons[0]);
 
-    // Should open AuthModal with security prompt
-    expect(screen.getByText(/Quý khách vui lòng Đăng Nhập/i)).toBeInTheDocument();
+    // Guest enters wizard step 1
+    expect(screen.getByText(/Bước 1\/6/i)).toBeInTheDocument();
   });
 
   it('allows authenticated customer to open Booking Wizard', async () => {
