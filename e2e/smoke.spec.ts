@@ -254,5 +254,32 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.getByText(/Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận/i)).toBeVisible();
   });
 
+  test('14. Auth Modal: Đăng ký tài khoản khách hàng mới hoàn tất thành công', async ({ page }) => {
+    await page.goto('/');
+
+    // Mở Auth Modal
+    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await expect(page.locator('text=MAISON MIPA MEMORIES AUTH')).toBeVisible();
+
+    // Chuyển sang tab Đăng Ký Nhanh
+    await page.getByRole('button', { name: /ĐĂNG KÝ NHANH/i }).click();
+    await expect(page.getByPlaceholder('Nguyễn Văn A')).toBeVisible();
+
+    // Nhập thông tin đăng ký
+    await page.getByPlaceholder('Nguyễn Văn A').fill('Nguyễn Thị Hoàng Oanh');
+    await page.getByPlaceholder('user@example.com').fill('hoangoanh.test@maisonmipa.io.vn');
+    await page.getByPlaceholder('0901234567').fill('0912345678');
+    await page.getByPlaceholder('Mật khẩu của bạn').fill('MaisonSecure@2026');
+
+    // Bấm nút Đăng Ký Tài Khoản Ngay
+    await page.getByRole('button', { name: /ĐĂNG KÝ TÀI KHOẢN NGAY/i }).click();
+
+    // Kiểm tra kết quả phản hồi: Hoặc xuất hiện màn hình Xác Thực Tài Khoản Email, hoặc tài khoản đăng nhập thành công
+    const verifyScreen = page.getByText(/Xác Thực Tài Khoản Email/i);
+    const userLoggedIn = page.locator('button:has-text("Đăng Xuất")').or(page.getByText('Hoàng Oanh'));
+
+    await expect(verifyScreen.or(userLoggedIn)).toBeVisible({ timeout: 6000 });
+  });
+
 });
 

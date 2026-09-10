@@ -226,4 +226,75 @@ describe('Issue #17: Auth Verification, Cooldown & Password Reset', () => {
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'Password@1' });
     expect(screen.getByText(/Đổi mật khẩu thành công!/i)).toBeInTheDocument();
   });
+
+  describe('Lặp lại test case đăng ký tài khoản (Repeated Signup Test Cases)', () => {
+    const testCases = [
+      { name: 'Nguyễn Văn Một', email: 'khachhang1@gmail.com', password: 'Password@1' },
+      { name: 'Trần Thị Hai', email: 'khachhang2@gmail.com', password: 'Password@2' },
+      { name: 'Lê Văn Ba', email: 'khachhang3@gmail.com', password: 'Password@3' },
+      { name: 'Phạm Minh Bốn', email: 'khachhang4@gmail.com', password: 'Password@4' },
+      { name: 'Đỗ Thảo Năm', email: 'khachhang5@gmail.com', password: 'Password@5' },
+    ];
+
+    it.each(testCases)(
+      'lặp test đăng ký: %s ($email) hiển thị màn hình xác thực và countdown 60s',
+      async ({ name, email, password }) => {
+        (supabase.auth.signUp as any).mockResolvedValue({
+          data: { user: { id: `user_${email}`, email }, session: null },
+          error: null,
+        });
+
+        renderAuthModal('REGISTER');
+
+        const submitBtn = await screen.findByRole('button', { name: /ĐĂNG KÝ TÀI KHOẢN NGAY/i });
+        fireEvent.change(screen.getByPlaceholderText(/Nguyễn Văn A/i), { target: { value: name } });
+        fireEvent.change(screen.getByPlaceholderText(/user@example.com/i), { target: { value: email } });
+        fireEvent.change(screen.getByPlaceholderText(/Mật khẩu của bạn/i), { target: { value: password } });
+
+        await act(async () => {
+          fireEvent.click(submitBtn);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(/Xác Thực Tài Khoản Email/i)).toBeInTheDocument();
+        });
+
+        expect(screen.getByText(new RegExp(email, 'i'))).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Gửi lại sau \(60s\)/i })).toBeDisabled();
+      }
+    );
+
+    it('từ chối đăng ký khi mật khẩu quá ngắn (< 6 ký tự)', async () => {
+      renderAuthModal('REGISTER');
+      const submitBtn = await screen.findByRole('button', { name: /ĐĂNG KÝ TÀI KHOẢN NGAY/i });
+
+      fireEvent.change(screen.getByPlaceholderText(/Nguyễn Văn A/i), { target: { value: 'Test Short' } });
+      fireEvent.change(screen.getByPlaceholderText(/user@example.com/i), { target: { value: 'short@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText(/Mật khẩu của bạn/i), { target: { value: '123' } });
+
+      await act(async () => {
+        fireEvent.click(submitBtn);
+      });
+
+      expect(screen.getByText(/Mật khẩu phải có tối thiểu 6 ký tự/i)).toBeInTheDocument();
+      expect(supabase.auth.signUp).not.toHaveBeenCalled();
+    });
+
+    it('từ chối đăng ký khi email sai định dạng', async () => {
+      renderAuthModal('REGISTER');
+      const submitBtn = await screen.findByRole('button', { name: /ĐĂNG KÝ TÀI KHOẢN NGAY/i });
+      const form = submitBtn.closest('form')!;
+
+      fireEvent.change(screen.getByPlaceholderText(/Nguyễn Văn A/i), { target: { value: 'Test Bad Email' } });
+      fireEvent.change(screen.getByPlaceholderText(/user@example.com/i), { target: { value: 'not-an-email' } });
+      fireEvent.change(screen.getByPlaceholderText(/Mật khẩu của bạn/i), { target: { value: 'ValidPass@123' } });
+
+      await act(async () => {
+        fireEvent.submit(form);
+      });
+
+      expect(screen.getByText(/Vui lòng nhập địa chỉ Email hợp lệ/i)).toBeInTheDocument();
+      expect(supabase.auth.signUp).not.toHaveBeenCalled();
+    });
+  });
 });
