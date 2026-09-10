@@ -15,9 +15,10 @@ import { renderEmailHtml } from '../_shared/emailTemplates.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
 const EMAIL_FROM = Deno.env.get('EMAIL_FROM') || 'Maison MIPA Memories <no-reply@maisonmipa.io.vn>';
-const EMAIL_REPLY_TO = Deno.env.get('EMAIL_REPLY_TO') || 'contact@maisonmipa.io.vn';
+const EMAIL_REPLY_TO = Deno.env.get('EMAIL_REPLY_TO') || 'maisonmipamemories@gmail.com';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const INTERNAL_WORKER_SECRET = Deno.env.get('INTERNAL_WORKER_SECRET') || '';
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -26,6 +27,36 @@ serve(async (req: Request) => {
 
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Enforce internal/authorized access only (never allow public client arbitrary calls)
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+
+    let isAuthorized = false;
+    if (SUPABASE_SERVICE_ROLE_KEY && token === SUPABASE_SERVICE_ROLE_KEY) {
+      isAuthorized = true;
+    } else if (INTERNAL_WORKER_SECRET && token === INTERNAL_WORKER_SECRET) {
+      isAuthorized = true;
+    } else if (token) {
+      const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+      if (user) {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (profile && ['MANAGER', 'ADMIN'].includes(profile.role)) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: internal service only' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Read payload if triggered by database webhook or batch worker
     let targetOutboxId: string | null = null;

@@ -121,7 +121,7 @@ serve(async (req: Request) => {
 
     const bankBin = bankSettings?.bank_bin || '970416'; // Default to ACB
     const accountNumber = bankSettings?.account_number || '';
-    const accountName = bankSettings?.account_name || 'MAISON MIPA MEMORIES';
+    const accountName = bankSettings?.account_name || 'DINH TAN PHAT';
     const amount = Number(payment.amount);
     const orderCode = payment.order_code || Date.now() % 1000000000;
     const transferRef = payment.transfer_reference;

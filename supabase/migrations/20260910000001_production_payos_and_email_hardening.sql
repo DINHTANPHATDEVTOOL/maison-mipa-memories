@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_order_code ON public.payments(order_code
 
 -- ------------------------------------------------------------------------------
 -- 2. Default ACB Bank Configuration Seed in payment_settings
--- Asia Commercial Bank (ACB) - BIN: 970416
+-- Asia Commercial Bank (ACB) - BIN: 970416 - Account Holder: DINH TAN PHAT
 -- ------------------------------------------------------------------------------
 DO $$
 BEGIN
@@ -51,12 +51,19 @@ BEGIN
       '970416',
       'Ngân hàng TMCP Á Châu (ACB)',
       'CONFIG_PENDING',
-      'MAISON MIPA MEMORIES',
+      'DINH TAN PHAT',
       'Chi nhánh TP. Hồ Chí Minh',
       'compact2',
       false, -- Inactive until real account number is configured by owner
       true
     );
+  ELSE
+    -- Ensure ACB setting uses correct legal account holder name
+    UPDATE public.payment_settings
+    SET account_name = 'DINH TAN PHAT',
+        bank_code = 'ACB',
+        bank_bin = '970416'
+    WHERE bank_code = 'ACB';
   END IF;
 END $$;
 
