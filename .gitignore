@@ -33,3 +33,6 @@ dist.zip
 # Test outputs
 test-results/
 playwright-report/
+
+# Supabase CLI temp cache
+supabase/.temp/

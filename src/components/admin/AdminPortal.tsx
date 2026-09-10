@@ -521,7 +521,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <div style={{ padding: '1rem', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px' }}>
               <div style={{ fontWeight: 700, color: '#166534', marginBottom: '0.2rem' }}>✓ Server Secret Protection</div>
               <div style={{ color: '#166534', fontSize: '0.82rem' }}>
-                <code>RESEND_API_KEY</code> được bảo mật hoàn toàn tại server-side (Supabase Edge Function secret). Không tồn tại trong client bundle.
+                <code>Resend API Key</code> được bảo mật hoàn toàn tại server-side (Supabase Edge Function secret). Không tồn tại trong client bundle.
               </div>
             </div>
 

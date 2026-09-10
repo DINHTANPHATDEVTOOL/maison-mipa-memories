@@ -15,6 +15,7 @@ import { renderEmailHtml } from '../_shared/emailTemplates.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
 const EMAIL_FROM = Deno.env.get('EMAIL_FROM') || 'Maison MIPA Memories <no-reply@maisonmipa.io.vn>';
+const EMAIL_REPLY_TO = Deno.env.get('EMAIL_REPLY_TO') || 'contact@maisonmipa.io.vn';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -98,6 +99,7 @@ serve(async (req: Request) => {
           body: JSON.stringify({
             from: EMAIL_FROM,
             to: [item.recipient_email],
+            reply_to: EMAIL_REPLY_TO,
             subject,
             html,
           }),

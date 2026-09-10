@@ -1330,6 +1330,28 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     </div>
                   )}
 
+                  <div style={{
+                    padding: '0.85rem 1rem',
+                    backgroundColor: '#FEF3C7',
+                    borderRadius: '12px',
+                    border: '1px solid #FCD34D',
+                    color: '#92400E',
+                    fontSize: '0.85rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+                      <RefreshCw size={16} className="animate-spin" />
+                      <span>TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#78350F', lineHeight: 1.4 }}>
+                      Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận. Hệ thống sẽ tự động chuyển sang trang Hoàn tất ngay khi ACB nhận được tiền (không bắt buộc ấn nút dưới nếu đã thanh toán qua app).
+                    </p>
+                  </div>
+
                   {isTransferSubmitted && currentPayment?.status === 'PENDING' && (
                     <div style={{
                       padding: '0.75rem',

@@ -208,5 +208,51 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.getByText('Hệ thống quản trị bộ ảnh concept')).toBeVisible();
   });
 
+  test('11. Auth Modal: Quên mật khẩu flow gửi reset request thành công', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+
+    // Click "Quên mật khẩu?"
+    await page.getByRole('button', { name: /Quên mật khẩu\?/i }).click();
+    await expect(page.getByText('Khôi Phục Mật Khẩu')).toBeVisible();
+
+    // Input email
+    await page.getByPlaceholder(/user@example.com/i).fill('forgot.test@maisonmipa.io.vn');
+    await page.getByRole('button', { name: /Gửi Liên Kết Đặt Lại Mật Khẩu/i }).click();
+
+    // Assert feedback screen
+    await expect(page.getByText('Đã Gửi Email Khôi Phục!')).toBeVisible();
+  });
+
+  test('12. Trang /auth/reset-password hiển thị form và kiểm tra validation', async ({ page }) => {
+    await page.goto('/auth/reset-password');
+    await expect(page.getByText('Thiết Lập Mật Khẩu Mới')).toBeVisible();
+
+    const newPassInput = page.getByPlaceholder(/Ít nhất 6 ký tự\.\.\./i);
+    const confirmPassInput = page.getByPlaceholder(/Nhập lại mật khẩu mới\.\.\./i);
+
+    // Mismatched passwords
+    await newPassInput.fill('SecurePass@1');
+    await confirmPassInput.fill('Mismatch@2');
+    await page.getByRole('button', { name: /Xác Nhận Đổi Mật Khẩu/i }).click();
+
+    await expect(page.getByText('Mật khẩu xác nhận không khớp.')).toBeVisible();
+  });
+
+  test('13. Step 6 Booking hiển thị banner tự động xác nhận qua ACB & payOS', async ({ page }) => {
+    await page.goto('/booking');
+
+    // Step 1 -> 5
+    for (let i = 1; i <= 5; i++) {
+      await expect(page.locator(`text=Bước ${i}/6`)).toBeVisible();
+      await page.getByRole('button', { name: /Tiếp Theo/i }).click();
+    }
+
+    // Step 6: Verify ACB & payOS auto-confirm banner
+    await expect(page.locator('text=Bước 6/6')).toBeVisible();
+    await expect(page.getByText(/TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS/i)).toBeVisible();
+    await expect(page.getByText(/Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận/i)).toBeVisible();
+  });
+
 });
 
