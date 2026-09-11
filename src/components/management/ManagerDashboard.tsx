@@ -291,10 +291,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#8C6E53' }}>
-                          {(b.totalAmount ?? b.totalPrice ?? 0).toLocaleString('vi-VN')} đ
+                          {b.totalAmount.toLocaleString('vi-VN')} đ
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: (b.paymentStatus || b.depositStatus) === 'DEPOSIT_PAID' || (b.paymentStatus || b.depositStatus) === 'FULLY_PAID' || (b.paymentStatus || b.depositStatus) === 'PAID' ? '#047857' : '#D97706', fontWeight: 600 }}>
-                          Cọc: {(b.depositAmount ?? 0).toLocaleString('vi-VN')} đ ({b.paymentStatus || b.depositStatus || 'PENDING'})
+                        <div style={{ fontSize: '0.75rem', color: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' ? '#047857' : '#D97706', fontWeight: 600 }}>
+                          Cọc: {b.depositAmount.toLocaleString('vi-VN')} đ ({b.paymentStatus})
                         </div>
                       </div>
                     </div>
