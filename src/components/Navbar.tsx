@@ -440,6 +440,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <strong style={{ color: '#8C6E53' }}>{roleLabels[currentRole].label}</strong>
                     </div>
 
+                    <Link
+                      to="/account?tab=profile"
+                      onClick={() => setShowRoleDropdown(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: '#F8F3E6',
+                        borderRadius: '10px',
+                        color: '#604634',
+                        textDecoration: 'none',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        marginBottom: '0.4rem',
+                        border: '1px solid #E6D7B9',
+                      }}
+                    >
+                      <UserIcon size={14} style={{ color: '#8C6E53' }} />
+                      <span>Thông tin cá nhân & Đổi MK</span>
+                    </Link>
+
                     {currentRole === 'CUSTOMER' && (
                       <Link
                         to="/account"
@@ -619,29 +641,52 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  onLogout();
-                  setIsMobileMenuOpen(false);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: 'none',
-                  borderRadius: '12px',
-                  backgroundColor: '#FFF5F5',
-                  color: '#C53030',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <LogOut size={16} /> Đăng Xuất ({displayUser.fullName})
-              </button>
+              <>
+                <Link
+                  to="/account?tab=profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    backgroundColor: '#F8F3E6',
+                    color: '#604634',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    border: '1px solid #E6D7B9',
+                  }}
+                >
+                  <UserIcon size={16} /> Thông Tin Cá Nhân & Đổi Mật Khẩu
+                </Link>
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: 'none',
+                    borderRadius: '12px',
+                    backgroundColor: '#FFF5F5',
+                    color: '#C53030',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <LogOut size={16} /> Đăng Xuất ({displayUser.fullName})
+                </button>
+              </>
             )}
           </div>
         </div>

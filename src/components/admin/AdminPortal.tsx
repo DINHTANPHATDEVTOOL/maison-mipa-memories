@@ -8,6 +8,7 @@
 // - Email Provider status health inspector
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import type { User, UserRole, StaffRole, UserStatus, AuditLog } from '../../types';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -24,6 +25,7 @@ import {
   CreditCard,
   Mail,
   FileText,
+  User as UserIcon,
 } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -233,6 +235,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <tab.icon size={15} /> {tab.label}
             </button>
           ))}
+          <Link
+            to="/account?tab=profile"
+            className="btn-mipa-secondary"
+            style={{ fontSize: '0.82rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+            title="Đổi họ tên, số điện thoại & yêu cầu đổi mật khẩu qua email"
+          >
+            <UserIcon size={15} /> Hồ Sơ Cá Nhân
+          </Link>
         </div>
       </div>
 

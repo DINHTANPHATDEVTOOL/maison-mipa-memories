@@ -28,6 +28,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (params: { fullName: string; phone?: string }) => Promise<{ success: boolean; error?: string }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
@@ -560,6 +561,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
+   * Update Personal Profile (Full Name, Phone)
+   */
+  const updateProfile = useCallback(async (params: { fullName: string; phone?: string }): Promise<{ success: boolean; error?: string }> => {
+    if (!user?.id) {
+      return { success: false, error: 'Chưa đăng nhập.' };
+    }
+
+    const cleanName = params.fullName?.trim();
+    if (!cleanName) {
+      return { success: false, error: 'Họ và tên không được để trống.' };
+    }
+
+    const cleanPhone = params.phone?.trim() || '';
+
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: cleanName,
+            phone: cleanPhone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          setIsLoading(false);
+          setAuthError(profileError.message);
+          return { success: false, error: profileError.message };
+        }
+
+        // Sync auth user metadata
+        await supabase.auth.updateUser({
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+          },
+        });
+      }
+
+      setUser(prev => prev ? {
+        ...prev,
+        fullName: cleanName,
+        phone: cleanPhone,
+      } : null);
+
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      const msg = err?.message || 'Không thể cập nhật thông tin cá nhân.';
+      setAuthError(msg);
+      return { success: false, error: msg };
+    }
+  }, [user]);
+
+  /**
    * Resend Verification Email
    */
   const resendVerificationEmail = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
@@ -638,6 +699,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     resetPassword,
     updatePassword,
+    updateProfile,
     resendVerificationEmail,
     refreshProfile,
     clearError,
@@ -654,6 +716,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     resetPassword,
     updatePassword,
+    updateProfile,
     resendVerificationEmail,
     refreshProfile,
     clearError,
