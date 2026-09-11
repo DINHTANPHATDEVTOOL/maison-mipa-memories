@@ -63,6 +63,7 @@ required_functions AS (
   SELECT unnest(ARRAY[
     'get_auth_role',
     'handle_new_user',
+    'handle_user_email_confirmed',
     'prevent_role_escalation',
     'get_auth_user_status',
     'get_auth_staff_role',
@@ -85,7 +86,7 @@ function_checks AS (
     CASE WHEN p.proname IS NOT NULL THEN 'PASS' ELSE 'FAIL' END AS status,
     CASE WHEN p.proname IS NOT NULL
       THEN 'Function exists in public schema'
-      ELSE 'MISSING RPC! Run migrations 1..6'
+      ELSE 'MISSING RPC! Run migrations 1..7'
     END AS details
   FROM required_functions rf
   LEFT JOIN pg_catalog.pg_proc p

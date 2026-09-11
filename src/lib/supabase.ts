@@ -28,7 +28,7 @@ export const isSupabaseConfigured = (): boolean => {
  * Default is FALSE in production.
  */
 export const isDemoModeEnabled = (): boolean => {
-  return import.meta.env.VITE_ENABLE_DEMO_MODE === 'true' || import.meta.env.MODE === 'test';
+  return import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 };
 
 const isTestOrDemo = isDemoModeEnabled() || import.meta.env.MODE === 'test';

@@ -279,6 +279,15 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     const userLoggedIn = page.locator('button:has-text("Đăng Xuất")').or(page.getByText('Hoàng Oanh'));
 
     await expect(verifyScreen.or(userLoggedIn)).toBeVisible({ timeout: 6000 });
+
+    // Khi ở màn hình Xác Thực Tài Khoản Email, đảm bảo không có nút gây hiểu lầm và nút Quay Lại Đăng Nhập hoạt động đúng
+    if (await verifyScreen.isVisible()) {
+      await expect(page.getByText('Đã Xác Thực • Đăng Nhập Ngay')).not.toBeVisible();
+      const backBtn = page.getByRole('button', { name: 'Quay Lại Đăng Nhập' });
+      await expect(backBtn).toBeVisible();
+      await backBtn.click();
+      await expect(page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i })).toBeVisible();
+    }
   });
 
 });

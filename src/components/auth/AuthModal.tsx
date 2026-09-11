@@ -1003,7 +1003,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   className="btn-mipa-gold"
                   style={{ padding: '0.75rem', fontSize: '0.88rem' }}
                 >
-                  Đã Xác Thực • Đăng Nhập Ngay
+                  Quay Lại Đăng Nhập
                 </button>
               </div>
             </div>

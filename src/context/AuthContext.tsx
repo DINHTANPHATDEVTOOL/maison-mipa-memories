@@ -79,6 +79,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const refreshProfile = useCallback(async () => {
     if (!session?.user?.id) return;
+
+    // Security check: email verification is authoritative
+    if (!isDemoMode && !session.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
+      return;
+    }
+
     const freshUser = await fetchProfile(session.user.id);
     if (freshUser) {
       if (freshUser.status === 'SUSPENDED' || freshUser.status === 'DISABLED') {
@@ -90,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setUser(freshUser);
     }
-  }, [session, fetchProfile]);
+  }, [session, fetchProfile, isDemoMode]);
 
   /**
    * Initialize Session on Mount & Listen to Supabase Auth State Changes
@@ -114,6 +124,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (initialSession?.user && isMounted) {
+          // Security gate: Email verification is mandatory in production
+          if (!isDemoMode && !initialSession.user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
+            }
+            return;
+          }
+
           const userProfile = await fetchProfile(initialSession.user.id);
 
           // Security check: Deny suspended/disabled accounts
@@ -124,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(null);
               setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
             }
+            return;
           } else if (isMounted) {
             setSession(initialSession);
             if (userProfile) {
@@ -154,8 +176,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
         if (currentSession?.user) {
+          // Security gate: Email verification is mandatory in production
+          if (!isDemoMode && !currentSession.user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
+            }
+            return;
+          }
+
           const profile = await fetchProfile(currentSession.user.id);
           if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
             await supabase.auth.signOut();
@@ -195,7 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, isDemoMode]);
 
   /**
    * Production Login with Email & Password
@@ -252,6 +285,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
+      // Authoritative check: Reject unconfirmed users in production
+      if (!isDemoMode && data.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        const unconfirmedMsg = 'Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư và bấm vào liên kết xác thực trước khi đăng nhập.';
+        setAuthError(unconfirmedMsg);
+        setIsLoading(false);
+        return { success: false, error: unconfirmedMsg };
+      }
+
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
         const profile = await fetchProfile(data.user.id);
@@ -259,6 +303,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Security gate: Deny suspended/disabled
         if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
           await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
           const denyMsg = 'Tài khoản này đã bị tạm ngưng hoặc khóa. Vui lòng liên hệ quản lý studio.';
           setAuthError(denyMsg);
           setIsLoading(false);
@@ -343,6 +389,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
+      // FAIL CLOSED:
+      // In production registration, email verification is mandatory.
+      // If data.session is unexpectedly returned before email verification, FAIL CLOSED:
+      // - signOut immediately
+      // - do not set session
+      // - do not set user
+      // - return/display production configuration error
+      if (!isDemoMode && data.session && !data.user?.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        const configError = 'Cấu hình bảo mật yêu cầu xác thực email bắt buộc. Vui lòng kiểm tra hộp thư để xác thực tài khoản trước khi đăng nhập.';
+        setAuthError(configError);
+        setIsLoading(false);
+        return { success: false, error: configError };
+      }
+
+      // In production, registration never authenticates before verification
+      if (!isDemoMode) {
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+        return { success: true };
+      }
+
+      // Demo mode only fallback
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
         setSession(data.session);

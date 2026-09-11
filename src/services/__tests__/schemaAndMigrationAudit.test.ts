@@ -12,6 +12,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260909000001_production_core_hardening.sql',
     '20260909000002_portfolio_cms_and_booking_concepts.sql',
     '20260910000001_production_payos_and_email_hardening.sql',
+    '20260911000001_email_verification_hardening.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -40,6 +41,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
   const EXPECTED_RPCS = [
     'get_auth_role',
     'handle_new_user',
+    'handle_user_email_confirmed',
     'prevent_role_escalation',
     'get_auth_user_status',
     'get_auth_staff_role',
@@ -55,7 +57,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'enqueue_shoot_reminder',
   ];
 
-  it('1. all 6 migration files exist in sequential order', () => {
+  it('1. all 7 migration files exist in sequential order', () => {
     const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
     expect(files.sort()).toEqual(EXPECTED_MIGRATIONS.sort());
   });
@@ -159,5 +161,28 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     expect(migration5).not.toContain('pho00000-');
     expect(migration5).toContain('c2000000-0000-0000-0000-000000000001');
     expect(migration5).toContain('c3000000-0000-0000-0000-000000000001');
+  });
+
+  it('12. migration 7 enforces email verification hardening, safe trigger, and fail-closed RLS/RPC', () => {
+    const migration7 = fs.readFileSync(path.join(migrationsDir, '20260911000001_email_verification_hardening.sql'), 'utf-8');
+
+    // 1. Initial status PENDING_VERIFICATION when unconfirmed, ACTIVE when confirmed
+    expect(migration7).toContain("v_initial_status := 'PENDING_VERIFICATION'");
+    expect(migration7).toContain("v_initial_status := 'ACTIVE'");
+
+    // 2. handle_user_email_confirmed trigger exists on auth.users
+    expect(migration7).toContain('CREATE OR REPLACE FUNCTION public.handle_user_email_confirmed');
+    expect(migration7).toContain('CREATE TRIGGER on_auth_user_email_confirmed');
+    expect(migration7).toContain('AFTER UPDATE OF email_confirmed_at ON auth.users');
+
+    // 3. Strict preservation: NEVER reactivates SUSPENDED or DISABLED accounts
+    expect(migration7).toContain("AND status = 'PENDING_VERIFICATION'");
+    expect(migration7).toContain("WHEN public.profiles.status IN ('SUSPENDED', 'DISABLED') THEN public.profiles.status");
+
+    // 4. Hardens RLS policies to require ACTIVE status
+    expect(migration7).toContain("public.get_auth_user_status() = 'ACTIVE'");
+
+    // 5. Hardens RPCs create_booking and create_deposit_payment to require ACTIVE status
+    expect(migration7).toContain("IF public.get_auth_user_status() != 'ACTIVE' THEN");
   });
 });
