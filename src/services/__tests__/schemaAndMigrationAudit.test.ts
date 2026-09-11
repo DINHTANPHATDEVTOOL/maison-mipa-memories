@@ -125,4 +125,39 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     expect(configToml).toContain('[functions.send-email]');
     expect(configToml).toContain('verify_jwt = true');
   });
+
+  it('9. migration 5 drops legacy 11-argument create_booking before defining 12-argument function', () => {
+    const migration5 = fs.readFileSync(path.join(migrationsDir, '20260909000002_portfolio_cms_and_booking_concepts.sql'), 'utf-8');
+
+    expect(migration5).toContain('DROP FUNCTION IF EXISTS public.create_booking');
+    expect(migration5).toContain('p_concept_ids UUID[] DEFAULT');
+    // Ensure the redundant 11-argument wrapper is completely removed
+    expect(migration5).not.toContain('Backward-compatibility wrapper for 11-argument callers');
+  });
+
+  it('10. migration 5 inserts into booking_addons and audit_logs using exact schema columns', () => {
+    const migration5 = fs.readFileSync(path.join(migrationsDir, '20260909000002_portfolio_cms_and_booking_concepts.sql'), 'utf-8');
+
+    // booking_addons columns: booking_id, addon_id, quantity, unit_price, line_total (no price column)
+    expect(migration5).toContain('booking_id,');
+    expect(migration5).toContain('unit_price,');
+    expect(migration5).toContain('line_total');
+    expect(migration5).not.toMatch(/INSERT INTO public\.booking_addons\s*\(booking_id,\s*addon_id,\s*price\)/i);
+
+    // audit_logs columns: actor_user_id, entity_type, entity_id, action, old_data, new_data
+    expect(migration5).toContain('actor_user_id,');
+    expect(migration5).toContain('new_data');
+    expect(migration5).not.toContain('performed_by');
+    expect(migration5).not.toContain('old_values');
+    expect(migration5).not.toContain('new_values');
+  });
+
+  it('11. all seed UUIDs in migration 5 are valid hexadecimal RFC 4122 format', () => {
+    const migration5 = fs.readFileSync(path.join(migrationsDir, '20260909000002_portfolio_cms_and_booking_concepts.sql'), 'utf-8');
+
+    expect(migration5).not.toContain('col00000-');
+    expect(migration5).not.toContain('pho00000-');
+    expect(migration5).toContain('c2000000-0000-0000-0000-000000000001');
+    expect(migration5).toContain('c3000000-0000-0000-0000-000000000001');
+  });
 });

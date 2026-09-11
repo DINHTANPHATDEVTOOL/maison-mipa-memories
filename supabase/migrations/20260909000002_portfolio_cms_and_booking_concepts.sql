@@ -223,6 +223,12 @@ $$;
 -- ==============================================================================
 -- Authoritative RPC: create_booking with Concept Validation & Limit Enforcement
 -- ==============================================================================
+-- Drop the legacy 11-argument signature from migration #2 so there is no signature conflict or parameter default collision
+DROP FUNCTION IF EXISTS public.create_booking(
+  UUID, UUID, UUID, TIMESTAMPTZ,
+  UUID[], TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
+);
+
 CREATE OR REPLACE FUNCTION public.create_booking(
   p_service_id UUID,
   p_package_id UUID,
@@ -435,11 +441,21 @@ BEGIN
 
   -- 10. Insert Booking Addons
   IF p_addon_ids IS NOT NULL AND array_length(p_addon_ids, 1) > 0 THEN
-    FOREACH v_addon_id IN ARRAY p_addon_ids LOOP
-      INSERT INTO public.booking_addons (booking_id, addon_id, price)
-      SELECT v_new_booking_id, id, price
-      FROM public.addons WHERE id = v_addon_id AND active = true;
-    END LOOP;
+    INSERT INTO public.booking_addons (
+      booking_id,
+      addon_id,
+      quantity,
+      unit_price,
+      line_total
+    )
+    SELECT
+      v_new_booking_id,
+      id,
+      1,
+      price,
+      price
+    FROM public.addons
+    WHERE id = ANY(p_addon_ids) AND active = true;
   END IF;
 
   -- 11. Insert Booking Concepts
@@ -453,17 +469,17 @@ BEGIN
 
   -- 12. Create initial Audit Log
   INSERT INTO public.audit_logs (
+    actor_user_id,
     entity_type,
     entity_id,
     action,
-    performed_by,
-    old_values,
-    new_values
+    old_data,
+    new_data
   ) VALUES (
-    'BOOKING',
-    v_new_booking_id,
-    'CREATE_BOOKING',
     v_caller_id,
+    'BOOKING',
+    v_new_booking_id::text,
+    'CREATE_BOOKING',
     NULL,
     jsonb_build_object(
       'booking_code', v_booking_code,
@@ -508,42 +524,6 @@ BEGIN
 END;
 $$;
 
--- Backward-compatibility wrapper for 11-argument callers
-CREATE OR REPLACE FUNCTION public.create_booking(
-  p_service_id UUID,
-  p_package_id UUID,
-  p_studio_room_id UUID,
-  p_start_at TIMESTAMPTZ,
-  p_addon_ids UUID[],
-  p_voucher_code TEXT,
-  p_customer_name TEXT,
-  p_customer_phone TEXT,
-  p_customer_email TEXT,
-  p_occasion TEXT,
-  p_customer_note TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.create_booking(
-    p_service_id,
-    p_package_id,
-    p_studio_room_id,
-    p_start_at,
-    p_addon_ids,
-    p_voucher_code,
-    p_customer_name,
-    p_customer_phone,
-    p_customer_email,
-    p_occasion,
-    p_customer_note,
-    '{}'::UUID[]
-  );
-END;
-$$;
 
 -- ==============================================================================
 -- Seeds: Authentic Concepts, Collections and Photos
@@ -563,7 +543,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.portfolio_collections (id, slug, title, description, concept_id, service_id, status, featured, display_order, published_at)
 VALUES
   (
-    'col00000-0000-0000-0000-000000000001',
+    'c2000000-0000-0000-0000-000000000001',
     'parisian-romance-autumn',
     'Parisian Romance — Thu Cổ Điển',
     'Bộ ảnh couple phong cách Pháp dịu dàng trong ánh nắng chiều thu, ghi dấu những rung động tinh khôi nhất.',
@@ -575,7 +555,7 @@ VALUES
     timezone('utc'::text, now())
   ),
   (
-    'col00000-0000-0000-0000-000000000002',
+    'c2000000-0000-0000-0000-000000000002',
     'vintage-loft-intimate',
     'Vintage Loft Moments',
     'Khoảnh khắc đời thường mộc mạc của cặp đôi trong căn phòng loft rực nắng ấm áp.',
@@ -587,7 +567,7 @@ VALUES
     timezone('utc'::text, now())
   ),
   (
-    'col00000-0000-0000-0000-000000000003',
+    'c2000000-0000-0000-0000-000000000003',
     'renaissance-white-veil',
     'Renaissance White Veil — Ánh Sáng Tình Yêu',
     'Khăn voan thêu tay cổ điển kết hợp ánh sáng tự nhiên tạo nên những khung hình cưới vượt thời gian.',
@@ -599,7 +579,7 @@ VALUES
     timezone('utc'::text, now())
   ),
   (
-    'col00000-0000-0000-0000-000000000004',
+    'c2000000-0000-0000-0000-000000000004',
     'la-famille-douce-home',
     'La Famille Douce — Bình Yên Trọn Vẹn',
     'Kỷ niệm gia đình ngập tràn tiếng cười và sự âu yếm trong không gian studio ấm cúng như chính ngôi nhà bạn.',
@@ -611,7 +591,7 @@ VALUES
     timezone('utc'::text, now())
   ),
   (
-    'col00000-0000-0000-0000-000000000005',
+    'c2000000-0000-0000-0000-000000000005',
     'l-ange-pure-whiteness',
     'L''Ange — Thiên Thần Bé Nhỏ',
     'Vẻ đẹp thiên thần thơ ngây của bé yêu được nâng niu bằng những chất liệu ren thêu mềm mại nhất.',
@@ -623,7 +603,7 @@ VALUES
     timezone('utc'::text, now())
   ),
   (
-    'col00000-0000-0000-0000-000000000006',
+    'c2000000-0000-0000-0000-000000000006',
     'monochrome-soul-draft',
     'Monochrome Soul & Contrast (Draft Preview)',
     'Bộ ảnh chân dung nghệ thuật thử nghiệm đang hoàn thiện hậu kỳ.',
@@ -639,11 +619,11 @@ ON CONFLICT (id) DO NOTHING;
 -- Seed Photos for Collections
 INSERT INTO public.portfolio_photos (id, collection_id, url, filename, width, height, focal_x, focal_y, alt_text, caption, sort_order, featured)
 VALUES
-  ('pho00000-0000-0000-0000-000000000001', 'col00000-0000-0000-0000-000000000001', '/hero.png', 'parisian-romance-1.webp', 1920, 1080, 50.0, 45.0, 'Couple trong trang phục tone be vintage Maison MIPA', 'Ánh chiều tà bên rèm lụa Pháp', 1, true),
-  ('pho00000-0000-0000-0000-000000000002', 'col00000-0000-0000-0000-000000000001', '/studio.png', 'parisian-romance-2.webp', 1920, 1080, 50.0, 50.0, 'Góc hoa tươi và tách trà chiều Parisian', 'Chi tiết trang trí tinh tế tại Studio', 2, false),
-  ('pho00000-0000-0000-0000-000000000003', 'col00000-0000-0000-0000-000000000002', '/studio.png', 'vintage-loft-1.webp', 1920, 1080, 45.0, 40.0, 'Không gian phòng Studio gạch mộc và sofa da cổ điển', 'Không gian Vintage Loft mộc mạc', 1, true),
-  ('pho00000-0000-0000-0000-000000000004', 'col00000-0000-0000-0000-000000000002', '/hero.png', 'vintage-loft-2.webp', 1920, 1080, 55.0, 50.0, 'Nụ cười hạnh phúc tự nhiên của cặp đôi', 'Khoảnh khắc vui vẻ tự nhiên', 2, false),
-  ('pho00000-0000-0000-0000-000000000005', 'col00000-0000-0000-0000-000000000003', '/hero.png', 'renaissance-veil-1.webp', 1920, 1080, 50.0, 35.0, 'Cô dâu trong chiếc khăn voan ren thêu tay tinh xảo', 'Khăn voan thêu tay độc bản', 1, true),
-  ('pho00000-0000-0000-0000-000000000006', 'col00000-0000-0000-0000-000000000004', '/studio.png', 'family-home-1.webp', 1920, 1080, 50.0, 50.0, 'Gia đình 3 thế hệ quây quần bên phòng khách ấm áp', 'Sự gắn kết ngọt ngào của tổ ấm', 1, true),
-  ('pho00000-0000-0000-0000-000000000007', 'col00000-0000-0000-0000-000000000005', '/hero.png', 'l-ange-baby-1.webp', 1920, 1080, 50.0, 50.0, 'Em bé ngủ say trong chiếc nôi mây vintage bồng bềnh', 'Giấc ngủ thiên thần của bé', 1, true)
+  ('c3000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001', '/hero.png', 'parisian-romance-1.webp', 1920, 1080, 50.0, 45.0, 'Couple trong trang phục tone be vintage Maison MIPA', 'Ánh chiều tà bên rèm lụa Pháp', 1, true),
+  ('c3000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000001', '/studio.png', 'parisian-romance-2.webp', 1920, 1080, 50.0, 50.0, 'Góc hoa tươi và tách trà chiều Parisian', 'Chi tiết trang trí tinh tế tại Studio', 2, false),
+  ('c3000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000002', '/studio.png', 'vintage-loft-1.webp', 1920, 1080, 45.0, 40.0, 'Không gian phòng Studio gạch mộc và sofa da cổ điển', 'Không gian Vintage Loft mộc mạc', 1, true),
+  ('c3000000-0000-0000-0000-000000000004', 'c2000000-0000-0000-0000-000000000002', '/hero.png', 'vintage-loft-2.webp', 1920, 1080, 55.0, 50.0, 'Nụ cười hạnh phúc tự nhiên của cặp đôi', 'Khoảnh khắc vui vẻ tự nhiên', 2, false),
+  ('c3000000-0000-0000-0000-000000000005', 'c2000000-0000-0000-0000-000000000003', '/hero.png', 'renaissance-veil-1.webp', 1920, 1080, 50.0, 35.0, 'Cô dâu trong chiếc khăn voan ren thêu tay tinh xảo', 'Khăn voan thêu tay độc bản', 1, true),
+  ('c3000000-0000-0000-0000-000000000006', 'c2000000-0000-0000-0000-000000000004', '/studio.png', 'family-home-1.webp', 1920, 1080, 50.0, 50.0, 'Gia đình 3 thế hệ quây quần bên phòng khách ấm áp', 'Sự gắn kết ngọt ngào của tổ ấm', 1, true),
+  ('c3000000-0000-0000-0000-000000000007', 'c2000000-0000-0000-0000-000000000005', '/hero.png', 'l-ange-baby-1.webp', 1920, 1080, 50.0, 50.0, 'Em bé ngủ say trong chiếc nôi mây vintage bồng bềnh', 'Giấc ngủ thiên thần của bé', 1, true)
 ON CONFLICT (id) DO NOTHING;
