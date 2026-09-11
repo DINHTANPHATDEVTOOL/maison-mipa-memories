@@ -127,21 +127,24 @@ const SLUG_TO_UUID_MAP: Record<string, string> = {
 
 export async function resolveEntityUuid(
   idOrSlug: string,
-  table: 'services' | 'packages' | 'studio_rooms' | 'addons'
+  table: 'services' | 'packages' | 'studio_rooms' | 'addons',
+  serviceId?: string
 ): Promise<string> {
   if (!idOrSlug) return idOrSlug;
   if (UUID_REGEX.test(idOrSlug)) return idOrSlug;
-  if (SLUG_TO_UUID_MAP[idOrSlug]) return SLUG_TO_UUID_MAP[idOrSlug];
 
   try {
     if (isSupabaseConfigured()) {
-      const col = table === 'studio_rooms' ? 'code' : 'slug';
-      const { data } = await supabase
-        .from(table)
-        .select('id')
-        .or(`slug.eq.${idOrSlug},${col}.eq.${idOrSlug}`)
-        .limit(1)
-        .maybeSingle();
+      let query = supabase.from(table).select('id');
+      if (table === 'studio_rooms') {
+        query = query.or(`slug.eq.${idOrSlug},code.eq.${idOrSlug}`);
+      } else {
+        query = query.eq('slug', idOrSlug);
+        if (table === 'packages' && serviceId && UUID_REGEX.test(serviceId)) {
+          query = (query as any).eq('service_id', serviceId);
+        }
+      }
+      const { data } = await query.limit(1).maybeSingle();
 
       if (data?.id && UUID_REGEX.test(data.id)) {
         return data.id;
@@ -150,6 +153,16 @@ export async function resolveEntityUuid(
   } catch {
     // fallback
   }
+
+  // Fallback to INITIAL_PACKAGES for service-specific packages in demo or offline mode
+  if (table === 'packages' && serviceId) {
+    const pkg = INITIAL_PACKAGES.find(
+      p => p.serviceId === serviceId && (p.id === idOrSlug || p.name.toLowerCase().includes(idOrSlug.toLowerCase()))
+    );
+    if (pkg) return pkg.id;
+  }
+
+  if (SLUG_TO_UUID_MAP[idOrSlug]) return SLUG_TO_UUID_MAP[idOrSlug];
 
   return idOrSlug;
 }
@@ -174,7 +187,7 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
     const startIso = `${request.date}T${request.timeSlot}:00+07:00`;
 
     const serviceId = await resolveEntityUuid(request.serviceId, 'services');
-    const packageId = await resolveEntityUuid(request.packageId, 'packages');
+    const packageId = await resolveEntityUuid(request.packageId, 'packages', serviceId);
     const studioId = await resolveEntityUuid(request.studioId, 'studio_rooms');
     const addonIds = await Promise.all(
       (request.addonIds || []).map(id => resolveEntityUuid(id, 'addons'))

@@ -15,6 +15,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260911000001_email_verification_hardening.sql',
     '20260911000002_root_owner_rbac_hardening.sql',
     '20260911000003_fix_booking_assignments_rls_recursion.sql',
+    '20260911000004_booking_package_service_harmony_and_rich_email.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -61,7 +62,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'enqueue_shoot_reminder',
   ];
 
-  it('1. all 8 migration files exist in sequential order', () => {
+  it('1. all migration files exist in sequential order', () => {
     const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
     expect(files.sort()).toEqual(EXPECTED_MIGRATIONS.sort());
   });

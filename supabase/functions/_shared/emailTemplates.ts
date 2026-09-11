@@ -51,20 +51,73 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
 
   switch (templateKey) {
     case 'booking_created':
-      subject = `[Maison MIPA] Xác nhận đặt lịch #${data.bookingCode || ''}`;
+      const serviceTitle = data.serviceName ? ` - ${data.serviceName}` : '';
+      const packageTitle = data.packageName ? ` (${data.packageName})` : '';
+      subject = `[Maison MIPA] Xác nhận đặt lịch #${data.bookingCode || ''}${packageTitle}${serviceTitle}`;
+
+      const featureItems = Array.isArray(data.features) && data.features.length > 0
+        ? data.features.map((f: string) => `<li style="margin-bottom: 6px; color: #4A3525;">${f}</li>`).join('')
+        : '';
+
       bodyContent = `
-        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Xin chào ${name},</h2>
-        <p style="color: #604634; line-height: 1.6;">
-          Cảm ơn bạn đã lựa chọn Maison MIPA Memories. Đơn đặt lịch chụp ảnh của bạn đã được ghi nhận trên hệ thống.
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0; font-family: 'Playfair Display', Georgia, serif;">
+          Kính chào ${name},
+        </h2>
+        <p style="color: #604634; line-height: 1.6; font-size: 14.5px;">
+          Maison MIPA Memories chân thành cảm ơn bạn đã tin tưởng lựa chọn chúng tôi để lưu giữ những khoảnh khắc quý giá. Yêu cầu đặt lịch chụp ảnh của bạn đã được ghi nhận thành công trên hệ thống.
         </p>
-        <div style="background: #FDFBF7; border: 1px solid #EFE6C9; border-radius: 8px; padding: 16px; margin: 20px 0;">
-          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK};"><strong>Mã đơn:</strong> ${data.bookingCode}</p>
-          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK};"><strong>Thời gian:</strong> ${data.startAt || 'Theo thỏa thuận'}</p>
-          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK};"><strong>Tổng chi phí:</strong> ${data.totalAmount ? Number(data.totalAmount).toLocaleString('vi-VN') + ' đ' : ''}</p>
-          <p style="margin: 0; color: #B45309;"><strong>Tiền đặt cọc giữ lịch:</strong> ${data.depositAmount ? Number(data.depositAmount).toLocaleString('vi-VN') + ' đ' : ''}</p>
+
+        <!-- Chi tiết gói chụp nổi bật -->
+        <div style="background: #FAF6EE; border: 1.5px solid #E6D7B9; border-radius: 10px; padding: 18px 20px; margin: 20px 0;">
+          <div style="border-bottom: 1px solid #E6D7B9; padding-bottom: 10px; margin-bottom: 14px;">
+            <div style="font-size: 16px; font-weight: 700; color: #604634; text-transform: uppercase; letter-spacing: 0.5px;">
+              📸 Gói Chụp: ${data.packageName || 'Gói Chụp Maison MIPA'}
+            </div>
+            ${data.serviceName ? `<div style="font-size: 13px; color: #8C6E53; margin-top: 3px; font-weight: 600;">Dịch vụ: ${data.serviceName}</div>` : ''}
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; color: #4A3525; margin-bottom: 12px;">
+            ${data.durationMinutes ? `
+            <tr>
+              <td style="padding: 4px 0; width: 42%; color: #8C6E53;">⏱️ Thời lượng buổi chụp:</td>
+              <td style="padding: 4px 0; font-weight: 600;">${data.durationMinutes} phút</td>
+            </tr>` : ''}
+            ${data.conceptsCount ? `
+            <tr>
+              <td style="padding: 4px 0; color: #8C6E53;">🎨 Số Concept bối cảnh:</td>
+              <td style="padding: 4px 0; font-weight: 600;">${data.conceptsCount} concept độc quyền</td>
+            </tr>` : ''}
+            ${data.editedPhotosCount ? `
+            <tr>
+              <td style="padding: 4px 0; color: #8C6E53;">✨ Ảnh hoàn thiện sắc nét:</td>
+              <td style="padding: 4px 0; font-weight: 600;">${data.editedPhotosCount} ảnh chỉnh sửa cao cấp</td>
+            </tr>` : ''}
+            ${data.studioName ? `
+            <tr>
+              <td style="padding: 4px 0; color: #8C6E53;">🏛️ Không gian Studio:</td>
+              <td style="padding: 4px 0; font-weight: 600;">${data.studioName}</td>
+            </tr>` : ''}
+          </table>
+
+          ${featureItems ? `
+          <div style="border-top: 1px dashed #D9C8A9; padding-top: 10px; margin-top: 10px;">
+            <p style="margin: 0 0 8px 0; font-weight: 700; font-size: 13px; color: #604634;">Quyền lợi & Dịch vụ bao gồm trong gói:</p>
+            <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5;">
+              ${featureItems}
+            </ul>
+          </div>` : ''}
         </div>
-        <p style="color: #604634; line-height: 1.6;">
-          Quý khách vui lòng tiến hành chuyển khoản cọc theo thông tin VietQR trong hệ thống để Maison MIPA giữ lịch và chuẩn bị kíp chụp tốt nhất.
+
+        <!-- Thông tin đơn đặt lịch -->
+        <div style="background: #FFFFFF; border: 1px solid #EFE6C9; border-radius: 8px; padding: 16px 20px; margin: 18px 0;">
+          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK}; font-size: 14px;"><strong>Mã đơn:</strong> <span style="font-family: monospace; font-size: 15px; color: #8C6E53; font-weight: 700;">#${data.bookingCode}</span></p>
+          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK}; font-size: 14px;"><strong>Thời gian chụp:</strong> ${data.startAt || 'Theo thỏa thuận'}</p>
+          <p style="margin: 0 0 8px 0; color: ${BRAND_DARK}; font-size: 14px;"><strong>Tổng chi phí:</strong> <span style="font-weight: 700;">${data.totalAmount ? Number(data.totalAmount).toLocaleString('vi-VN') + ' đ' : 'Liên hệ studio'}</span></p>
+          <p style="margin: 0; color: #B45309; font-size: 14.5px;"><strong>Tiền cọc giữ lịch:</strong> <span style="font-weight: 700; font-size: 16px;">${data.depositAmount ? Number(data.depositAmount).toLocaleString('vi-VN') + ' đ' : 'Liên hệ studio'}</span></p>
+        </div>
+
+        <p style="color: #604634; line-height: 1.6; font-size: 14px;">
+          Để hoàn tất giữ lịch và bảo lưu phòng chụp, quý khách vui lòng tiến hành chuyển khoản cọc theo mã QR VietQR hiển thị trên hệ thống với nội dung chuyển khoản: <strong>MIPA ${data.bookingCode}</strong>.
         </p>
       `;
       break;

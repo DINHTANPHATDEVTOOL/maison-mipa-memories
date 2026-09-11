@@ -33,19 +33,29 @@ serve(async (req: Request) => {
     const token = authHeader.replace(/^Bearer\s+/i, '');
 
     let isAuthorized = false;
+    let isStaffOrAdmin = false;
+    let authenticatedUser: any = null;
+
     if (SUPABASE_SERVICE_ROLE_KEY && token === SUPABASE_SERVICE_ROLE_KEY) {
       isAuthorized = true;
+      isStaffOrAdmin = true;
     } else if (INTERNAL_WORKER_SECRET && token === INTERNAL_WORKER_SECRET) {
       isAuthorized = true;
+      isStaffOrAdmin = true;
     } else if (token) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);
       if (user) {
+        authenticatedUser = user;
         const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
-        if (profile && ['MANAGER', 'ADMIN'].includes(profile.role)) {
+        if (profile && ['MANAGER', 'ADMIN', 'STAFF'].includes(profile.role)) {
+          isAuthorized = true;
+          isStaffOrAdmin = true;
+        } else if (user) {
+          // Allow customer to trigger delivery for their own notification
           isAuthorized = true;
         }
       }
@@ -58,12 +68,14 @@ serve(async (req: Request) => {
       });
     }
 
-    // Read payload if triggered by database webhook or batch worker
+    // Read payload if triggered by database webhook, client dispatch, or batch worker
     let targetOutboxId: string | null = null;
+    let targetBookingId: string | null = null;
     if (req.headers.get('content-type')?.includes('application/json')) {
       try {
         const body = await req.json();
         targetOutboxId = body.outboxId || body.record?.id || null;
+        targetBookingId = body.bookingId || null;
       } catch {
         // Ignored, proceed to queue scan
       }
@@ -81,6 +93,13 @@ serve(async (req: Request) => {
 
     if (targetOutboxId) {
       query = query.eq('id', targetOutboxId);
+    } else if (targetBookingId) {
+      query = query.eq('entity_id', targetBookingId);
+    }
+
+    if (!isStaffOrAdmin && authenticatedUser) {
+      // Regular customers can only trigger delivery of notifications addressed to themselves
+      query = query.or(`recipient_user_id.eq.${authenticatedUser.id},recipient_email.eq.${authenticatedUser.email}`);
     }
 
     const { data: outboxItems, error: fetchErr } = await query;

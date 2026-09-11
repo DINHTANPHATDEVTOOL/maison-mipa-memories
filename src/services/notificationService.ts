@@ -46,3 +46,30 @@ export async function getUserNotifications(userId?: string): Promise<Notificatio
 
   return [];
 }
+
+/**
+ * Triggers asynchronous server-side dispatch of booking confirmation email
+ * through the Supabase Edge Function `send-email`.
+ */
+export async function dispatchBookingEmail(bookingId: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured() || !bookingId) {
+    return { success: true };
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: { bookingId },
+    });
+
+    if (error) {
+      console.warn('send-email Edge Function response warning:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, ...data };
+  } catch (err: any) {
+    console.warn('Failed to invoke send-email Edge Function:', err?.message);
+    return { success: false, error: err?.message };
+  }
+}
+

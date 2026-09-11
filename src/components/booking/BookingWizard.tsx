@@ -29,6 +29,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { PaymentRow } from '../../types/database';
 import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw, Copy, QrCode, LogIn } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { dispatchBookingEmail } from '../../services/notificationService';
 
 interface BookingWizardProps {
   isOpen: boolean;
@@ -228,9 +229,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [services, packages, concepts, studios]);
 
-  // Filter packages by selected service when service changes
-  const availablePackages = packages.filter(p => p.serviceId === selectedService.id);
-  const displayedPackages = availablePackages.length > 0 ? availablePackages : packages;
+  // Filter packages by selected service when service changes (or universal packages)
+  const availablePackages = packages.filter(p => !p.serviceId || p.serviceId === selectedService.id);
+  const displayedPackages = availablePackages;
+
+  // Auto-synchronize selectedPackage whenever selectedService or packages list changes
+  useEffect(() => {
+    if (!selectedService) return;
+    const matching = packages.filter(p => !p.serviceId || p.serviceId === selectedService.id);
+    if (matching.length > 0) {
+      if (!matching.some(p => p.id === selectedPackage.id)) {
+        const preferred = matching.find(p => p.recommended) || matching[0];
+        setSelectedPackage(preferred);
+      }
+    }
+  }, [selectedService.id, packages]);
 
   // Realtime Price & Duration Calculation (Single Source of Truth calculation)
   const promo = isVoucherApplied ? {
@@ -425,6 +438,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       const newBooking = await createBooking(payload);
       setCreatedBooking(newBooking);
+
+      // Trigger asynchronous confirmation email dispatch in background
+      dispatchBookingEmail(newBooking.id).catch((dispatchErr) => {
+        console.warn('Notice: Background booking email dispatch:', dispatchErr);
+      });
 
       // Create backend-authoritative deposit payment
       const payment = await createDepositPayment(newBooking.id, 'BANK_TRANSFER');
@@ -646,7 +664,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   return (
                     <div
                       key={srv.id}
-                      onClick={() => setSelectedService(srv)}
+                      onClick={() => {
+                        setSelectedService(srv);
+                        const matching = packages.filter(p => !p.serviceId || p.serviceId === srv.id);
+                        if (matching.length > 0) {
+                          const preferred = matching.find(p => p.recommended) || matching[0];
+                          setSelectedPackage(preferred);
+                        }
+                      }}
                       className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
                       style={{
                         padding: '1rem',
@@ -690,13 +715,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 Gói dịch vụ chọn cho loại hình <strong>{selectedService.name}</strong>:
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.2rem' }}>
-                {displayedPackages.map((pkg) => {
-                  const isSelected = selectedPackage.id === pkg.id;
-                  return (
-                    <div
-                      key={pkg.id}
-                      onClick={() => setSelectedPackage(pkg)}
-                      className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
+                {displayedPackages.length === 0 ? (
+                  <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '2.5rem', color: '#8C6E53', background: '#FFFDF6', borderRadius: '12px', border: '1px dashed #EFE6C9' }}>
+                    <p style={{ margin: 0, fontWeight: 600 }}>Đang cập nhật danh mục gói chụp cho dịch vụ này...</p>
+                  </div>
+                ) : (
+                  displayedPackages.map((pkg) => {
+                    const isSelected = selectedPackage.id === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedPackage(pkg)}
+                        className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
                       style={{
                         padding: '1.5rem',
                         cursor: 'pointer',
@@ -747,7 +777,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
 
               {/* Concept Selection within Step 2 */}
