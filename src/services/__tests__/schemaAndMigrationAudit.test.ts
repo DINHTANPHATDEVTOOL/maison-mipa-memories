@@ -18,6 +18,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260911000004_booking_package_service_harmony_and_rich_email.sql',
     '20260911000005_fix_booking_concepts_display_order_and_columns.sql',
     '20260911000006_fix_payments_columns_and_availability_rpc.sql',
+    '20260911000007_rich_email_payload_and_realtime_publication.sql',
   ];
 
   const EXPECTED_TABLES = [

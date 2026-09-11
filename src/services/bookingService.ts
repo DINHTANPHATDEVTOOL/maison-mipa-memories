@@ -394,6 +394,72 @@ export async function getBookings(customerId?: string): Promise<Booking[]> {
 export const getCustomerBookings = getBookings;
 
 /**
+ * Subscribes to real-time updates for bookings in PostgreSQL Supabase.
+ * Triggers callback immediately when bookings change, with a background heartbeat fallback.
+ */
+export function subscribeBookings(
+  onChange: (bookings: Booking[]) => void,
+  customerId?: string
+): () => void {
+  let isSubscribed = true;
+
+  const reload = async () => {
+    try {
+      const bks = await getBookings(customerId);
+      if (isSubscribed) {
+        onChange(bks);
+      }
+    } catch (e) {
+      console.warn('Realtime booking refresh warning:', e);
+    }
+  };
+
+  if (isSupabaseConfigured()) {
+    const channelName = `realtime-bookings-${customerId || 'all'}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        () => {
+          if (isSubscribed) reload();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booking_assignments',
+        },
+        () => {
+          if (isSubscribed) reload();
+        }
+      )
+      .subscribe();
+
+    // 8-second safety heartbeat
+    const intervalId = setInterval(() => {
+      if (isSubscribed) reload();
+    }, 8000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
+  }
+
+  return () => {
+    isSubscribed = false;
+  };
+}
+
+/**
  * Updates booking status with authoritative backend state machine.
  */
 export async function updateBookingStatus(
@@ -632,9 +698,45 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
   const startAt = record.start_at || record.startAt || '';
   const endAt = record.end_at || record.endAt || '';
 
-  const bookingDate = startAt ? startAt.split('T')[0] : record.bookingDate || '';
-  const startTime = startAt ? startAt.substring(11, 16) : record.startTime || '';
-  const endTime = endAt ? endAt.substring(11, 16) : record.endTime || '';
+  let bookingDate = record.bookingDate || '';
+  let startTime = record.startTime || '';
+  let endTime = record.endTime || '';
+
+  if (startAt) {
+    const d = new Date(startAt);
+    if (!isNaN(d.getTime())) {
+      bookingDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+
+      startTime = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(d);
+    } else {
+      bookingDate = startAt.split('T')[0] || '';
+      startTime = startAt.substring(11, 16) || '';
+    }
+  }
+
+  if (endAt) {
+    const d = new Date(endAt);
+    if (!isNaN(d.getTime())) {
+      endTime = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(d);
+    } else {
+      endTime = endAt.substring(11, 16) || '';
+    }
+  }
 
   const assignments: BookingAssignment[] = Array.isArray(record.booking_assignments)
     ? record.booking_assignments.map((a: any) => ({

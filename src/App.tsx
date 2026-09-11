@@ -11,7 +11,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-ro
 import { HelmetProvider } from 'react-helmet-async';
 import type { User, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
-import { getBookings, updateBookingStatus, assignBookingStaff } from './services/bookingService';
+import { getBookings, updateBookingStatus, assignBookingStaff, subscribeBookings } from './services/bookingService';
 import { getStudioRooms, getEmployees } from './services/catalogService';
 import { isSupabaseConfigured, isDemoModeEnabled } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -89,8 +89,19 @@ function AppContent() {
       }
     }
     initData();
-    return () => { active = false; };
-  }, []);
+
+    // Subscribe to realtime database updates for bookings
+    const unsubscribe = subscribeBookings((updatedBookings) => {
+      if (active) {
+        setBookings(updatedBookings);
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [currentUser?.id, currentRole]);
 
   const handleOpenAuthModal = (tab: 'LOGIN' | 'REGISTER' = 'LOGIN', msg?: string) => {
     setAuthInitialTab(tab);
