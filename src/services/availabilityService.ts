@@ -158,6 +158,42 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
   return slots;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function resolveStudioRoomUuid(studioIdOrSlug: string): Promise<string> {
+  if (!studioIdOrSlug) return studioIdOrSlug;
+  if (UUID_REGEX.test(studioIdOrSlug)) return studioIdOrSlug;
+
+  try {
+    if (isSupabaseConfigured()) {
+      const { data } = await supabase
+        .from('studio_rooms')
+        .select('id')
+        .or(`slug.eq.${studioIdOrSlug},code.eq.${studioIdOrSlug}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.id && UUID_REGEX.test(data.id)) {
+        return data.id;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  if (studioIdOrSlug === 'room_01' || studioIdOrSlug === 'ROOM_01' || studioIdOrSlug === 'std_room_01') {
+    return 'f0000000-0000-0000-0000-000000000001';
+  }
+  if (studioIdOrSlug === 'room_02' || studioIdOrSlug === 'ROOM_02' || studioIdOrSlug === 'std_room_02') {
+    return 'f0000000-0000-0000-0000-000000000002';
+  }
+  if (studioIdOrSlug === 'garden' || studioIdOrSlug === 'GARDEN' || studioIdOrSlug === 'std_garden') {
+    return 'f0000000-0000-0000-0000-000000000003';
+  }
+
+  return studioIdOrSlug;
+}
+
 /**
  * Generates available slots for a given date, studio room, and session duration.
  * Calls the backend-authoritative get_studio_booked_slots RPC to detect active bookings
@@ -173,9 +209,11 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
   let bookedRanges: Array<{ startMs: number; endMs: number }> = [];
 
   try {
+    const resolvedStudioId = await resolveStudioRoomUuid(studioId);
+
     // 1. Fetch authoritative booked intervals from PostgreSQL RPC (SECURITY DEFINER)
     const { data, error } = await supabase.rpc('get_studio_booked_slots', {
-      p_studio_room_id: studioId,
+      p_studio_room_id: resolvedStudioId,
       p_date: date,
     });
 
@@ -187,6 +225,7 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
         }))
         .filter(r => !isNaN(r.startMs) && !isNaN(r.endMs));
     } else if (error) {
+      console.warn('get_studio_booked_slots RPC error:', error.message);
       // Fallback to direct query if RPC is temporarily unavailable
       const startOfDay = `${date}T00:00:00+07:00`;
       const endOfDay = `${date}T23:59:59+07:00`;
@@ -194,7 +233,7 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
       const { data: bData } = await supabase
         .from('bookings')
         .select('start_at, end_at, booking_status')
-        .eq('studio_room_id', studioId)
+        .eq('studio_room_id', resolvedStudioId)
         .neq('booking_status', 'CANCELLED')
         .gte('start_at', startOfDay)
         .lte('start_at', endOfDay);
