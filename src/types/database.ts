@@ -1093,11 +1093,41 @@ export interface Database {
           }
         ];
       };
+      root_owner_config: {
+        Row: {
+          id: boolean;
+          root_owner_user_id: string;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          root_owner_user_id: string;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          root_owner_user_id?: string;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      is_root_owner: {
+        Args: {
+          p_user_id?: string | null;
+        };
+        Returns: boolean;
+      };
       get_auth_role: {
         Args: Record<PropertyKey, never>;
         Returns: string;
@@ -1282,6 +1312,7 @@ export type PortfolioPhotoInsert = Database['public']['Tables']['portfolio_photo
 export type PortfolioPhotoUpdate = Database['public']['Tables']['portfolio_photos']['Update'];
 
 export type BookingConceptRow = Database['public']['Tables']['booking_concepts']['Row'];
+export type RootOwnerConfigRow = Database['public']['Tables']['root_owner_config']['Row'];
 
 export type PaymentStatus = PaymentRow['status'];
 export type PaymentMethod = PaymentRow['method'];

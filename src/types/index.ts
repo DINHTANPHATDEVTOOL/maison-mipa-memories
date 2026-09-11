@@ -48,6 +48,7 @@ export interface User {
   avatar?: string;
   staffRole?: StaffRole;
   status?: UserStatus;
+  isRootOwner?: boolean;
   emails?: UserEmailIdentity[];
   phones?: UserPhoneIdentity[];
   mfaEnabled?: boolean;

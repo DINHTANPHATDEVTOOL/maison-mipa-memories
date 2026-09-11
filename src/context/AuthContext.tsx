@@ -18,6 +18,7 @@ import { mapProfileToUser } from './authHelpers';
 export interface AuthContextType {
   user: User | null;
   role: UserRole;
+  isRootOwner: boolean;
   session: Session | null;
   isLoading: boolean;
   authError: string | null;
@@ -39,6 +40,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isRootOwner, setIsRootOwner] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -47,6 +49,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearError = useCallback(() => {
     setAuthError(null);
   }, []);
+
+  /**
+   * Check if user is authoritative root owner
+   */
+  const checkRootOwner = useCallback(async (userId?: string): Promise<boolean> => {
+    if (!userId) return false;
+    if (isDemoMode) {
+      // In demo mode, only designated demo owner is root owner, NEVER general ADMIN alone
+      return userId === 'demo_owner' || userId === 'user_owner';
+    }
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { data, error } = await supabase.rpc('is_root_owner');
+      if (error) {
+        console.warn('is_root_owner check warning:', error.message);
+        return false;
+      }
+      return data === true;
+    } catch {
+      return false;
+    }
+  }, [isDemoMode]);
 
   /**
    * Fetch authenticated user's profile from Supabase profiles table
@@ -130,12 +154,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isMounted) {
               setSession(null);
               setUser(null);
+              setIsRootOwner(false);
               setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
             }
             return;
           }
 
           const userProfile = await fetchProfile(initialSession.user.id);
+          const isOwner = await checkRootOwner(initialSession.user.id);
 
           // Security check: Deny suspended/disabled accounts
           if (userProfile && (userProfile.status === 'SUSPENDED' || userProfile.status === 'DISABLED')) {
@@ -143,13 +169,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isMounted) {
               setSession(null);
               setUser(null);
+              setIsRootOwner(false);
               setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
             }
             return;
           } else if (isMounted) {
             setSession(initialSession);
+            setIsRootOwner(isOwner);
             if (userProfile) {
-              setUser(userProfile);
+              setUser({ ...userProfile, isRootOwner: isOwner });
             } else {
               setUser({
                 id: initialSession.user.id,
@@ -158,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 phone: initialSession.user.user_metadata?.phone || '',
                 role: 'CUSTOMER',
                 status: 'ACTIVE',
+                isRootOwner: isOwner,
               });
             }
           }
@@ -184,17 +213,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isMounted) {
               setSession(null);
               setUser(null);
+              setIsRootOwner(false);
               setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
             }
             return;
           }
 
           const profile = await fetchProfile(currentSession.user.id);
+          const isOwner = await checkRootOwner(currentSession.user.id);
+
           if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
             await supabase.auth.signOut();
             if (isMounted) {
               setSession(null);
               setUser(null);
+              setIsRootOwner(false);
               setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
             }
             return;
@@ -202,8 +235,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setSession(currentSession);
           if (isMounted) {
+            setIsRootOwner(isOwner);
             if (profile) {
-              setUser(profile);
+              setUser({ ...profile, isRootOwner: isOwner });
             } else {
               setUser({
                 id: currentSession.user.id,
@@ -212,6 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 phone: currentSession.user.user_metadata?.phone || '',
                 role: 'CUSTOMER',
                 status: 'ACTIVE',
+                isRootOwner: isOwner,
               });
             }
           }
@@ -220,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMounted) {
           setSession(null);
           setUser(null);
+          setIsRootOwner(false);
         }
       }
     });
@@ -228,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile, isDemoMode]);
+  }, [fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Production Login with Email & Password
@@ -250,9 +286,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setIsLoading(false);
               return { success: false, error: msg };
             }
-            setUser(matchedProfile);
+            const isOwner = matchedProfile.id === 'demo_owner' || matchedProfile.id === 'user_owner';
+            setIsRootOwner(isOwner);
+            const enrichedProfile = { ...matchedProfile, isRootOwner: isOwner };
+            setUser(enrichedProfile);
             setIsLoading(false);
-            return { success: true, user: matchedProfile };
+            return { success: true, user: enrichedProfile };
           }
           const defaultCustomer: User = {
             id: `demo_${Date.now()}`,
@@ -261,7 +300,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: '0908 123 456',
             role: 'CUSTOMER',
             status: 'ACTIVE',
+            isRootOwner: false,
           };
+          setIsRootOwner(false);
           setUser(defaultCustomer);
           setIsLoading(false);
           return { success: true, user: defaultCustomer };
@@ -290,6 +331,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
+        setIsRootOwner(false);
         const unconfirmedMsg = 'Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư và bấm vào liên kết xác thực trước khi đăng nhập.';
         setAuthError(unconfirmedMsg);
         setIsLoading(false);
@@ -299,12 +341,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
         const profile = await fetchProfile(data.user.id);
+        const isOwner = await checkRootOwner(data.user.id);
+        setIsRootOwner(isOwner);
 
         // Security gate: Deny suspended/disabled
         if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
           await supabase.auth.signOut();
           setSession(null);
           setUser(null);
+          setIsRootOwner(false);
           const denyMsg = 'Tài khoản này đã bị tạm ngưng hoặc khóa. Vui lòng liên hệ quản lý studio.';
           setAuthError(denyMsg);
           setIsLoading(false);
@@ -312,13 +357,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setSession(data.session);
-        resolvedUser = profile || {
+        resolvedUser = profile ? { ...profile, isRootOwner: isOwner } : {
           id: data.user.id,
           fullName: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Khách Hàng',
           email: data.user.email || '',
           phone: data.user.user_metadata?.phone || '',
           role: 'CUSTOMER',
           status: 'ACTIVE',
+          isRootOwner: isOwner,
         };
         setUser(resolvedUser);
       }
@@ -331,7 +377,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       return { success: false, error: msg };
     }
-  }, [fetchProfile, isDemoMode]);
+  }, [fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Production Registration with Email & Password
@@ -540,6 +586,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setSession(null);
       setUser(null);
+      setIsRootOwner(false);
       setAuthError(null);
       setIsLoading(false);
     }
@@ -556,13 +603,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const demoProfile = CURRENT_USER_PROFILES[targetRole];
     if (demoProfile) {
-      setUser(demoProfile);
+      const isOwner = demoProfile.id === 'demo_owner' || demoProfile.id === 'user_owner';
+      setIsRootOwner(isOwner);
+      setUser({ ...demoProfile, isRootOwner: isOwner });
     }
   }, [isDemoMode]);
 
   const value = useMemo(() => ({
     user,
     role: user?.role || 'GUEST',
+    isRootOwner,
     session,
     isLoading,
     authError,
@@ -578,6 +628,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginAsDemoRole,
   }), [
     user,
+    isRootOwner,
     session,
     isLoading,
     authError,

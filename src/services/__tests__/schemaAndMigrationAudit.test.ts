@@ -13,6 +13,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260909000002_portfolio_cms_and_booking_concepts.sql',
     '20260910000001_production_payos_and_email_hardening.sql',
     '20260911000001_email_verification_hardening.sql',
+    '20260911000002_root_owner_rbac_hardening.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -36,6 +37,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'portfolio_collections',
     'portfolio_photos',
     'booking_concepts',
+    'root_owner_config',
   ];
 
   const EXPECTED_RPCS = [
@@ -45,6 +47,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'prevent_role_escalation',
     'get_auth_user_status',
     'get_auth_staff_role',
+    'is_root_owner',
     'create_booking',
     'update_booking_status',
     'assign_booking_staff',
@@ -57,12 +60,12 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'enqueue_shoot_reminder',
   ];
 
-  it('1. all 7 migration files exist in sequential order', () => {
+  it('1. all 8 migration files exist in sequential order', () => {
     const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
     expect(files.sort()).toEqual(EXPECTED_MIGRATIONS.sort());
   });
 
-  it('2. all 20 required application tables are created across migrations', () => {
+  it('2. all 21 required application tables are created across migrations', () => {
     const combinedSql = EXPECTED_MIGRATIONS
       .map(file => fs.readFileSync(path.join(migrationsDir, file), 'utf-8'))
       .join('\n');
@@ -184,5 +187,28 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
 
     // 5. Hardens RPCs create_booking and create_deposit_payment to require ACTIVE status
     expect(migration7).toContain("IF public.get_auth_user_status() != 'ACTIVE' THEN");
+  });
+
+  it('13. migration 8 enforces root owner RBAC hardening, is_root_owner function, single active owner constraint, and audit logging', () => {
+    const migration8 = fs.readFileSync(path.join(migrationsDir, '20260911000002_root_owner_rbac_hardening.sql'), 'utf-8');
+
+    // 1. root_owner_config table exists with single row constraint
+    expect(migration8).toContain('CREATE TABLE IF NOT EXISTS public.root_owner_config');
+    expect(migration8).toContain('CONSTRAINT single_owner_row_pk CHECK (id = true)');
+
+    // 2. is_root_owner function defined with SECURITY DEFINER and search_path
+    expect(migration8).toContain('CREATE OR REPLACE FUNCTION public.is_root_owner');
+    expect(migration8).toContain('SECURITY DEFINER');
+    expect(migration8).toContain('SET search_path = public');
+
+    // 3. admin_update_user_role_and_status requires public.is_root_owner()
+    expect(migration8).toContain('CREATE OR REPLACE FUNCTION public.admin_update_user_role_and_status');
+    expect(migration8).toContain('IF NOT public.is_root_owner(v_caller_id) THEN');
+    expect(migration8).toContain('OWNER_UPDATE_USER_ROLE_AND_STATUS');
+
+    // 4. prevent_role_escalation permits ONLY root owner
+    expect(migration8).toContain('CREATE OR REPLACE FUNCTION public.prevent_role_escalation');
+    expect(migration8).toContain('IF public.is_root_owner(auth.uid()) THEN');
+    expect(migration8).toContain('Only the Studio Root Owner is authorized to modify user roles');
   });
 });

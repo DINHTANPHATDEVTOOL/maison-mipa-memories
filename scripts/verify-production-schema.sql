@@ -30,7 +30,8 @@ WITH required_tables AS (
     'concepts',
     'portfolio_collections',
     'portfolio_photos',
-    'booking_concepts'
+    'booking_concepts',
+    'root_owner_config'
   ]::text[]) AS table_name
 ),
 table_checks AS (
@@ -40,7 +41,7 @@ table_checks AS (
     CASE WHEN t.table_name IS NOT NULL THEN 'PASS' ELSE 'FAIL' END AS status,
     CASE WHEN t.table_name IS NOT NULL
       THEN 'Table exists in schema public'
-      ELSE 'MISSING TABLE! Run migrations 1..6'
+      ELSE 'MISSING TABLE! Run migrations 1..8'
     END AS details
   FROM required_tables rt
   LEFT JOIN information_schema.tables t
@@ -67,6 +68,7 @@ required_functions AS (
     'prevent_role_escalation',
     'get_auth_user_status',
     'get_auth_staff_role',
+    'is_root_owner',
     'create_booking',
     'update_booking_status',
     'assign_booking_staff',
@@ -86,7 +88,7 @@ function_checks AS (
     CASE WHEN p.proname IS NOT NULL THEN 'PASS' ELSE 'FAIL' END AS status,
     CASE WHEN p.proname IS NOT NULL
       THEN 'Function exists in public schema'
-      ELSE 'MISSING RPC! Run migrations 1..7'
+      ELSE 'MISSING RPC! Run migrations 1..8'
     END AS details
   FROM required_functions rf
   LEFT JOIN pg_catalog.pg_proc p
