@@ -6,7 +6,7 @@ import { CustomerCRM } from '../components/management/CustomerCRM';
 import { PortfolioCMS } from '../components/management/PortfolioCMS';
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
-import { LayoutDashboard, Clock, Users, Camera, Shield } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Camera, Shield, Crown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
 
@@ -134,21 +134,22 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             to="/admin"
             style={{
               textDecoration: 'none',
-              background: 'linear-gradient(135deg, #B45309 0%, #78350F 100%)',
+              background: 'rgba(255, 253, 246, 0.08)',
+              border: '1px solid rgba(198, 164, 95, 0.4)',
               color: '#FFFDF6',
               padding: '0.35rem 0.9rem',
               borderRadius: '12px',
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: '0.82rem',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
               marginLeft: '0.5rem',
+              transition: 'all 0.2s ease',
             }}
           >
-            <Shield size={14} color="#FDE68A" />
-            {isRootOwner ? '👑 Quản Trị Studio' : 'Admin Portal'}
+            {isRootOwner ? <Crown size={14} color="#C6A45F" /> : <Shield size={14} color="#C6A45F" />}
+            {isRootOwner ? 'Quản Trị Studio' : 'Admin Portal'}
           </Link>
         )}
       </div>
