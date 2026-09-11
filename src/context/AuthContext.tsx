@@ -61,12 +61,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     if (!isSupabaseConfigured()) return false;
     try {
-      const { data, error } = await supabase.rpc('is_root_owner');
+      const { data, error } = await supabase.rpc('is_root_owner', { p_user_id: userId });
+      if (!error && typeof data === 'boolean') {
+        return data;
+      }
       if (error) {
         console.warn('is_root_owner check warning:', error.message);
-        return false;
       }
-      return data === true;
+      // Direct query fallback on root_owner_config
+      const { data: config } = await supabase
+        .from('root_owner_config')
+        .select('owner_user_id')
+        .eq('id', true)
+        .maybeSingle();
+      if (config && (config as any).owner_user_id === userId) {
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -109,9 +120,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
+      setIsRootOwner(false);
       setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
       return;
     }
+
+    const isOwner = await checkRootOwner(session.user.id);
+    setIsRootOwner(isOwner);
 
     const freshUser = await fetchProfile(session.user.id);
     if (freshUser) {
@@ -119,12 +134,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
         setUser(null);
         setSession(null);
+        setIsRootOwner(false);
         setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng hoạt động.');
         return;
       }
-      setUser(freshUser);
+      setUser({ ...freshUser, isRootOwner: isOwner });
     }
-  }, [session, fetchProfile, isDemoMode]);
+  }, [session, fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Initialize Session on Mount & Listen to Supabase Auth State Changes

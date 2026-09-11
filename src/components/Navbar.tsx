@@ -42,11 +42,38 @@ export const Navbar: React.FC<NavbarProps> = ({
     CUSTOMER: { label: 'Khách hàng VIP', icon: UserIcon, color: '#8C6E53' },
     STAFF: { label: 'Nhân viên / Photographer', icon: Camera, color: '#C6A45F' },
     MANAGER: { label: 'Quản lý Studio', icon: Briefcase, color: '#2C221E' },
-    ADMIN: { label: 'Quản trị viên (Admin)', icon: Shield, color: '#9D174D' },
+    ADMIN: {
+      label: displayUser.isRootOwner ? '👑 Chủ Studio (Root Owner)' : 'Quản trị viên (Admin)',
+      icon: Shield,
+      color: displayUser.isRootOwner ? '#B45309' : '#9D174D',
+    },
   };
 
   // Structured real URL paths per role
   const getNavLinksForRole = (role: UserRole) => {
+    // If user is Root Owner or Admin, always prominently display Admin Portal link
+    if (displayUser.isRootOwner || role === 'ADMIN') {
+      return [
+        {
+          id: 'admin_portal',
+          to: '/admin',
+          label: displayUser.isRootOwner ? '👑 Quản Trị Studio' : 'Bảng Quản Trị Admin',
+          icon: Shield,
+          isHighlight: true,
+        },
+        {
+          id: 'manager_dashboard',
+          to: '/management',
+          label: 'Quản Lý Studio OS',
+          icon: LayoutDashboard,
+        },
+        { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
+        { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
+        { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
+        { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
+      ];
+    }
+
     switch (role) {
       case 'GUEST':
         return [
@@ -71,12 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
         ];
       case 'MANAGER':
-      case 'ADMIN':
         return [
-          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
-          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
           {
             id: 'manager_dashboard',
             to: '/management',
@@ -84,6 +106,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             icon: LayoutDashboard,
             isHighlight: true,
           },
+          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
+          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
+          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
+          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
         ];
       default:
         return [];
@@ -454,7 +480,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </Link>
                     )}
 
-                    {currentRole === 'ADMIN' && (
+                    {(currentRole === 'ADMIN' || displayUser.isRootOwner) && (
                       <Link
                         to="/admin"
                         onClick={() => setShowRoleDropdown(false)}
@@ -470,7 +496,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           marginBottom: '0.4rem',
                         }}
                       >
-                        → Bảng Quản Trị Tối Cao (Admin)
+                        → {displayUser.isRootOwner ? '👑 Bảng Quản Trị Root Owner' : 'Bảng Quản Trị (Admin)'}
                       </Link>
                     )}
 

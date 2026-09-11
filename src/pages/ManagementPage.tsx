@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ManagerDashboard } from '../components/management/ManagerDashboard';
 import { StudioCalendar } from '../components/management/StudioCalendar';
 import { CustomerCRM } from '../components/management/CustomerCRM';
 import { PortfolioCMS } from '../components/management/PortfolioCMS';
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
-import { LayoutDashboard, Clock, Users, Camera } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Camera, Shield } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
 
 interface ManagementPageProps {
@@ -27,6 +29,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
   onAssignStaff,
   onRequireAuth,
 }) => {
+  const { user, isRootOwner } = useAuth();
   const [subTab, setSubTab] = useState<'dashboard' | 'calendar' | 'crm' | 'portfolio'>('dashboard');
 
   return (
@@ -125,6 +128,29 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         >
           <Camera size={15} color="#EFE6C9" /> Portfolio & Concept CMS
         </button>
+
+        {(user?.role === 'ADMIN' || isRootOwner) && (
+          <Link
+            to="/admin"
+            style={{
+              textDecoration: 'none',
+              background: 'linear-gradient(135deg, #B45309 0%, #78350F 100%)',
+              color: '#FFFDF6',
+              padding: '0.35rem 0.9rem',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              marginLeft: '0.5rem',
+            }}
+          >
+            <Shield size={14} color="#FDE68A" />
+            {isRootOwner ? '👑 Quản Trị Studio' : 'Admin Portal'}
+          </Link>
+        )}
       </div>
 
       {subTab === 'dashboard' && (

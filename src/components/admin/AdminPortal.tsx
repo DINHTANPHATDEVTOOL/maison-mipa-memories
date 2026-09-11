@@ -334,133 +334,194 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map(u => (
-                  <tr key={u.id} style={{ borderBottom: '1px solid #F3EDE2' }}>
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#604634' }}>
-                      {u.fullName}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', color: '#6E5F55' }}>
-                      <div>{u.email}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#8C6E53' }}>{u.phone || 'Chưa có SĐT'}</div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      {isRootOwner ? (
-                        <select
-                          value={u.role}
-                          onChange={e => handleUpdateUser(u.id, e.target.value as UserRole, u.staffRole, u.status || 'ACTIVE')}
-                          className="mipa-input"
-                          style={{ height: '32px', fontSize: '0.8rem', borderRadius: '6px' }}
-                        >
-                          <option value="CUSTOMER">CUSTOMER</option>
-                          <option value="STAFF">STAFF</option>
-                          <option value="MANAGER">MANAGER</option>
-                          <option value="ADMIN">ADMIN</option>
-                        </select>
-                      ) : (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '6px',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            backgroundColor: '#FEF3C7',
-                            color: '#92400E',
-                          }}
-                        >
-                          {u.role}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      {u.role === 'STAFF' ? (
-                        isRootOwner ? (
+                {filteredUsers.map(u => {
+                  const normalizedRole = ((u.role || 'CUSTOMER').toUpperCase() as UserRole);
+                  const validRole: UserRole = ['CUSTOMER', 'STAFF', 'MANAGER', 'ADMIN'].includes(normalizedRole)
+                    ? normalizedRole
+                    : 'CUSTOMER';
+
+                  const normalizedStaffRole = u.staffRole ? (u.staffRole.toUpperCase() as StaffRole) : undefined;
+                  const validStaffRole: StaffRole = normalizedStaffRole && ['PHOTOGRAPHER', 'MAKEUP', 'EDITOR', 'RECEPTIONIST'].includes(normalizedStaffRole)
+                    ? normalizedStaffRole
+                    : 'PHOTOGRAPHER';
+
+                  const normalizedStatus = ((u.status || 'ACTIVE').toUpperCase() as UserStatus);
+                  const validStatus: UserStatus = ['ACTIVE', 'PENDING_VERIFICATION', 'SUSPENDED', 'DISABLED'].includes(normalizedStatus)
+                    ? normalizedStatus
+                    : 'ACTIVE';
+
+                  const isSuspendedOrDisabled = validStatus === 'SUSPENDED' || validStatus === 'DISABLED';
+
+                  return (
+                    <tr key={u.id} style={{ borderBottom: '1px solid #F3EDE2' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#604634' }}>
+                        {u.fullName}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', color: '#6E5F55' }}>
+                        <div>{u.email}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#8C6E53' }}>{u.phone || 'Chưa có SĐT'}</div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        {isRootOwner ? (
                           <select
-                            value={u.staffRole || 'PHOTOGRAPHER'}
-                            onChange={e => handleUpdateUser(u.id, 'STAFF', e.target.value as StaffRole, u.status || 'ACTIVE')}
-                            className="mipa-input"
-                            style={{ height: '32px', fontSize: '0.8rem', borderRadius: '6px' }}
+                            value={validRole}
+                            onChange={e => handleUpdateUser(u.id, e.target.value as UserRole, u.staffRole, validStatus)}
+                            style={{
+                              height: '38px',
+                              padding: '4px 10px',
+                              fontSize: '0.84rem',
+                              fontWeight: 600,
+                              borderRadius: '8px',
+                              border: '1.5px solid #C6A45F',
+                              backgroundColor: '#FFFFFF',
+                              color: '#2C221E',
+                              cursor: 'pointer',
+                              outline: 'none',
+                              display: 'block',
+                              width: '100%',
+                              minWidth: '135px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                            }}
                           >
-                            <option value="PHOTOGRAPHER">Nhiếp ảnh (Photographer)</option>
-                            <option value="MAKEUP">Make-up / Styling</option>
-                            <option value="EDITOR">Hậu kỳ (Editor)</option>
-                            <option value="RECEPTIONIST">Tiếp tân (Receptionist)</option>
+                            <option value="CUSTOMER" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>CUSTOMER (Khách)</option>
+                            <option value="STAFF" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>STAFF (Nhân viên)</option>
+                            <option value="MANAGER" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>MANAGER (Quản lý)</option>
+                            <option value="ADMIN" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>ADMIN (Quản trị)</option>
                           </select>
                         ) : (
-                          <span style={{ fontSize: '0.8rem', color: '#604634' }}>{u.staffRole || 'PHOTOGRAPHER'}</span>
-                        )
-                      ) : (
-                        <span style={{ color: '#A39385', fontSize: '0.8rem' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      {isRootOwner ? (
-                        <select
-                          value={u.status || 'ACTIVE'}
-                          onChange={e => handleUpdateUser(u.id, u.role, u.staffRole, e.target.value as UserStatus)}
-                          className="mipa-input"
-                          style={{
-                            height: '32px',
-                            fontSize: '0.8rem',
-                            borderRadius: '6px',
-                            color: u.status === 'SUSPENDED' || u.status === 'DISABLED' ? '#DC2626' : '#166534',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <option value="ACTIVE">ACTIVE</option>
-                          <option value="PENDING_VERIFICATION">PENDING</option>
-                          <option value="SUSPENDED">SUSPENDED</option>
-                          <option value="DISABLED">DISABLED</option>
-                        </select>
-                      ) : (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '6px',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            backgroundColor: u.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
-                            color: u.status === 'ACTIVE' ? '#166534' : '#991B1B',
-                          }}
-                        >
-                          {u.status || 'ACTIVE'}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                      {isRootOwner ? (
-                        <button
-                          onClick={() => handleUpdateUser(
-                            u.id,
-                            u.role,
-                            u.staffRole,
-                            u.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED'
-                          )}
-                          style={{
-                            background: 'none',
-                            border: '1px solid #EFE6C9',
-                            borderRadius: '6px',
-                            padding: '0.3rem 0.6rem',
-                            fontSize: '0.78rem',
-                            cursor: 'pointer',
-                            color: u.status === 'SUSPENDED' ? '#16A34A' : '#DC2626',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                          }}
-                        >
-                          {u.status === 'SUSPENDED' ? <Unlock size={13} /> : <Lock size={13} />}
-                          {u.status === 'SUSPENDED' ? 'Mở Khóa' : 'Khóa'}
-                        </button>
-                      ) : (
-                        <span style={{ color: '#A39385', fontSize: '0.75rem', fontStyle: 'italic' }}>
-                          Chỉ Chủ Studio
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              backgroundColor: '#FEF3C7',
+                              color: '#92400E',
+                            }}
+                          >
+                            {validRole}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        {validRole === 'STAFF' ? (
+                          isRootOwner ? (
+                            <select
+                              value={validStaffRole}
+                              onChange={e => handleUpdateUser(u.id, 'STAFF', e.target.value as StaffRole, validStatus)}
+                              style={{
+                                height: '38px',
+                                padding: '4px 10px',
+                                fontSize: '0.84rem',
+                                fontWeight: 600,
+                                borderRadius: '8px',
+                                border: '1.5px solid #D5C7B6',
+                                backgroundColor: '#FFFFFF',
+                                color: '#2C221E',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                display: 'block',
+                                width: '100%',
+                                minWidth: '155px',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                              }}
+                            >
+                              <option value="PHOTOGRAPHER" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>Nhiếp ảnh (Photographer)</option>
+                              <option value="MAKEUP" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>Make-up / Styling</option>
+                              <option value="EDITOR" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>Hậu kỳ (Editor)</option>
+                              <option value="RECEPTIONIST" style={{ color: '#2C221E', backgroundColor: '#FFFFFF', padding: '6px' }}>Tiếp tân (Receptionist)</option>
+                            </select>
+                          ) : (
+                            <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#604634' }}>{validStaffRole}</span>
+                          )
+                        ) : (
+                          <span style={{ color: '#A39385', fontSize: '0.82rem' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        {isRootOwner ? (
+                          <select
+                            value={validStatus}
+                            onChange={e => handleUpdateUser(u.id, validRole, u.staffRole, e.target.value as UserStatus)}
+                            style={{
+                              height: '38px',
+                              padding: '4px 10px',
+                              fontSize: '0.84rem',
+                              fontWeight: 700,
+                              borderRadius: '8px',
+                              border: isSuspendedOrDisabled ? '1.5px solid #F87171' : '1.5px solid #86EFAC',
+                              backgroundColor: isSuspendedOrDisabled ? '#FEF2F2' : '#F0FDF4',
+                              color: isSuspendedOrDisabled ? '#DC2626' : '#15803D',
+                              cursor: 'pointer',
+                              outline: 'none',
+                              display: 'block',
+                              width: '100%',
+                              minWidth: '140px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                            }}
+                          >
+                            <option value="ACTIVE" style={{ color: '#15803D', backgroundColor: '#FFFFFF', fontWeight: 600, padding: '6px' }}>ACTIVE (Hoạt động)</option>
+                            <option value="PENDING_VERIFICATION" style={{ color: '#D97706', backgroundColor: '#FFFFFF', fontWeight: 600, padding: '6px' }}>PENDING (Chờ)</option>
+                            <option value="SUSPENDED" style={{ color: '#DC2626', backgroundColor: '#FFFFFF', fontWeight: 600, padding: '6px' }}>SUSPENDED (Khóa)</option>
+                            <option value="DISABLED" style={{ color: '#991B1B', backgroundColor: '#FFFFFF', fontWeight: 600, padding: '6px' }}>DISABLED (Vô hiệu)</option>
+                          </select>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              backgroundColor: validStatus === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                              color: validStatus === 'ACTIVE' ? '#166534' : '#991B1B',
+                            }}
+                          >
+                            {validStatus}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                        {isRootOwner ? (
+                          <button
+                            onClick={() => handleUpdateUser(
+                              u.id,
+                              validRole,
+                              u.staffRole,
+                              validStatus === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED'
+                            )}
+                            style={{
+                              background: 'none',
+                              border: '1px solid #EFE6C9',
+                              borderRadius: '6px',
+                              padding: '0.35rem 0.7rem',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              color: validStatus === 'SUSPENDED' ? '#16A34A' : '#DC2626',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            {validStatus === 'SUSPENDED' ? (
+                              <>
+                                <Unlock size={14} /> Mở Khóa
+                              </>
+                            ) : (
+                              <>
+                                <Lock size={14} /> Khóa TK
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Chỉ xem</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
