@@ -14,6 +14,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260910000001_production_payos_and_email_hardening.sql',
     '20260911000001_email_verification_hardening.sql',
     '20260911000002_root_owner_rbac_hardening.sql',
+    '20260911000003_fix_booking_assignments_rls_recursion.sql',
   ];
 
   const EXPECTED_TABLES = [
