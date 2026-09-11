@@ -134,8 +134,8 @@ export const CustomerCRM: React.FC<CustomerCRMProps> = ({ bookings }) => {
               </div>
 
               <div style={{ textAlign: 'right' }}>
-                <span style={{ backgroundColor: '#604634', color: '#EFE6C9', fontSize: '0.7rem', fontWeight: 700, padding: '0.3rem 0.8rem', borderRadius: '12px' }}>
-                  KHÁCH HÀNG VIP
+                <span style={{ backgroundColor: selectedCustomer.totalSpent >= 20000000 ? '#604634' : '#8C6E53', color: '#EFE6C9', fontSize: '0.7rem', fontWeight: 700, padding: '0.3rem 0.8rem', borderRadius: '12px' }}>
+                  {selectedCustomer.totalSpent >= 20000000 ? 'HẠNG VIP (CHI TIÊU >20TR)' : 'KHÁCH HÀNG'}
                 </span>
                 <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#8C6E53', marginTop: '0.4rem' }}>
                   {selectedCustomer.totalSpent.toLocaleString('vi-VN')}đ

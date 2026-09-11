@@ -2,7 +2,7 @@
 // Maison MIPA Memories - Booking Wizard with Real Availability & Persistence
 // Connected to Catalog, Pricing, Availability, and Booking Services.
 // ==============================================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ServiceCategory, PackageItem, Addon, StudioRoom, Booking, Concept } from '../../types';
 import { INITIAL_SERVICES, INITIAL_PACKAGES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS } from '../../mockData';
 import { getServices, getPackages, getAddons, getStudioRooms } from '../../services/catalogService';
@@ -29,6 +29,34 @@ import { useAuth } from '../../context/AuthContext';
 import type { PaymentRow } from '../../types/database';
 import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw, Copy, QrCode, LogIn } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { dispatchBookingEmail } from '../../services/notificationService';
+
+function getTodayVn(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().split('T')[0];
+  }
+}
+
+function getInitialBookingDate(): string {
+  try {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(tomorrow);
+  } catch {
+    return getTodayVn();
+  }
+}
 
 interface BookingWizardProps {
   isOpen: boolean;
@@ -61,15 +89,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   // Form State
   const [selectedService, setSelectedService] = useState<ServiceCategory>(INITIAL_SERVICES[0]);
   const [selectedPackage, setSelectedPackage] = useState<PackageItem>(INITIAL_PACKAGES[1]);
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-15');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('13:30');
+  const [selectedDate, setSelectedDate] = useState<string>(getInitialBookingDate);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedStudio, setSelectedStudio] = useState<StudioRoom>(INITIAL_STUDIO_ROOMS[0]);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([INITIAL_ADDONS[0]]); // default makeup
 
   // Availability State
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>(() =>
     getAvailableSlotsSync({
-      date: '2026-08-15',
+      date: getInitialBookingDate(),
       studioId: INITIAL_STUDIO_ROOMS[0].id,
       durationMinutes: 120,
     })
@@ -123,10 +151,34 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             getPublicConcepts(),
           ]);
           if (mounted) {
-            if (srvs.length > 0) setServices(srvs);
-            if (pkgs.length > 0) setPackages(pkgs);
-            if (adds.length > 0) setAddons(adds);
-            if (stds.length > 0) setStudios(stds);
+            if (srvs.length > 0) {
+              setServices(srvs);
+              setSelectedService(prev => {
+                const match = srvs.find(s => s.id === prev.id || s.slug === prev.slug || s.name === prev.name);
+                return match || srvs[0];
+              });
+            }
+            if (pkgs.length > 0) {
+              setPackages(pkgs);
+              setSelectedPackage(prev => {
+                const match = pkgs.find(p => p.id === prev.id || p.name === prev.name);
+                return match || pkgs[0];
+              });
+            }
+            if (adds.length > 0) {
+              setAddons(adds);
+              setSelectedAddons(prev => {
+                const matched = prev.map(a => adds.find(ad => ad.id === a.id || ad.name === a.name)).filter(Boolean) as Addon[];
+                return matched.length > 0 ? matched : [adds[0]];
+              });
+            }
+            if (stds.length > 0) {
+              setStudios(stds);
+              setSelectedStudio(prev => {
+                const match = stds.find(st => st.id === prev.id || st.code === prev.code || st.name === prev.name);
+                return match || stds[0];
+              });
+            }
             if (cncs.length > 0) {
               setConcepts(cncs);
               if (initialConceptSlug) {
@@ -204,9 +256,42 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [services, packages, concepts, studios]);
 
-  // Filter packages by selected service when service changes
-  const availablePackages = packages.filter(p => p.serviceId === selectedService.id);
-  const displayedPackages = availablePackages.length > 0 ? availablePackages : packages;
+  // Filter packages by selected service when service changes (or universal packages)
+  const availablePackages = packages.filter(p => !p.serviceId || p.serviceId === selectedService.id);
+  const displayedPackages = availablePackages;
+
+  // Auto-synchronize selectedPackage whenever selectedService or packages list changes
+  useEffect(() => {
+    if (!selectedService) return;
+    const matching = packages.filter(p => !p.serviceId || p.serviceId === selectedService.id);
+    if (matching.length > 0) {
+      if (!matching.some(p => p.id === selectedPackage.id)) {
+        const preferred = matching.find(p => p.recommended) || matching[0];
+        setSelectedPackage(preferred);
+      }
+    }
+  }, [selectedService.id, packages]);
+
+  // Filter concepts by selected service (or universal concepts)
+  const availableConcepts = useMemo(() => {
+    if (!selectedService) return concepts;
+    const matching = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === selectedService.id));
+    return matching.length > 0 ? matching : concepts.filter(c => c.active && c.bookable);
+  }, [selectedService?.id, concepts]);
+
+  // Auto-synchronize selectedConcepts whenever selectedService or concepts list changes
+  useEffect(() => {
+    if (!selectedService || concepts.length === 0) return;
+    const matching = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === selectedService.id));
+    const validPool = matching.length > 0 ? matching : concepts.filter(c => c.active && c.bookable);
+
+    // Check if current selectedConcepts are valid in validPool
+    const allValid = selectedConcepts.length > 0 && selectedConcepts.every(sc => validPool.some(v => v.id === sc.id));
+    if (!allValid) {
+      const fallback = validPool.slice(0, 1);
+      setSelectedConcepts(fallback.length > 0 ? fallback : []);
+    }
+  }, [selectedService?.id, concepts]);
 
   // Realtime Price & Duration Calculation (Single Source of Truth calculation)
   const promo = isVoucherApplied ? {
@@ -234,6 +319,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         existingBookings,
       });
       setAvailableSlots(slots);
+      const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
+      if (!currentSlotObj || currentSlotObj.status === 'BOOKED') {
+        const firstAvail = slots.find(s => s.status === 'AVAILABLE');
+        setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
+      }
       return;
     }
 
@@ -251,16 +341,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
       if (!currentSlotObj || currentSlotObj.status === 'BOOKED') {
         const firstAvail = slots.find(s => s.status === 'AVAILABLE');
-        if (firstAvail) {
-          setSelectedTimeSlot(firstAvail.time);
-        }
+        setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
       }
     } catch (err) {
       console.warn('Availability loading error:', err);
     } finally {
       setIsLoadingSlots(false);
     }
-  }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot]);
+  }, [selectedDate, selectedStudio.id, totalDurationMinutes, existingBookings, selectedTimeSlot]);
 
   // Realtime subscription for payment status updates
   useEffect(() => {
@@ -365,6 +453,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Proceed from Step 5 to Step 6: Create Booking and Authoritative Payment
   const handleProceedToPayment = async () => {
+    // Check slot availability again before booking
+    const currentSlot = availableSlots.find(s => s.time === selectedTimeSlot);
+    if (currentSlot && currentSlot.status === 'BOOKED') {
+      setErrorMessage('⚠️ TRÙNG LỊCH: Khung giờ bạn chọn đã có khách đặt trước đó. Vui lòng quay lại Bước 3 để chọn khung giờ khác.');
+      setStep(3);
+      return;
+    }
+
     // If Supabase is active, enforce login before creating database booking
     if (isSupabaseConfigured() && !user) {
       handleGuestAuthRedirect('LOGIN');
@@ -401,6 +497,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       const newBooking = await createBooking(payload);
       setCreatedBooking(newBooking);
+
+      // Trigger asynchronous confirmation email dispatch in background
+      dispatchBookingEmail(newBooking.id).catch((dispatchErr) => {
+        console.warn('Notice: Background booking email dispatch:', dispatchErr);
+      });
 
       // Create backend-authoritative deposit payment
       const payment = await createDepositPayment(newBooking.id, 'BANK_TRANSFER');
@@ -587,7 +688,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               <AlertCircle size={18} color="#B91C1C" />
               <span>{errorMessage}</span>
             </div>
-            {step === 6 && (
+            {step >= 4 && (
               <button
                 onClick={() => { setErrorMessage(null); setStep(3); }}
                 style={{
@@ -622,7 +723,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   return (
                     <div
                       key={srv.id}
-                      onClick={() => setSelectedService(srv)}
+                      onClick={() => {
+                        setSelectedService(srv);
+                        const matching = packages.filter(p => !p.serviceId || p.serviceId === srv.id);
+                        if (matching.length > 0) {
+                          const preferred = matching.find(p => p.recommended) || matching[0];
+                          setSelectedPackage(preferred);
+                        }
+                      }}
                       className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
                       style={{
                         padding: '1rem',
@@ -666,13 +774,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 Gói dịch vụ chọn cho loại hình <strong>{selectedService.name}</strong>:
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.2rem' }}>
-                {displayedPackages.map((pkg) => {
-                  const isSelected = selectedPackage.id === pkg.id;
-                  return (
-                    <div
-                      key={pkg.id}
-                      onClick={() => setSelectedPackage(pkg)}
-                      className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
+                {displayedPackages.length === 0 ? (
+                  <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '2.5rem', color: '#8C6E53', background: '#FFFDF6', borderRadius: '12px', border: '1px dashed #EFE6C9' }}>
+                    <p style={{ margin: 0, fontWeight: 600 }}>Đang cập nhật danh mục gói chụp cho dịch vụ này...</p>
+                  </div>
+                ) : (
+                  displayedPackages.map((pkg) => {
+                    const isSelected = selectedPackage.id === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedPackage(pkg)}
+                        className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
                       style={{
                         padding: '1.5rem',
                         cursor: 'pointer',
@@ -723,7 +836,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
 
               {/* Concept Selection within Step 2 */}
@@ -745,7 +858,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                  {concepts.filter(c => c.active && c.bookable).map((cnc) => {
+                  {availableConcepts.map((cnc) => {
                     const isSelected = selectedConcepts.some(c => c.id === cnc.id);
                     return (
                       <div
@@ -809,6 +922,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   <label className="mipa-label">1. Chọn Ngày Chụp Mong Muốn</label>
                   <input
                     type="date"
+                    min={getTodayVn()}
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="mipa-input"
@@ -869,37 +983,79 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       </div>
                     ) : (
                       availableSlots.map((slot) => {
-                        const isSel = selectedTimeSlot === slot.time;
                         const isBooked = slot.status === 'BOOKED';
+                        const isSel = !isBooked && selectedTimeSlot === slot.time;
                         return (
                           <button
                             key={slot.time}
+                            type="button"
                             disabled={isBooked}
-                            onClick={() => setSelectedTimeSlot(slot.time)}
+                            aria-disabled={isBooked}
+                            onClick={() => {
+                              if (isBooked) return;
+                              setSelectedTimeSlot(slot.time);
+                            }}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '0.8rem 1rem',
                               borderRadius: '12px',
-                              border: isSel ? '2px solid #C6A45F' : '1px solid var(--mipa-beige)',
-                              backgroundColor: isBooked ? '#F3F4F6' : isSel ? '#FFFDF6' : '#FFFFFF',
+                              border: isBooked
+                                ? '1px dashed #FECACA'
+                                : isSel
+                                ? '2px solid #C6A45F'
+                                : '1px solid var(--mipa-beige)',
+                              backgroundColor: isBooked
+                                ? '#FEF2F2'
+                                : isSel
+                                ? '#FFFDF6'
+                                : '#FFFFFF',
                               opacity: isBooked ? 0.55 : 1,
                               cursor: isBooked ? 'not-allowed' : 'pointer',
+                              pointerEvents: isBooked ? 'none' : 'auto',
                               textAlign: 'left',
+                              transition: 'all 0.2s ease',
+                              filter: isBooked ? 'grayscale(80%)' : 'none',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <Clock size={16} color={isSel ? '#C6A45F' : '#8C6E53'} />
+                              <Clock size={16} color={isBooked ? '#9CA3AF' : isSel ? '#C6A45F' : '#8C6E53'} />
                               <div>
-                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#2C221E' }}>{slot.time}</span>
-                                <span style={{ fontSize: '0.8rem', color: '#6E5F55', marginLeft: '0.5rem' }}>({slot.label})</span>
+                                <span
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: '0.95rem',
+                                    color: isBooked ? '#9CA3AF' : '#2C221E',
+                                    textDecoration: isBooked ? 'line-through' : 'none',
+                                  }}
+                                >
+                                  {slot.time}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: isBooked ? '#9CA3AF' : '#6E5F55', marginLeft: '0.5rem' }}>
+                                  ({slot.label})
+                                </span>
                               </div>
                             </div>
 
                             <div>
                               {isBooked ? (
-                                <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>{slot.reason || 'Đã có lịch'}</span>
+                                <span
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    backgroundColor: '#FEE2E2',
+                                    color: '#991B1B',
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '8px',
+                                    fontWeight: 600,
+                                    border: '1px solid #FECACA',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                  }}
+                                >
+                                  🚫 {slot.reason || 'Đã kín lịch'}
+                                </span>
                               ) : slot.tag ? (
                                 <span style={{ fontSize: '0.72rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 600 }}>{slot.tag}</span>
                               ) : (
@@ -1330,6 +1486,28 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     </div>
                   )}
 
+                  <div style={{
+                    padding: '0.85rem 1rem',
+                    backgroundColor: '#FEF3C7',
+                    borderRadius: '12px',
+                    border: '1px solid #FCD34D',
+                    color: '#92400E',
+                    fontSize: '0.85rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+                      <RefreshCw size={16} className="animate-spin" />
+                      <span>TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#78350F', lineHeight: 1.4 }}>
+                      Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận. Hệ thống sẽ tự động chuyển sang trang Hoàn tất ngay khi ACB nhận được tiền (không bắt buộc ấn nút dưới nếu đã thanh toán qua app).
+                    </p>
+                  </div>
+
                   {isTransferSubmitted && currentPayment?.status === 'PENDING' && (
                     <div style={{
                       padding: '0.75rem',
@@ -1459,6 +1637,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               <button
                 onClick={() => {
                   setErrorMessage(null);
+                  if (step === 3) {
+                    if (isLoadingSlots) {
+                      setErrorMessage('Đang kiểm tra lịch khả dụng. Vui lòng đợi trong giây lát...');
+                      return;
+                    }
+                    if (!selectedTimeSlot) {
+                      setErrorMessage('Vui lòng chọn một khung giờ chụp ảnh còn trống.');
+                      return;
+                    }
+                    const currentSlot = availableSlots.find(s => s.time === selectedTimeSlot);
+                    if (!currentSlot || currentSlot.status === 'BOOKED') {
+                      setErrorMessage('Khung giờ bạn chọn đã có khách đặt lịch. Vui lòng chọn một khung giờ khác còn trống.');
+                      return;
+                    }
+                  }
                   if (step === 5) {
                     handleProceedToPayment();
                   } else if (step === 6) {

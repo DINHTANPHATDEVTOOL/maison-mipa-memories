@@ -14,6 +14,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+!.env.test
 
 # Editor directories and files
 .vscode/*
@@ -33,3 +34,7 @@ dist.zip
 # Test outputs
 test-results/
 playwright-report/
+
+# Supabase CLI temp cache
+supabase/.temp/
+C:/

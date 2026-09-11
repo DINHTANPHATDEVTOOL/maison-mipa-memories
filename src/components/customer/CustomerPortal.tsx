@@ -7,7 +7,8 @@
 // - Reschedule & cancellation requests
 // - Google Drive delivery integration point ("Lấy ảnh")
 // ==============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Booking } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -18,18 +19,19 @@ import {
 } from '../../services/bookingService';
 import {
   Calendar,
-  Clock,
   Camera,
   Check,
-  Sparkles,
-  ExternalLink,
   AlertCircle,
   FolderDown,
   User as UserIcon,
   Phone,
   Mail,
-  Edit2,
   X,
+  KeyRound,
+  ShieldCheck,
+  Save,
+  Send,
+  CheckCircle,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -38,9 +40,104 @@ interface CustomerPortalProps {
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpenBooking }) => {
-  const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'bookings' | 'profile'>('bookings');
+  const { user, isRootOwner, updateProfile, resetPassword } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeSubTab, setActiveSubTab] = useState<'bookings' | 'profile'>(
+    searchParams.get('tab') === 'profile' ? 'profile' : 'bookings'
+  );
   const [actionNotice, setActionNotice] = useState<string>('');
+
+  // Profile edit state
+  const [editFullName, setEditFullName] = useState(user?.fullName || '');
+  const [editPhone, setEditPhone] = useState(user?.phone || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+  const [profileErrorMsg, setProfileErrorMsg] = useState('');
+
+  // Password reset via email state
+  const [isSendingPasswordEmail, setIsSendingPasswordEmail] = useState(false);
+  const [passwordEmailSuccess, setPasswordEmailSuccess] = useState('');
+  const [passwordEmailError, setPasswordEmailError] = useState('');
+  const [countdown, setCountdown] = useState<number>(0);
+
+  useEffect(() => {
+    if (user) {
+      setEditFullName(user.fullName || '');
+      setEditPhone(user.phone || '');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'profile') {
+      setActiveSubTab('profile');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: 'bookings' | 'profile') => {
+    setActiveSubTab(tab);
+    if (tab === 'profile') {
+      setSearchParams({ tab: 'profile' });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileErrorMsg('');
+    setProfileSuccessMsg('');
+
+    if (!editFullName.trim()) {
+      setProfileErrorMsg('Họ và tên không được để trống.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    const res = await updateProfile({
+      fullName: editFullName.trim(),
+      phone: editPhone.trim(),
+    });
+    setIsSavingProfile(false);
+
+    if (res.success) {
+      setProfileSuccessMsg('✓ Đã lưu thay đổi thông tin cá nhân thành công!');
+      setTimeout(() => setProfileSuccessMsg(''), 4000);
+    } else {
+      setProfileErrorMsg(res.error || 'Không thể lưu thay đổi.');
+    }
+  };
+
+  const handleRequestPasswordResetEmail = async () => {
+    if (!user?.email) {
+      setPasswordEmailError('Không tìm thấy địa chỉ email của tài khoản.');
+      return;
+    }
+
+    if (countdown > 0) return;
+
+    setPasswordEmailError('');
+    setPasswordEmailSuccess('');
+    setIsSendingPasswordEmail(true);
+
+    const res = await resetPassword(user.email);
+    setIsSendingPasswordEmail(false);
+
+    if (res.success) {
+      setPasswordEmailSuccess(`✓ Đã gửi email xác nhận đổi mật khẩu tới ${user.email}. Vui lòng kiểm tra hộp thư đến (hoặc hòm thư Spam) và nhấp vào liên kết để thiết lập mật khẩu mới.`);
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setPasswordEmailError(res.error || 'Không thể gửi email xác nhận đổi mật khẩu.');
+    }
+  };
 
   // Reschedule / Cancel Modal states
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
@@ -134,6 +231,19 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
             <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: '0.2rem 0' }}>
               Xin chào, {user?.fullName || 'Quý Khách'}
             </h2>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+              <span style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.15rem 0.6rem',
+                borderRadius: '6px',
+                backgroundColor: isRootOwner ? '#FEF3C7' : '#F8F3E6',
+                color: isRootOwner ? '#B45309' : '#8C6E53',
+                border: isRootOwner ? '1px solid #F59E0B' : '1px solid #E6D7B9',
+              }}>
+                {isRootOwner ? 'Root Owner' : user?.role === 'ADMIN' ? 'Admin' : user?.role === 'STAFF' ? 'Staff' : user?.role === 'MANAGER' ? 'Quản Lý' : 'Khách Hàng'}
+              </span>
+            </div>
             <div style={{ fontSize: '0.85rem', color: '#6E5F55', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Mail size={14} /> {user?.email}</span>
               {user?.phone && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Phone size={14} /> {user.phone}</span>}
@@ -165,36 +275,44 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
       )}
 
       {/* Tabs Control */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--mipa-beige)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--mipa-beige)', paddingBottom: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <button
-          onClick={() => setActiveSubTab('bookings')}
+          onClick={() => handleTabChange('bookings')}
           style={{
             background: activeSubTab === 'bookings' ? '#8C6E53' : 'transparent',
             color: activeSubTab === 'bookings' ? '#FFFDF6' : '#604634',
             border: 'none',
             padding: '0.6rem 1.4rem',
             borderRadius: '20px',
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: '0.9rem',
             cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s ease',
           }}
         >
-          📅 Lịch Chụp Của Tôi ({customerBookings.length})
+          <Calendar size={16} /> Lịch Chụp Của Tôi ({customerBookings.length})
         </button>
         <button
-          onClick={() => setActiveSubTab('profile')}
+          onClick={() => handleTabChange('profile')}
           style={{
             background: activeSubTab === 'profile' ? '#8C6E53' : 'transparent',
             color: activeSubTab === 'profile' ? '#FFFDF6' : '#604634',
             border: 'none',
             padding: '0.6rem 1.4rem',
             borderRadius: '20px',
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: '0.9rem',
             cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s ease',
           }}
         >
-          👤 Thông Tin Cá Nhân
+          <UserIcon size={16} /> Thông Tin Cá Nhân
         </button>
       </div>
 
@@ -366,48 +484,339 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
         </div>
       )}
 
-      {/* SUBTAB 2: PROFILE */}
+      {/* SUBTAB 2: PROFILE & SECURITY */}
       {activeSubTab === 'profile' && (
-        <div className="mipa-card" style={{ maxWidth: '650px', padding: '2rem', borderRadius: '18px' }}>
-          <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <UserIcon size={20} color="#8C6E53" /> Thông Tin Tài Khoản
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#8C6E53', marginBottom: '0.3rem' }}>
-                Họ và Tên
-              </label>
-              <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FFFDF6', border: '1px solid var(--mipa-beige)', borderRadius: '10px', fontWeight: 600, color: '#604634' }}>
-                {user?.fullName || 'Chưa cập nhật'}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', maxWidth: '1100px' }}>
+          {/* CARD 1: PERSONAL INFORMATION & EDIT NAME */}
+          <div className="mipa-card" style={{ padding: '2rem', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.2rem' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(198, 164, 95, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <UserIcon size={22} color="#8C6E53" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', color: '#604634', margin: 0 }}>
+                  Thông Tin Cá Nhân
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                  Cập nhật họ tên và số điện thoại liên hệ
+                </span>
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#8C6E53', marginBottom: '0.3rem' }}>
-                Địa chỉ Email
-              </label>
-              <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FFFDF6', border: '1px solid var(--mipa-beige)', borderRadius: '10px', color: '#604634' }}>
-                {user?.email || ''}
+            {profileSuccessMsg && (
+              <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #86EFAC',
+                borderRadius: '10px',
+                color: '#166534',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <CheckCircle size={18} color="#16A34A" />
+                <span>{profileSuccessMsg}</span>
+              </div>
+            )}
+
+            {profileErrorMsg && (
+              <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '10px',
+                color: '#991B1B',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <AlertCircle size={18} color="#DC2626" />
+                <span>{profileErrorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.35rem' }}>
+                  Họ và Tên (Có thể chỉnh sửa) <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFullName}
+                  onChange={e => setEditFullName(e.target.value)}
+                  placeholder="Nhập họ và tên đầy đủ..."
+                  className="mipa-input"
+                  style={{
+                    height: '42px',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    color: '#2C221E',
+                    backgroundColor: '#FFFFFF',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.35rem' }}>
+                  Số Điện Thoại Liên Hệ
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} color="#8C6E53" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={e => setEditPhone(e.target.value)}
+                    placeholder="VD: 0908 123 456..."
+                    className="mipa-input"
+                    style={{
+                      height: '42px',
+                      paddingLeft: '38px',
+                      borderRadius: '10px',
+                      color: '#2C221E',
+                      backgroundColor: '#FFFFFF',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.35rem' }}>
+                  Địa Chỉ Email (Cố định theo tài khoản)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="#8C6E53" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <input
+                    type="email"
+                    readOnly
+                    disabled
+                    value={user?.email || ''}
+                    className="mipa-input"
+                    style={{
+                      height: '42px',
+                      paddingLeft: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: '#F9FAFB',
+                      color: '#6B7280',
+                      cursor: 'not-allowed',
+                    }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '11px',
+                    fontSize: '0.75rem',
+                    color: '#166534',
+                    backgroundColor: '#DCFCE7',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                  }}>
+                    ✓ Đã xác thực
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '0.5rem' }}>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.78rem', color: '#8C6E53', fontWeight: 600, marginBottom: '0.3rem' }}>
+                    Vai trò hệ thống:
+                  </span>
+                  <div style={{
+                    padding: '0.4rem 0.8rem',
+                    backgroundColor: isRootOwner ? '#FEF3C7' : '#FFFDF6',
+                    border: isRootOwner ? '1.5px solid #F59E0B' : '1px solid var(--mipa-beige)',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: isRootOwner ? '#B45309' : '#604634',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                  }}>
+                    {isRootOwner ? 'Root Owner' : user?.role === 'ADMIN' ? 'Admin' : user?.role === 'STAFF' ? 'Staff' : user?.role === 'MANAGER' ? 'Quản Lý' : 'Khách Hàng'}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.78rem', color: '#8C6E53', fontWeight: 600, marginBottom: '0.3rem' }}>
+                    Trạng thái:
+                  </span>
+                  <div style={{
+                    padding: '0.4rem 0.8rem',
+                    backgroundColor: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#166534',
+                  }}>
+                    ● {user?.status || 'ACTIVE'}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingProfile}
+                className="btn-mipa-gold"
+                style={{
+                  width: '100%',
+                  height: '44px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  marginTop: '0.5rem',
+                  cursor: isSavingProfile ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <Save size={16} />
+                {isSavingProfile ? 'Đang lưu...' : 'Lưu Thay Đổi Thông Tin'}
+              </button>
+            </form>
+          </div>
+
+          {/* CARD 2: SECURITY & PASSWORD CHANGE (VIA EMAIL CONFIRMATION) */}
+          <div className="mipa-card" style={{ padding: '2rem', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.2rem' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(157, 23, 77, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <KeyRound size={22} color="#9D174D" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', color: '#604634', margin: 0 }}>
+                  Bảo Mật & Mật Khẩu
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                  Xác thực danh tính qua email trước khi đổi mật khẩu
+                </span>
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#8C6E53', marginBottom: '0.3rem' }}>
-                Số Điện Thoại
-              </label>
-              <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FFFDF6', border: '1px solid var(--mipa-beige)', borderRadius: '10px', color: '#604634' }}>
-                {user?.phone || 'Chưa cập nhật'}
+            <div style={{
+              padding: '1rem',
+              backgroundColor: '#FFFBEB',
+              border: '1px solid #FDE68A',
+              borderRadius: '12px',
+              marginBottom: '1.2rem',
+              fontSize: '0.84rem',
+              color: '#92400E',
+              lineHeight: 1.5,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                <ShieldCheck size={18} color="#D97706" />
+                <span>Quy trình bảo mật 2 lớp an toàn:</span>
               </div>
+              Nhằm bảo đảm quyền sở hữu tài khoản, hệ thống sẽ gửi một <strong>liên kết xác nhận đổi mật khẩu</strong> đến email <strong>{user?.email}</strong>. Bạn chỉ cần mở email và nhấp vào liên kết để thiết lập mật khẩu mới an toàn.
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#8C6E53', marginBottom: '0.3rem' }}>
-                Trạng thái tài khoản
-              </label>
-              <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', color: '#166534', fontWeight: 600 }}>
-                ● {user?.status || 'ACTIVE'} (Đã kích hoạt)
+            {passwordEmailSuccess && (
+              <div style={{
+                padding: '0.9rem 1.1rem',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #86EFAC',
+                borderRadius: '10px',
+                color: '#166534',
+                fontSize: '0.85rem',
+                lineHeight: 1.5,
+                marginBottom: '1.2rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem',
+              }}>
+                <CheckCircle size={20} color="#16A34A" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{passwordEmailSuccess}</span>
               </div>
+            )}
+
+            {passwordEmailError && (
+              <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '10px',
+                color: '#991B1B',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                marginBottom: '1.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <AlertCircle size={18} color="#DC2626" />
+                <span>{passwordEmailError}</span>
+              </div>
+            )}
+
+            <div style={{
+              padding: '1.2rem',
+              backgroundColor: '#FFFDF6',
+              border: '1px solid var(--mipa-beige)',
+              borderRadius: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}>
+              <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
+                Email nhận liên kết xác nhận:
+                <strong style={{ display: 'block', color: '#604634', fontSize: '0.95rem', marginTop: '0.2rem' }}>
+                  ✉️ {user?.email}
+                </strong>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRequestPasswordResetEmail}
+                disabled={isSendingPasswordEmail || countdown > 0}
+                style={{
+                  width: '100%',
+                  height: '44px',
+                  backgroundColor: countdown > 0 ? '#9CA3AF' : '#8C6E53',
+                  color: '#FFFDF6',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: isSendingPasswordEmail || countdown > 0 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(96, 70, 52, 0.15)',
+                }}
+              >
+                <Send size={16} />
+                {isSendingPasswordEmail
+                  ? 'Đang gửi email xác nhận...'
+                  : countdown > 0
+                  ? `Gửi lại sau ${countdown}s`
+                  : 'Gửi Email Xác Nhận Đổi Mật Khẩu'}
+              </button>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ import type { ServiceCategory } from '../../types';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface ServicesSectionProps {
-  onSelectService?: (serviceId: string) => void;
+  onSelectService?: (serviceId: string, slug?: string) => void;
 }
 
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectService }) => {
@@ -35,7 +35,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectServic
 
   const handleServiceClick = (srv: ServiceCategory) => {
     if (onSelectService) {
-      onSelectService(srv.id);
+      onSelectService(srv.id, srv.slug);
     } else {
       navigate(`/dich-vu/${srv.slug}`);
     }

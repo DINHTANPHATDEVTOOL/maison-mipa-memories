@@ -12,6 +12,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
+    "verify:schema": "node scripts/verify-production-schema.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -23,7 +23,9 @@ import {
   ExternalLink,
   DollarSign,
   Plus,
+  X,
 } from 'lucide-react';
+import { INITIAL_EMPLOYEES } from '../../mockData';
 
 interface ManagerDashboardProps {
   bookings: Booking[];
@@ -104,20 +106,20 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
       {/* OPERATIONS INBOX BANNER - Actionable Workstation */}
       <div style={{
-        backgroundColor: '#FFFBEB',
-        border: '1.5px solid #F59E0B',
+        backgroundColor: '#FFFDF6',
+        border: '1.5px solid #E6D7B9',
         borderRadius: '20px',
         padding: '1.2rem 1.6rem',
         marginBottom: '1.8rem',
-        boxShadow: '0 8px 25px rgba(245, 158, 11, 0.1)',
+        boxShadow: '0 4px 20px rgba(96, 70, 52, 0.05)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#92400E', fontWeight: 700, fontSize: '1.05rem' }}>
-            <AlertTriangle size={20} color="#D97706" />
-            <span>OPERATIONS INBOX — {inboxStats.totalActionRequired} VIỆC CẦN XỬ LÝ:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#604634', fontWeight: 700, fontSize: '1rem' }}>
+            <AlertTriangle size={19} color="#C6A45F" />
+            <span>HÀNG ĐỢI ĐIỀU PHỐI — {inboxStats.totalActionRequired} VIỆC CẦN XỬ LÝ:</span>
           </div>
-          <span style={{ fontSize: '0.78rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.6rem', borderRadius: '10px', fontWeight: 700 }}>
-            ⚡ Ưu tiên xử lý theo quy trình nghiệp vụ
+          <span style={{ fontSize: '0.78rem', backgroundColor: '#F8F3E6', color: '#8C6E53', padding: '0.2rem 0.6rem', borderRadius: '10px', fontWeight: 700, border: '1px solid #E6D7B9' }}>
+            Ưu tiên xử lý theo luồng vận hành studio
           </span>
         </div>
 
@@ -127,14 +129,15 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: '#FFFFFF',
-              border: selectedStatusFilter === 'DEPOSIT_PAID' ? '2px solid #B45309' : '1px solid #FCD34D',
+              backgroundColor: selectedStatusFilter === 'DEPOSIT_PAID' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'DEPOSIT_PAID' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: 600 }}>CHỜ XÁC NHẬN CỌC</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#B45309' }}>{inboxStats.pendingConfirmationCount} đơn</div>
+            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ XÁC NHẬN CỌC</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.pendingConfirmationCount} đơn</div>
           </button>
 
           <button
@@ -142,14 +145,15 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: '#FFFFFF',
-              border: selectedStatusFilter === 'CONFIRMED' ? '2px solid #B45309' : '1px solid #FCD34D',
+              backgroundColor: selectedStatusFilter === 'CONFIRMED' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'CONFIRMED' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: 600 }}>CHƯA GÁN KÍP CHỤP</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#B45309' }}>{inboxStats.unassignedStaffCount} đơn</div>
+            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHƯA GÁN KÍP CHỤP</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.unassignedStaffCount} đơn</div>
           </button>
 
           <button
@@ -157,14 +161,15 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: '#FFFFFF',
-              border: selectedStatusFilter === 'SHOOTING' ? '2px solid #B45309' : '1px solid #FCD34D',
+              backgroundColor: selectedStatusFilter === 'SHOOTING' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'SHOOTING' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: 600 }}>ĐANG CHỤP TRONG PHÒNG</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#B45309' }}>{inboxStats.shootingNowCount} ca</div>
+            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG CHỤP TRONG PHÒNG</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.shootingNowCount} ca</div>
           </button>
 
           <button
@@ -172,14 +177,15 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: '#FFFFFF',
-              border: selectedStatusFilter === 'READY_FOR_REVIEW' ? '2px solid #B45309' : '1px solid #FCD34D',
+              backgroundColor: selectedStatusFilter === 'READY_FOR_REVIEW' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'READY_FOR_REVIEW' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: 600 }}>CHỜ DUYỆT GIAO ẢNH</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#B45309' }}>{inboxStats.readyToDeliverCount} bộ</div>
+            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ DUYỆT GIAO ẢNH</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.readyToDeliverCount} bộ</div>
           </button>
         </div>
       </div>
@@ -203,25 +209,35 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               />
             </div>
 
-            {/* Status Filter Pills */}
+            {/* Status Filter Pills with Vietnamese labels */}
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {['ALL', 'PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED', 'SHOOTING', 'READY_FOR_REVIEW', 'COMPLETED'].map((st) => (
+              {[
+                { id: 'ALL', label: 'Tất cả' },
+                { id: 'PENDING_PAYMENT', label: 'Chờ cọc' },
+                { id: 'DEPOSIT_PAID', label: 'Đã cọc' },
+                { id: 'CONFIRMED', label: 'Đã xác nhận' },
+                { id: 'SHOOTING', label: 'Đang chụp' },
+                { id: 'READY_FOR_REVIEW', label: 'Chờ duyệt ảnh' },
+                { id: 'COMPLETED', label: 'Hoàn thành' },
+              ].map((filterItem) => (
                 <button
-                  key={st}
-                  onClick={() => setSelectedStatusFilter(st)}
+                  key={filterItem.id}
+                  onClick={() => setSelectedStatusFilter(filterItem.id)}
                   style={{
-                    border: 'none',
-                    background: selectedStatusFilter === st ? '#8C6E53' : '#FFFDF6',
-                    color: selectedStatusFilter === st ? '#FFFDF6' : '#604634',
+                    border: '1px solid',
+                    borderColor: selectedStatusFilter === filterItem.id ? '#8C6E53' : '#EFE6C9',
+                    background: selectedStatusFilter === filterItem.id ? 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)' : '#FFFDF6',
+                    color: selectedStatusFilter === filterItem.id ? '#FFFDF6' : '#604634',
                     padding: '0.35rem 0.75rem',
                     borderRadius: '16px',
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                    boxShadow: selectedStatusFilter === filterItem.id ? '0 2px 6px rgba(96, 70, 52, 0.2)' : 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  {st === 'ALL' ? 'Tất cả' : st}
+                  {filterItem.label}
                 </button>
               ))}
             </div>
@@ -404,74 +420,201 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       </div>
 
       {/* Assign Staff Modal */}
-      {assigningBooking && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '1rem' }}>
-          <div className="mipa-card" style={{ maxWidth: '460px', width: '100%', padding: '2rem', borderRadius: '18px' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#604634', fontSize: '1.2rem' }}>
-              Phân Công Nhân Sự: #{assigningBooking.bookingCode}
-            </h4>
+      {assigningBooking && (() => {
+        const availableEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+        const matchingEmployees = availableEmployees.filter(e => e.role === selectedStaffRole);
+        const otherEmployees = availableEmployees.filter(e => e.role !== selectedStaffRole);
 
-            <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                  Vai trò phân công
-                </label>
-                <select
-                  value={selectedStaffRole}
-                  onChange={e => setSelectedStaffRole(e.target.value)}
-                  className="mipa-input"
-                  style={{ width: '100%', height: '40px' }}
-                >
-                  <option value="PHOTOGRAPHER">📷 Nhiếp Ảnh Gia (Photographer)</option>
-                  <option value="MAKEUP">💄 Chuyên Viên Trang Điểm (Makeup)</option>
-                  <option value="EDITOR">🎨 Chuyên Viên Hậu Kỳ (Editor)</option>
-                  <option value="RECEPTIONIST">📌 Lễ Tân / Điều Phối</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                  Chọn nhân viên
-                </label>
-                <select
-                  required
-                  value={selectedEmployeeId}
-                  onChange={e => setSelectedEmployeeId(e.target.value)}
-                  className="mipa-input"
-                  style={{ width: '100%', height: '40px' }}
-                >
-                  <option value="">-- Chọn nhân viên phù hợp --</option>
-                  {employees
-                    .filter(e => e.role === selectedStaffRole || !e.role)
-                    .map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.role || 'Staff'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(30, 20, 15, 0.65)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: '1rem',
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setAssigningBooking(null);
+            }}
+          >
+            <div
+              className="mipa-card"
+              style={{
+                maxWidth: '500px',
+                width: '100%',
+                padding: '2rem',
+                borderRadius: '20px',
+                backgroundColor: '#FFFDF9',
+                boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+                border: '1px solid #E6D7B9',
+              }}
+            >
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    ĐIỀU PHỐI NHÂN SỰ STUDIO
+                  </div>
+                  <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                    Phân Công: #{assigningBooking.bookingCode}
+                  </h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setAssigningBooking(null)}
-                  className="btn-mipa-secondary"
-                  style={{ flex: 1, padding: '0.65rem' }}
+                  style={{
+                    background: '#F3EDE2',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#604634',
+                    transition: 'background 0.2s',
+                  }}
+                  aria-label="Đóng cửa sổ"
                 >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="btn-mipa-gold"
-                  style={{ flex: 1, padding: '0.65rem' }}
-                >
-                  Lưu Phân Công
+                  <X size={18} />
                 </button>
               </div>
-            </form>
+
+              {/* Booking Context Preview Card */}
+              <div
+                style={{
+                  backgroundColor: '#FAF7F2',
+                  border: '1px solid #EAE0D0',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.85rem',
+                  color: '#6E5F55',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div>
+                  <strong style={{ color: '#43281C' }}>Khách hàng:</strong> {assigningBooking.customerName} {assigningBooking.customerPhone ? `(${assigningBooking.customerPhone})` : ''}
+                </div>
+                <div>
+                  <strong style={{ color: '#43281C' }}>Gói chụp:</strong> {assigningBooking.packageName || assigningBooking.serviceName}
+                </div>
+                <div>
+                  <strong style={{ color: '#43281C' }}>Lịch chụp:</strong> {assigningBooking.bookingDate} lúc {assigningBooking.startTime} ({assigningBooking.studioName || 'Studio MIPA'})
+                </div>
+              </div>
+
+              <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                <div>
+                  <label
+                    htmlFor="assign-staff-role-select"
+                    style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.4rem' }}
+                  >
+                    Vai trò phân công
+                  </label>
+                  <select
+                    id="assign-staff-role-select"
+                    value={selectedStaffRole}
+                    onChange={e => setSelectedStaffRole(e.target.value)}
+                    className="mipa-input"
+                    style={{
+                      width: '100%',
+                      minHeight: '48px',
+                      padding: '0.65rem 1rem',
+                      lineHeight: '1.5',
+                      fontSize: '0.95rem',
+                      boxSizing: 'border-box',
+                      backgroundColor: '#FAF7F2',
+                      border: '1.5px solid #D1C2A5',
+                      borderRadius: '10px',
+                      color: '#43281C',
+                    }}
+                  >
+                    <option value="PHOTOGRAPHER">📷 Nhiếp Ảnh Gia (Photographer)</option>
+                    <option value="MAKEUP">💄 Chuyên Viên Trang Điểm (Makeup)</option>
+                    <option value="EDITOR">🎨 Chuyên Viên Hậu Kỳ (Editor)</option>
+                    <option value="RECEPTIONIST">📌 Lễ Tân / Điều Phối</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="assign-staff-employee-select"
+                    style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.4rem' }}
+                  >
+                    Chọn nhân viên
+                  </label>
+                  <select
+                    id="assign-staff-employee-select"
+                    required
+                    value={selectedEmployeeId}
+                    onChange={e => setSelectedEmployeeId(e.target.value)}
+                    className="mipa-input"
+                    style={{
+                      width: '100%',
+                      minHeight: '48px',
+                      padding: '0.65rem 1rem',
+                      lineHeight: '1.5',
+                      fontSize: '0.95rem',
+                      boxSizing: 'border-box',
+                      backgroundColor: '#FAF7F2',
+                      border: '1.5px solid #D1C2A5',
+                      borderRadius: '10px',
+                      color: '#43281C',
+                    }}
+                  >
+                    <option value="">-- Chọn nhân viên phù hợp --</option>
+                    {matchingEmployees.length > 0 && (
+                      <optgroup label={`⭐ Đúng chuyên môn (${selectedStaffRole})`}>
+                        {matchingEmployees.map(emp => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name} — {emp.role || 'Chuyên viên'} {emp.phone ? `• ${emp.phone}` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {otherEmployees.length > 0 && (
+                      <optgroup label="👥 Nhân sự studio khác (sẵn sàng điều phối)">
+                        {otherEmployees.map(emp => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name} — {emp.role || 'Staff'} {emp.phone ? `• ${emp.phone}` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAssigningBooking(null)}
+                    className="btn-mipa-secondary"
+                    style={{ flex: 1, padding: '0.75rem', minHeight: '44px' }}
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-mipa-gold"
+                    style={{ flex: 1, padding: '0.75rem', minHeight: '44px' }}
+                  >
+                    Lưu Phân Công
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
