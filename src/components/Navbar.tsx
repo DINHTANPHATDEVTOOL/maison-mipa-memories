@@ -38,12 +38,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   const displayUser = currentUser || CURRENT_USER_PROFILES.GUEST;
 
   const roleLabels: Record<UserRole, { label: string; icon: any; color: string }> = {
-    GUEST: { label: 'Khách Tham Quan (Chưa đăng nhập)', icon: UserIcon, color: '#6E5F55' },
-    CUSTOMER: { label: 'Khách hàng VIP', icon: UserIcon, color: '#8C6E53' },
-    STAFF: { label: 'Nhân viên / Photographer', icon: Camera, color: '#C6A45F' },
-    MANAGER: { label: 'Quản lý Studio', icon: Briefcase, color: '#2C221E' },
+    GUEST: { label: 'Khách Tham Quan', icon: UserIcon, color: '#6E5F55' },
+    CUSTOMER: { label: 'Khách Hàng', icon: UserIcon, color: '#8C6E53' },
+    STAFF: { label: 'Staff', icon: Camera, color: '#C6A45F' },
+    MANAGER: { label: 'Quản Lý', icon: Briefcase, color: '#2C221E' },
     ADMIN: {
-      label: displayUser.isRootOwner ? '👑 Chủ Studio (Root Owner)' : 'Quản trị viên (Admin)',
+      label: displayUser.isRootOwner ? 'Root Owner' : 'Admin',
       icon: Shield,
       color: displayUser.isRootOwner ? '#B45309' : '#9D174D',
     },
@@ -395,16 +395,37 @@ export const Navbar: React.FC<NavbarProps> = ({
                     boxShadow: '0 2px 8px rgba(198, 164, 95, 0.15)',
                   }}
                 >
-                  <img
-                    src={displayUser.avatar || '/favicon.svg'}
-                    alt={displayUser.fullName}
-                    style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
-                  />
+                  {displayUser.avatar && displayUser.avatar !== '/favicon.svg' ? (
+                    <img
+                      src={displayUser.avatar}
+                      alt={displayUser.fullName}
+                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: '#8C6E53',
+                        color: '#FFFDF6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        border: '1.5px solid #C6A45F',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {displayUser.fullName?.charAt(0)?.toUpperCase() || 'M'}
+                    </div>
+                  )}
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#604634', lineHeight: 1.1 }}>
                       {displayUser.fullName}
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: '#8C6E53' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#8C6E53', fontWeight: 600 }}>
                       {roleLabels[currentRole].label}
                     </div>
                   </div>
@@ -425,10 +446,44 @@ export const Navbar: React.FC<NavbarProps> = ({
                     zIndex: 2000,
                   }}>
                     {/* Account Header */}
-                    <div style={{ padding: '0.6rem', backgroundColor: '#FFFDF6', borderRadius: '12px', marginBottom: '0.5rem', border: '1px solid var(--mipa-beige)' }}>
-                      <div style={{ fontWeight: 700, color: '#604634', fontSize: '0.9rem' }}>{displayUser.fullName}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#8C6E53' }}>✉️ {displayUser.email}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#8C6E53' }}>📞 {displayUser.phone}</div>
+                    <div style={{ padding: '0.65rem', backgroundColor: '#FFFDF6', borderRadius: '12px', marginBottom: '0.5rem', border: '1px solid var(--mipa-beige)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {displayUser.avatar && displayUser.avatar !== '/favicon.svg' ? (
+                        <img
+                          src={displayUser.avatar}
+                          alt={displayUser.fullName}
+                          style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '50%',
+                            backgroundColor: '#8C6E53',
+                            color: '#FFFDF6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            border: '2px solid #C6A45F',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {displayUser.fullName?.charAt(0)?.toUpperCase() || 'M'}
+                        </div>
+                      )}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 700, color: '#604634', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {displayUser.fullName}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8C6E53' }}>
+                          {roleLabels[currentRole].label}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#6E5F55', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {displayUser.email}
+                        </div>
+                      </div>
                     </div>
 
                     <div style={{ padding: '0.3rem 0.5rem', fontSize: '0.72rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -459,7 +514,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                     >
                       <UserIcon size={14} style={{ color: '#8C6E53' }} />
-                      <span>Thông tin cá nhân & Đổi MK</span>
+                      <span>Thông Tin Cá Nhân</span>
                     </Link>
 
                     {currentRole === 'CUSTOMER' && (
@@ -661,7 +716,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     border: '1px solid #E6D7B9',
                   }}
                 >
-                  <UserIcon size={16} /> Thông Tin Cá Nhân & Đổi Mật Khẩu
+                  <UserIcon size={16} /> Thông Tin Cá Nhân
                 </Link>
                 <button
                   onClick={() => {

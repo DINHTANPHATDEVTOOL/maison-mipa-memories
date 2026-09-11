@@ -27,7 +27,7 @@ export const DEMO_ACCOUNTS = [
     role: 'CUSTOMER' as UserRole,
     name: 'Nguyễn Minh Anh',
     email: 'minhanh.nguyen@gmail.com',
-    description: 'Khách hàng VIP — Xem đơn đặt lịch cá nhân & duyệt album ảnh',
+    description: 'Khách Hàng — Xem đơn đặt lịch cá nhân & duyệt album ảnh',
     color: '#8C6E53',
     badge: 'Khách Hàng',
   },
@@ -388,7 +388,7 @@ export const INITIAL_CUSTOMERS: CustomerProfile[] = [
     lastVisit: '2026-08-11',
     totalBookings: 3,
     totalSpent: 6970000,
-    notes: 'Khách hàng VIP, thích chụp ánh sáng tự nhiên tone vàng kem ấm.',
+    notes: 'Khách hàng thân thiết, thích chụp ánh sáng tự nhiên tone vàng kem ấm.',
   },
   {
     id: 'cust_02',

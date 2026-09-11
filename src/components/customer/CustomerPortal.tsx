@@ -231,6 +231,19 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
             <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: '0.2rem 0' }}>
               Xin chào, {user?.fullName || 'Quý Khách'}
             </h2>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+              <span style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.15rem 0.6rem',
+                borderRadius: '6px',
+                backgroundColor: isRootOwner ? '#FEF3C7' : '#F8F3E6',
+                color: isRootOwner ? '#B45309' : '#8C6E53',
+                border: isRootOwner ? '1px solid #F59E0B' : '1px solid #E6D7B9',
+              }}>
+                {isRootOwner ? 'Root Owner' : user?.role === 'ADMIN' ? 'Admin' : user?.role === 'STAFF' ? 'Staff' : user?.role === 'MANAGER' ? 'Quản Lý' : 'Khách Hàng'}
+              </span>
+            </div>
             <div style={{ fontSize: '0.85rem', color: '#6E5F55', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Mail size={14} /> {user?.email}</span>
               {user?.phone && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Phone size={14} /> {user.phone}</span>}
@@ -299,7 +312,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
             transition: 'all 0.2s ease',
           }}
         >
-          <UserIcon size={16} /> Thông Tin Cá Nhân & Đổi Mật Khẩu
+          <UserIcon size={16} /> Thông Tin Cá Nhân
         </button>
       </div>
 
@@ -635,7 +648,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                     alignItems: 'center',
                     gap: '0.4rem',
                   }}>
-                    {isRootOwner ? '👑 Root Owner' : user?.role || 'CUSTOMER'}
+                    {isRootOwner ? 'Root Owner' : user?.role === 'ADMIN' ? 'Admin' : user?.role === 'STAFF' ? 'Staff' : user?.role === 'MANAGER' ? 'Quản Lý' : 'Khách Hàng'}
                   </div>
                 </div>
 

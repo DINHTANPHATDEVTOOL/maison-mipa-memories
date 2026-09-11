@@ -26,6 +26,9 @@ import {
   Mail,
   FileText,
   User as UserIcon,
+  Crown,
+  Shield,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -206,44 +209,76 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     <div style={{ maxWidth: '1350px', margin: '1.5rem auto', padding: '0 1.5rem' }}>
 
       {/* Admin Top Header */}
-      <div className="mipa-card-gold" style={{ padding: '1.8rem 2rem', borderRadius: '18px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 700 }}>
-            SYSTEM ADMINISTRATION • QUẢN TRỊ HỆ THỐNG
+      <div className="mipa-card-gold" style={{ padding: '1.8rem 2rem', borderRadius: '18px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+          <div style={{
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            backgroundColor: '#FFFDF6',
+            border: '3px solid #C6A45F',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#8C6E53',
+            fontSize: '1.5rem',
+            fontWeight: 700,
+            flexShrink: 0,
+          }}>
+            {isRootOwner ? <Crown size={32} color="#8C6E53" /> : <ShieldCheck size={32} color="#8C6E53" />}
           </div>
-          <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: '0.2rem 0' }}>
-            Bảng Quản Trị Hệ Thống (Maison MIPA Root OS)
-          </h2>
-          <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-            Phân quyền RBAC/ABAC, cấu hình tài khoản ngân hàng VietQR & theo dõi audit log bảo mật.
+          <div>
+            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700 }}>
+              ADMIN PORTAL • BẢNG QUẢN TRỊ HỆ THỐNG
+            </div>
+            <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: '0.2rem 0' }}>
+              Hệ Thống Quản Trị Studio (MIPA Root OS)
+            </h2>
+            <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
+              Phân quyền RBAC, cấu hình tài khoản ngân hàng VietQR & theo dõi audit logs bảo mật.
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {[
-            { id: 'users', label: 'Tài Khoản & Phân Quyền', icon: Users },
-            { id: 'bank', label: 'Tài Khoản VietQR', icon: CreditCard },
-            { id: 'email', label: 'Cấu Hình Email', icon: Mail },
-            { id: 'audit', label: 'Audit Logs', icon: FileText },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setAdminTab(tab.id as any)}
-              className={adminTab === tab.id ? 'btn-mipa-gold' : 'btn-mipa-secondary'}
-              style={{ fontSize: '0.82rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <tab.icon size={15} /> {tab.label}
-            </button>
-          ))}
-          <Link
-            to="/account?tab=profile"
-            className="btn-mipa-secondary"
-            style={{ fontSize: '0.82rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-            title="Đổi họ tên, số điện thoại & yêu cầu đổi mật khẩu qua email"
+        <Link
+          to="/account?tab=profile"
+          className="btn-mipa-gold"
+          style={{ fontSize: '0.88rem', padding: '0.65rem 1.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+          title="Xem và chỉnh sửa thông tin cá nhân"
+        >
+          <UserIcon size={16} /> Thông Tin Cá Nhân
+        </Link>
+      </div>
+
+      {/* Synchronized Tabs Control identical to CustomerPortal */}
+      <div style={{ display: 'flex', gap: '0.8rem', borderBottom: '1px solid var(--mipa-beige)', paddingBottom: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        {[
+          { id: 'users', label: 'Tài Khoản & Phân Quyền', icon: Users },
+          { id: 'bank', label: 'Tài Khoản VietQR', icon: CreditCard },
+          { id: 'email', label: 'Cấu Hình Email', icon: Mail },
+          { id: 'audit', label: 'Audit Logs', icon: FileText },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setAdminTab(tab.id as any)}
+            style={{
+              background: adminTab === tab.id ? '#8C6E53' : 'transparent',
+              color: adminTab === tab.id ? '#FFFDF6' : '#604634',
+              border: 'none',
+              padding: '0.6rem 1.4rem',
+              borderRadius: '20px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s ease',
+            }}
           >
-            <UserIcon size={15} /> Hồ Sơ Cá Nhân
-          </Link>
-        </div>
+            <tab.icon size={16} /> {tab.label}
+          </button>
+        ))}
       </div>
 
       {notice && (
@@ -316,14 +351,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           >
             {isRootOwner ? (
               <>
-                <span style={{ fontSize: '1.1rem' }}>👑</span>
+                <Crown size={18} color="#D97706" style={{ flexShrink: 0 }} />
                 <span>
                   <strong>Chủ Studio (Root Owner):</strong> Bạn có toàn quyền phân bổ vai trò hệ thống (ADMIN, MANAGER, STAFF, CUSTOMER) và khóa/mở khóa tài khoản.
                 </span>
               </>
             ) : (
               <>
-                <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+                <Shield size={18} color="#475569" style={{ flexShrink: 0 }} />
                 <span>
                   <strong>Quản Trị Viên (Admin):</strong> Bạn đang ở chế độ quản trị thông thường. Quyền phân bổ vai trò và trạng thái tài khoản chỉ dành riêng cho <em>Chủ Studio (Root Owner)</em>.
                 </span>
