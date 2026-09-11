@@ -176,7 +176,22 @@ DECLARE
   v_idempotency_key TEXT;
   v_outbox_id UUID;
 BEGIN
-  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id;
+  SELECT
+    b.id,
+    b.booking_code,
+    b.customer_id,
+    b.customer_name,
+    b.customer_email,
+    s.name AS service_name,
+    p.name AS package_name,
+    to_char(b.start_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS booking_date,
+    to_char(b.start_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI') AS start_time
+  INTO v_booking
+  FROM public.bookings b
+  JOIN public.services s ON s.id = b.service_id
+  JOIN public.packages p ON p.id = b.package_id
+  WHERE b.id = p_booking_id;
+
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Booking not found.' USING ERRCODE = 'P0002';
   END IF;

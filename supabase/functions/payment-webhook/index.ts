@@ -263,7 +263,7 @@ serve(async (req: Request) => {
     // (Protected by unique idempotency_key = deposit_received_payment_<id>)
     if (booking) {
       const idempotencyKey = `deposit_received_payment_${payment.id}`;
-      await supabaseAdmin.from('notification_outbox').insert({
+      await supabaseAdmin.from('notification_outbox').upsert({
         event_type: 'DEPOSIT_RECEIVED',
         recipient_user_id: booking.customer_id,
         recipient_email: booking.customer_email,
@@ -280,7 +280,7 @@ serve(async (req: Request) => {
         },
         status: 'PENDING',
         idempotency_key: idempotencyKey,
-      }).select().maybeSingle();
+      }, { onConflict: 'idempotency_key', ignoreDuplicates: true });
     }
 
     // 9. Audit Log

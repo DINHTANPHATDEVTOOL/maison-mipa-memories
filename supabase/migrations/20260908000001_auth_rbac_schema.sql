@@ -61,7 +61,12 @@ BEGIN
     'ACTIVE',
     timezone('utc'::text, now()),
     timezone('utc'::text, now())
-  );
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = CASE WHEN public.profiles.full_name = '' THEN EXCLUDED.full_name ELSE public.profiles.full_name END,
+    phone = CASE WHEN public.profiles.phone IS NULL OR public.profiles.phone = '' THEN EXCLUDED.phone ELSE public.profiles.phone END,
+    updated_at = timezone('utc'::text, now());
   RETURN NEW;
 END;
 $$;
