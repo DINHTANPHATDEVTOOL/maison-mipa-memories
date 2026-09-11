@@ -16,7 +16,7 @@ interface ManagementPageProps {
   studios: StudioRoom[];
   onOpenBooking: () => void;
   onUpdateStatus: (bookingId: string, newStatus: BookingStatus, note?: string) => Promise<void>;
-  onAssignStaff: (bookingId: string, employeeId: string) => Promise<void>;
+  onAssignStaff: (bookingId: string, employeeId: string, role?: string) => Promise<void>;
   onRequireAuth?: () => void;
 }
 

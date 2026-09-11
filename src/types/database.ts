@@ -263,6 +263,10 @@ export interface Database {
         Row: {
           id: string;
           staff_role: DatabaseStaffRole;
+          name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          avatar_url?: string | null;
           skills: unknown;
           rating: number;
           total_sessions: number;
@@ -274,6 +278,10 @@ export interface Database {
         Insert: {
           id: string;
           staff_role: DatabaseStaffRole;
+          name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          avatar_url?: string | null;
           skills?: unknown;
           rating?: number;
           total_sessions?: number;
@@ -285,6 +293,10 @@ export interface Database {
         Update: {
           id?: string;
           staff_role?: DatabaseStaffRole;
+          name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          avatar_url?: string | null;
           skills?: unknown;
           rating?: number;
           total_sessions?: number;

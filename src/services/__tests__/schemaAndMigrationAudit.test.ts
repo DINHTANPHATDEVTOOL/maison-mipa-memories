@@ -20,6 +20,8 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260911000006_fix_payments_columns_and_availability_rpc.sql',
     '20260911000007_rich_email_payload_and_realtime_publication.sql',
     '20260911000008_flexible_concepts_and_availability_grant.sql',
+    '20260911000009_sync_staff_profiles_to_employees.sql',
+    '20260911000010_seed_and_enhance_employees_table.sql',
   ];
 
   const EXPECTED_TABLES = [

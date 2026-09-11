@@ -636,9 +636,26 @@ export async function assignBookingStaff(
       .from('profiles')
       .select('full_name, staff_role')
       .eq('id', employeeId)
-      .single();
+      .maybeSingle();
 
-    const role = (profile?.staff_role || assignmentRole) as any;
+    let empName: string = profile?.full_name || '';
+    if (!empName) {
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('name')
+        .eq('id', employeeId)
+        .maybeSingle();
+      empName = (emp?.name as string) || 'Chuyên Viên MIPA';
+    }
+
+    const role = (assignmentRole || profile?.staff_role || 'PHOTOGRAPHER') as any;
+
+    // Delete existing assignment for this booking and role to cleanly replace staff
+    await supabase
+      .from('booking_assignments')
+      .delete()
+      .eq('booking_id', bookingId)
+      .eq('assignment_role', role);
 
     const { data, error } = await supabase
       .from('booking_assignments')
@@ -658,7 +675,7 @@ export async function assignBookingStaff(
       id: data.id,
       bookingId: data.booking_id,
       employeeId: data.employee_id,
-      employeeName: profile?.full_name || 'Chuyên Viên MIPA',
+      employeeName: empName,
       assignmentRole: data.assignment_role,
       startTime: data.start_at,
       endTime: data.end_at,
