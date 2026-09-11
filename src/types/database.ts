@@ -1096,24 +1096,24 @@ export interface Database {
       root_owner_config: {
         Row: {
           id: boolean;
-          root_owner_user_id: string;
-          created_at: string;
+          owner_user_id: string;
+          assigned_by: string | null;
+          assigned_at: string;
           updated_at: string;
-          updated_by: string | null;
         };
         Insert: {
           id?: boolean;
-          root_owner_user_id: string;
-          created_at?: string;
+          owner_user_id: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
           updated_at?: string;
-          updated_by?: string | null;
         };
         Update: {
           id?: boolean;
-          root_owner_user_id?: string;
-          created_at?: string;
+          owner_user_id?: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
           updated_at?: string;
-          updated_by?: string | null;
         };
         Relationships: [];
       };
