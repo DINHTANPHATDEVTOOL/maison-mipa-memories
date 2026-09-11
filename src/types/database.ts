@@ -661,6 +661,7 @@ export interface Database {
           booking_id: string;
           payment_type: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
           method: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          payment_method?: string | null;
           status: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
           amount: number;
           currency: string;
@@ -674,6 +675,7 @@ export interface Database {
           expired_at: string | null;
           refunded_at: string | null;
           metadata: unknown;
+          qr_code_url?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -682,6 +684,7 @@ export interface Database {
           booking_id: string;
           payment_type?: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
           method?: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          payment_method?: string | null;
           status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
           amount: number;
           currency?: string;
@@ -695,6 +698,7 @@ export interface Database {
           expired_at?: string | null;
           refunded_at?: string | null;
           metadata?: unknown;
+          qr_code_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -703,6 +707,7 @@ export interface Database {
           booking_id?: string;
           payment_type?: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
           method?: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          payment_method?: string | null;
           status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
           amount?: number;
           currency?: string;
@@ -716,6 +721,7 @@ export interface Database {
           expired_at?: string | null;
           refunded_at?: string | null;
           metadata?: unknown;
+          qr_code_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1180,6 +1186,16 @@ export interface Database {
           p_method?: string;
         };
         Returns: unknown;
+      };
+      get_studio_booked_slots: {
+        Args: {
+          p_studio_room_id: string;
+          p_date: string;
+        };
+        Returns: {
+          start_at: string;
+          end_at: string;
+        }[];
       };
       mark_transfer_submitted: {
         Args: {

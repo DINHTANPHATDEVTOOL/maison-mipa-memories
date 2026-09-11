@@ -928,32 +928,74 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         return (
                           <button
                             key={slot.time}
+                            type="button"
                             disabled={isBooked}
-                            onClick={() => setSelectedTimeSlot(slot.time)}
+                            aria-disabled={isBooked}
+                            onClick={() => {
+                              if (isBooked) return;
+                              setSelectedTimeSlot(slot.time);
+                            }}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '0.8rem 1rem',
                               borderRadius: '12px',
-                              border: isSel ? '2px solid #C6A45F' : '1px solid var(--mipa-beige)',
-                              backgroundColor: isBooked ? '#F3F4F6' : isSel ? '#FFFDF6' : '#FFFFFF',
-                              opacity: isBooked ? 0.55 : 1,
+                              border: isSel
+                                ? '2px solid #C6A45F'
+                                : isBooked
+                                ? '1px solid #E5E7EB'
+                                : '1px solid var(--mipa-beige)',
+                              backgroundColor: isBooked
+                                ? '#F3F4F6'
+                                : isSel
+                                ? '#FFFDF6'
+                                : '#FFFFFF',
+                              opacity: isBooked ? 0.45 : 1,
                               cursor: isBooked ? 'not-allowed' : 'pointer',
+                              pointerEvents: isBooked ? 'none' : 'auto',
                               textAlign: 'left',
+                              transition: 'all 0.2s ease',
+                              filter: isBooked ? 'grayscale(80%)' : 'none',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <Clock size={16} color={isSel ? '#C6A45F' : '#8C6E53'} />
+                              <Clock size={16} color={isBooked ? '#9CA3AF' : isSel ? '#C6A45F' : '#8C6E53'} />
                               <div>
-                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#2C221E' }}>{slot.time}</span>
-                                <span style={{ fontSize: '0.8rem', color: '#6E5F55', marginLeft: '0.5rem' }}>({slot.label})</span>
+                                <span
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: '0.95rem',
+                                    color: isBooked ? '#9CA3AF' : '#2C221E',
+                                    textDecoration: isBooked ? 'line-through' : 'none',
+                                  }}
+                                >
+                                  {slot.time}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: isBooked ? '#9CA3AF' : '#6E5F55', marginLeft: '0.5rem' }}>
+                                  ({slot.label})
+                                </span>
                               </div>
                             </div>
 
                             <div>
                               {isBooked ? (
-                                <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>{slot.reason || 'Đã có lịch'}</span>
+                                <span
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    backgroundColor: '#FEE2E2',
+                                    color: '#991B1B',
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '8px',
+                                    fontWeight: 600,
+                                    border: '1px solid #FECACA',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                  }}
+                                >
+                                  🚫 {slot.reason || 'Đã kín lịch'}
+                                </span>
                               ) : slot.tag ? (
                                 <span style={{ fontSize: '0.72rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 600 }}>{slot.tag}</span>
                               ) : (
@@ -1535,6 +1577,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               <button
                 onClick={() => {
                   setErrorMessage(null);
+                  if (step === 3) {
+                    const currentSlot = availableSlots.find(s => s.time === selectedTimeSlot);
+                    if (currentSlot && currentSlot.status === 'BOOKED') {
+                      setErrorMessage('Khung giờ bạn chọn đã có khách đặt lịch. Vui lòng chọn một khung giờ khác còn trống.');
+                      return;
+                    }
+                  }
                   if (step === 5) {
                     handleProceedToPayment();
                   } else if (step === 6) {
