@@ -123,10 +123,34 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             getPublicConcepts(),
           ]);
           if (mounted) {
-            if (srvs.length > 0) setServices(srvs);
-            if (pkgs.length > 0) setPackages(pkgs);
-            if (adds.length > 0) setAddons(adds);
-            if (stds.length > 0) setStudios(stds);
+            if (srvs.length > 0) {
+              setServices(srvs);
+              setSelectedService(prev => {
+                const match = srvs.find(s => s.id === prev.id || s.slug === prev.slug || s.name === prev.name);
+                return match || srvs[0];
+              });
+            }
+            if (pkgs.length > 0) {
+              setPackages(pkgs);
+              setSelectedPackage(prev => {
+                const match = pkgs.find(p => p.id === prev.id || p.name === prev.name);
+                return match || pkgs[0];
+              });
+            }
+            if (adds.length > 0) {
+              setAddons(adds);
+              setSelectedAddons(prev => {
+                const matched = prev.map(a => adds.find(ad => ad.id === a.id || ad.name === a.name)).filter(Boolean) as Addon[];
+                return matched.length > 0 ? matched : [adds[0]];
+              });
+            }
+            if (stds.length > 0) {
+              setStudios(stds);
+              setSelectedStudio(prev => {
+                const match = stds.find(st => st.id === prev.id || st.code === prev.code || st.name === prev.name);
+                return match || stds[0];
+              });
+            }
             if (cncs.length > 0) {
               setConcepts(cncs);
               if (initialConceptSlug) {

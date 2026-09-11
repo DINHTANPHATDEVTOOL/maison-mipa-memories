@@ -71,6 +71,89 @@ export function updateBookingInMemory(bookingId: string, updates: Partial<Bookin
   return inMemoryBookings[index];
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SLUG_TO_UUID_MAP: Record<string, string> = {
+  // Services
+  'srv_couple': 'c0000000-0000-0000-0000-000000000001',
+  'couple': 'c0000000-0000-0000-0000-000000000001',
+  'srv_wedding': 'c0000000-0000-0000-0000-000000000002',
+  'wedding': 'c0000000-0000-0000-0000-000000000002',
+  'srv_family': 'c0000000-0000-0000-0000-000000000003',
+  'family': 'c0000000-0000-0000-0000-000000000003',
+  'srv_baby': 'c0000000-0000-0000-0000-000000000004',
+  'baby': 'c0000000-0000-0000-0000-000000000004',
+  'srv_portrait': 'c0000000-0000-0000-0000-000000000005',
+  'portrait': 'c0000000-0000-0000-0000-000000000005',
+  'srv_birthday': 'c0000000-0000-0000-0000-000000000006',
+  'birthday': 'c0000000-0000-0000-0000-000000000006',
+
+  // Packages
+  'pkg_basic': 'd0000000-0000-0000-0000-000000000001',
+  'basic': 'd0000000-0000-0000-0000-000000000001',
+  'pkg_signature': 'd0000000-0000-0000-0000-000000000002',
+  'signature': 'd0000000-0000-0000-0000-000000000002',
+  'pkg_premium': 'd0000000-0000-0000-0000-000000000003',
+  'premium': 'd0000000-0000-0000-0000-000000000003',
+
+  // Studio Rooms
+  'std_room_1': 'f0000000-0000-0000-0000-000000000001',
+  'std_cozy': 'f0000000-0000-0000-0000-000000000001',
+  'room_01': 'f0000000-0000-0000-0000-000000000001',
+  'ROOM_01': 'f0000000-0000-0000-0000-000000000001',
+  'std_room_2': 'f0000000-0000-0000-0000-000000000002',
+  'std_vintage': 'f0000000-0000-0000-0000-000000000002',
+  'room_02': 'f0000000-0000-0000-0000-000000000002',
+  'ROOM_02': 'f0000000-0000-0000-0000-000000000002',
+  'std_garden': 'f0000000-0000-0000-0000-000000000003',
+  'std_nature': 'f0000000-0000-0000-0000-000000000003',
+  'garden': 'f0000000-0000-0000-0000-000000000003',
+  'GARDEN': 'f0000000-0000-0000-0000-000000000003',
+
+  // Addons
+  'add_makeup': 'e0000000-0000-0000-0000-000000000001',
+  'makeup': 'e0000000-0000-0000-0000-000000000001',
+  'add_hair': 'e0000000-0000-0000-0000-000000000002',
+  'hair': 'e0000000-0000-0000-0000-000000000002',
+  'add_concept': 'e0000000-0000-0000-0000-000000000003',
+  'concept': 'e0000000-0000-0000-0000-000000000003',
+  'add_time': 'e0000000-0000-0000-0000-000000000004',
+  'time': 'e0000000-0000-0000-0000-000000000004',
+  'add_album': 'e0000000-0000-0000-0000-000000000005',
+  'album': 'e0000000-0000-0000-0000-000000000005',
+  'add_express': 'e0000000-0000-0000-0000-000000000006',
+  'express': 'e0000000-0000-0000-0000-000000000006',
+};
+
+export async function resolveEntityUuid(
+  idOrSlug: string,
+  table: 'services' | 'packages' | 'studio_rooms' | 'addons'
+): Promise<string> {
+  if (!idOrSlug) return idOrSlug;
+  if (UUID_REGEX.test(idOrSlug)) return idOrSlug;
+  if (SLUG_TO_UUID_MAP[idOrSlug]) return SLUG_TO_UUID_MAP[idOrSlug];
+
+  try {
+    if (isSupabaseConfigured()) {
+      const col = table === 'studio_rooms' ? 'code' : 'slug';
+      const { data } = await supabase
+        .from(table)
+        .select('id')
+        .or(`slug.eq.${idOrSlug},${col}.eq.${idOrSlug}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.id && UUID_REGEX.test(data.id)) {
+        return data.id;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return idOrSlug;
+}
+
 /**
  * Creates a new booking with database-level anti-double-booking protection
  * and authoritative server-side price calculation.
@@ -90,19 +173,27 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
   if (isSupabaseConfigured()) {
     const startIso = `${request.date}T${request.timeSlot}:00+07:00`;
 
+    const serviceId = await resolveEntityUuid(request.serviceId, 'services');
+    const packageId = await resolveEntityUuid(request.packageId, 'packages');
+    const studioId = await resolveEntityUuid(request.studioId, 'studio_rooms');
+    const addonIds = await Promise.all(
+      (request.addonIds || []).map(id => resolveEntityUuid(id, 'addons'))
+    );
+    const validConceptIds = conceptIds.filter(id => UUID_REGEX.test(id));
+
     const { data, error } = await supabase.rpc('create_booking', {
-      p_service_id: request.serviceId,
-      p_package_id: request.packageId,
-      p_studio_room_id: request.studioId,
+      p_service_id: serviceId,
+      p_package_id: packageId,
+      p_studio_room_id: studioId,
       p_start_at: startIso,
-      p_addon_ids: request.addonIds || [],
+      p_addon_ids: addonIds.filter(id => UUID_REGEX.test(id)),
       p_voucher_code: request.voucherCode || null,
       p_customer_name: request.customerName || null,
       p_customer_phone: request.customerPhone || null,
       p_customer_email: request.customerEmail || null,
       p_occasion: request.occasion || null,
       p_customer_note: request.customerNote || null,
-      p_concept_ids: conceptIds,
+      p_concept_ids: validConceptIds,
     });
 
     if (error) {

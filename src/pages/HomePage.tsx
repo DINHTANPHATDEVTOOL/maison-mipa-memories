@@ -62,8 +62,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
 
       {/* 4. Services */}
       <ServicesSection
-        onSelectService={(serviceId) => {
-          const matchedSlug = serviceId.replace('srv_', '');
+        onSelectService={(serviceId, slug) => {
+          const matchedSlug = slug || serviceId.replace('srv_', '');
           navigate(`/dich-vu/${matchedSlug}`);
         }}
       />
