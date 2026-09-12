@@ -1471,7 +1471,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         />
                       </div>
 
-                      <div style={{ fontSize: '0.82rem', color: 'var(--editorial-text-primary)', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.85rem 1rem', borderRadius: '4px', border: '1px solid var(--editorial-divider)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--booking-text)', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.85rem 1rem', borderRadius: '4px', border: '1px solid var(--editorial-divider)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         <div>Ngân hàng: <strong>{activeBankConfig.bankName}</strong></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span>Số tài khoản: <strong>{activeBankConfig.accountNumber}</strong></span>

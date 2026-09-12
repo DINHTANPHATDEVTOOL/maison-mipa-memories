@@ -2,34 +2,20 @@ import { test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-// Output directories: test-results/ and conversation artifacts (without committing to public/)
+// Output directory: test-results/ (without committing to public/)
 const TEST_RESULTS_DIR = path.resolve(process.cwd(), 'test-results/screenshots');
-const CONVERSATION_DIR =
-  process.env.ARTIFACT_DIR ||
-  path.resolve(process.env.USERPROFILE || '.', '.gemini/antigravity-ide/brain/1bb9ddf6-52d0-46a5-aaf7-4e5792bcd475/screenshots');
 
-[TEST_RESULTS_DIR, CONVERSATION_DIR].forEach((dir) => {
-  try {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  } catch {
-    // Graceful fallback if conversation directory cannot be created in non-standard OS
+try {
+  if (!fs.existsSync(TEST_RESULTS_DIR)) {
+    fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
   }
-});
+} catch {
+  // Graceful fallback
+}
 
 async function saveScreenshot(page: any, filename: string, options?: any) {
   const testResultsPath = path.join(TEST_RESULTS_DIR, filename);
-  const tasks: Promise<any>[] = [page.screenshot({ path: testResultsPath, ...options })];
-
-  try {
-    if (fs.existsSync(CONVERSATION_DIR)) {
-      const convPath = path.join(CONVERSATION_DIR, filename);
-      tasks.push(page.screenshot({ path: convPath, ...options }));
-    }
-  } catch {}
-
-  await Promise.all(tasks);
+  await page.screenshot({ path: testResultsPath, ...options });
 }
 
 test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
@@ -52,23 +38,11 @@ test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
     await page.waitForTimeout(400);
     await saveScreenshot(page, '02_hero_after_slight_scroll.png');
 
-    // 2b. Seasonal Campaign Privilege Banner & Marquee Ribbon
-    const seasonalBanner = page.getByTestId('seasonal-campaign-banner');
-    await seasonalBanner.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(400);
-    await saveScreenshot(page, '02b_seasonal_privilege_banner.png');
-
     // 3. Selected works 3D composition
     const selectedWorks = page.locator('section').filter({ hasText: /BỘ SƯU TẬP & BỐI CẢNH/i });
     await selectedWorks.scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     await saveScreenshot(page, '03_selected_works.png');
-
-    // 3b. Curatorial Split Magazine Banner (Vogue / Elle Editorial)
-    const splitBanner = page.getByTestId('curatorial-split-banner');
-    await splitBanner.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(400);
-    await saveScreenshot(page, '03b_curatorial_split_banner.png');
 
     // 4. Full-bleed image transition section
     const fullBleed = page.locator('section.cinematic-scene').filter({ hasText: /LE TEMPS SUSPENDU/i });

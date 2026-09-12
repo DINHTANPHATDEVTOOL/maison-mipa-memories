@@ -1,16 +1,16 @@
 // ==============================================================================
-// Maison MIPA — The Living French Atelier Canvas & WebGL Lifecycle
+// Maison MIPA — The Living French Atelier Canvas & WebGL Lifecycle (Blocker 2, 5, 8, 30, 36)
 // ==============================================================================
 import React, { Suspense, useState, useEffect, useRef } from 'react';
+import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import type {
   AtelierArtwork,
   AtelierCameraMode,
-  AtelierLightingMode,
   LightingPresetConfig,
 } from './atelierTypes';
 import { AtelierScene } from './AtelierScene';
-import { CAMERA_PRESETS } from './atelierConfig';
+import { getCameraPreset } from './atelierConfig';
 
 interface AtelierCanvasProps {
   cameraMode: AtelierCameraMode;
@@ -32,7 +32,8 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
   onWebGLFailure,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pointer, setPointer] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Blocker 5: use pointerRef instead of useState to avoid high-frequency React rerenders
+  const pointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isIntersecting, setIsIntersecting] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -59,18 +60,20 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Handle pointer tracking for camera parallax
+  // Handle pointer tracking for camera parallax using ref directly (0 React rerenders)
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (reducedMotion || isMobile || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-    setPointer({ x, y });
+    pointerRef.current.x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    pointerRef.current.y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
   };
 
   const handlePointerLeave = () => {
-    setPointer({ x: 0, y: 0 });
+    pointerRef.current.x = 0;
+    pointerRef.current.y = 0;
   };
+
+  const initialCam = getCameraPreset(cameraMode, isMobile);
 
   return (
     <div
@@ -82,12 +85,13 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
         width: '100%',
         height: '100%',
         position: 'relative',
-        cursor: 'grab',
+        cursor: 'default', // Blocker 8 & 30: default cursor on scene, pointer on artworks
         touchAction: 'pan-y',
       }}
     >
       <Canvas
-        dpr={isMobile ? [1, 1.3] : [1, 1.75]}
+        shadows={{ type: THREE.PCFShadowMap }} // Blocker 2: enable real R3F shadows
+        dpr={isMobile ? [1, 1.25] : [1, 1.6]}
         frameloop={isIntersecting ? 'always' : 'demand'}
         gl={{
           antialias: true,
@@ -97,13 +101,32 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
           depth: true,
         }}
         camera={{
-          position: CAMERA_PRESETS.WIDE.position,
-          fov: CAMERA_PRESETS.WIDE.fov,
+          position: initialCam.position,
+          fov: initialCam.fov,
           near: 0.1,
           far: 40,
         }}
         onCreated={({ gl }) => {
           gl.toneMappingExposure = 1.0;
+
+          // Blocker 36: context loss fallback handling
+          const handleContextLost = (event: Event) => {
+            event.preventDefault();
+            console.warn('WebGL context lost, falling back to static poster if unrecovered');
+            setTimeout(() => {
+              const ctx = gl.getContext();
+              if (ctx && typeof ctx.isContextLost === 'function' && ctx.isContextLost()) {
+                onWebGLFailure();
+              }
+            }, 1500);
+          };
+
+          const handleContextRestored = () => {
+            console.info('WebGL context restored');
+          };
+
+          gl.domElement.addEventListener('webglcontextlost', handleContextLost, false);
+          gl.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
         }}
         onError={() => {
           onWebGLFailure();
@@ -115,7 +138,7 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
             lightingPreset={lightingPreset}
             artworks={artworks}
             activeArtworkId={activeArtworkId}
-            pointer={pointer}
+            pointerRef={pointerRef}
             onSelectArtwork={onSelectArtwork}
             reducedMotion={reducedMotion}
             isMobile={isMobile}

@@ -1,11 +1,10 @@
 // ==============================================================================
-// Maison MIPA — Restrained Editorial Controls (Lighting & Camera Presets)
+// Maison MIPA — Restrained Curatorial Editorial Controls (Blockers 24 & 31)
 // ==============================================================================
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type {
   AtelierCameraMode,
   AtelierLightingMode,
-  LightingPresetConfig,
 } from './atelierTypes';
 import { LIGHTING_PRESETS } from './atelierConfig';
 
@@ -24,65 +23,77 @@ export const AtelierControls: React.FC<AtelierControlsProps> = ({
   onSelectCamera,
   onResetCamera,
 }) => {
-  const cameraOptions: { id: AtelierCameraMode; label: string }[] = [
-    { id: 'WIDE', label: 'Toàn cảnh' },
-    { id: 'EASEL', label: 'Tiêu điểm giá vẽ' },
-    { id: 'WINDOW', label: 'Góc nắng' },
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const cameraOptions: { id: AtelierCameraMode; desktopLabel: string; mobileLabel: string }[] = [
+    { id: 'WIDE', desktopLabel: 'Toàn cảnh', mobileLabel: 'Toàn cảnh' },
+    { id: 'EASEL', desktopLabel: 'Giá vẽ', mobileLabel: 'Ảnh' },
+    { id: 'WINDOW', desktopLabel: 'Góc nắng', mobileLabel: 'Nắng' },
   ];
+
+  const lightingModes: AtelierLightingMode[] = ['SUNSET', 'MORNING', 'AFTERNOON'];
 
   return (
     <div
+      className="atelier-curatorial-controls"
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '1rem',
-        padding: '0.65rem 1.25rem',
-        borderRadius: '4px',
-        backgroundColor: 'rgba(21, 17, 14, 0.65)',
-        border: '1px solid rgba(198, 164, 95, 0.22)',
-        backdropFilter: 'blur(8px)',
+        gap: '0.8rem 1.5rem',
+        padding: '0.5rem 0.5rem 1rem 0.5rem',
+        color: '#D1C4B7',
       }}
     >
-      {/* 1. CAMERA NAVIGATION MODES */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+      {/* 1. CAMERA VIEWS (Desktop: Bottom-Left feeling) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
         <span
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.7rem',
             textTransform: 'uppercase',
-            letterSpacing: '0.14em',
+            letterSpacing: '0.16em',
             fontWeight: 600,
             color: '#C6A45F',
-            marginRight: '0.3rem',
+            marginRight: '0.2rem',
           }}
         >
           GÓC NHÌN
         </span>
 
-        {cameraOptions.map((opt) => {
+        {cameraOptions.map((opt, idx) => {
           const isActive = activeCamera === opt.id;
           return (
-            <button
-              key={opt.id}
-              type="button"
-              data-testid={`camera-btn-${opt.id.toLowerCase()}`}
-              onClick={() => onSelectCamera(opt.id)}
-              style={{
-                padding: '0.32rem 0.75rem',
-                borderRadius: '3px',
-                fontSize: '0.78rem',
-                border: isActive ? '1px solid #C6A45F' : '1px solid rgba(198, 164, 95, 0.2)',
-                backgroundColor: isActive ? 'rgba(198, 164, 95, 0.18)' : 'transparent',
-                color: isActive ? '#FBF6EE' : '#D1C4B7',
-                fontWeight: isActive ? 600 : 400,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {opt.label}
-            </button>
+            <React.Fragment key={opt.id}>
+              {idx > 0 && <span style={{ color: 'rgba(198, 164, 95, 0.3)', fontSize: '0.8rem' }}>·</span>}
+              <button
+                type="button"
+                data-testid={`camera-btn-${opt.id.toLowerCase()}`}
+                onClick={() => onSelectCamera(opt.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '0.2rem 0.35rem',
+                  fontSize: '0.82rem',
+                  fontFamily: 'var(--editorial-font-body, sans-serif)',
+                  color: isActive ? '#FBF6EE' : '#9E8D7F',
+                  fontWeight: isActive ? 600 : 400,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  borderBottom: isActive ? '1.5px solid #C6A45F' : '1.5px solid transparent',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {isMobile ? opt.mobileLabel : opt.desktopLabel}
+              </button>
+            </React.Fragment>
           );
         })}
 
@@ -92,12 +103,13 @@ export const AtelierControls: React.FC<AtelierControlsProps> = ({
           aria-label="Đặt lại góc nhìn camera 3D"
           data-testid="camera-btn-reset"
           style={{
-            padding: '0.32rem 0.65rem',
-            fontSize: '0.76rem',
-            borderRadius: '3px',
+            marginLeft: '0.5rem',
+            background: 'none',
             border: '1px solid rgba(198, 164, 95, 0.25)',
-            backgroundColor: 'rgba(255, 255, 255, 0.04)',
-            color: '#E0C287',
+            borderRadius: '2px',
+            padding: '0.2rem 0.5rem',
+            fontSize: '0.72rem',
+            color: '#C6A45F',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
@@ -106,13 +118,13 @@ export const AtelierControls: React.FC<AtelierControlsProps> = ({
         </button>
       </div>
 
-      {/* 2. LIGHTING PRESETS */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+      {/* 2. LIGHTING PRESETS (Desktop: Bottom-Right feeling) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
         <span
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.7rem',
             textTransform: 'uppercase',
-            letterSpacing: '0.12em',
+            letterSpacing: '0.16em',
             fontWeight: 600,
             color: '#A39385',
             marginRight: '0.2rem',
@@ -121,34 +133,32 @@ export const AtelierControls: React.FC<AtelierControlsProps> = ({
           ÁNH SÁNG
         </span>
 
-        {(Object.keys(LIGHTING_PRESETS) as AtelierLightingMode[]).map((mode) => {
+        {lightingModes.map((mode, idx) => {
           const preset = LIGHTING_PRESETS[mode];
           const isActive = activeLighting === mode;
           return (
-            <button
-              key={mode}
-              type="button"
-              data-testid={`lighting-btn-${mode.toLowerCase()}`}
-              onClick={() => onSelectLighting(mode)}
-              style={{
-                padding: '0.32rem 0.75rem',
-                borderRadius: '3px',
-                fontSize: '0.78rem',
-                border: isActive ? '1px solid #C6A45F' : '1px solid rgba(255, 255, 255, 0.1)',
-                backgroundColor: isActive ? '#E0C287' : 'transparent',
-                color: isActive ? '#15110E' : '#D1C4B7',
-                fontWeight: isActive ? 700 : 400,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <span>
-                {preset.name}{' '}
-                <span style={{ opacity: 0.8, fontSize: '0.72rem', fontWeight: 400 }}>
-                  ({preset.timeLabel})
-                </span>
-              </span>
-            </button>
+            <React.Fragment key={mode}>
+              {idx > 0 && <span style={{ color: 'rgba(198, 164, 95, 0.3)', fontSize: '0.8rem' }}>·</span>}
+              <button
+                type="button"
+                data-testid={`lighting-btn-${mode.toLowerCase()}`}
+                onClick={() => onSelectLighting(mode)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '0.2rem 0.35rem',
+                  fontSize: '0.82rem',
+                  fontFamily: 'var(--editorial-font-body, sans-serif)',
+                  color: isActive ? '#E0C287' : '#9E8D7F',
+                  fontWeight: isActive ? 600 : 400,
+                  cursor: 'pointer',
+                  borderBottom: isActive ? '1.5px solid #E0C287' : '1.5px solid transparent',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {isMobile ? preset.timeLabel : `${preset.timeLabel} · ${preset.name}`}
+              </button>
+            </React.Fragment>
           );
         })}
       </div>

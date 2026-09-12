@@ -33,6 +33,16 @@
   --editorial-darkroom-text: #FBF6EE;
   --editorial-brown-secondary: #D1C4B7;
   --editorial-accent: #C6A45F;
+
+  /* Booking Semantic Tokens (WCAG-compliant Light Surfaces) */
+  --booking-bg: #F7F2EA;
+  --booking-surface: #FFFFFF;
+  --booking-surface-muted: #F0EAE1;
+  --booking-text: #2B211B;
+  --booking-text-secondary: #67584D;
+  --booking-border: #D8C9B9;
+  --booking-accent: #8B6C3F;
+  --booking-accent-dark: #604634;
 }
 
 /* Base Editorial Typography */
@@ -280,10 +290,11 @@
 }
 
 .public-btn-link:hover {
-  color: #463224;
+  color: var(--editorial-gold-bright, #E8CF9B);
 }
 
 .public-btn-link:hover::after {
+  background-color: var(--editorial-gold-bright, #E8CF9B);
   opacity: 1;
 }
 
@@ -562,16 +573,58 @@
    ============================================================================== */
 
 .booking-wizard-container {
-  background-color: var(--editorial-paper);
+  background-color: var(--booking-bg);
+  color: var(--booking-text);
+  --editorial-brown: var(--booking-text);
+  --editorial-brown-secondary: var(--booking-text-secondary);
+  --editorial-text-primary: var(--booking-text);
+  --editorial-text-secondary: var(--booking-text-secondary);
+  --editorial-text-muted: #7E6F64;
+  --editorial-divider: var(--booking-border);
+  --editorial-paper: var(--booking-bg);
+  --editorial-white: var(--booking-surface);
+  --editorial-brown-accent: var(--booking-accent);
   border-radius: 8px;
   width: 100%;
   max-width: 1040px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 12px 36px rgba(41, 35, 31, 0.12);
-  border: 1px solid var(--editorial-divider);
+  box-shadow: 0 16px 40px rgba(43, 33, 27, 0.22);
+  border: 1px solid var(--booking-border);
   overflow: hidden;
+}
+
+.booking-wizard-container strong,
+.booking-wizard-container b {
+  color: var(--booking-text);
+}
+
+.booking-wizard-container .mipa-input,
+.booking-wizard-container select,
+.booking-wizard-container input,
+.booking-wizard-container textarea {
+  background-color: var(--booking-surface);
+  color: var(--booking-text);
+  border: 1px solid var(--booking-border);
+}
+
+.booking-wizard-container .mipa-input:focus,
+.booking-wizard-container select:focus,
+.booking-wizard-container input:focus,
+.booking-wizard-container textarea:focus {
+  border-color: var(--booking-accent);
+  box-shadow: 0 0 0 3px rgba(139, 108, 63, 0.15);
+  background-color: #FFFFFF;
+}
+
+.booking-wizard-container .mipa-label {
+  color: var(--booking-text);
+}
+
+.booking-wizard-container input::placeholder,
+.booking-wizard-container textarea::placeholder {
+  color: #8E7E73;
 }
 
 @media (max-width: 768px) {
@@ -586,8 +639,8 @@
 
 .booking-wizard-header {
   padding: 1.25rem 1.75rem;
-  border-bottom: 1px solid var(--editorial-divider);
-  background-color: var(--editorial-paper);
+  border-bottom: 1px solid var(--booking-border);
+  background-color: var(--booking-bg);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -596,7 +649,7 @@
 .booking-progress-bar {
   display: flex;
   height: 3px;
-  background-color: rgba(96, 70, 52, 0.08);
+  background-color: rgba(103, 88, 77, 0.12);
 }
 
 .booking-progress-step {
@@ -606,25 +659,52 @@
 }
 
 .booking-progress-step.active {
-  background-color: var(--editorial-brown);
+  background-color: var(--booking-accent);
 }
 
 .booking-card-option {
-  background-color: var(--editorial-white);
-  border: 1px solid var(--editorial-divider);
+  background-color: var(--booking-surface);
+  border: 1px solid var(--booking-border);
   border-radius: 4px;
   padding: 1rem;
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  color: var(--booking-text);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .booking-card-option:hover {
-  border-color: var(--editorial-brown-accent);
+  border-color: var(--booking-accent);
+  box-shadow: 0 2px 8px rgba(43, 33, 27, 0.08);
 }
 
 .booking-card-option.selected {
-  border: 2px solid var(--editorial-brown);
-  background-color: #FAF6EE;
+  border: 2px solid var(--booking-accent);
+  background-color: #FFFDF8;
+}
+
+/* ==============================================================================
+   RESPONSIVE ATELIER 3D VIEWPORT (Blocker 4 & 23)
+   ============================================================================== */
+.atelier-viewport {
+  width: 100%;
+  height: clamp(620px, 72vh, 820px);
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(198, 164, 95, 0.2);
+  transition: background 1.2s ease;
+}
+
+@media (max-width: 1024px) {
+  .atelier-viewport {
+    height: min(68vh, 680px);
+  }
+}
+
+@media (max-width: 768px) {
+  .atelier-viewport {
+    height: clamp(460px, 62vh, 600px);
+  }
 }
 
 /* Calm Step Crossfade & Horizontal Slide (240ms) */

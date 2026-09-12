@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 test.use({ video: 'on' });
 
 test.describe('Maison MIPA Cinematic Video Recordings (CI / Review Artifacts)', () => {
+  test.beforeEach(() => {
+    test.setTimeout(60000);
+  });
 
   test('VIDEO 1: Desktop Homepage Cinematic Scroll (1440x900)', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

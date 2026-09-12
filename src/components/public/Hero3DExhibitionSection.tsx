@@ -1,16 +1,10 @@
 // ==============================================================================
-// Maison MIPA Memories — Flagship Visual Experience V4
+// Maison MIPA Memories — Flagship Visual Experience V4 (Hardening & Polish Pass)
 // THE LIVING FRENCH ATELIER — True 3D Interactive WebGL Studio Diorama
 // ==============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
-import {
-  Sparkles,
-  Calendar,
-  ArrowRight,
-  Compass,
-} from 'lucide-react';
+import { Compass } from 'lucide-react';
 import type {
   AtelierArtwork,
   AtelierCameraMode,
@@ -20,18 +14,21 @@ import {
   DEFAULT_ATELIER_ARTWORKS,
   LIGHTING_PRESETS,
 } from './atelier/atelierConfig';
-import { AtelierCanvas } from './atelier/AtelierCanvas';
+const AtelierCanvas = React.lazy(() =>
+  import('./atelier/AtelierCanvas').then((m) => ({ default: m.AtelierCanvas }))
+);
 import { AtelierControls } from './atelier/AtelierControls';
 import { ArtworkInspection } from './atelier/ArtworkInspection';
 
 interface Hero3DExhibitionSectionProps {
   onOpenBooking: (conceptSlug?: string) => void;
+  artworks?: AtelierArtwork[];
 }
 
 export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = ({
   onOpenBooking,
+  artworks: propArtworks,
 }) => {
-  const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
 
   // State
@@ -39,6 +36,7 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
   const [lightingMode, setLightingMode] = useState<AtelierLightingMode>('SUNSET');
   const [selectedArtwork, setSelectedArtwork] = useState<AtelierArtwork | null>(null);
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -51,6 +49,13 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
       return false;
     }
   });
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Verify WebGL context availability on mount
   useEffect(() => {
@@ -67,13 +72,14 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
   }, []);
 
   const currentLighting = useMemo(() => LIGHTING_PRESETS[lightingMode], [lightingMode]);
-  const artworks = DEFAULT_ATELIER_ARTWORKS;
+  const artworks = propArtworks && propArtworks.length > 0 ? propArtworks : DEFAULT_ATELIER_ARTWORKS;
 
   const handleSelectCamera = (mode: AtelierCameraMode) => {
     setCameraMode(mode);
     if (!hasInteracted) setHasInteracted(true);
   };
 
+  // Blocker 9: reset camera to wide composition and reset interaction offset
   const handleResetCamera = () => {
     setCameraMode('WIDE');
   };
@@ -83,15 +89,20 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
     if (!hasInteracted) setHasInteracted(true);
   };
 
+  const handleSelectArtwork = (artwork: AtelierArtwork) => {
+    setSelectedArtwork(artwork);
+    if (!hasInteracted) setHasInteracted(true);
+  };
+
   return (
     <section
       id="atelier-3d"
       data-testid="hero-3d-exhibition"
       className="editorial-section hero-3d-section living-french-atelier"
-      aria-label="Căn Phòng Triển Lãm 3D Maison MIPA"
+      aria-label="Căn phòng atelier Maison MIPA"
       style={{
-        paddingTop: '2.5rem',
-        paddingBottom: '4rem',
+        paddingTop: '2rem',
+        paddingBottom: '3.5rem',
         backgroundColor: '#15110E',
         color: '#FBF6EE',
         overflow: 'hidden',
@@ -101,106 +112,51 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
     >
       <div className="editorial-container-wide">
         {/* =====================================================================
-            HERO EDITORIAL HEADER
+            HERO EDITORIAL HEADER (Blocker 14 & 32: Curated, calm, restrained)
             ===================================================================== */}
-        <div style={{ textAlign: 'center', maxWidth: '880px', margin: '0 auto 2rem' }}>
-          {/* Overline Badge */}
-          <div
+        <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 1.4rem' }}>
+          <span
+            className="editorial-overline"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.4rem 1.1rem',
-              borderRadius: '999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(198, 164, 95, 0.3)',
-              marginBottom: '1.25rem',
-              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
+              display: 'block',
+              letterSpacing: '0.22em',
+              color: '#C6A45F',
+              marginBottom: '0.45rem',
+              fontSize: '0.74rem',
             }}
           >
-            <Sparkles size={14} style={{ color: '#C6A45F' }} />
-            <span
-              style={{
-                fontFamily: 'var(--editorial-font-body)',
-                fontSize: '0.74rem',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: '#E0C287',
-                fontWeight: 600,
-              }}
-            >
-              MAISON MIPA / SAIGON • ATELIER VIRTUEL 3D & EXPOSITION
-            </span>
-          </div>
+            MAISON MIPA / ATELIER
+          </span>
 
-          {/* Main Editorial Hero Headline */}
           <h1
             className="editorial-h1"
             style={{
-              fontSize: 'clamp(2.4rem, 4.5vw, 4.2rem)',
-              lineHeight: 1.14,
-              marginBottom: '1rem',
+              fontSize: 'clamp(2.1rem, 4.2vw, 3.4rem)',
+              lineHeight: 1.18,
+              marginBottom: '0.6rem',
               color: '#FBF6EE',
+              fontWeight: 500,
             }}
           >
-            Căn Phòng Triển Lãm Không Gian 3 Chiều
+            Bước vào căn phòng của những ký ức.
           </h1>
 
           <p
             className="editorial-copy"
             style={{
-              fontSize: '1.08rem',
-              maxWidth: '740px',
-              margin: '0 auto 1.75rem',
+              fontSize: '0.96rem',
+              maxWidth: '560px',
+              margin: '0 auto',
               color: '#D1C4B7',
-              lineHeight: 1.65,
+              lineHeight: 1.6,
             }}
           >
-            Trực tiếp ngắm các tác phẩm ảnh treo tường trong không gian studio phong cách Pháp:
-            vòm cửa đón nắng tự nhiên, sàn gỗ sồi và rèm lụa mộc buông rủ.
+            Không gian studio phong cách Pháp với ánh sáng tự nhiên và các tác phẩm nghệ thuật chọn lọc.
           </p>
-
-          {/* Header Action Buttons */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => onOpenBooking()}
-              className="public-btn-primary"
-              style={{
-                padding: '0.9rem 2.2rem',
-                fontSize: '0.98rem',
-                fontWeight: 600,
-              }}
-            >
-              <Calendar size={16} />
-              <span>Đặt Lịch Chụp Ngay</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/portfolio')}
-              className="public-btn-secondary"
-              style={{
-                padding: '0.9rem 2rem',
-                fontSize: '0.98rem',
-              }}
-            >
-              <span>Xem Toàn Bộ Portfolio</span>
-              <ArrowRight size={16} />
-            </button>
-          </div>
         </div>
 
         {/* =====================================================================
-            RESTRAINED EDITORIAL CONTROLS (Typography First)
+            RESTRAINED EDITORIAL CONTROLS (Blocker 24 & 31: Curatorial typography)
             ===================================================================== */}
         <AtelierControls
           activeLighting={lightingMode}
@@ -211,32 +167,53 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
         />
 
         {/* =====================================================================
-            THE LIVING FRENCH ATELIER 3D VIEWPORT (WebGL Canvas or Fallback)
+            THE LIVING FRENCH ATELIER 3D VIEWPORT (Blocker 4 & 23: Responsive height)
             ===================================================================== */}
         <div
           data-testid="virtual-exhibition-viewport"
+          className="atelier-viewport"
+          onPointerDown={() => { if (!hasInteracted) setHasInteracted(true); }}
           style={{
-            width: '100%',
-            height: '680px',
-            position: 'relative',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            border: '1px solid rgba(198, 164, 95, 0.25)',
             background: currentLighting.bgGradient,
-            boxShadow: '0 30px 80px rgba(0, 0, 0, 0.75), inset 0 0 140px rgba(0, 0, 0, 0.65)',
-            transition: 'background 1.2s ease',
           }}
         >
           {webglAvailable ? (
-            <AtelierCanvas
-              cameraMode={cameraMode}
-              lightingPreset={currentLighting}
-              artworks={artworks}
-              activeArtworkId={selectedArtwork?.id || 'art-02'}
-              onSelectArtwork={setSelectedArtwork}
-              reducedMotion={prefersReduced}
-              onWebGLFailure={() => setWebglAvailable(false)}
-            />
+            <React.Suspense
+              fallback={
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: currentLighting.bgGradient,
+                  }}
+                >
+                  <img
+                    src="/studio.png"
+                    alt="Maison MIPA Atelier"
+                    style={{
+                      maxWidth: '480px',
+                      width: '75%',
+                      opacity: 0.5,
+                      borderRadius: '4px',
+                      filter: 'sepia(20%)',
+                    }}
+                  />
+                </div>
+              }
+            >
+              <AtelierCanvas
+                cameraMode={cameraMode}
+                lightingPreset={currentLighting}
+                artworks={artworks}
+                activeArtworkId={selectedArtwork?.id || artworks[0]?.id || 'c1000000-0000-0000-0000-000000000002'}
+                onSelectArtwork={handleSelectArtwork}
+                reducedMotion={prefersReduced}
+                onWebGLFailure={() => setWebglAvailable(false)}
+              />
+            </React.Suspense>
           ) : (
             /* Graceful Fallback for Non-WebGL / Low-Power Devices */
             <div
@@ -257,47 +234,47 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
             >
               <div
                 style={{
-                  maxWidth: '520px',
-                  border: '12px solid #3A2A1E',
-                  outline: '1px solid #C6A45F',
+                  maxWidth: '500px',
+                  border: '8px solid #3A2A1E',
+                  outline: '1px solid rgba(198, 164, 95, 0.5)',
                   boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
                   backgroundColor: '#261E18',
-                  padding: '12px',
-                  marginBottom: '1.5rem',
+                  padding: '8px',
+                  marginBottom: '1.2rem',
                 }}
               >
                 <img
                   src="/studio.png"
                   alt="Maison MIPA Atelier"
-                  style={{ width: '100%', maxHeight: '340px', objectFit: 'cover', display: 'block' }}
+                  style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }}
                 />
               </div>
               <h3
                 style={{
                   fontFamily: 'var(--editorial-font-heading, serif)',
-                  fontSize: '1.4rem',
+                  fontSize: '1.35rem',
                   color: '#FAF4EB',
-                  marginBottom: '0.5rem',
+                  marginBottom: '0.4rem',
                 }}
               >
                 MAISON MIPA / ATELIER
               </h3>
-              <p style={{ color: '#D1C4B7', fontSize: '0.9rem', maxWidth: '440px' }}>
+              <p style={{ color: '#D1C4B7', fontSize: '0.88rem', maxWidth: '420px', margin: 0 }}>
                 Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp & tinh tế.
               </p>
             </div>
           )}
 
-          {/* Floating Guidance Badge */}
+          {/* Floating Guidance Badge (Blocker 10: hides upon real interaction; mobile-friendly text) */}
           {!hasInteracted && (
             <div
               style={{
                 position: 'absolute',
-                bottom: '22px',
+                bottom: '18px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 zIndex: 20,
-                padding: '0.5rem 1.1rem',
+                padding: '0.45rem 1rem',
                 borderRadius: '999px',
                 backgroundColor: 'rgba(18, 14, 11, 0.85)',
                 color: '#FAF4EB',
@@ -305,14 +282,14 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
                 backdropFilter: 'blur(8px)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.8rem',
+                gap: '0.45rem',
+                fontSize: '0.78rem',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
                 pointerEvents: 'none',
               }}
             >
-              <Compass size={15} style={{ color: '#C6A45F' }} />
-              <span>Chạm hoặc rê chuột để khám phá không gian 3D Atelier</span>
+              <Compass size={14} style={{ color: '#C6A45F' }} />
+              <span>{isMobile ? 'Chạm để khám phá atelier' : 'Chạm hoặc rê chuột để khám phá atelier'}</span>
             </div>
           )}
         </div>

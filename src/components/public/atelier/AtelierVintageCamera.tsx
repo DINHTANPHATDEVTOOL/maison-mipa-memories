@@ -4,9 +4,16 @@
 import React from 'react';
 import * as THREE from 'three';
 
-export const AtelierVintageCamera: React.FC = () => {
+interface AtelierVintageCameraProps {
+  isMobile?: boolean;
+}
+
+export const AtelierVintageCamera: React.FC<AtelierVintageCameraProps> = ({ isMobile = false }) => {
   return (
-    <group position={[3.2, -0.2, 3.0]}>
+    <group
+      position={isMobile ? [3.6, -0.2, 3.0] : [3.2, -0.2, 3.0]}
+      scale={isMobile ? [0.78, 0.78, 0.78] : [1, 1, 1]}
+    >
       {/* 1. VINTAGE CAMERA HEAD */}
       <group position={[0, 0.7, 0]} rotation={[0, -0.42, 0]}>
         {/* Mahogany Wooden Body Frame */}

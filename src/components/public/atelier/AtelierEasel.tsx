@@ -108,6 +108,9 @@ export const AtelierEasel: React.FC<AtelierEaselProps> = ({
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
+  // Blocker 8 & 30: switch cursor to pointer on hovering artwork, default otherwise
+  useCursor(hoveredId !== null, 'pointer', 'default');
+
   const centerArtwork = artworks.find((a) => a.wallPosition === 'center') || artworks[0];
   const leftArtwork = artworks.find((a) => a.wallPosition === 'left');
   const rightArtwork = artworks.find((a) => a.wallPosition === 'right');

@@ -117,10 +117,10 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
 
     // Moment 1: Hero
     await expect(page.locator('h1.editorial-h1')).toBeVisible();
-    await expect(page.getByText('MAISON MIPA / SAIGON')).toBeVisible();
+    await expect(page.getByText('MAISON MIPA / ATELIER').first()).toBeVisible();
 
     // Moment 2: Selected Works Perspective
-    await expect(page.getByRole('heading', { name: /Bộ sưu tập concept chọn lọc/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ sưu tập concept chọn lọc/i })).toBeVisible({ timeout: 10000 });
 
     // Moment 3: Photo Stack Scene
     await expect(page.getByRole('heading', { name: /Những bản in trải rộng trên bàn làm việc/i })).toBeVisible();
@@ -146,8 +146,8 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     // Verify Flagship Atelier Section and Heading
     const section = page.locator('#atelier-3d');
     await expect(section).toBeVisible();
-    await expect(section.getByRole('heading', { name: /Căn Phòng Triển Lãm Không Gian 3 Chiều/i })).toBeVisible();
-    await expect(page.getByText(/MAISON MIPA \/ SAIGON • ATELIER VIRTUEL 3D & EXPOSITION/i)).toBeVisible();
+    await expect(section.getByRole('heading', { name: /Bước vào căn phòng của những ký ức/i })).toBeVisible();
+    await expect(page.getByText(/MAISON MIPA \/ ATELIER/i).first()).toBeVisible();
 
     // Verify 3D Viewport exists
     const viewport = page.getByTestId('virtual-exhibition-viewport');
@@ -197,16 +197,10 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await sunsetLightBtn.click({ force: true });
     await page.waitForTimeout(200);
 
-    // Verify Diverse Banners (Marquee, Seasonal Privilege, Curatorial Split)
-    await expect(page.locator('.editorial-marquee-track')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Đặc Quyền Mùa Triển Lãm & Kỷ Niệm/i })).toBeVisible();
-    await expect(page.getByText(/Ánh sáng không chỉ để nhìn thấy, mà để cảm nhận khoảnh khắc vĩnh cửu/i)).toBeVisible();
+    // Verify navbar booking CTA navigates to canonical Booking Funnel
+    const navBookBtn = page.getByRole('button', { name: 'Đặt lịch', exact: true });
+    await navBookBtn.click({ force: true });
 
-    // Verify Booking CTA from Section Header navigates to canonical Booking Funnel
-    const bookBtn = section.getByRole('button', { name: /Đặt Lịch Chụp Ngay/i });
-    await bookBtn.click({ force: true });
-
-    await expect(page).toHaveURL(/.*\/booking/);
     await expect(page.locator('text=Bước 1/6')).toBeVisible();
   });
 

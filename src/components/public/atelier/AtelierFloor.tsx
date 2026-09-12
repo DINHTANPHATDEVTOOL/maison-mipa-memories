@@ -77,13 +77,15 @@ export const AtelierFloor: React.FC = () => {
         />
       </mesh>
 
-      {/* Realistic Soft Contact Shadows on Floor */}
+      {/* Realistic Soft Contact Shadows on Floor (Blocker 27: frames={1} for low render cost) */}
       <ContactShadows
         position={[0, 0.01, 0]}
-        opacity={0.75}
+        opacity={0.7}
         scale={14}
-        blur={2.2}
+        blur={2.0}
         far={4.5}
+        resolution={512}
+        frames={1}
         color="#080605"
       />
     </group>

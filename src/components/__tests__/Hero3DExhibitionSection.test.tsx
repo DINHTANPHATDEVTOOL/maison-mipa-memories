@@ -25,8 +25,8 @@ describe('Hero3DExhibitionSection Component (Flagship Atelier V4)', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Căn Phòng Triển Lãm Không Gian 3 Chiều/i)).toBeInTheDocument();
-    expect(screen.getByText(/MAISON MIPA \/ SAIGON • ATELIER VIRTUEL 3D & EXPOSITION/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bước vào căn phòng của những ký ức/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/MAISON MIPA \/ ATELIER/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('virtual-exhibition-viewport')).toBeInTheDocument();
   });
 
@@ -41,7 +41,7 @@ describe('Hero3DExhibitionSection Component (Flagship Atelier V4)', () => {
     );
 
     expect(screen.getByTestId('atelier-fallback-view')).toBeInTheDocument();
-    expect(screen.getByText(/MAISON MIPA \/ ATELIER/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/MAISON MIPA \/ ATELIER/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp & tinh tế./i)).toBeInTheDocument();
   });
 
@@ -159,8 +159,8 @@ describe('Hero3DExhibitionSection Component (Flagship Atelier V4)', () => {
     expect(screen.queryByText(/f\/2.8/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/1\/250s/i)).not.toBeInTheDocument();
 
-    // Trigger booking CTA
-    const bookBtn = screen.getByRole('button', { name: /Đặt Lịch Chụp Concept Này/i });
+    // Trigger booking CTA (Sentence-cased per Blocker 32)
+    const bookBtn = screen.getByRole('button', { name: /Đặt lịch concept này/i });
     fireEvent.click(bookBtn);
 
     expect(handleClose).toHaveBeenCalled();
@@ -170,19 +170,5 @@ describe('Hero3DExhibitionSection Component (Flagship Atelier V4)', () => {
     const closeBtn = screen.getByTestId('close-inspection-btn');
     fireEvent.click(closeBtn);
     expect(handleClose).toHaveBeenCalledTimes(2);
-  });
-
-  it('triggers top-level booking when hero button is clicked', () => {
-    const handleOpenBooking = vi.fn();
-
-    render(
-      <MemoryRouter>
-        <Hero3DExhibitionSection onOpenBooking={handleOpenBooking} />
-      </MemoryRouter>
-    );
-
-    const heroBookBtn = screen.getByRole('button', { name: /Đặt Lịch Chụp Ngay/i });
-    fireEvent.click(heroBookBtn);
-    expect(handleOpenBooking).toHaveBeenCalled();
   });
 });

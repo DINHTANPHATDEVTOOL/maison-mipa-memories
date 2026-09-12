@@ -9,12 +9,12 @@ export type QualityTier = 'high' | 'medium' | 'low';
 export interface AtelierArtwork {
   id: string;
   title: string;
-  frenchTitle: string;
-  conceptSlug: string;
+  frenchTitle?: string;
+  conceptSlug?: string;
   imageUrl: string;
-  dimensions: string;
+  dimensions?: string;
   description: string;
-  plaqueNumber: string;
+  plaqueNumber?: string;
   wallPosition: 'center' | 'left' | 'right';
   position: [number, number, number];
   rotation: [number, number, number];

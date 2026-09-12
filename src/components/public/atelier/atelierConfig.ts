@@ -21,7 +21,7 @@ export const ATELIER_PALETTE = {
   goldHighlight: '#E0C287',
 };
 
-export const CAMERA_PRESETS: Record<AtelierCameraMode, CameraPresetConfig> = {
+export const CAMERA_PRESETS_DESKTOP: Record<AtelierCameraMode, CameraPresetConfig> = {
   WIDE: {
     position: [0, 1.25, 9.8],
     target: [0, 1.05, 0],
@@ -38,6 +38,30 @@ export const CAMERA_PRESETS: Record<AtelierCameraMode, CameraPresetConfig> = {
     fov: 36,
   },
 };
+
+export const CAMERA_PRESETS_MOBILE: Record<AtelierCameraMode, CameraPresetConfig> = {
+  WIDE: {
+    position: [0, 1.15, 12.0],
+    target: [0, 1.0, 0],
+    fov: 46,
+  },
+  EASEL: {
+    position: [0, 0.95, 5.0],
+    target: [0, 0.95, 0],
+    fov: 38,
+  },
+  WINDOW: {
+    position: [-1.5, 1.15, 7.8],
+    target: [-3.2, 1.25, -4.5],
+    fov: 40,
+  },
+};
+
+export function getCameraPreset(mode: AtelierCameraMode, isMobile = false): CameraPresetConfig {
+  return isMobile ? CAMERA_PRESETS_MOBILE[mode] : CAMERA_PRESETS_DESKTOP[mode];
+}
+
+export const CAMERA_PRESETS = CAMERA_PRESETS_DESKTOP;
 
 export const LIGHTING_PRESETS: Record<AtelierLightingMode, LightingPresetConfig> = {
   SUNSET: {
@@ -102,44 +126,80 @@ export const LIGHTING_PRESETS: Record<AtelierLightingMode, LightingPresetConfig>
   },
 };
 
+/**
+ * Adapter from real concept/portfolio entity to AtelierArtwork scene model
+ */
+export function adaptConceptToAtelierArtwork(
+  concept: {
+    id: string;
+    slug?: string;
+    name?: string;
+    title?: string;
+    description?: string;
+    coverPhotoUrl?: string;
+    imageUrl?: string;
+  },
+  index: number
+): AtelierArtwork {
+  const wallPositions: ('center' | 'left' | 'right')[] = ['center', 'left', 'right'];
+  const wallPosition = wallPositions[index % 3];
+
+  let position: [number, number, number] = [0, 0.95, 0];
+  let rotation: [number, number, number] = [0, 0, 0];
+  let scale: [number, number, number] = [1.8, 1.25, 1];
+
+  if (wallPosition === 'left') {
+    position = [-2.4, 0.9, -0.6];
+    rotation = [0, 0.18, 0];
+    scale = [1.2, 1.6, 1];
+  } else if (wallPosition === 'right') {
+    position = [2.3, 0.9, -0.8];
+    rotation = [0, -0.18, 0];
+    scale = [1.2, 1.6, 1];
+  }
+
+  return {
+    id: concept.id,
+    title: concept.name || concept.title || 'Tác phẩm nghệ thuật',
+    conceptSlug: concept.slug,
+    imageUrl: concept.coverPhotoUrl || concept.imageUrl || '/studio.png',
+    description: concept.description || 'Không gian studio phong cách Pháp với ánh sáng tự nhiên và chiều sâu cảm xúc.',
+    wallPosition,
+    position,
+    rotation,
+    scale,
+  };
+}
+
 export const DEFAULT_ATELIER_ARTWORKS: AtelierArtwork[] = [
   {
-    id: 'art-02',
-    title: 'Vintage Loft & Cinematic — Chiều Sâu Điện Ảnh',
-    frenchTitle: 'L’Atelier au Crépuscule',
+    id: 'c1000000-0000-0000-0000-000000000002',
+    title: 'Vintage Loft & Cinematic',
     conceptSlug: 'vintage-cinematic',
     imageUrl: '/studio.png',
-    dimensions: '80 × 120 cm',
-    description: 'Góc chụp tôn vinh sự hoài niệm và chất thơ của Maison MIPA. Tông màu nâu sồi ấm áp cùng ánh nắng xiên tạo nên cảm giác điện ảnh bất tận.',
-    plaqueNumber: 'N° 02 • PIÈCE MAÎTRESSE',
+    description: 'Tone nâu ấm, ánh sáng điện ảnh tương phản nhẹ tôn vinh cảm xúc chân thật và chiều sâu.',
     wallPosition: 'center',
     position: [0, 0.95, 0],
     rotation: [0, 0, 0],
     scale: [1.8, 1.25, 1],
   },
   {
-    id: 'art-01',
-    title: 'Parisian Romance — Ánh Sáng Vòm Cửa',
-    frenchTitle: 'Lumière du Matin à Paris',
+    id: 'c1000000-0000-0000-0000-000000000001',
+    title: 'Parisian Romance',
     conceptSlug: 'parisian-romance',
     imageUrl: '/hero.png',
-    dimensions: '60 × 90 cm',
-    description: 'Khoảnh khắc lãng mạn nhẹ nhàng mang phong cách Pháp thanh lịch. Từng ánh mắt và nụ cười được nâng niu tự nhiên, không gò bó.',
-    plaqueNumber: 'N° 01 • ATELIER ARCHIVE',
+    description: 'Ánh sáng cửa sổ thơ mộng, hoa tươi tone pastel và phong cách cổ điển lãng mạn nước Pháp.',
     wallPosition: 'left',
     position: [-2.4, 0.9, -0.6],
     rotation: [0, 0.18, 0],
     scale: [1.2, 1.6, 1],
   },
   {
-    id: 'art-03',
-    title: 'French Haute Couture — Nét Đẹp Độc Bản',
-    frenchTitle: 'Élégance Contemporaine',
+    id: 'c1000000-0000-0000-0000-000000000003',
+    title: 'French Haute Couture',
     conceptSlug: 'french-haute-couture',
     imageUrl: '/hero.png',
-    dimensions: '60 × 90 cm',
-    description: 'Phong thái thời trang Châu Âu đương đại kết hợp tinh thần tối giản sang trọng, tạo nên tác phẩm chân dung nghệ thuật trường tồn.',
-    plaqueNumber: 'N° 03 • ÉPREUVE D’ARTISTE',
+    description: 'Váy cưới tối giản sang trọng, khăn voan bay bổng và tạo dáng nghệ thuật thời trang cao cấp.',
     wallPosition: 'right',
     position: [2.3, 0.9, -0.8],
     rotation: [0, -0.18, 0],

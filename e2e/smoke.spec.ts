@@ -19,14 +19,14 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // Verify Call-to-action buttons
     await expect(page.getByRole('button', { name: /ĐẶT LỊCH/i }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Đăng Nhập', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Đăng nhập/i })).toBeVisible();
   });
 
   test('2. Auth modal mở được và chuyển đổi tab đăng nhập / đăng ký', async ({ page }) => {
     await page.goto('/');
 
     // Click Login button to open Auth Modal
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
 
     // Verify Auth Modal is displayed
     const authHeader = page.locator('text=MAISON MIPA MEMORIES AUTH');
@@ -46,7 +46,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.goto('/');
 
     // 1. Log in as customer
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
@@ -94,7 +94,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // 2. Login as CUSTOMER
     await page.goto('/');
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
@@ -190,7 +190,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.goto('/');
 
     // Log in as Manager
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('phat.manager@maisonmipa.vn');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
@@ -210,7 +210,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
   test('11. Auth Modal: Quên mật khẩu flow gửi reset request thành công', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
 
     // Click "Quên mật khẩu?"
     await page.getByRole('button', { name: /Quên mật khẩu\?/i }).click();
@@ -258,7 +258,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.goto('/');
 
     // Mở Auth Modal
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await expect(page.locator('text=MAISON MIPA MEMORIES AUTH')).toBeVisible();
 
     // Chuyển sang tab Đăng Ký Nhanh

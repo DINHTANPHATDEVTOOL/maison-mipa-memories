@@ -458,7 +458,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             border: 'none',
             background: 'transparent',
             padding: '0.5rem',
-            color: '#604634',
+            color: '#FBF6EE',
             cursor: 'pointer',
           }}
           aria-label="Menu"
@@ -695,7 +695,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                 >
                   <LogIn size={14} />
-                  Đăng Nhập
+                  Đăng nhập
                 </button>
                 <button
                   onClick={() => onOpenAuthModal('REGISTER')}
@@ -714,7 +714,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                 >
                   <UserPlus size={14} />
-                  Đăng Ký
+                  Đăng ký
                 </button>
               </div>
             ) : (

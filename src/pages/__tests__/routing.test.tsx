@@ -74,8 +74,8 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('renders homepage at /', async () => {
     renderRoute('/');
-    expect(screen.getByRole('heading', { level: 1, name: /Căn Phòng Triển Lãm Không Gian 3 Chiều/i })).toBeInTheDocument();
-    expect(screen.getByText(/MAISON MIPA \/ SAIGON/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Bước vào căn phòng của những ký ức/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/MAISON MIPA \/ ATELIER/i).length).toBeGreaterThan(0);
   });
 
   it('renders services catalog at /dich-vu', async () => {

@@ -7,9 +7,13 @@ import { useFrame } from '@react-three/fiber';
 
 interface AtelierCurtainProps {
   reducedMotion?: boolean;
+  isMobile?: boolean;
 }
 
-export const AtelierCurtain: React.FC<AtelierCurtainProps> = ({ reducedMotion = false }) => {
+export const AtelierCurtain: React.FC<AtelierCurtainProps> = ({
+  reducedMotion = false,
+  isMobile = false,
+}) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const initialPositions = useRef<Float32Array | null>(null);
 
@@ -37,11 +41,11 @@ export const AtelierCurtain: React.FC<AtelierCurtainProps> = ({ reducedMotion = 
     }
 
     positionAttr.needsUpdate = true;
-    geometry.computeVertexNormals();
+    // Blocker 26: removed geometry.computeVertexNormals() every frame for CPU/GPU efficiency
   });
 
   return (
-    <group position={[-3.6, 1.1, 3.2]}>
+    <group position={isMobile ? [-4.1, 1.1, 3.2] : [-3.6, 1.1, 3.2]}>
       {/* Brass Curtain Rod */}
       <mesh position={[0.4, 2.8, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.02, 0.02, 2.6, 16]} />
