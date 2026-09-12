@@ -136,7 +136,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NEW.booking_status IN ('SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED') THEN
+  IF NEW.booking_status IN ('CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED') THEN
     INSERT INTO public.booking_deliveries (
       booking_id,
       provider,

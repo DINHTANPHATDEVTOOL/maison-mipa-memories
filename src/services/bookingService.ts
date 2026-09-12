@@ -512,6 +512,11 @@ export async function updateBookingStatus(
     }
 
     const domainBooking = mapDatabaseRecordToDomain(data as any);
+    if (['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED'].includes(newStatus)) {
+      createDriveFolder(bookingId).then(del => {
+        domainBooking.delivery = del;
+      }).catch(() => {});
+    }
     const delivery = await getBookingDelivery(bookingId);
     if (delivery) {
       domainBooking.delivery = delivery;
@@ -530,7 +535,7 @@ export async function updateBookingStatus(
   }
 
   let delivery: BookingDelivery | undefined = existing.delivery;
-  if (newStatus === 'SHOOT_COMPLETED') {
+  if (['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED'].includes(newStatus)) {
     try {
       delivery = await createDriveFolder(existing.id);
     } catch (e) {

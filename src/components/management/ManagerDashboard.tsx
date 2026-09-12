@@ -147,7 +147,25 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
   // Search & Filter bookings
   const filteredBookings = bookings.filter((b) => {
-    const matchesFilter = selectedStatusFilter === 'ALL' || b.bookingStatus === selectedStatusFilter;
+    let matchesFilter = false;
+    if (selectedStatusFilter === 'ALL') {
+      matchesFilter = true;
+    } else if (selectedStatusFilter === 'SHOOTING') {
+      matchesFilter = b.bookingStatus === 'SHOOTING' || b.bookingStatus === 'CHECKED_IN';
+    } else if (selectedStatusFilter === 'PENDING_PAYMENT') {
+      matchesFilter = b.bookingStatus === 'PENDING_PAYMENT' || b.bookingStatus === 'DRAFT';
+    } else if (selectedStatusFilter === 'DEPOSIT_PAID') {
+      matchesFilter = b.bookingStatus === 'DEPOSIT_PAID';
+    } else if (selectedStatusFilter === 'CONFIRMED') {
+      matchesFilter = b.bookingStatus === 'CONFIRMED';
+    } else if (selectedStatusFilter === 'READY_FOR_REVIEW') {
+      matchesFilter = b.bookingStatus === 'READY_FOR_REVIEW' || b.bookingStatus === 'EDITING' || b.bookingStatus === 'SHOOT_COMPLETED';
+    } else if (selectedStatusFilter === 'COMPLETED') {
+      matchesFilter = b.bookingStatus === 'COMPLETED' || b.bookingStatus === 'DELIVERED';
+    } else {
+      matchesFilter = b.bookingStatus === selectedStatusFilter;
+    }
+
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch = query.length === 0 ||
       b.bookingCode.toLowerCase().includes(query) ||
@@ -418,6 +436,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               onUpdateStatus(b.id, nextAction.targetStatus);
+                              if (['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED'].includes(nextAction.targetStatus)) {
+                                handleCreateDriveFolder(b.id);
+                              }
                             }}
                             className={nextAction.buttonClass}
                             style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
@@ -523,14 +544,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
                     {/* Retry / Create folder button */}
                     {(!activeBookingTimeline.delivery || activeBookingTimeline.delivery.status === 'NOT_CREATED' || activeBookingTimeline.delivery.status === 'ERROR' || activeBookingTimeline.delivery.status === 'NEEDS_RECONCILE') &&
-                     ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus) && (
+                     ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus) && (
                       <button
                         onClick={() => handleCreateDriveFolder(activeBookingTimeline.id)}
                         disabled={isDriveLoading}
-                        className="btn-mipa-secondary"
-                        style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                        className="btn-mipa-gold"
+                        style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontWeight: 600 }}
                       >
-                        <FolderUp size={14} /> Tạo / Thử lại Thư Mục Drive
+                        <FolderUp size={15} /> Tạo Thư Mục Drive Khách Hàng
                       </button>
                     )}
 
