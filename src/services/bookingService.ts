@@ -379,7 +379,23 @@ export async function getBookings(customerId?: string): Promise<Booking[]> {
       return [];
     }
 
-    return data.map(mapDatabaseRecordToDomain);
+    const domainBookings = data.map(mapDatabaseRecordToDomain);
+
+    // Concurrently load role-safe delivery status for each booking via secure RPC
+    await Promise.all(
+      domainBookings.map(async (b) => {
+        try {
+          const del = await getBookingDelivery(b.id);
+          if (del) {
+            b.delivery = del;
+          }
+        } catch (_) {
+          // fail closed: if delivery cannot be queried, b.delivery remains undefined
+        }
+      })
+    );
+
+    return domainBookings;
   }
 
   // Demo mode
@@ -442,6 +458,17 @@ export function subscribeBookings(
           if (isSubscribed) reload();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booking_deliveries',
+        },
+        () => {
+          if (isSubscribed) reload();
+        }
+      )
       .subscribe();
 
     // 8-second safety heartbeat
@@ -482,14 +509,6 @@ export async function updateBookingStatus(
 
     if (!data) {
       throw new Error('Dữ liệu trạng thái không hợp lệ.');
-    }
-
-    if (newStatus === 'SHOOT_COMPLETED') {
-      try {
-        await createDriveFolder(bookingId);
-      } catch (driveErr) {
-        console.error('Auto createDriveFolder error on SHOOT_COMPLETED:', driveErr);
-      }
     }
 
     const domainBooking = mapDatabaseRecordToDomain(data as any);

@@ -1206,6 +1206,7 @@ export interface Database {
         Row: {
           state: string;
           created_by: string | null;
+          redirect_uri: string;
           expires_at: string;
           used_at: string | null;
           created_at: string;
@@ -1213,6 +1214,7 @@ export interface Database {
         Insert: {
           state: string;
           created_by?: string | null;
+          redirect_uri: string;
           expires_at: string;
           used_at?: string | null;
           created_at?: string;
@@ -1220,9 +1222,43 @@ export interface Database {
         Update: {
           state?: string;
           created_by?: string | null;
+          redirect_uri?: string;
           expires_at?: string;
           used_at?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      google_drive_integrations: {
+        Row: {
+          id: string;
+          account_email: string | null;
+          root_folder_id: string | null;
+          refresh_token: string;
+          is_active: boolean;
+          connected_by: string | null;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_email?: string | null;
+          root_folder_id?: string | null;
+          refresh_token: string;
+          is_active?: boolean;
+          connected_by?: string | null;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          account_email?: string | null;
+          root_folder_id?: string | null;
+          refresh_token?: string;
+          is_active?: boolean;
+          connected_by?: string | null;
+          connected_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

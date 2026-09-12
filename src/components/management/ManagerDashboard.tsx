@@ -25,9 +25,10 @@ import {
   DollarSign,
   Plus,
   X,
+  RefreshCw,
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
-import { createDriveFolder, deliverToCustomer, revokeCustomerAccess } from '../../services/deliveryService';
+import { createDriveFolder, deliverToCustomer, revokeCustomerAccess, reconcileDriveDelivery } from '../../services/deliveryService';
 
 interface ManagerDashboardProps {
   bookings: Booking[];
@@ -93,7 +94,6 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           ...activeBookingTimeline,
           bookingStatus: 'DELIVERED',
           delivery: del,
-          driveReadyForCustomer: true,
         });
       }
     } catch (err: any) {
@@ -114,11 +114,29 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         setActiveBookingTimeline({
           ...activeBookingTimeline,
           delivery: del,
-          driveReadyForCustomer: false,
         });
       }
     } catch (err: any) {
       setDriveOperationMsg({ type: 'error', text: err.message || 'Lỗi khi thu hồi quyền Drive' });
+    } finally {
+      setIsDriveLoading(false);
+    }
+  };
+
+  const handleReconcileDrive = async (bookingId: string) => {
+    setIsDriveLoading(true);
+    setDriveOperationMsg(null);
+    try {
+      const del = await reconcileDriveDelivery(bookingId);
+      setDriveOperationMsg({ type: 'success', text: `Đã đồng bộ trạng thái Google Drive (Trạng thái hiện tại: ${del.status}).` });
+      if (activeBookingTimeline && activeBookingTimeline.id === bookingId) {
+        setActiveBookingTimeline({
+          ...activeBookingTimeline,
+          delivery: del,
+        });
+      }
+    } catch (err: any) {
+      setDriveOperationMsg({ type: 'error', text: err.message || 'Lỗi khi đồng bộ Google Drive' });
     } finally {
       setIsDriveLoading(false);
     }
@@ -480,9 +498,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   {/* Operational Action Buttons */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.4rem' }}>
                     {/* Open folder button if URL exists */}
-                    {(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl) && (
+                    {activeBookingTimeline.delivery?.driveFolderUrl && (
                       <a
-                        href={(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl)!}
+                        href={activeBookingTimeline.delivery.driveFolderUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -504,7 +522,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     )}
 
                     {/* Retry / Create folder button */}
-                    {(!activeBookingTimeline.delivery || activeBookingTimeline.delivery.status === 'NOT_CREATED' || activeBookingTimeline.delivery.status === 'ERROR') &&
+                    {(!activeBookingTimeline.delivery || activeBookingTimeline.delivery.status === 'NOT_CREATED' || activeBookingTimeline.delivery.status === 'ERROR' || activeBookingTimeline.delivery.status === 'NEEDS_RECONCILE') &&
                      ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus) && (
                       <button
                         onClick={() => handleCreateDriveFolder(activeBookingTimeline.id)}
@@ -516,9 +534,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                       </button>
                     )}
 
-                    {/* Deliver to customer button */}
-                    {(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl) &&
-                     activeBookingTimeline.delivery?.status !== 'READY_FOR_CUSTOMER' && (
+                    {/* Deliver to customer button (Strictly Blocker 6: Only in READY_FOR_REVIEW and READY_FOR_UPLOAD) */}
+                    {activeBookingTimeline.bookingStatus === 'READY_FOR_REVIEW' &&
+                     activeBookingTimeline.delivery?.status === 'READY_FOR_UPLOAD' &&
+                     Boolean(activeBookingTimeline.delivery?.driveFolderUrl) && (
                       <button
                         onClick={() => handleDeliverToCustomer(activeBookingTimeline.id)}
                         disabled={isDriveLoading}
@@ -526,6 +545,18 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         style={{ fontSize: '0.8rem', padding: '0.5rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
                       >
                         <FolderDown size={14} /> Giao Ảnh Cho Khách (Share Reader)
+                      </button>
+                    )}
+
+                    {/* Reconcile button for active deliveries */}
+                    {activeBookingTimeline.delivery?.driveFolderId && (
+                      <button
+                        onClick={() => handleReconcileDrive(activeBookingTimeline.id)}
+                        disabled={isDriveLoading}
+                        className="btn-mipa-secondary"
+                        style={{ fontSize: '0.78rem', padding: '0.4rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                      >
+                        <RefreshCw size={13} className={isDriveLoading ? 'animate-spin' : ''} /> Đồng Bộ Trạng Thái Drive (Reconcile)
                       </button>
                     )}
 

@@ -208,7 +208,8 @@ export type DeliveryStatus =
   | 'READY_FOR_UPLOAD'
   | 'READY_FOR_CUSTOMER'
   | 'ERROR'
-  | 'REVOKED';
+  | 'REVOKED'
+  | 'NEEDS_RECONCILE';
 
 export interface BookingDelivery {
   id: string;

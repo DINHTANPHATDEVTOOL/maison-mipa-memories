@@ -380,7 +380,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       { label: '5. Đang chụp', done: ['SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
                       { label: '6. Đã chụp xong', done: ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
                       { label: '7. Đang xử lý ảnh', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '8. Ảnh sẵn sàng', done: b.delivery?.status === 'READY_FOR_CUSTOMER' || (b.driveReadyForCustomer && Boolean(b.driveFolderUrl)) },
+                      { label: '8. Ảnh sẵn sàng', done: b.delivery?.status === 'READY_FOR_CUSTOMER' && Boolean(b.delivery?.driveFolderUrl) },
                     ].map((step, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: step.done ? '#047857' : '#A39385', fontWeight: step.done ? 600 : 400 }}>
                         <Check size={14} color={step.done ? '#047857' : '#A39385'} />
@@ -424,10 +424,9 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                     {/* Google Drive Delivery Button (#8 integration: Strictly Authoritative) */}
                     {(() => {
                       const isOwner = user ? b.customerId === user.id : true;
-                      const isReady = (b.delivery?.status === 'READY_FOR_CUSTOMER' && Boolean(b.delivery?.driveFolderUrl)) ||
-                                      (b.driveReadyForCustomer && Boolean(b.driveFolderUrl));
+                      const isReady = b.delivery?.status === 'READY_FOR_CUSTOMER' && Boolean(b.delivery?.driveFolderUrl);
                       const isRevoked = b.delivery?.status === 'REVOKED';
-                      const url = b.delivery?.driveFolderUrl || b.driveFolderUrl;
+                      const url = b.delivery?.driveFolderUrl;
 
                       if (isReady && isOwner && url) {
                         return (

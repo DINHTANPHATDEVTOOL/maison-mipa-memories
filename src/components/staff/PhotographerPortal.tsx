@@ -101,9 +101,9 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
                   <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                     {/* Google Drive Upload Integration - Strictly Authoritative without arbitrary fallback */}
-                    {(b.delivery?.driveFolderUrl || b.driveFolderUrl) && (b.delivery?.status === 'READY_FOR_UPLOAD' || b.delivery?.status === 'READY_FOR_CUSTOMER' || b.delivery?.status === 'REVOKED' || b.bookingStatus === 'SHOOT_COMPLETED' || b.bookingStatus === 'EDITING') ? (
+                    {b.delivery?.driveFolderUrl && ['READY_FOR_UPLOAD', 'READY_FOR_CUSTOMER', 'REVOKED'].includes(b.delivery?.status) ? (
                       <a
-                        href={(b.delivery?.driveFolderUrl || b.driveFolderUrl)!}
+                        href={b.delivery.driveFolderUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-mipa-secondary"

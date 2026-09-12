@@ -51,28 +51,16 @@ export function mapDatabaseDeliveryToDomain(raw: any): BookingDelivery {
  */
 export async function getBookingDelivery(bookingId: string): Promise<BookingDelivery | null> {
   if (isSupabaseConfigured()) {
-    // 1. Try secure RPC reader first
+    // Strictly route through role-safe secure RPC reader (Blocker 9: No raw select fallback)
     const { data: rpcData, error: rpcErr } = await supabase.rpc('get_booking_delivery_secure', {
       p_booking_id: bookingId,
     });
 
-    if (!rpcErr && rpcData) {
-      return mapDatabaseDeliveryToDomain(rpcData);
-    }
-
-    // 2. Direct table query fallback with RLS
-    const { data, error } = await supabase
-      .from('booking_deliveries')
-      .select('*')
-      .eq('booking_id', bookingId)
-      .maybeSingle();
-
-    if (error) {
-      // If RLS denied access, return null gracefully
+    if (rpcErr || !rpcData) {
       return null;
     }
 
-    return data ? mapDatabaseDeliveryToDomain(data) : null;
+    return mapDatabaseDeliveryToDomain(rpcData);
   }
 
   // In-Memory Test Store
