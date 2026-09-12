@@ -139,63 +139,96 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await expect(page.getByRole('heading', { name: /Hẹn một buổi chụp cùng Maison MIPA/i })).toBeVisible();
   });
 
-  test('8. CSS 3D Spatial Virtual Exhibition Gallery renders room planes, handles interaction and opens curatorial modal', async ({ page }) => {
+  test('8. Flagship WebGL Living French Atelier renders diorama scene, camera & lighting controls, and booking flow', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Verify 3D Exhibition Section and Heading
+    // Verify Flagship Atelier Section and Heading
     const section = page.locator('#atelier-3d');
     await expect(section).toBeVisible();
     await expect(section.getByRole('heading', { name: /Căn Phòng Triển Lãm Không Gian 3 Chiều/i })).toBeVisible();
+    await expect(page.getByText(/MAISON MIPA \/ SAIGON • ATELIER VIRTUEL 3D & EXPOSITION/i)).toBeVisible();
 
-    // Verify 3D Room & Diorama Planes
-    await expect(page.getByTestId('virtual-exhibition-viewport')).toBeVisible();
-    await expect(page.getByTestId('diorama-foreground-curtain')).toBeVisible();
-    await expect(page.getByTestId('diorama-foreground-camera')).toBeVisible();
-    await expect(page.getByTestId('gallery-back-wall')).toBeVisible();
-    await expect(page.getByTestId('gallery-parquet-floor')).toBeVisible();
-    await expect(page.getByTestId('gallery-left-window')).toBeVisible();
-    await expect(page.getByTestId('gallery-right-wall')).toBeVisible();
-    await expect(page.getByTestId('diorama-center-easel')).toBeVisible();
+    // Verify 3D Viewport exists
+    const viewport = page.getByTestId('virtual-exhibition-viewport');
+    await expect(viewport).toBeVisible();
 
-    // Verify 3 Museum Frames on the back wall
-    await expect(page.getByTestId('artwork-frame-art-01')).toBeVisible();
-    await expect(page.getByTestId('artwork-frame-art-02')).toBeVisible();
-    await expect(page.getByTestId('artwork-frame-art-03')).toBeVisible();
+    // Scroll 3D section into view
+    await section.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
 
-    // Verify Diverse Banners (Marquee, Seasonal, Curatorial Split)
+    // Verify Camera Controls (Wide, Easel, Window, Reset)
+    const easelCamBtn = page.getByTestId('camera-btn-easel');
+    const windowCamBtn = page.getByTestId('camera-btn-window');
+    const wideCamBtn = page.getByTestId('camera-btn-wide');
+    const resetCamBtn = page.getByTestId('camera-btn-reset');
+
+    await expect(easelCamBtn).toBeVisible();
+    await expect(windowCamBtn).toBeVisible();
+    await expect(wideCamBtn).toBeVisible();
+    await expect(resetCamBtn).toBeVisible();
+
+    // Switch camera modes
+    await easelCamBtn.click({ force: true });
+    await page.waitForTimeout(200);
+
+    await windowCamBtn.click({ force: true });
+    await page.waitForTimeout(200);
+
+    await resetCamBtn.click({ force: true });
+    await page.waitForTimeout(200);
+
+    // Verify Lighting Controls (Sunset, Morning, Afternoon)
+    const morningLightBtn = page.getByTestId('lighting-btn-morning');
+    const afternoonLightBtn = page.getByTestId('lighting-btn-afternoon');
+    const sunsetLightBtn = page.getByTestId('lighting-btn-sunset');
+
+    await expect(morningLightBtn).toBeVisible();
+    await expect(afternoonLightBtn).toBeVisible();
+    await expect(sunsetLightBtn).toBeVisible();
+
+    // Switch lighting presets
+    await morningLightBtn.click({ force: true });
+    await page.waitForTimeout(200);
+
+    await afternoonLightBtn.click({ force: true });
+    await page.waitForTimeout(200);
+
+    await sunsetLightBtn.click({ force: true });
+    await page.waitForTimeout(200);
+
+    // Verify Diverse Banners (Marquee, Seasonal Privilege, Curatorial Split)
     await expect(page.locator('.editorial-marquee-track')).toBeVisible();
     await expect(page.getByRole('heading', { name: /Đặc Quyền Mùa Triển Lãm & Kỷ Niệm/i })).toBeVisible();
     await expect(page.getByText(/Ánh sáng không chỉ để nhìn thấy, mà để cảm nhận khoảnh khắc vĩnh cửu/i)).toBeVisible();
 
-    // Hover & move pointer across 3D viewport to trigger camera motion
+    // Verify Booking CTA from Section Header navigates to canonical Booking Funnel
+    const bookBtn = section.getByRole('button', { name: /Đặt Lịch Chụp Ngay/i });
+    await bookBtn.click({ force: true });
+
+    await expect(page).toHaveURL(/.*\/booking/);
+    await expect(page.locator('text=Bước 1/6')).toBeVisible();
+  });
+
+  test('9. Mobile 390x844 responsive layout has zero horizontal overflow in Flagship Atelier', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    const section = page.locator('#atelier-3d');
+    await expect(section).toBeVisible();
+
     const viewport = page.getByTestId('virtual-exhibition-viewport');
-    await viewport.hover({ position: { x: 200, y: 150 } });
-    await page.mouse.move(600, 300);
+    await expect(viewport).toBeVisible();
 
-    // Switch lighting preset to Twilight (Hoàng Hôn Nghệ Thuật)
-    const twilightBtn = page.getByRole('button', { name: /Hoàng Hôn Nghệ Thuật/i });
-    await twilightBtn.click();
-    await expect(page.getByText('05:45 PM')).toBeVisible();
+    // Check horizontal scroll overflow
+    const hasHorizontalOverflow = await page.evaluate(() => {
+      return document.documentElement.scrollWidth > window.innerWidth;
+    });
+    expect(hasHorizontalOverflow).toBe(false);
 
-    // Scroll 3D section into view
-    await section.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(300);
-
-    const centerFrame = page.getByTestId('artwork-frame-art-02');
-    await centerFrame.focus();
-    await centerFrame.press('Enter');
-
-    // Assert Exhibition Modal content
-    const modal = page.getByRole('dialog');
-    await expect(modal).toBeVisible();
-    await expect(modal.getByRole('heading', { name: /Vintage Loft & Cinematic — Chiều Sâu Điện Ảnh/i })).toBeVisible();
-    await expect(modal.getByText(/Tirage Argentique Haute Résolution/i)).toBeVisible();
-    await expect(modal.getByRole('button', { name: /Đặt Lịch Chụp Concept Này/i })).toBeVisible();
-
-    // Close modal via close button
-    const closeBtn = page.getByLabel('Đóng bảng thông tin tác phẩm');
-    await closeBtn.click();
-    await expect(modal).not.toBeVisible();
+    // Verify camera & lighting controls are accessible on mobile
+    await expect(page.getByTestId('camera-btn-easel')).toBeVisible();
+    await expect(page.getByTestId('lighting-btn-morning')).toBeVisible();
   });
 });
