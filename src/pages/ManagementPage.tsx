@@ -6,7 +6,7 @@ import { CustomerCRM } from '../components/management/CustomerCRM';
 import { PortfolioCMS } from '../components/management/PortfolioCMS';
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
-import { LayoutDashboard, Clock, Users, Camera, Shield, Crown } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Camera, Shield, Crown, FolderUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
 
@@ -150,6 +150,29 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           >
             {isRootOwner ? <Crown size={14} color="#C6A45F" /> : <Shield size={14} color="#C6A45F" />}
             {isRootOwner ? 'Quản Trị Studio' : 'Admin Portal'}
+          </Link>
+        )}
+
+        {(user?.role === 'ADMIN' || isRootOwner) && (
+          <Link
+            to="/admin?tab=gdrive"
+            style={{
+              textDecoration: 'none',
+              background: 'rgba(255, 253, 246, 0.08)',
+              border: '1px solid rgba(198, 164, 95, 0.4)',
+              color: '#FFFDF6',
+              padding: '0.35rem 0.9rem',
+              borderRadius: '12px',
+              fontWeight: 600,
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              transition: 'all 0.2s ease',
+            }}
+            title="Cấu hình Google Drive Customer Delivery"
+          >
+            <FolderUp size={14} color="#C6A45F" /> Google Drive
           </Link>
         )}
       </div>
