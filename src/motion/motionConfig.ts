@@ -43,8 +43,12 @@ export const MOTION_CONFIG = {
   // Perspective scene definitions
   perspective: {
     desktop: '1200px',
+    deep: '1400px',
     close: '800px',
   },
+
+  // Physical photo stack angles
+  stackAngles: [-3, 2, -1, 3] as const,
 } as const;
 
 export default MOTION_CONFIG;

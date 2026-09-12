@@ -396,3 +396,14 @@ html, body, #root {
     padding: 0.25rem !important;
   }
 }
+
+/* ==========================================================================
+   VIEW TRANSITIONS API ENHANCEMENT
+   ========================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(collection-hero-image),
+  ::view-transition-new(collection-hero-image) {
+    animation-duration: 480ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}

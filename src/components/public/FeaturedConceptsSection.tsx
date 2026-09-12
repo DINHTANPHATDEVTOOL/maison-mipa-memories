@@ -1,11 +1,12 @@
 // ==============================================================================
-// Maison MIPA Memories — Featured Work & Concepts (Tactile 3D Photo Composition)
-// Art Direction: Asymmetrical photography composition, subtle spatial depth,
-// restrained photo stack settling, no generic cards.
+// Maison MIPA Memories — Signature Moment #2: Selected Works 3D Perspective Entrance
+// Art Direction: Genuine perspective scene (perspective: 1400px).
+// Photos enter from "behind" the page (Z-depth -280px / -160px / -80px) and settle
+// flat into the refined editorial composition as the user scrolls.
 // ==============================================================================
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { getPublicConcepts } from '../../services/portfolioService';
+import { useNavigate, Link } from 'react-router-dom';
+import { getConcepts } from '../../services/catalogService';
 import type { Concept } from '../../types';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
@@ -23,80 +24,116 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
 
   const sectionRef = useRef<HTMLElement>(null);
   const primaryFrameRef = useRef<HTMLDivElement>(null);
-  const secondaryFramesRef = useRef<HTMLDivElement[]>([]);
+  const secondaryFramesRef = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     let mounted = true;
-    async function loadConcepts() {
+    async function loadConceptsData() {
       try {
-        const data = await getPublicConcepts();
+        const data = await getConcepts();
         if (mounted) {
-          setConcepts(data.filter((c) => c.bookable).slice(0, 3));
+          setConcepts(data.slice(0, 3));
+          setIsLoading(false);
         }
       } catch (err) {
-        console.error('Lỗi tải concepts:', err);
-      } finally {
+        console.warn('Concepts load error:', err);
         if (mounted) setIsLoading(false);
       }
     }
-    loadConcepts();
+    loadConceptsData();
     return () => {
       mounted = false;
     };
   }, []);
 
-  // 3D Photo Composition Entry Choreography
+  // Signature Moment #2: 3D Photo Perspective Entrance from Behind the Page
   useGsapContext(() => {
     if (prefersReduced || !sectionRef.current || concepts.length === 0) return;
+
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+    if (!isDesktop) {
+      if (primaryFrameRef.current) gsap.set(primaryFrameRef.current, { opacity: 1, y: 0, z: 0, rotationY: 0 });
+      secondaryFramesRef.current.forEach((el) => {
+        if (el) gsap.set(el, { opacity: 1, y: 0, z: 0, rotationY: 0, x: 0 });
+      });
+      return;
+    }
 
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: sectionRef.current,
-        start: 'top 78%',
-        once: true,
+        start: 'top 85%',
+        end: 'top 22%',
+        scrub: 1.2,
       },
     });
 
-    // Primary image rises from slight Z-depth
+    // Photo A (Primary): Enters from deep Z-depth (-280px) and slight rotationY (-5deg)
     if (primaryFrameRef.current) {
       tl.fromTo(
         primaryFrameRef.current,
         {
-          y: 50,
-          rotationY: -2,
-          scale: 0.97,
-          opacity: 0.85,
+          z: -280,
+          rotationY: -5,
+          y: 60,
+          scale: 0.94,
+          opacity: 0.7,
         },
         {
-          y: 0,
+          z: 0,
           rotationY: 0,
+          y: 0,
           scale: 1,
           opacity: 1,
-          duration: MOTION_CONFIG.duration.slow,
-          ease: MOTION_CONFIG.ease.cinematic,
+          ease: 'power2.out',
         },
         0
       );
     }
 
-    // Secondary stacked photos enter with staggered offsets and subtle rotation then flatten
-    if (secondaryFramesRef.current.length > 0) {
+    // Photo B (Secondary Top): Enters from Z-depth (-160px), offset X (80px), rotationY (3deg)
+    if (secondaryFramesRef.current[0]) {
       tl.fromTo(
-        secondaryFramesRef.current,
+        secondaryFramesRef.current[0],
         {
-          y: (i) => (i === 0 ? 70 : 90),
-          rotation: (i) => (i === 0 ? 1.2 : -1.2),
-          opacity: 0.85,
+          z: -160,
+          x: 80,
+          rotationY: 3,
+          y: 40,
+          opacity: 0.75,
         },
         {
+          z: 0,
+          x: 0,
+          rotationY: 0,
           y: 0,
-          rotation: 0,
           opacity: 1,
-          duration: MOTION_CONFIG.duration.slow,
-          stagger: 0.15,
-          ease: MOTION_CONFIG.ease.cinematic,
+          ease: 'power2.out',
         },
-        0.15
+        0.1
+      );
+    }
+
+    // Photo C (Secondary Bottom): Enters from Z-depth (-80px), offset X (-40px), rotationY (-3deg)
+    if (secondaryFramesRef.current[1]) {
+      tl.fromTo(
+        secondaryFramesRef.current[1],
+        {
+          z: -80,
+          x: -40,
+          rotationY: -3,
+          y: 50,
+          opacity: 0.8,
+        },
+        {
+          z: 0,
+          x: 0,
+          rotationY: 0,
+          y: 0,
+          opacity: 1,
+          ease: 'power2.out',
+        },
+        0.2
       );
     }
   }, sectionRef, [prefersReduced, concepts]);
@@ -117,38 +154,48 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
   return (
     <section
       ref={sectionRef}
+      id="concepts"
       className="editorial-section cinematic-scene"
       style={{
         backgroundColor: 'var(--editorial-bg)',
-        perspective: '1200px',
+        perspective: MOTION_CONFIG.perspective.deep,
+        transformStyle: 'preserve-3d',
       }}
     >
       <div className="editorial-container">
-        {/* Editorial Section Header */}
+        {/* Section Header */}
         <div style={{ marginBottom: '3.5rem', maxWidth: '640px' }}>
           <span className="editorial-overline">BỘ SƯU TẬP & BỐI CẢNH</span>
-          <h2 className="editorial-h2">Bộ sưu tập concept chọn lọc</h2>
+          <h2 className="editorial-h2" style={{ marginBottom: '1rem' }}>
+            Bộ sưu tập concept chọn lọc
+          </h2>
           <p className="editorial-copy">
             Mỗi concept được kiến tạo riêng biệt với bảng màu, ánh sáng và góc chụp mang đậm tinh thần tự nhiên.
           </p>
         </div>
 
-        {/* Asymmetrical Editorial Grid */}
-        <div className="editorial-concept-grid">
-          {/* Large Hero Concept (Left) */}
+        {/* Asymmetrical 3D Photo Composition */}
+        <div
+          className="editorial-concept-composition"
+          style={{
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          {/* Primary Dominant Concept (Left) */}
           {primaryConcept && (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', transformStyle: 'preserve-3d' }}>
               <div
                 ref={primaryFrameRef}
                 className="editorial-image-frame group cinematic-depth-image"
                 data-cursor="XEM"
                 style={{
-                  height: '480px',
+                  height: '460px',
                   cursor: 'pointer',
                   border: '1px solid rgba(96, 70, 52, 0.12)',
                   borderRadius: '4px',
                   overflow: 'hidden',
                   transformStyle: 'preserve-3d',
+                  willChange: 'transform, opacity',
                 }}
                 onClick={() => handleConceptClick(primaryConcept.slug)}
               >
@@ -187,9 +234,9 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
           )}
 
           {/* Secondary Stacked Concepts (Right) */}
-          <div className="editorial-concept-subgrid">
+          <div className="editorial-concept-subgrid" style={{ transformStyle: 'preserve-3d' }}>
             {secondaryConcepts.map((concept, idx) => (
-              <div key={concept.id} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div key={concept.id} style={{ display: 'flex', flexDirection: 'column', transformStyle: 'preserve-3d' }}>
                 <div
                   ref={(el) => {
                     if (el) secondaryFramesRef.current[idx] = el;
@@ -203,6 +250,7 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
                     borderRadius: '4px',
                     overflow: 'hidden',
                     transformStyle: 'preserve-3d',
+                    willChange: 'transform, opacity',
                   }}
                   onClick={() => handleConceptClick(concept.slug)}
                 >

@@ -35,6 +35,7 @@ async function saveScreenshot(page: any, filename: string, options?: any) {
 test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
 
   test('Capture all required desktop & mobile cinematic stills', async ({ page }) => {
+    test.setTimeout(60000);
     // -------------------------------------------------------------------------
     // DESKTOP SCREENSHOTS (1440 x 900)
     // -------------------------------------------------------------------------
@@ -58,7 +59,7 @@ test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
     await saveScreenshot(page, '03_selected_works.png');
 
     // 4. Full-bleed image transition section
-    const fullBleed = page.locator('section').filter({ hasText: /Atelier & Studio/i });
+    const fullBleed = page.locator('section').filter({ hasText: /SAIGON ATELIER|LE TEMPS SUSPENDU/i });
     await fullBleed.scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollTo(0, window.scrollY));
     await page.waitForTimeout(500);

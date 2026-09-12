@@ -15,6 +15,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeroSection } from '../components/public/HeroSection';
 import { FeaturedConceptsSection } from '../components/public/FeaturedConceptsSection';
+import { PhotoStackScene } from '../components/public/PhotoStackScene';
 import { FullBleedTransitionSection } from '../components/public/FullBleedTransitionSection';
 import { ServicesSection } from '../components/public/ServicesSection';
 import { MaisonStorySection } from '../components/public/MaisonStorySection';
@@ -49,13 +50,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         jsonLd={generateStudioLocalBusinessSchema()}
       />
 
-      {/* 01. Hero Cinematic Arrival */}
+      {/* 01. Hero Cinematic Arrival & Transformation */}
       <HeroSection onOpenBooking={onOpenBooking} />
 
-      {/* 02. Selected Works 3D Composition */}
+      {/* 02. Selected Works 3D Perspective Entrance */}
       <FeaturedConceptsSection onOpenBooking={handleOpenBookingWithConcept} />
 
-      {/* 03. Full-bleed Image Transition */}
+      {/* 03. Physical Photo Stack Separation Scene */}
+      <PhotoStackScene />
+
+      {/* 04. Film Gate & Moving Matte Transition */}
       <FullBleedTransitionSection />
 
       {/* 04. Services Editorial Rows */}

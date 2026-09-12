@@ -195,6 +195,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
               inset: 0,
               width: '100%',
               height: '100%',
+              viewTransitionName: 'collection-hero-image',
               ...getFocalPointStyle(photos[0]?.focalX || 50, photos[0]?.focalY || 50),
             }}
           />

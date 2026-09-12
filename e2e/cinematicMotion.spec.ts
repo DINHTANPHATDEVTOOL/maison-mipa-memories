@@ -110,4 +110,32 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
 
     await expect(page.locator('text=Bước 3/6')).toBeVisible();
   });
+
+  test('7. All 7 Signature Moments are present and rendered on Homepage', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Moment 1: Hero
+    await expect(page.locator('h1.editorial-h1')).toBeVisible();
+    await expect(page.getByText('MAISON MIPA / SAIGON')).toBeVisible();
+
+    // Moment 2: Selected Works Perspective
+    await expect(page.getByRole('heading', { name: /Bộ sưu tập concept chọn lọc/i })).toBeVisible();
+
+    // Moment 3: Photo Stack Scene
+    await expect(page.getByRole('heading', { name: /Những bản in trải rộng trên bàn làm việc/i })).toBeVisible();
+
+    // Moment 4: Film Gate & Moving Matte Transition
+    await expect(page.getByText(/02 \/ LE TEMPS SUSPENDU — SAIGON ATELIER/i)).toBeVisible();
+
+    // Moment 5: Services Choreography
+    await expect(page.getByRole('heading', { name: /Bạn muốn lưu lại điều gì/i })).toBeVisible();
+
+    // Moment 6: Darkroom Exhibition Depth
+    await expect(page.getByRole('heading', { name: /Tĩnh lặng trong từng khuôn hình/i })).toBeVisible();
+    await expect(page.getByText(/KHOẢNH KHẮC NGUYÊN BẢN/i)).toBeVisible();
+
+    // Moment 7: Final CTA Enter the Frame
+    await expect(page.getByRole('heading', { name: /Hẹn một buổi chụp cùng Maison MIPA/i })).toBeVisible();
+  });
 });

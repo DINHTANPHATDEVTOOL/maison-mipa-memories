@@ -1,3 +1,9 @@
+// ==============================================================================
+// Maison MIPA Memories — Signature Moment #6: Darkroom Chapter with Depth of Field
+// Art Direction: Immersive warm near-black (#171310) gallery room.
+// Depth of Field: Background giant phrase moves slow, floating centerpiece photo moves
+// faster, stationary minimal caption sits foreground. Followed by curated exhibition frames.
+// ==============================================================================
 import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
@@ -42,46 +48,108 @@ const EXHIBITION_FRAMES: ExhibitionFrame[] = [
 export const DarkroomExhibitionSection: React.FC = () => {
   const navigate = useNavigate();
   const sectionRef = useRef<HTMLElement>(null);
+  const bgTypographyRef = useRef<HTMLDivElement>(null);
+  const floatingPhotoRef = useRef<HTMLDivElement>(null);
+  const stationaryCaptionRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const prefersReduced = useReducedMotion();
 
+  // Signature Moment #6: Depth-of-field Parallax & Darkroom Transition
   useGsapContext(() => {
-    // Only animate horizontal translation on desktop if reduced motion is disabled
-    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
-    if (prefersReduced || !isDesktop || !sectionRef.current || !trackRef.current) return;
+    if (prefersReduced || !sectionRef.current) return;
 
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+    if (!isDesktop) return;
+
+    // 1. Smooth Background Transition to warm near-black (#171310)
     gsap.fromTo(
-      trackRef.current,
+      sectionRef.current,
+      { backgroundColor: '#231D19' },
       {
-        x: '0%',
-      },
-      {
-        x: '-22%',
+        backgroundColor: '#171310',
         ease: 'none',
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: 'top 75%',
-          end: 'bottom 25%',
+          start: 'top 80%',
+          end: 'top 30%',
           scrub: 1,
         },
       }
     );
+
+    // 2. Depth of Field Parallax
+    // Layer A (Background text): moves slow (yPercent: -16)
+    if (bgTypographyRef.current) {
+      gsap.fromTo(
+        bgTypographyRef.current,
+        { yPercent: 12 },
+        {
+          yPercent: -16,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1.2,
+          },
+        }
+      );
+    }
+
+    // Layer B (Floating photo): moves faster (yPercent: -8 to 15)
+    if (floatingPhotoRef.current) {
+      gsap.fromTo(
+        floatingPhotoRef.current,
+        { yPercent: -10, scale: 0.98 },
+        {
+          yPercent: 14,
+          scale: 1.01,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.8,
+          },
+        }
+      );
+    }
+
+    // 3. Lower Exhibition Gallery Horizontal Translation
+    if (trackRef.current) {
+      gsap.fromTo(
+        trackRef.current,
+        { x: '0%' },
+        {
+          x: '-20%',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: trackRef.current,
+            start: 'top 85%',
+            end: 'bottom 20%',
+            scrub: 1,
+          },
+        }
+      );
+    }
   }, sectionRef, [prefersReduced]);
 
   return (
     <section
       ref={sectionRef}
+      className="editorial-section cinematic-scene"
       style={{
         position: 'relative',
         width: '100%',
         maxWidth: '100%',
         overflow: 'hidden',
-        padding: 'clamp(4rem, 8vw, 7rem) 0',
-        backgroundColor: 'var(--editorial-darkroom-bg, #1F1A17)',
-        color: 'var(--editorial-darkroom-text, #F8F3EB)',
+        padding: 'clamp(5rem, 9vw, 8rem) 0',
+        backgroundColor: '#171310',
+        color: '#F8F3EB',
+        transition: 'background-color 0.5s ease',
       }}
     >
-      <div className="editorial-container" style={{ marginBottom: '3rem' }}>
+      <div className="editorial-container" style={{ marginBottom: '2.5rem' }}>
         <div style={{ maxWidth: '640px' }}>
           <span
             style={{
@@ -90,7 +158,7 @@ export const DarkroomExhibitionSection: React.FC = () => {
               textTransform: 'uppercase',
               fontWeight: 500,
               display: 'block',
-              color: '#8C6E53',
+              color: '#B89B62',
               marginBottom: '0.75rem',
             }}
           >
@@ -99,7 +167,7 @@ export const DarkroomExhibitionSection: React.FC = () => {
           <h2
             style={{
               fontFamily: 'var(--editorial-font-heading)',
-              fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+              fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)',
               fontWeight: 300,
               letterSpacing: '-0.02em',
               color: '#F8F3EB',
@@ -123,6 +191,97 @@ export const DarkroomExhibitionSection: React.FC = () => {
         </div>
       </div>
 
+      {/* Signature Moment #6: Floating Centerpiece Stage with Depth-of-Field */}
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: 'clamp(360px, 55vh, 520px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          margin: '2.5rem 0 4rem',
+        }}
+      >
+        {/* Layer 1: Background Giant Ghost Typography (moves slower) */}
+        <div
+          ref={bgTypographyRef}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            whiteSpace: 'nowrap',
+            fontSize: 'clamp(4.5rem, 13vw, 11rem)',
+            fontFamily: 'var(--editorial-font-heading)',
+            color: 'rgba(248, 243, 235, 0.035)',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            pointerEvents: 'none',
+            userSelect: 'none',
+            zIndex: 1,
+            willChange: 'transform',
+          }}
+        >
+          KHOẢNH KHẮC NGUYÊN BẢN
+        </div>
+
+        {/* Layer 2: Floating Centerpiece Photo Plane (moves faster) */}
+        <div
+          ref={floatingPhotoRef}
+          data-cursor="XEM"
+          onClick={() => navigate('/portfolio/parisian-romance')}
+          className="group"
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            width: 'clamp(300px, 52vw, 700px)',
+            height: 'clamp(320px, 50vh, 460px)',
+            borderRadius: '3px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            overflow: 'hidden',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.55)',
+            cursor: 'pointer',
+            willChange: 'transform',
+          }}
+        >
+          <img
+            src="/hero.png"
+            alt="Maison MIPA Không gian phòng tối triển lãm"
+            loading="lazy"
+            className="transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        </div>
+
+        {/* Layer 3: Foreground Stationary Caption */}
+        <div
+          ref={stationaryCaptionRef}
+          style={{
+            position: 'absolute',
+            bottom: '1.5rem',
+            right: 'clamp(1.5rem, 8vw, 6rem)',
+            zIndex: 3,
+            textAlign: 'right',
+            color: '#EFE6C9',
+            fontSize: '0.72rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            pointerEvents: 'none',
+          }}
+        >
+          <div>03 / ATELIER NOIR</div>
+          <div style={{ color: 'rgba(248, 243, 235, 0.5)', fontSize: '0.65rem', marginTop: '3px' }}>
+            ARCHIVE 2026 — SAIGON
+          </div>
+        </div>
+      </div>
+
       {/* Exhibition Carousel / Gallery Track */}
       <div style={{ width: '100%', overflow: 'hidden', padding: '0 clamp(1.5rem, 5vw, 3rem)' }}>
         <div
@@ -139,82 +298,70 @@ export const DarkroomExhibitionSection: React.FC = () => {
             <div
               key={frame.id}
               data-cursor="XEM"
-              onClick={() => navigate(`/portfolio`)}
-              className="editorial-darkroom-item"
+              onClick={() => navigate(`/portfolio/${frame.collectionSlug}`)}
+              className="group"
               style={{
-                flexShrink: 0,
+                flex: '0 0 clamp(280px, 35vw, 440px)',
                 cursor: 'pointer',
-                width: 'clamp(280px, 38vw, 480px)',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              {/* Photo Frame */}
               <div
                 style={{
                   position: 'relative',
+                  height: 'clamp(320px, 45vh, 480px)',
                   overflow: 'hidden',
-                  borderRadius: '3px',
-                  border: '1px solid rgba(248, 243, 235, 0.15)',
-                  backgroundColor: '#171311',
-                  height: 'clamp(360px, 50vh, 520px)',
+                  borderRadius: '2px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  backgroundColor: '#171310',
                 }}
               >
                 <img
                   src={frame.imageUrl}
                   alt={frame.title}
                   loading="lazy"
+                  className="transition-transform duration-700 ease-out group-hover:scale-[1.025]"
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    filter: 'brightness(0.95) contrast(1.02)',
                     display: 'block',
-                    transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.03)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
+                    filter: 'contrast(1.03)',
                   }}
                 />
               </div>
 
-              {/* Editorial Frame Details */}
-              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem' }}>
-                  <h3
-                    style={{
-                      fontFamily: 'var(--editorial-font-heading)',
-                      fontSize: 'clamp(1.1rem, 1.6vw, 1.35rem)',
-                      fontWeight: 400,
-                      color: '#F8F3EB',
-                      letterSpacing: '0.02em',
-                      margin: 0,
-                    }}
-                  >
-                    {frame.title}
-                  </h3>
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      letterSpacing: '0.2em',
-                      textTransform: 'uppercase',
-                      color: 'rgba(248, 243, 235, 0.4)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {frame.dimension}
-                  </span>
-                </div>
+              <div style={{ marginTop: '1.2rem' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    letterSpacing: '0.15em',
+                    color: '#8C6E53',
+                    textTransform: 'uppercase',
+                    display: 'block',
+                    marginBottom: '0.35rem',
+                  }}
+                >
+                  {frame.dimension}
+                </span>
+                <h3
+                  style={{
+                    fontFamily: 'var(--editorial-font-heading)',
+                    fontSize: '1.35rem',
+                    color: '#F8F3EB',
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
+                  {frame.title}
+                </h3>
                 <p
                   style={{
                     fontSize: '0.85rem',
-                    color: 'rgba(248, 243, 235, 0.6)',
-                    fontWeight: 300,
-                    margin: 0,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    color: 'rgba(248, 243, 235, 0.65)',
+                    marginTop: '0.4rem',
+                    lineHeight: 1.5,
                   }}
                 >
                   {frame.subtitle}

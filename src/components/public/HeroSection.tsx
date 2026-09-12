@@ -1,7 +1,8 @@
 // ==============================================================================
-// Maison MIPA Memories — French Editorial Photography Hero Section
-// Art Direction: Photography-first, cinematic arrival, restrained pointer depth,
-// line-by-line typographic reveal, subtle scroll exit.
+// Maison MIPA Memories — Signature Moment #1: Hero -> Fullscreen Transformation
+// Art Direction: Starts as refined 40/60 editorial framed composition.
+// On scroll: text fades upward, framed photograph centers and expands to full bleed
+// (100vw x 100vh) with inner scale depth and minimal caption "MAISON MIPA / SAIGON — 2026".
 // ==============================================================================
 import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +20,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
   const prefersReduced = useReducedMotion();
 
   const sectionRef = useRef<HTMLElement>(null);
+  const pinContainerRef = useRef<HTMLDivElement>(null);
   const textColRef = useRef<HTMLDivElement>(null);
   const imageFrameRef = useRef<HTMLDivElement>(null);
   const heroImageRef = useRef<HTMLImageElement>(null);
+  const fullscreenCaptionRef = useRef<HTMLDivElement>(null);
 
   const overlineRef = useRef<HTMLSpanElement>(null);
   const line1Ref = useRef<HTMLSpanElement>(null);
@@ -29,12 +32,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
   const leadRef = useRef<HTMLParagraphElement>(null);
   const ctaGroupRef = useRef<HTMLDivElement>(null);
 
-  // Cinematic Arrival & Scroll Exit Orchestration
+  // Cinematic Arrival & Scroll-Driven Fullscreen Transformation
   useGsapContext(() => {
     if (prefersReduced || !sectionRef.current) return;
 
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (isMobile) {
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+
+    // --- 1. Initial Load Cinematic Entrance ---
+    if (!isDesktop) {
       if (heroImageRef.current) gsap.to(heroImageRef.current, { scale: 1, opacity: 1, duration: 0.25 });
       if (overlineRef.current) gsap.to(overlineRef.current, { opacity: 1, y: 0, duration: 0.25 });
       const headingLines = [line1Ref.current, line2Ref.current].filter(Boolean);
@@ -44,11 +49,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       return;
     }
 
-    const tl = gsap.timeline({ defaults: { ease: MOTION_CONFIG.ease.cinematic } });
+    const introTl = gsap.timeline({ defaults: { ease: MOTION_CONFIG.ease.cinematic } });
 
-    // 1. Hero image starts slightly enlarged (scale 1.06) and settles smoothly to 1.0
+    // Hero image settles from 1.06 to 1.0
     if (heroImageRef.current) {
-      tl.fromTo(
+      introTl.fromTo(
         heroImageRef.current,
         { scale: 1.06, opacity: 0.88 },
         { scale: 1.0, opacity: 1, duration: MOTION_CONFIG.duration.heroSettle, ease: 'power2.out' },
@@ -56,9 +61,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       );
     }
 
-    // 2. Overline fades in
+    // Overline fades in
     if (overlineRef.current) {
-      tl.fromTo(
+      introTl.fromTo(
         overlineRef.current,
         { opacity: 0, y: 8 },
         { opacity: 1, y: 0, duration: 0.5 },
@@ -66,10 +71,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       );
     }
 
-    // 3. H1 reveals line-by-line from overflow:hidden wrappers
+    // Line-by-line typographic reveal
     const headingLines = [line1Ref.current, line2Ref.current].filter(Boolean);
     if (headingLines.length > 0) {
-      tl.fromTo(
+      introTl.fromTo(
         headingLines,
         { yPercent: 105, opacity: 0 },
         { yPercent: 0, opacity: 1, duration: 0.75, stagger: 0.1 },
@@ -77,9 +82,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       );
     }
 
-    // 4. Supporting text follows
+    // Supporting lead copy
     if (leadRef.current) {
-      tl.fromTo(
+      introTl.fromTo(
         leadRef.current,
         { opacity: 0, y: 12 },
         { opacity: 1, y: 0, duration: 0.6 },
@@ -87,9 +92,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       );
     }
 
-    // 5. CTAs appear last
+    // CTAs settle
     if (ctaGroupRef.current) {
-      tl.fromTo(
+      introTl.fromTo(
         ctaGroupRef.current,
         { opacity: 0, y: 10 },
         { opacity: 1, y: 0, duration: 0.5 },
@@ -97,29 +102,63 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       );
     }
 
-    // 6. Subtle Scroll Exit Parallax
-    if (imageFrameRef.current && textColRef.current) {
-      gsap.to(imageFrameRef.current, {
-        yPercent: -5,
-        ease: 'none',
+    // --- 2. Signature Moment #1: Scroll-driven Fullscreen Transformation ---
+    if (imageFrameRef.current && textColRef.current && pinContainerRef.current) {
+      const scrollTl = gsap.timeline({
         scrollTrigger: {
-          trigger: sectionRef.current,
+          trigger: pinContainerRef.current,
           start: 'top top',
-          end: 'bottom top',
-          scrub: true,
+          end: '+=110%',
+          pin: true,
+          scrub: 0.8,
         },
       });
 
-      gsap.to(textColRef.current, {
-        yPercent: -10,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
+      // Phase A: Text moves up and fades out
+      scrollTl.to(
+        textColRef.current,
+        {
+          y: -70,
+          opacity: 0,
+          duration: 0.45,
+          ease: 'power2.inOut',
         },
-      });
+        0
+      );
+
+      // Phase B & C: Image frame centers and expands to fullscreen
+      scrollTl.to(
+        imageFrameRef.current,
+        {
+          scale: 1.42,
+          xPercent: -22,
+          yPercent: 0,
+          borderRadius: 0,
+          duration: 0.85,
+          ease: 'power2.inOut',
+        },
+        0.1
+      );
+
+      // Inner image scale depth: 1.05 -> 1.0
+      if (heroImageRef.current) {
+        scrollTl.fromTo(
+          heroImageRef.current,
+          { scale: 1.06 },
+          { scale: 1.0, duration: 0.85, ease: 'none' },
+          0.1
+        );
+      }
+
+      // Phase D: Minimal cinematic caption appears on full bleed
+      if (fullscreenCaptionRef.current) {
+        scrollTl.fromTo(
+          fullscreenCaptionRef.current,
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' },
+          0.7
+        );
+      }
     }
   }, sectionRef, [prefersReduced]);
 
@@ -145,7 +184,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       const normX = (e.clientX / innerWidth) * 2 - 1; // -1 to +1
       const normY = (e.clientY / innerHeight) * 2 - 1; // -1 to +1
 
-      // Image: ±8px translate, ±1.5deg rotateY, ±1.0deg rotateX
+      // Image: ±8px translate, ±1.5deg rotationY, ±1.0deg rotationX
       xImg(normX * MOTION_CONFIG.depth.subtleX);
       yImg(normY * MOTION_CONFIG.depth.subtleY);
       rotYImg(normX * MOTION_CONFIG.depth.tiltRotateY);
@@ -184,130 +223,174 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
       ref={sectionRef}
       className="editorial-section cinematic-scene"
       style={{
-        paddingTop: 'clamp(2.5rem, 5vw, 4rem)',
-        paddingBottom: 'clamp(3rem, 6vw, 5rem)',
-        perspective: '1200px',
+        position: 'relative',
+        width: '100%',
+        padding: 0,
+        backgroundColor: 'var(--editorial-bg)',
       }}
     >
-      <div className="editorial-container">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1.35fr',
-            gap: 'clamp(2.5rem, 5vw, 5rem)',
-            alignItems: 'center',
-          }}
-          className="editorial-hero-grid"
-        >
-          {/* Left: Editorial Text Block */}
-          <div ref={textColRef} style={{ maxWidth: '540px', willChange: 'transform' }}>
-            <span
-              ref={overlineRef}
-              className="editorial-overline block"
-              style={{ opacity: prefersReduced ? 1 : 0 }}
-            >
-              MAISON MIPA / SAIGON
-            </span>
-
-            <h1
-              className="editorial-h1"
-              style={{ marginBottom: '1.5rem' }}
-            >
-              <span className="block overflow-hidden">
-                <span
-                  ref={line1Ref}
-                  className="inline-block"
-                  style={{ transform: prefersReduced ? 'none' : undefined }}
-                >
-                  Một nơi để những khoảnh khắc
-                </span>
-              </span>{' '}
-              <span className="block overflow-hidden">
-                <span
-                  ref={line2Ref}
-                  className="inline-block"
-                  style={{ transform: prefersReduced ? 'none' : undefined }}
-                >
-                  được lưu lại thật tự nhiên.
-                </span>
+      <div
+        ref={pinContainerRef}
+        style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          overflow: 'hidden',
+          paddingTop: 'clamp(3rem, 6vw, 5rem)',
+          paddingBottom: 'clamp(3rem, 6vw, 5rem)',
+        }}
+      >
+        <div className="editorial-container" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1.35fr',
+              gap: 'clamp(2.5rem, 5vw, 5rem)',
+              alignItems: 'center',
+            }}
+            className="editorial-hero-grid"
+          >
+            {/* Left: Editorial Text Block */}
+            <div ref={textColRef} style={{ maxWidth: '540px', willChange: 'transform, opacity' }}>
+              <span
+                ref={overlineRef}
+                className="editorial-overline block"
+                style={{ opacity: prefersReduced ? 1 : 0 }}
+              >
+                MAISON MIPA / SAIGON
               </span>
-            </h1>
 
-            <p
-              ref={leadRef}
-              className="editorial-lead"
-              style={{ marginBottom: '2.5rem', opacity: prefersReduced ? 1 : 0 }}
-            >
-              Không gian ánh sáng dịu nhẹ, tone màu ấm và những buổi chụp thư thái. Chúng tôi ghi lại cảm xúc và vẻ đẹp chân thật của bạn.
-            </p>
-
-            {/* Restrained CTAs */}
-            <div
-              ref={ctaGroupRef}
-              style={{
-                display: 'flex',
-                gap: '1.25rem',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                opacity: prefersReduced ? 1 : 0,
-              }}
-            >
-              <button
-                onClick={onOpenBooking}
-                className="public-btn-primary"
-                style={{ padding: '0.9rem 2.2rem', fontSize: '1rem' }}
+              <h1
+                className="editorial-h1"
+                style={{ marginBottom: '1.5rem' }}
               >
-                Đặt lịch chụp
-              </button>
+                <span className="block overflow-hidden">
+                  <span
+                    ref={line1Ref}
+                    className="inline-block"
+                    style={{ transform: prefersReduced ? 'none' : undefined }}
+                  >
+                    Một nơi để những khoảnh khắc
+                  </span>
+                </span>{' '}
+                <span className="block overflow-hidden">
+                  <span
+                    ref={line2Ref}
+                    className="inline-block"
+                    style={{ transform: prefersReduced ? 'none' : undefined }}
+                  >
+                    được lưu lại thật tự nhiên.
+                  </span>
+                </span>
+              </h1>
 
-              <button
+              <p
+                ref={leadRef}
+                className="editorial-lead"
+                style={{ marginBottom: '2.5rem', opacity: prefersReduced ? 1 : 0 }}
+              >
+                Không gian ánh sáng dịu nhẹ, tone màu ấm và những buổi chụp thư thái. Chúng tôi ghi lại cảm xúc và vẻ đẹp chân thật của bạn.
+              </p>
+
+              {/* Restrained CTAs */}
+              <div
+                ref={ctaGroupRef}
+                style={{
+                  display: 'flex',
+                  gap: '1.25rem',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  opacity: prefersReduced ? 1 : 0,
+                }}
+              >
+                <button
+                  onClick={onOpenBooking}
+                  className="public-btn-primary"
+                  style={{ padding: '0.9rem 2.2rem', fontSize: '1rem' }}
+                >
+                  Đặt lịch chụp
+                </button>
+
+                <button
+                  onClick={() => navigate('/portfolio')}
+                  className="public-btn-secondary"
+                  style={{ padding: '0.9rem 2rem', fontSize: '1rem' }}
+                >
+                  Xem portfolio
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Large Editorial Photograph with 3D Transformation Frame */}
+            <div className="editorial-hero-media" style={{ perspective: '1200px' }}>
+              <div
+                ref={imageFrameRef}
+                className="editorial-image-frame cinematic-depth-image"
+                data-cursor="XEM"
                 onClick={() => navigate('/portfolio')}
-                className="public-btn-secondary"
-                style={{ padding: '0.9rem 2rem', fontSize: '1rem' }}
+                style={{
+                  position: 'relative',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(96, 70, 52, 0.14)',
+                  boxShadow: 'none',
+                  maxHeight: '620px',
+                  overflow: 'hidden',
+                  transformStyle: 'preserve-3d',
+                  cursor: 'pointer',
+                  transformOrigin: 'center center',
+                  willChange: 'transform, border-radius',
+                }}
               >
-                Xem portfolio
-              </button>
+                <img
+                  ref={heroImageRef}
+                  src="/hero.png"
+                  alt="Maison MIPA Memories — Không gian studio và buổi chụp tự nhiên"
+                  fetchPriority="high"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    maxHeight: '620px',
+                    objectFit: 'cover',
+                    display: 'block',
+                    willChange: 'transform',
+                  }}
+                />
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Right: Large Editorial Photograph with Subtle 3D Spatial Frame */}
-          <div className="editorial-hero-media" style={{ perspective: '1000px' }}>
-            <div
-              ref={imageFrameRef}
-              className="editorial-image-frame cinematic-depth-image"
-              data-cursor="XEM"
-              onClick={() => navigate('/portfolio')}
-              style={{
-                borderRadius: '4px',
-                border: '1px solid rgba(96, 70, 52, 0.14)',
-                boxShadow: 'none',
-                maxHeight: '620px',
-                overflow: 'hidden',
-                transformStyle: 'preserve-3d',
-                cursor: 'pointer',
-              }}
-            >
-              <img
-                ref={heroImageRef}
-                src="/hero.png"
-                alt="Maison MIPA Memories — Không gian studio và buổi chụp tự nhiên"
-                fetchPriority="high"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  maxHeight: '620px',
-                  objectFit: 'cover',
-                  display: 'block',
-                  willChange: 'transform',
-                }}
-              />
-            </div>
+        {/* Phase D: Minimal Cinematic Caption on Fullscreen Expansion */}
+        <div
+          ref={fullscreenCaptionRef}
+          style={{
+            position: 'absolute',
+            bottom: '2.5rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            textAlign: 'center',
+            color: '#FFFDF9',
+            letterSpacing: '0.24em',
+            fontSize: '0.78rem',
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            pointerEvents: 'none',
+            opacity: 0,
+            zIndex: 10,
+            textShadow: '0 2px 10px rgba(0,0,0,0.6)',
+          }}
+        >
+          <div>MAISON MIPA</div>
+          <div style={{ fontSize: '0.68rem', color: '#EFE6C9', marginTop: '0.25rem', letterSpacing: '0.18em' }}>
+            SAIGON — 2026
           </div>
         </div>
       </div>
 
       <style>{`
-        @media (max-width: 960px) {
+        @media (max-width: 1023px) {
           .editorial-hero-grid {
             grid-template-columns: 1fr !important;
             gap: 2.5rem !important;

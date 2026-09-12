@@ -8,6 +8,7 @@ import { getPublicCollections, getPublicConcepts } from '../../services/portfoli
 import { getFocalPointStyle } from '../../utils/imageOptimizer';
 import type { PortfolioCollection, Concept } from '../../types';
 import { ArrowRight } from 'lucide-react';
+import { safeStartViewTransition } from '../../motion/viewTransitions';
 
 interface PortfolioSectionProps {
   onOpenBooking?: (conceptSlug?: string) => void;
@@ -134,15 +135,25 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
               const focalX = coverPhoto?.focalX || 50;
               const focalY = coverPhoto?.focalY || 50;
 
+              const handleNavigate = (e?: React.SyntheticEvent) => {
+                const img = (e?.currentTarget as HTMLElement)?.querySelector('img');
+                if (img) {
+                  img.style.viewTransitionName = 'collection-hero-image';
+                }
+                safeStartViewTransition(() => {
+                  navigate(`/portfolio/${col.slug}`);
+                });
+              };
+
               return (
                 <div
                   key={col.id}
                   data-cursor="XEM"
-                  onClick={() => navigate(`/portfolio/${col.slug}`)}
+                  onClick={(e) => handleNavigate(e)}
                   role="button"
                   tabIndex={0}
                   className="group"
-                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/portfolio/${col.slug}`); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleNavigate(e); }}
                   style={{
                     cursor: 'pointer',
                     display: 'flex',
