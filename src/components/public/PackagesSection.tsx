@@ -2,11 +2,14 @@
 // Maison MIPA Memories — Editorial Pricing Menu
 // Art Direction: Contemporary editorial price list separated by horizontal rules.
 // No SaaS cards, no gold borders, no floating POPULAR pills, no star icons.
-// Dynamic catalog data from catalogService.
+// Dynamic catalog data from catalogService. Soft depth entrance choreography.
 // ==============================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getPackages } from '../../services/catalogService';
 import type { PackageItem } from '../../types';
+import { useReducedMotion } from '../../motion/useReducedMotion';
+import { useGsapContext, gsap } from '../../motion/useGsapContext';
+import { MOTION_CONFIG } from '../../motion/motionConfig';
 
 interface PackagesSectionProps {
   onOpenBooking: () => void;
@@ -15,6 +18,10 @@ interface PackagesSectionProps {
 export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenBooking }) => {
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const prefersReduced = useReducedMotion();
+
+  const sectionRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -29,13 +36,45 @@ export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenBooking 
       }
     }
     loadPackagesData();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  useGsapContext(() => {
+    if (prefersReduced || !sectionRef.current || !menuRef.current || packages.length === 0) return;
+
+    const rows = menuRef.current.querySelectorAll('.editorial-price-row');
+    gsap.fromTo(
+      rows,
+      {
+        opacity: 0,
+        y: 20,
+      },
+      {
+        opacity: 1,
+        y: 0,
+        duration: MOTION_CONFIG.duration.medium,
+        stagger: 0.1,
+        ease: MOTION_CONFIG.ease.soft,
+        scrollTrigger: {
+          trigger: menuRef.current,
+          start: 'top 82%',
+          once: true,
+        },
+      }
+    );
+  }, sectionRef, [prefersReduced, packages]);
 
   if (isLoading || packages.length === 0) return null;
 
   return (
-    <section id="packages" className="editorial-section" style={{ backgroundColor: 'var(--editorial-paper)' }}>
+    <section
+      ref={sectionRef}
+      id="packages"
+      className="editorial-section"
+      style={{ backgroundColor: 'var(--editorial-paper)' }}
+    >
       <div className="editorial-container">
         {/* Editorial Section Header */}
         <div style={{ marginBottom: '4rem', maxWidth: '640px' }}>
@@ -47,14 +86,14 @@ export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenBooking 
         </div>
 
         {/* Editorial Price Menu Rows */}
-        <div className="editorial-price-menu">
+        <div ref={menuRef} className="editorial-price-menu">
           {packages.map((pkg) => (
             <div key={pkg.id} className="editorial-price-row">
               {/* Col 1: Package Title & Category */}
               <div>
                 <h3 className="editorial-price-name">{pkg.name}</h3>
                 <div className="editorial-price-meta">
-                  {pkg.recommended ? 'Được chọn nhiều' : 'Gói tiêu chuẩn'}
+                  {pkg.recommended ? 'Gói đề xuất' : 'Gói tiêu chuẩn'}
                 </div>
               </div>
 

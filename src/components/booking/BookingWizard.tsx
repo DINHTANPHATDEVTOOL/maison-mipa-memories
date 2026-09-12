@@ -695,7 +695,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         )}
 
         {/* Scrollable Step Content Body */}
-        <div style={{ padding: '1.8rem', overflowY: 'auto', flex: 1 }}>
+        <div key={step} className="booking-step-content" style={{ padding: '1.8rem', overflowY: 'auto', flex: 1 }}>
           
           {/* STEP 1: SERVICE SELECTION */}
           {step === 1 && (

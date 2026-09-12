@@ -325,16 +325,16 @@ html, body, #root {
     gap: 0.85rem !important;
   }
 
-  /* Responsive Headers */
-  h1, .hero-title {
-    font-size: 1.95rem !important;
-    line-height: 1.2 !important;
+  /* Responsive Headers (Scoped to non-editorial headers without !important) */
+  h1:not(.editorial-h1), .hero-title {
+    font-size: 1.95rem;
+    line-height: 1.2;
   }
-  h2 {
-    font-size: 1.55rem !important;
+  h2:not(.editorial-h2) {
+    font-size: 1.55rem;
   }
-  h3 {
-    font-size: 1.25rem !important;
+  h3:not(.editorial-h3) {
+    font-size: 1.25rem;
   }
 
   /* Responsive Buttons */

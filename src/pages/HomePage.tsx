@@ -1,23 +1,24 @@
 // ==============================================================================
-// Maison MIPA Memories - Editorial Homepage (#6 & #16)
-// Flow:
-// 1. Cinematic Hero
-// 2. Maison MIPA story
-// 3. Featured Concepts
-// 4. Services
-// 5. Maison Experience
-// 6. Packages
-// 7. Quy trình 4 bước
-// 8. Testimonials (authentic client reflection)
-// 9. FAQ
-// 10. Emotional final CTA
+// Maison MIPA Memories - Editorial Homepage (Cinematic Art Experience Phase 2)
+// Rhythm:
+// 1. Hero cinematic arrival
+// 2. Selected works 3D reveal
+// 3. Full-bleed image transition
+// 4. Services editorial rows
+// 5. Maison story & timeline
+// 6. Darkroom exhibition gallery moment
+// 7. Pricing
+// 8. FAQ
+// 9. Cinematic final image CTA
 // ==============================================================================
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeroSection } from '../components/public/HeroSection';
 import { FeaturedConceptsSection } from '../components/public/FeaturedConceptsSection';
+import { FullBleedTransitionSection } from '../components/public/FullBleedTransitionSection';
 import { ServicesSection } from '../components/public/ServicesSection';
 import { MaisonStorySection } from '../components/public/MaisonStorySection';
+import { DarkroomExhibitionSection } from '../components/public/DarkroomExhibitionSection';
 import { PackagesSection } from '../components/public/PackagesSection';
 import { FaqSection } from '../components/public/FaqSection';
 import { FinalCtaSection } from '../components/public/FinalCtaSection';
@@ -48,13 +49,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         jsonLd={generateStudioLocalBusinessSchema()}
       />
 
-      {/* 01. Hero */}
+      {/* 01. Hero Cinematic Arrival */}
       <HeroSection onOpenBooking={onOpenBooking} />
 
-      {/* 02. Selected Work / Featured Concepts */}
+      {/* 02. Selected Works 3D Composition */}
       <FeaturedConceptsSection onOpenBooking={handleOpenBookingWithConcept} />
 
-      {/* 03. Services */}
+      {/* 03. Full-bleed Image Transition */}
+      <FullBleedTransitionSection />
+
+      {/* 04. Services Editorial Rows */}
       <ServicesSection
         onSelectService={(serviceId, slug) => {
           const matchedSlug = slug || serviceId.replace('srv_', '');
@@ -62,16 +66,19 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         }}
       />
 
-      {/* 04. Maison Story & Experience */}
+      {/* 05. Maison Story & 4-Step Timeline */}
       <MaisonStorySection />
 
-      {/* 05. Pricing Preview */}
+      {/* 06. Darkroom Exhibition Moment */}
+      <DarkroomExhibitionSection />
+
+      {/* 07. Pricing Menu */}
       <PackagesSection onOpenBooking={onOpenBooking} />
 
-      {/* 06. Frequently Asked Questions */}
+      {/* 08. Frequently Asked Questions */}
       <FaqSection />
 
-      {/* 07. Quiet Final CTA */}
+      {/* 09. Cinematic Final Image CTA */}
       <FinalCtaSection onOpenBooking={onOpenBooking} />
     </>
   );

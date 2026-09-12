@@ -137,9 +137,11 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
               return (
                 <div
                   key={col.id}
+                  data-cursor="XEM"
                   onClick={() => navigate(`/portfolio/${col.slug}`)}
                   role="button"
                   tabIndex={0}
+                  className="group"
                   onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/portfolio/${col.slug}`); }}
                   style={{
                     cursor: 'pointer',
@@ -159,12 +161,12 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                       src={col.coverPhotoUrl || coverPhoto?.url || '/hero.png'}
                       alt={col.title}
                       loading="lazy"
+                      className="transition-transform duration-500 ease-out group-hover:scale-[1.025]"
                       style={{
                         width: '100%',
                         height: '100%',
                         display: 'block',
                         objectFit: 'cover',
-                        transition: 'transform 0.5s ease',
                         ...getFocalPointStyle(focalX, focalY),
                       }}
                     />

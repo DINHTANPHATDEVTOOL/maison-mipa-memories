@@ -179,6 +179,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 60);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Dynamic interactive notifications with localStorage persistence
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
@@ -348,19 +358,23 @@ export const Navbar: React.FC<NavbarProps> = ({
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      backgroundColor: '#FAF8F3',
-      borderBottom: '1px solid rgba(96, 70, 52, 0.12)',
-      boxShadow: 'none',
+      backgroundColor: isScrolled ? 'rgba(250, 248, 243, 0.95)' : '#FAF8F3',
+      backdropFilter: isScrolled ? 'blur(10px)' : 'none',
+      WebkitBackdropFilter: isScrolled ? 'blur(10px)' : 'none',
+      borderBottom: isScrolled ? '1px solid rgba(96, 70, 52, 0.16)' : '1px solid rgba(96, 70, 52, 0.10)',
+      boxShadow: isScrolled ? '0 4px 20px rgba(96, 70, 52, 0.04)' : 'none',
+      transition: 'background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
     }}>
       <div className="mipa-container" style={{
         maxWidth: '1350px',
         margin: '0 auto',
-        padding: '0.75rem 1.25rem',
+        padding: isScrolled ? '0.55rem 1.25rem' : '0.85rem 1.25rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '1rem',
         width: '100%',
+        transition: 'padding 280ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         {/* Brand Logo Link */}
         <Link
