@@ -7,7 +7,7 @@
 // - Google Drive delivery readiness toggle (#8 integration)
 // - Protected operations search (no public PII exposure)
 // ==============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../../types';
 import { getOperationsInboxStats, getNextActionForBooking } from '../../utils/bookingStateMachine';
 import {
@@ -52,6 +52,18 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeBookingTimeline, setActiveBookingTimeline] = useState<Booking | null>(bookings[0] || null);
+
+  // Synchronize active booking timeline when bookings prop updates
+  useEffect(() => {
+    if (!activeBookingTimeline && bookings.length > 0) {
+      setActiveBookingTimeline(bookings[0]);
+    } else if (activeBookingTimeline) {
+      const refreshed = bookings.find(b => b.id === activeBookingTimeline.id || b.bookingCode === activeBookingTimeline.bookingCode);
+      if (refreshed) {
+        setActiveBookingTimeline(refreshed);
+      }
+    }
+  }, [bookings]);
 
   // Assign staff modal/popover state
   const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
@@ -145,11 +157,27 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   // Computed Operations Inbox stats
   const inboxStats = getOperationsInboxStats(bookings);
 
+  // Computed Status Counts for Filter Pills
+  const statusCounts = useMemo(() => {
+    return {
+      ALL: bookings.length,
+      PENDING_PAYMENT: bookings.filter(b => b.bookingStatus === 'PENDING_PAYMENT' || b.bookingStatus === 'DRAFT').length,
+      DEPOSIT_PAID: bookings.filter(b => b.bookingStatus === 'DEPOSIT_PAID').length,
+      CONFIRMED: bookings.filter(b => b.bookingStatus === 'CONFIRMED').length,
+      SHOOTING: bookings.filter(b => b.bookingStatus === 'SHOOTING' || b.bookingStatus === 'CHECKED_IN').length,
+      READY_FOR_REVIEW: bookings.filter(b => b.bookingStatus === 'READY_FOR_REVIEW' || b.bookingStatus === 'EDITING' || b.bookingStatus === 'SHOOT_COMPLETED').length,
+      COMPLETED: bookings.filter(b => b.bookingStatus === 'COMPLETED' || b.bookingStatus === 'DELIVERED').length,
+      UNASSIGNED: bookings.filter(b => (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && (!b.assignments || b.assignments.length === 0)).length,
+    };
+  }, [bookings]);
+
   // Search & Filter bookings
   const filteredBookings = bookings.filter((b) => {
     let matchesFilter = false;
     if (selectedStatusFilter === 'ALL') {
       matchesFilter = true;
+    } else if (selectedStatusFilter === 'UNASSIGNED') {
+      matchesFilter = (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && (!b.assignments || b.assignments.length === 0);
     } else if (selectedStatusFilter === 'SHOOTING') {
       matchesFilter = b.bookingStatus === 'SHOOTING' || b.bookingStatus === 'CHECKED_IN';
     } else if (selectedStatusFilter === 'PENDING_PAYMENT') {
@@ -246,18 +274,18 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </button>
 
           <button
-            onClick={() => setSelectedStatusFilter('CONFIRMED')}
+            onClick={() => setSelectedStatusFilter('UNASSIGNED')}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'CONFIRMED' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'CONFIRMED' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
+              backgroundColor: selectedStatusFilter === 'UNASSIGNED' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'UNASSIGNED' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHƯA GÁN KÍP CHỤP</div>
+            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHƯA GẮN KÍP CHỤP</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.unassignedStaffCount} đơn</div>
           </button>
 
@@ -314,16 +342,16 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               />
             </div>
 
-            {/* Status Filter Pills with Vietnamese labels */}
+            {/* Status Filter Pills with Vietnamese labels and Real-time Counts */}
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
-                { id: 'ALL', label: 'Tất cả' },
-                { id: 'PENDING_PAYMENT', label: 'Chờ cọc' },
-                { id: 'DEPOSIT_PAID', label: 'Đã cọc' },
-                { id: 'CONFIRMED', label: 'Đã xác nhận' },
-                { id: 'SHOOTING', label: 'Đang chụp' },
-                { id: 'READY_FOR_REVIEW', label: 'Chờ duyệt ảnh' },
-                { id: 'COMPLETED', label: 'Hoàn thành' },
+                { id: 'ALL', label: 'Tất cả', count: statusCounts.ALL },
+                { id: 'PENDING_PAYMENT', label: 'Chờ cọc', count: statusCounts.PENDING_PAYMENT },
+                { id: 'DEPOSIT_PAID', label: 'Đã cọc', count: statusCounts.DEPOSIT_PAID },
+                { id: 'CONFIRMED', label: 'Đã xác nhận', count: statusCounts.CONFIRMED },
+                { id: 'SHOOTING', label: 'Check-in / Đang chụp', count: statusCounts.SHOOTING },
+                { id: 'READY_FOR_REVIEW', label: 'Chờ duyệt ảnh', count: statusCounts.READY_FOR_REVIEW },
+                { id: 'COMPLETED', label: 'Hoàn thành', count: statusCounts.COMPLETED },
               ].map((filterItem) => (
                 <button
                   key={filterItem.id}
@@ -340,9 +368,22 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     cursor: 'pointer',
                     boxShadow: selectedStatusFilter === filterItem.id ? '0 2px 6px rgba(96, 70, 52, 0.2)' : 'none',
                     transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
                   }}
                 >
-                  {filterItem.label}
+                  <span>{filterItem.label}</span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    backgroundColor: selectedStatusFilter === filterItem.id ? 'rgba(255,255,255,0.25)' : '#EFE6C9',
+                    color: selectedStatusFilter === filterItem.id ? '#FFFDF6' : '#604634',
+                    padding: '0.08rem 0.4rem',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                  }}>
+                    {filterItem.count}
+                  </span>
                 </button>
               ))}
             </div>
@@ -483,8 +524,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span style={{ color: '#8C6E53', fontWeight: 700, fontSize: '0.85rem' }}>GOOGLE DRIVE DELIVERY:</span>
                     {(() => {
+                      const effectiveDriveUrl = activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl;
                       const dStatus = activeBookingTimeline.delivery?.status ||
-                        (activeBookingTimeline.driveReadyForCustomer ? 'READY_FOR_CUSTOMER' : (activeBookingTimeline.driveFolderUrl ? 'READY_FOR_UPLOAD' : 'NOT_CREATED'));
+                        (activeBookingTimeline.driveReadyForCustomer ? 'READY_FOR_CUSTOMER' : (effectiveDriveUrl ? 'READY_FOR_UPLOAD' : 'NOT_CREATED'));
                       const badgeMap: Record<string, { label: string; color: string; bg: string }> = {
                         NOT_CREATED: { label: 'Chưa tạo', color: '#6E5F55', bg: '#F5EFE6' },
                         CREATING: { label: 'Đang chuẩn bị...', color: '#D97706', bg: '#FEF3C7' },
@@ -519,9 +561,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   {/* Operational Action Buttons */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.4rem' }}>
                     {/* Open folder button if URL exists */}
-                    {activeBookingTimeline.delivery?.driveFolderUrl && (
+                    {(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl) && (
                       <a
-                        href={activeBookingTimeline.delivery.driveFolderUrl}
+                        href={activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -543,7 +585,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     )}
 
                     {/* Retry / Create folder button */}
-                    {(!activeBookingTimeline.delivery || activeBookingTimeline.delivery.status === 'NOT_CREATED' || activeBookingTimeline.delivery.status === 'ERROR' || activeBookingTimeline.delivery.status === 'NEEDS_RECONCILE') &&
+                    {!(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl) &&
                      ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus) && (
                       <button
                         onClick={() => handleCreateDriveFolder(activeBookingTimeline.id)}

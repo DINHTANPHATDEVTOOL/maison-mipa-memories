@@ -101,9 +101,9 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
                   <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                     {/* Google Drive Upload Integration - Strictly Authoritative without arbitrary fallback */}
-                    {b.delivery?.driveFolderUrl && ['READY_FOR_UPLOAD', 'READY_FOR_CUSTOMER', 'REVOKED'].includes(b.delivery?.status) ? (
+                    {(b.delivery?.driveFolderUrl || b.driveFolderUrl) ? (
                       <a
-                        href={b.delivery.driveFolderUrl}
+                        href={b.delivery?.driveFolderUrl || b.driveFolderUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-mipa-secondary"
@@ -111,7 +111,7 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
                       >
                         <FolderUp size={15} /> Mở Thư Mục Upload Ảnh
                       </a>
-                    ) : ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW'].includes(b.bookingStatus) ? (
+                    ) : ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW'].includes(b.bookingStatus) ? (
                       <span style={{ fontSize: '0.82rem', color: '#8C6E53', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                         ⏳ Đang chuẩn bị thư mục Drive...
                       </span>
