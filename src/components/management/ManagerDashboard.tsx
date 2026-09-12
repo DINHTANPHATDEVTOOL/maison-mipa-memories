@@ -196,9 +196,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch = query.length === 0 ||
-      b.bookingCode.toLowerCase().includes(query) ||
-      b.customerName.toLowerCase().includes(query) ||
-      b.customerPhone.includes(query);
+      (b.bookingCode || '').toLowerCase().includes(query) ||
+      (b.customerName || '').toLowerCase().includes(query) ||
+      (b.customerPhone || '').includes(query);
     return matchesFilter && matchesSearch;
   });
 
@@ -258,7 +258,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <button
-            onClick={() => setSelectedStatusFilter('DEPOSIT_PAID')}
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedStatusFilter('DEPOSIT_PAID');
+            }}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
@@ -274,7 +277,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </button>
 
           <button
-            onClick={() => setSelectedStatusFilter('UNASSIGNED')}
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedStatusFilter('UNASSIGNED');
+            }}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
@@ -290,7 +296,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </button>
 
           <button
-            onClick={() => setSelectedStatusFilter('SHOOTING')}
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedStatusFilter('SHOOTING');
+            }}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
@@ -306,7 +315,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </button>
 
           <button
-            onClick={() => setSelectedStatusFilter('READY_FOR_REVIEW')}
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedStatusFilter('READY_FOR_REVIEW');
+            }}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
@@ -338,8 +350,30 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="mipa-input"
-                style={{ paddingLeft: '36px', height: '38px', borderRadius: '10px', fontSize: '0.85rem', width: '100%' }}
+                style={{ paddingLeft: '36px', paddingRight: searchQuery ? '32px' : '12px', height: '38px', borderRadius: '10px', fontSize: '0.85rem', width: '100%' }}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#8C6E53',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="Xóa tìm kiếm"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
             {/* Status Filter Pills with Vietnamese labels and Real-time Counts */}
