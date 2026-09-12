@@ -6,7 +6,7 @@ import path from 'path';
 const TEST_RESULTS_DIR = path.resolve(process.cwd(), 'test-results/screenshots');
 const CONVERSATION_DIR =
   process.env.ARTIFACT_DIR ||
-  path.resolve(process.env.APPDATA || process.env.USERPROFILE || '.', '.gemini/antigravity-ide/brain/1bb9ddf6-52d0-46a5-aaf7-4e5792bcd475/screenshots');
+  path.resolve(process.env.USERPROFILE || '.', '.gemini/antigravity-ide/brain/1bb9ddf6-52d0-46a5-aaf7-4e5792bcd475/screenshots');
 
 [TEST_RESULTS_DIR, CONVERSATION_DIR].forEach((dir) => {
   try {
@@ -48,9 +48,15 @@ test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
     await saveScreenshot(page, '01_hero_initial.png');
 
     // 2. Hero after slight scroll (exit drift & perspective tilt)
-    await page.evaluate(() => window.scrollTo(0, 180));
+    await page.evaluate(() => window.scrollTo(0, 240));
     await page.waitForTimeout(400);
     await saveScreenshot(page, '02_hero_after_slight_scroll.png');
+
+    // 2b. Seasonal Campaign Privilege Banner & Marquee Ribbon
+    const seasonalBanner = page.getByTestId('seasonal-campaign-banner');
+    await seasonalBanner.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await saveScreenshot(page, '02b_seasonal_privilege_banner.png');
 
     // 3. Selected works 3D composition
     const selectedWorks = page.locator('section').filter({ hasText: /BỘ SƯU TẬP & BỐI CẢNH/i });
@@ -58,8 +64,14 @@ test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
     await page.waitForTimeout(500);
     await saveScreenshot(page, '03_selected_works.png');
 
+    // 3b. Curatorial Split Magazine Banner (Vogue / Elle Editorial)
+    const splitBanner = page.getByTestId('curatorial-split-banner');
+    await splitBanner.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await saveScreenshot(page, '03b_curatorial_split_banner.png');
+
     // 4. Full-bleed image transition section
-    const fullBleed = page.locator('section').filter({ hasText: /SAIGON ATELIER|LE TEMPS SUSPENDU/i });
+    const fullBleed = page.locator('section.cinematic-scene').filter({ hasText: /LE TEMPS SUSPENDU/i });
     await fullBleed.scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollTo(0, window.scrollY));
     await page.waitForTimeout(500);
@@ -76,6 +88,12 @@ test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
     await storySection.scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     await saveScreenshot(page, '06_maison_story.png');
+
+    // 6b. 3D Spatial Virtual Exhibition Gallery
+    const atelier3d = page.locator('#atelier-3d');
+    await atelier3d.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(600);
+    await saveScreenshot(page, '06b_atelier_3d_spatial_gallery.png');
 
     // 7. Darkroom exhibition gallery moment
     const darkroom = page.locator('section').filter({ hasText: /KHÔNG GIAN TRIỂN LÃM \/ DARKROOM/i });

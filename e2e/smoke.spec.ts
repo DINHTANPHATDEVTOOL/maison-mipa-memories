@@ -276,7 +276,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // Kiểm tra kết quả phản hồi: Hoặc xuất hiện màn hình Xác Thực Tài Khoản Email, hoặc tài khoản đăng nhập thành công
     const verifyScreen = page.getByText(/Xác Thực Tài Khoản Email/i);
-    const userLoggedIn = page.locator('button:has-text("Đăng Xuất")').or(page.getByText('Hoàng Oanh'));
+    const userLoggedIn = page.locator('button:has-text("Đăng Xuất")').or(page.getByText('Hoàng Oanh').first());
 
     await expect(verifyScreen.or(userLoggedIn)).toBeVisible({ timeout: 6000 });
 

@@ -74,7 +74,7 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('renders homepage at /', async () => {
     renderRoute('/');
-    expect(screen.getByRole('heading', { level: 1, name: /Một nơi để những khoảnh khắc được lưu lại thật tự nhiên/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Căn Phòng Triển Lãm Không Gian 3 Chiều/i })).toBeInTheDocument();
     expect(screen.getByText(/MAISON MIPA \/ SAIGON/i)).toBeInTheDocument();
   });
 

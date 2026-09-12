@@ -358,11 +358,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      backgroundColor: isScrolled ? 'rgba(250, 248, 243, 0.95)' : '#FAF8F3',
-      backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-      WebkitBackdropFilter: isScrolled ? 'blur(10px)' : 'none',
-      borderBottom: isScrolled ? '1px solid rgba(96, 70, 52, 0.16)' : '1px solid rgba(96, 70, 52, 0.10)',
-      boxShadow: isScrolled ? '0 4px 20px rgba(96, 70, 52, 0.04)' : 'none',
+      backgroundColor: isScrolled ? 'rgba(21, 17, 14, 0.94)' : 'rgba(21, 17, 14, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: isScrolled ? '1px solid rgba(198, 164, 95, 0.22)' : '1px solid rgba(198, 164, 95, 0.12)',
+      boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.45)' : 'none',
       transition: 'background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
     }}>
       <div className="mipa-container" style={{
@@ -388,7 +388,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontSize: '1.3rem',
               fontWeight: 600,
               letterSpacing: '0.06em',
-              color: '#604634',
+              color: '#FBF6EE',
               lineHeight: 1.1,
               whiteSpace: 'nowrap',
             }}>
@@ -398,7 +398,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontSize: '0.62rem',
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: '#8C6E53',
+              color: '#C6A45F',
               fontWeight: 500,
               whiteSpace: 'nowrap',
             }}>
@@ -424,9 +424,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 style={{
                   background: 'transparent',
-                  color: isActive ? '#604634' : '#71675F',
+                  color: isActive ? '#E0C287' : '#D1C4B7',
                   border: 'none',
-                  borderBottom: isActive ? '1.5px solid #604634' : '1.5px solid transparent',
+                  borderBottom: isActive ? '1.5px solid #C6A45F' : '1.5px solid transparent',
                   padding: '0.5rem 0.1rem',
                   fontSize: '0.92rem',
                   fontWeight: isActive ? 600 : 400,
@@ -441,7 +441,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
               >
                 {!isPublicPage && Icon && (
-                  <Icon size={15} strokeWidth={1.8} style={{ color: isActive ? '#604634' : '#8C6E53' }} />
+                  <Icon size={15} strokeWidth={1.8} style={{ color: isActive ? '#E0C287' : '#C6A45F' }} />
                 )}
                 {link.label}
               </NavLink>
@@ -684,14 +684,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.4rem 0.85rem',
-                    backgroundColor: '#604634',
-                    color: '#FFFDF6',
-                    border: 'none',
+                    backgroundColor: 'var(--editorial-gold-accent, #C6A45F)',
+                    color: '#15110E',
+                    border: '1px solid var(--editorial-gold-accent, #C6A45F)',
                     borderRadius: '20px',
                     cursor: 'pointer',
                     fontWeight: 600,
                     fontSize: '0.82rem',
-                    boxShadow: '0 2px 8px rgba(96, 70, 52, 0.2)',
+                    boxShadow: '0 2px 10px rgba(198, 164, 95, 0.25)',
                   }}
                 >
                   <LogIn size={14} />
@@ -704,9 +704,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.4rem 0.85rem',
-                    backgroundColor: '#8C6E53',
-                    color: '#FFFDF6',
-                    border: 'none',
+                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                    color: '#FBF6EE',
+                    border: '1px solid rgba(198, 164, 95, 0.35)',
                     borderRadius: '20px',
                     cursor: 'pointer',
                     fontWeight: 600,
@@ -913,13 +913,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Slide-down Navigation Drawer */}
       {isMobileMenuOpen && (
         <div style={{
-          backgroundColor: '#FAF8F3',
-          borderBottom: '1px solid rgba(96, 70, 52, 0.18)',
+          backgroundColor: '#1A1411',
+          borderBottom: '1px solid rgba(198, 164, 95, 0.22)',
           padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.2rem',
-          boxShadow: '0 10px 30px rgba(44, 34, 30, 0.08)',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
           animation: 'slideUp 0.25s ease-out',
         }}>
           {/* Mobile Nav Links */}
@@ -937,8 +937,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => handleLinkClick(link.to, link.id)}
                   style={{
                     background: 'transparent',
-                    color: isActive ? '#604634' : '#29231F',
-                    borderBottom: '1px solid rgba(96, 70, 52, 0.08)',
+                    color: isActive ? '#E0C287' : '#FBF6EE',
+                    borderBottom: '1px solid rgba(198, 164, 95, 0.12)',
                     padding: '0.9rem 0',
                     fontFamily: isPublic ? 'var(--editorial-font-heading)' : 'var(--editorial-font-body)',
                     fontSize: isPublic ? '1.3rem' : '0.95rem',
@@ -952,7 +952,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                 >
                   <span>{link.label}</span>
-                  {!isPublic && Icon && <Icon size={16} style={{ color: '#8C6E53' }} />}
+                  {!isPublic && Icon && <Icon size={16} style={{ color: '#C6A45F' }} />}
                 </NavLink>
               );
             })}

@@ -2,31 +2,31 @@
 @import './styles/editorial.css';
 
 :root {
-  --mipa-cream: #EFE6C9;
-  --mipa-beige: #D9C9A5;
-  --mipa-brown: #8C6E53;
-  --mipa-dark-brown: #604634;
+  --mipa-cream: #221A15;
+  --mipa-beige: #2C221C;
+  --mipa-brown: #C6A45F;
+  --mipa-dark-brown: #E0C287;
   --mipa-gold: #C6A45F;
-  --mipa-background: #FFFDF6;
+  --mipa-background: #15110E;
   --mipa-white: #FFFFFF;
   
-  --mipa-text-main: #2C221E;
-  --mipa-text-muted: #6E5F55;
+  --mipa-text-main: #FBF6EE;
+  --mipa-text-muted: #D1C4B7;
   --mipa-text-light: #A39385;
   
-  --mipa-border: rgba(140, 110, 83, 0.18);
-  --mipa-border-hover: rgba(198, 164, 95, 0.5);
+  --mipa-border: rgba(198, 164, 95, 0.18);
+  --mipa-border-hover: rgba(224, 194, 135, 0.5);
   
-  --mipa-shadow-sm: 0 2px 8px rgba(96, 70, 52, 0.04);
-  --mipa-shadow-md: 0 10px 30px rgba(96, 70, 52, 0.08);
-  --mipa-shadow-lg: 0 20px 40px rgba(96, 70, 52, 0.12);
+  --mipa-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --mipa-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --mipa-shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
   
   --mipa-font-heading: 'Cormorant Garamond', Georgia, serif;
   --mipa-font-body: 'Be Vietnam Pro', system-ui, sans-serif;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 24px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
   --radius-full: 9999px;
 }
 
@@ -52,11 +52,12 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--mipa-background);
+  background: #15110E;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--mipa-beige);
+  background: #3A2E24;
   border-radius: var(--radius-full);
+  border: 1px solid rgba(198, 164, 95, 0.25);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--mipa-brown);

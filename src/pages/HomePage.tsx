@@ -1,23 +1,30 @@
 // ==============================================================================
-// Maison MIPA Memories - Editorial Homepage (Cinematic Art Experience Phase 2)
+// Maison MIPA Memories - Editorial Homepage (Flagship 3D Exhibition & Luxury Atelier)
 // Rhythm:
-// 1. Hero cinematic arrival
-// 2. Selected works 3D reveal
-// 3. Full-bleed image transition
-// 4. Services editorial rows
-// 5. Maison story & timeline
-// 6. Darkroom exhibition gallery moment
-// 7. Pricing
-// 8. FAQ
-// 9. Cinematic final image CTA
+// 1. Hero 3D Spatial Virtual Exhibition Gallery (Flagship Entrance)
+// 2. Editorial Marquee Gold Running Ribbon
+// 3. Seasonal Privilege Campaign Banner (Mùa Kỷ Niệm & Cưới 2026)
+// 4. Selected Works 3D Perspective Entrance
+// 5. Curatorial Split Magazine Banner (Vogue / Elle French Spread)
+// 6. Services Editorial Rows
+// 7. Physical Photo Stack Separation Scene
+// 8. Film Gate & Moving Matte Transition
+// 9. Maison Story & 4-Step Timeline
+// 10. Darkroom Exhibition Moment
+// 11. Packages Pricing Menu
+// 12. FAQ Section
+// 13. Cinematic Final Image CTA
 // ==============================================================================
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeroSection } from '../components/public/HeroSection';
+import { Hero3DExhibitionSection } from '../components/public/Hero3DExhibitionSection';
+import { EditorialMarqueeBanner } from '../components/public/EditorialMarqueeBanner';
+import { SeasonalCampaignBanner } from '../components/public/SeasonalCampaignBanner';
 import { FeaturedConceptsSection } from '../components/public/FeaturedConceptsSection';
+import { CuratorialSplitBanner } from '../components/public/CuratorialSplitBanner';
+import { ServicesSection } from '../components/public/ServicesSection';
 import { PhotoStackScene } from '../components/public/PhotoStackScene';
 import { FullBleedTransitionSection } from '../components/public/FullBleedTransitionSection';
-import { ServicesSection } from '../components/public/ServicesSection';
 import { MaisonStorySection } from '../components/public/MaisonStorySection';
 import { DarkroomExhibitionSection } from '../components/public/DarkroomExhibitionSection';
 import { PackagesSection } from '../components/public/PackagesSection';
@@ -50,19 +57,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         jsonLd={generateStudioLocalBusinessSchema()}
       />
 
-      {/* 01. Hero Cinematic Arrival & Transformation */}
-      <HeroSection onOpenBooking={onOpenBooking} />
+      {/* 01. Flagship 3D Spatial Virtual Exhibition Gallery Hero */}
+      <Hero3DExhibitionSection onOpenBooking={handleOpenBookingWithConcept} />
 
-      {/* 02. Selected Works 3D Perspective Entrance */}
+      {/* 02. Editorial Marquee Gold Running Ribbon */}
+      <EditorialMarqueeBanner />
+
+      {/* 03. Seasonal Privilege Campaign Banner (Mùa Kỷ Niệm & Cưới Paris 2026) */}
+      <SeasonalCampaignBanner onOpenBooking={onOpenBooking} />
+
+      {/* 04. Selected Works 3D Perspective Entrance */}
       <FeaturedConceptsSection onOpenBooking={handleOpenBookingWithConcept} />
 
-      {/* 03. Physical Photo Stack Separation Scene */}
-      <PhotoStackScene />
+      {/* 05. Curatorial Split Magazine Banner */}
+      <CuratorialSplitBanner />
 
-      {/* 04. Film Gate & Moving Matte Transition */}
-      <FullBleedTransitionSection />
-
-      {/* 04. Services Editorial Rows */}
+      {/* 06. Services Editorial Rows */}
       <ServicesSection
         onSelectService={(serviceId, slug) => {
           const matchedSlug = slug || serviceId.replace('srv_', '');
@@ -70,19 +80,25 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         }}
       />
 
-      {/* 05. Maison Story & 4-Step Timeline */}
+      {/* 07. Physical Photo Stack Separation Scene */}
+      <PhotoStackScene />
+
+      {/* 08. Film Gate & Moving Matte Transition */}
+      <FullBleedTransitionSection />
+
+      {/* 09. Maison Story & 4-Step Timeline */}
       <MaisonStorySection />
 
-      {/* 06. Darkroom Exhibition Moment */}
+      {/* 10. Darkroom Exhibition Moment */}
       <DarkroomExhibitionSection />
 
-      {/* 07. Pricing Menu */}
+      {/* 11. Pricing Menu */}
       <PackagesSection onOpenBooking={onOpenBooking} />
 
-      {/* 08. Frequently Asked Questions */}
+      {/* 12. Frequently Asked Questions */}
       <FaqSection />
 
-      {/* 09. Cinematic Final Image CTA */}
+      {/* 13. Cinematic Final Image CTA */}
       <FinalCtaSection onOpenBooking={onOpenBooking} />
     </>
   );
