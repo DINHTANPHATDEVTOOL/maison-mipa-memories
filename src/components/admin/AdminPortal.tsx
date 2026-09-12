@@ -177,11 +177,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       const { data, error } = await supabase.functions.invoke('google-drive-oauth', {
         body: { action: 'GET_AUTH_URL' }
       });
-      if (error || !data?.url) {
+      const targetUrl = data?.auth_url || data?.url;
+      if (error || !targetUrl) {
         showNotice(data?.error || error?.message || 'Không thể lấy liên kết xác thực Google Drive.', 'error');
         return;
       }
-      window.location.href = data.url;
+      window.location.href = targetUrl;
     } catch (err: any) {
       showNotice(err.message || 'Lỗi khi khởi tạo kết nối Google Drive.', 'error');
     } finally {

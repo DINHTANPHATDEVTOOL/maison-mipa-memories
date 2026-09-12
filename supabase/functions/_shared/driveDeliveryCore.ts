@@ -958,6 +958,7 @@ export async function executeOAuthAction(
       data: {
         success: true,
         auth_url: authUrl.toString(),
+        url: authUrl.toString(),
         expires_at: expiresAt,
       },
     };

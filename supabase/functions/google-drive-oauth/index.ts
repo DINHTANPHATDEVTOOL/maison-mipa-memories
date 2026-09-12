@@ -244,6 +244,7 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({
           success: true,
           auth_url: authUrl.toString(),
+          url: authUrl.toString(),
           expires_at: expiresAt,
         }), {
           status: 200,
