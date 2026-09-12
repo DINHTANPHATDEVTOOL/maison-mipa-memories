@@ -168,9 +168,14 @@ export const filterBookingsForRole = (
 
 // 4. Operations Inbox Aggregator for Manager / Admin
 export const getOperationsInboxStats = (bookings: Booking[]) => {
-  const pendingDeposit = bookings.filter((b) => b.bookingStatus === 'PENDING_PAYMENT');
+  const pendingDeposit = bookings.filter((b) => b.bookingStatus === 'PENDING_PAYMENT' || b.bookingStatus === 'DRAFT');
   const pendingConfirmation = bookings.filter((b) => b.bookingStatus === 'DEPOSIT_PAID');
-  const unassignedStaff = bookings.filter((b) => (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && b.assignments.length === 0);
+  const pendingDepositAndConfirmation = bookings.filter(
+    (b) => b.bookingStatus === 'PENDING_PAYMENT' || b.bookingStatus === 'DRAFT' || b.bookingStatus === 'DEPOSIT_PAID'
+  );
+  const unassignedStaff = bookings.filter(
+    (b) => (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && (!b.assignments || b.assignments.length === 0)
+  );
   const shootingNow = bookings.filter((b) => b.bookingStatus === 'SHOOTING' || b.bookingStatus === 'CHECKED_IN');
   const editingQueue = bookings.filter((b) => b.bookingStatus === 'SHOOT_COMPLETED' || b.bookingStatus === 'EDITING');
   const readyToDeliver = bookings.filter((b) => b.bookingStatus === 'READY_FOR_REVIEW');
@@ -178,10 +183,15 @@ export const getOperationsInboxStats = (bookings: Booking[]) => {
   return {
     pendingDepositCount: pendingDeposit.length,
     pendingConfirmationCount: pendingConfirmation.length,
+    pendingDepositAndConfirmationCount: pendingDepositAndConfirmation.length,
     unassignedStaffCount: unassignedStaff.length,
     shootingNowCount: shootingNow.length,
     editingQueueCount: editingQueue.length,
     readyToDeliverCount: readyToDeliver.length,
-    totalActionRequired: pendingConfirmation.length + unassignedStaff.length + editingQueue.length + readyToDeliver.length,
+    totalActionRequired:
+      pendingDepositAndConfirmation.length +
+      unassignedStaff.length +
+      editingQueue.length +
+      readyToDeliver.length,
   };
 };

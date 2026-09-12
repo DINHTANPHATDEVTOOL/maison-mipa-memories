@@ -176,6 +176,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     let matchesFilter = false;
     if (selectedStatusFilter === 'ALL') {
       matchesFilter = true;
+    } else if (selectedStatusFilter === 'DEPOSIT_QUEUE') {
+      matchesFilter = b.bookingStatus === 'PENDING_PAYMENT' || b.bookingStatus === 'DRAFT' || b.bookingStatus === 'DEPOSIT_PAID';
     } else if (selectedStatusFilter === 'UNASSIGNED') {
       matchesFilter = (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && (!b.assignments || b.assignments.length === 0);
     } else if (selectedStatusFilter === 'SHOOTING') {
@@ -260,20 +262,20 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           <button
             onClick={() => {
               setSearchQuery('');
-              setSelectedStatusFilter('DEPOSIT_PAID');
+              setSelectedStatusFilter('DEPOSIT_QUEUE');
             }}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'DEPOSIT_PAID' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'DEPOSIT_PAID' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
+              backgroundColor: selectedStatusFilter === 'DEPOSIT_QUEUE' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'DEPOSIT_QUEUE' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ XÁC NHẬN CỌC</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.pendingConfirmationCount} đơn</div>
+            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ CỌC / XÁC NHẬN CỌC</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.pendingDepositAndConfirmationCount} đơn</div>
           </button>
 
           <button
