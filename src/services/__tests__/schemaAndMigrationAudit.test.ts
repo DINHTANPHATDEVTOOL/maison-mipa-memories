@@ -22,6 +22,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260911000008_flexible_concepts_and_availability_grant.sql',
     '20260911000009_sync_staff_profiles_to_employees.sql',
     '20260911000010_seed_and_enhance_employees_table.sql',
+    '20260912000001_booking_deliveries_google_drive.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -46,6 +47,8 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'portfolio_photos',
     'booking_concepts',
     'root_owner_config',
+    'booking_deliveries',
+    'google_drive_oauth_states',
   ];
 
   const EXPECTED_RPCS = [

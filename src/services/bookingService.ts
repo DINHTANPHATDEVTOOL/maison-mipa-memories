@@ -9,11 +9,13 @@ import type {
   BookingStatus,
   BookingAssignment,
   Addon,
+  BookingDelivery,
 } from '../types';
 import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS, INITIAL_EMPLOYEES } from '../mockData';
 import { DEMO_CONCEPTS } from './portfolioService';
 import { calculatePricing } from './pricingService';
 import { isIntervalOverlapping, timeToMinutes, minutesToTime } from './availabilityService';
+import { createDriveFolder, getBookingDelivery, mapDatabaseDeliveryToDomain } from './deliveryService';
 
 export class BookingConflictError extends Error {
   constructor(message: string = 'Phòng studio đã có lịch đặt trong khoảng thời gian này. Vui lòng chọn khung giờ khác.') {
@@ -482,7 +484,20 @@ export async function updateBookingStatus(
       throw new Error('Dữ liệu trạng thái không hợp lệ.');
     }
 
-    return mapDatabaseRecordToDomain(data as any);
+    if (newStatus === 'SHOOT_COMPLETED') {
+      try {
+        await createDriveFolder(bookingId);
+      } catch (driveErr) {
+        console.error('Auto createDriveFolder error on SHOOT_COMPLETED:', driveErr);
+      }
+    }
+
+    const domainBooking = mapDatabaseRecordToDomain(data as any);
+    const delivery = await getBookingDelivery(bookingId);
+    if (delivery) {
+      domainBooking.delivery = delivery;
+    }
+    return domainBooking;
   }
 
   // In-Memory state transitions for tests
@@ -495,11 +510,22 @@ export async function updateBookingStatus(
     throw new Error(`Illegal state transition from COMPLETED to ${newStatus}`);
   }
 
+  let delivery: BookingDelivery | undefined = existing.delivery;
+  if (newStatus === 'SHOOT_COMPLETED') {
+    try {
+      delivery = await createDriveFolder(existing.id);
+    } catch (e) {
+      console.error('In-memory createDriveFolder error:', e);
+    }
+  }
+
   const updated: Booking = {
     ...existing,
     bookingStatus: newStatus,
     staffNote: staffNote ? `${existing.staffNote || ''}\n${staffNote}`.trim() : existing.staffNote,
     updatedAt: new Date().toISOString(),
+    delivery,
+    driveFolderUrl: delivery?.driveFolderUrl || existing.driveFolderUrl,
   };
 
   inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
@@ -808,8 +834,11 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     rescheduleRequestedReason: record.reschedule_requested_reason,
     cancelRequestedAt: record.cancel_requested_at,
     cancelRequestedReason: record.cancel_requested_reason,
-    driveFolderUrl: record.drive_folder_url,
-    driveReadyForCustomer: record.drive_ready_for_customer,
+    driveFolderUrl: record.drive_folder_url || record.driveFolderUrl,
+    driveReadyForCustomer: record.drive_ready_for_customer ?? record.driveReadyForCustomer,
+    delivery: record.booking_deliveries
+      ? (Array.isArray(record.booking_deliveries) ? (record.booking_deliveries[0] ? mapDatabaseDeliveryToDomain(record.booking_deliveries[0]) : undefined) : mapDatabaseDeliveryToDomain(record.booking_deliveries))
+      : (record.delivery ? record.delivery : undefined),
     createdAt: record.created_at || record.createdAt || new Date().toISOString(),
     updatedAt: record.updated_at || record.updatedAt || new Date().toISOString(),
   };

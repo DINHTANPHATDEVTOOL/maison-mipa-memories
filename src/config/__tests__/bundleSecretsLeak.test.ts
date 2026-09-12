@@ -10,6 +10,8 @@ describe('Production Bundle Security & Zero-Secret Audit', () => {
     /PAYOS_CHECKSUM_KEY/i,
     /OTP_PEPPER/i,
     /PAYMENT_WEBHOOK_SECRET/i,
+    /GOOGLE_DRIVE_CLIENT_SECRET/i,
+    /GOOGLE_DRIVE_REFRESH_TOKEN/i,
   ];
 
   function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
@@ -59,6 +61,8 @@ describe('Production Bundle Security & Zero-Secret Audit', () => {
     expect(viteEnv.VITE_PAYOS_API_KEY).toBeUndefined();
     expect(viteEnv.VITE_PAYOS_CHECKSUM_KEY).toBeUndefined();
     expect(viteEnv.VITE_PAYMENT_WEBHOOK_SECRET).toBeUndefined();
+    expect(viteEnv.VITE_GOOGLE_DRIVE_CLIENT_SECRET).toBeUndefined();
+    expect(viteEnv.VITE_GOOGLE_DRIVE_REFRESH_TOKEN).toBeUndefined();
   });
 
   it('3. built dist/ bundle (if exists) does not leak raw secret keys or service role tokens', () => {
@@ -74,6 +78,9 @@ describe('Production Bundle Security & Zero-Secret Audit', () => {
       expect(content).not.toContain('PAYOS_CHECKSUM_KEY');
       expect(content).not.toContain('RESEND_API_KEY');
       expect(content).not.toContain('OTP_PEPPER');
+      expect(content).not.toContain('GOOGLE_DRIVE_CLIENT_SECRET');
+      expect(content).not.toContain('GOOGLE_DRIVE_REFRESH_TOKEN');
+      expect(content).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
     }
   });
 });

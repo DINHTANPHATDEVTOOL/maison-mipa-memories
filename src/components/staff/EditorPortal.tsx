@@ -99,17 +99,23 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
 
                 {/* Workflow Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {/* Google Drive Upload Integration Button */}
-                    <a
-                      href={b.driveFolderUrl || 'https://drive.google.com'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-mipa-secondary"
-                      style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-                    >
-                      <FolderUp size={15} /> Mở Thư Mục Google Drive Upload Ảnh
-                    </a>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                    {/* Google Drive Upload Integration - Authoritative without arbitrary fallback */}
+                    {(b.delivery?.driveFolderUrl || b.driveFolderUrl) && (b.delivery?.status === 'READY_FOR_UPLOAD' || b.delivery?.status === 'READY_FOR_CUSTOMER' || b.delivery?.status === 'REVOKED' || ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW'].includes(b.bookingStatus)) ? (
+                      <a
+                        href={(b.delivery?.driveFolderUrl || b.driveFolderUrl)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-mipa-secondary"
+                        style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+                      >
+                        <FolderUp size={15} /> Mở Thư Mục Google Drive Upload Ảnh
+                      </a>
+                    ) : ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW'].includes(b.bookingStatus) ? (
+                      <span style={{ fontSize: '0.82rem', color: '#8C6E53', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        ⏳ Đang chuẩn bị thư mục Drive...
+                      </span>
+                    ) : null}
                   </div>
 
                   <div>

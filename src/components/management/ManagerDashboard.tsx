@@ -17,6 +17,7 @@ import {
   CheckCircle,
   AlertTriangle,
   FolderDown,
+  FolderUp,
   UserCheck,
   MapPin,
   Clock,
@@ -26,6 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
+import { createDriveFolder, deliverToCustomer, revokeCustomerAccess } from '../../services/deliveryService';
 
 interface ManagerDashboardProps {
   bookings: Booking[];
@@ -54,6 +56,73 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedStaffRole, setSelectedStaffRole] = useState<string>('PHOTOGRAPHER');
+
+  // Drive delivery operations state (Issue #8)
+  const [isDriveLoading, setIsDriveLoading] = useState<boolean>(false);
+  const [driveOperationMsg, setDriveOperationMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleCreateDriveFolder = async (bookingId: string) => {
+    setIsDriveLoading(true);
+    setDriveOperationMsg(null);
+    try {
+      const del = await createDriveFolder(bookingId);
+      setDriveOperationMsg({ type: 'success', text: `Đã tạo thư mục Drive: ${del.driveFolderId}` });
+      if (activeBookingTimeline && activeBookingTimeline.id === bookingId) {
+        setActiveBookingTimeline({
+          ...activeBookingTimeline,
+          delivery: del,
+          driveFolderUrl: del.driveFolderUrl,
+        });
+      }
+    } catch (err: any) {
+      setDriveOperationMsg({ type: 'error', text: err.message || 'Lỗi khi tạo thư mục Drive' });
+    } finally {
+      setIsDriveLoading(false);
+    }
+  };
+
+  const handleDeliverToCustomer = async (bookingId: string) => {
+    setIsDriveLoading(true);
+    setDriveOperationMsg(null);
+    try {
+      const del = await deliverToCustomer(bookingId);
+      setDriveOperationMsg({ type: 'success', text: `Đã cấp quyền xem ảnh và gửi email thông báo tới ${del.shareEmail || 'khách hàng'}.` });
+      onUpdateStatus(bookingId, 'DELIVERED', 'Đã duyệt ảnh và bàn giao Google Drive cho khách');
+      if (activeBookingTimeline && activeBookingTimeline.id === bookingId) {
+        setActiveBookingTimeline({
+          ...activeBookingTimeline,
+          bookingStatus: 'DELIVERED',
+          delivery: del,
+          driveReadyForCustomer: true,
+        });
+      }
+    } catch (err: any) {
+      setDriveOperationMsg({ type: 'error', text: err.message || 'Lỗi khi giao ảnh cho khách' });
+    } finally {
+      setIsDriveLoading(false);
+    }
+  };
+
+  const handleRevokeDriveAccess = async (bookingId: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn thu hồi quyền truy cập Google Drive của khách hàng cho đơn này?')) return;
+    setIsDriveLoading(true);
+    setDriveOperationMsg(null);
+    try {
+      const del = await revokeCustomerAccess(bookingId);
+      setDriveOperationMsg({ type: 'success', text: 'Đã thu hồi quyền truy cập Google Drive của khách hàng.' });
+      if (activeBookingTimeline && activeBookingTimeline.id === bookingId) {
+        setActiveBookingTimeline({
+          ...activeBookingTimeline,
+          delivery: del,
+          driveReadyForCustomer: false,
+        });
+      }
+    } catch (err: any) {
+      setDriveOperationMsg({ type: 'error', text: err.message || 'Lỗi khi thu hồi quyền Drive' });
+    } finally {
+      setIsDriveLoading(false);
+    }
+  };
 
   // Computed Operations Inbox stats
   const inboxStats = getOperationsInboxStats(bookings);
@@ -370,22 +439,125 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   <div style={{ color: '#6E5F55' }}>Thời gian: {activeBookingTimeline.bookingDate} ({activeBookingTimeline.startTime} - {activeBookingTimeline.endTime})</div>
                 </div>
 
-                <div>
-                  <span style={{ color: '#8C6E53', fontWeight: 600 }}>Google Drive Delivery (#8):</span>
-                  <div style={{ marginTop: '0.3rem' }}>
-                    <a
-                      href={activeBookingTimeline.driveFolderUrl || 'https://drive.google.com'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'none' }}
-                    >
-                      <FolderDown size={15} /> Thư mục Drive bàn giao ảnh
-                    </a>
+                {/* Google Drive Delivery Management (#8) */}
+                <div style={{ backgroundColor: '#FFFDF6', padding: '1rem', borderRadius: '12px', border: '1px solid var(--mipa-beige)', marginTop: '0.4rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#8C6E53', fontWeight: 700, fontSize: '0.85rem' }}>GOOGLE DRIVE DELIVERY:</span>
+                    {(() => {
+                      const dStatus = activeBookingTimeline.delivery?.status ||
+                        (activeBookingTimeline.driveReadyForCustomer ? 'READY_FOR_CUSTOMER' : (activeBookingTimeline.driveFolderUrl ? 'READY_FOR_UPLOAD' : 'NOT_CREATED'));
+                      const badgeMap: Record<string, { label: string; color: string; bg: string }> = {
+                        NOT_CREATED: { label: 'Chưa tạo', color: '#6E5F55', bg: '#F5EFE6' },
+                        CREATING: { label: 'Đang chuẩn bị...', color: '#D97706', bg: '#FEF3C7' },
+                        READY_FOR_UPLOAD: { label: 'Sẵn sàng upload', color: '#2563EB', bg: '#EFF6FF' },
+                        READY_FOR_CUSTOMER: { label: 'Đã giao khách', color: '#047857', bg: '#ECFDF5' },
+                        REVOKED: { label: 'Đã thu hồi', color: '#DC2626', bg: '#FEF2F2' },
+                        ERROR: { label: 'Lỗi Drive', color: '#DC2626', bg: '#FEF2F2' },
+                      };
+                      const meta = badgeMap[dStatus] || badgeMap.NOT_CREATED;
+                      return (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: meta.color, backgroundColor: meta.bg, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                          ● {meta.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  {driveOperationMsg && (
+                    <div style={{
+                      padding: '0.5rem 0.8rem',
+                      borderRadius: '8px',
+                      marginBottom: '0.6rem',
+                      fontSize: '0.78rem',
+                      backgroundColor: driveOperationMsg.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+                      color: driveOperationMsg.type === 'success' ? '#065F46' : '#991B1B',
+                      border: `1px solid ${driveOperationMsg.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+                    }}>
+                      {driveOperationMsg.text}
+                    </div>
+                  )}
+
+                  {/* Operational Action Buttons */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.4rem' }}>
+                    {/* Open folder button if URL exists */}
+                    {(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl) && (
+                      <a
+                        href={(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '0.8rem',
+                          color: '#047857',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          textDecoration: 'none',
+                          padding: '0.4rem 0.6rem',
+                          backgroundColor: '#F0FDF4',
+                          borderRadius: '6px',
+                          border: '1px solid #BBF7D0',
+                        }}
+                      >
+                        <ExternalLink size={14} /> Mở thư mục Google Drive
+                      </a>
+                    )}
+
+                    {/* Retry / Create folder button */}
+                    {(!activeBookingTimeline.delivery || activeBookingTimeline.delivery.status === 'NOT_CREATED' || activeBookingTimeline.delivery.status === 'ERROR') &&
+                     ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus) && (
+                      <button
+                        onClick={() => handleCreateDriveFolder(activeBookingTimeline.id)}
+                        disabled={isDriveLoading}
+                        className="btn-mipa-secondary"
+                        style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                      >
+                        <FolderUp size={14} /> Tạo / Thử lại Thư Mục Drive
+                      </button>
+                    )}
+
+                    {/* Deliver to customer button */}
+                    {(activeBookingTimeline.delivery?.driveFolderUrl || activeBookingTimeline.driveFolderUrl) &&
+                     activeBookingTimeline.delivery?.status !== 'READY_FOR_CUSTOMER' && (
+                      <button
+                        onClick={() => handleDeliverToCustomer(activeBookingTimeline.id)}
+                        disabled={isDriveLoading}
+                        className="btn-mipa-gold"
+                        style={{ fontSize: '0.8rem', padding: '0.5rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                      >
+                        <FolderDown size={14} /> Giao Ảnh Cho Khách (Share Reader)
+                      </button>
+                    )}
+
+                    {/* Revoke customer access button */}
+                    {activeBookingTimeline.delivery?.status === 'READY_FOR_CUSTOMER' && (
+                      <button
+                        onClick={() => handleRevokeDriveAccess(activeBookingTimeline.id)}
+                        disabled={isDriveLoading}
+                        style={{
+                          fontSize: '0.8rem',
+                          padding: '0.45rem',
+                          width: '100%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem',
+                          backgroundColor: '#FEF2F2',
+                          color: '#DC2626',
+                          border: '1px solid #FECACA',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <X size={14} /> Thu Hồi Quyền Lấy Ảnh Của Khách
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div style={{ marginTop: '0.5rem', borderTop: '1px solid #EFE6C9', paddingTop: '0.8rem' }}>
-                  <div style={{ fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>Cập nhật thủ công:</div>
+                  <div style={{ fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>Cập nhật trạng thái thủ công:</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {activeBookingTimeline.bookingStatus === 'PENDING_PAYMENT' && (
                       <button
@@ -394,16 +566,6 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%' }}
                       >
                         ✓ Xác Nhận Đã Nhận Cọc
-                      </button>
-                    )}
-
-                    {activeBookingTimeline.bookingStatus === 'READY_FOR_REVIEW' && (
-                      <button
-                        onClick={() => onUpdateStatus(activeBookingTimeline.id, 'DELIVERED', 'Đã duyệt ảnh và mở Drive cho khách')}
-                        className="btn-mipa-gold"
-                        style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%' }}
-                      >
-                        📩 Mở Quyền Xem Ảnh Cho Khách
                       </button>
                     )}
                   </div>
