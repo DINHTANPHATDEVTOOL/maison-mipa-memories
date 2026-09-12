@@ -11,6 +11,7 @@ import type {
   Concept,
   PortfolioCollection,
   PortfolioPhoto,
+  PhotoVariants,
   CollectionStatus,
 } from '../types';
 import type {
@@ -365,6 +366,93 @@ function mapPhotoRow(row: PortfolioPhotoRow): PortfolioPhoto {
 }
 
 // ==============================================================================
+// Local Cache & Persistence Layer (Dual-Layer Sync for Seamless Offline/Demo/Reload)
+// ==============================================================================
+export const LOCAL_STORAGE_CUSTOM_PHOTOS_KEY = 'mipa_custom_portfolio_photos_v1';
+export const LOCAL_STORAGE_DELETED_PHOTOS_KEY = 'mipa_deleted_portfolio_photo_ids_v1';
+export const LOCAL_STORAGE_COVER_OVERRIDES_KEY = 'mipa_collection_cover_overrides_v1';
+
+export function getCustomPhotosFromLocalCache(collectionId?: string): PortfolioPhoto[] {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_CUSTOM_PHOTOS_KEY);
+    if (!raw) return [];
+    const list: PortfolioPhoto[] = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return collectionId ? list.filter((p) => p.collectionId === collectionId) : list;
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomPhotoToLocalCache(photo: PortfolioPhoto): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const list = getCustomPhotosFromLocalCache();
+    const filtered = list.filter((p) => p.id !== photo.id);
+    filtered.push(photo);
+    localStorage.setItem(LOCAL_STORAGE_CUSTOM_PHOTOS_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('Failed to save photo to localStorage:', e);
+  }
+}
+
+export function removeCustomPhotoFromLocalCache(photoId: string): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const list = getCustomPhotosFromLocalCache();
+    const filtered = list.filter((p) => p.id !== photoId);
+    localStorage.setItem(LOCAL_STORAGE_CUSTOM_PHOTOS_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('Failed to remove photo from localStorage:', e);
+  }
+}
+
+export function getDeletedPhotoIdsFromLocalCache(): Set<string> {
+  if (typeof window === 'undefined' || !window.localStorage) return new Set();
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_DELETED_PHOTOS_KEY);
+    if (!raw) return new Set();
+    const list = JSON.parse(raw);
+    return new Set(Array.isArray(list) ? list : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function getCollectionCoverOverride(collectionId: string): string | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_COVER_OVERRIDES_KEY);
+    if (!raw) return null;
+    const overrides = JSON.parse(raw);
+    return overrides[collectionId] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Merges raw photos with local custom photos and filters out deleted photos
+ */
+function mergeCollectionPhotos(col: PortfolioCollection, initialPhotos: PortfolioPhoto[]): PortfolioPhoto[] {
+  const deletedIds = getDeletedPhotoIdsFromLocalCache();
+  // Filter out any photos that were deleted by user
+  const merged = initialPhotos.filter((p) => !deletedIds.has(p.id));
+
+  // Merge any locally added custom photos for this collection
+  const customPhotos = getCustomPhotosFromLocalCache(col.id);
+  for (const cp of customPhotos) {
+    if (!deletedIds.has(cp.id) && !merged.some((p) => p.id === cp.id)) {
+      merged.push(cp);
+    }
+  }
+
+  merged.sort((a, b) => a.sortOrder - b.sortOrder);
+  return merged;
+}
+
+// ==============================================================================
 // Public API Methods
 // ==============================================================================
 
@@ -468,13 +556,13 @@ export async function getPublicCollections(
 
     return data.map((item: any) => {
       const col = mapCollectionRow(item, item.concepts);
-      const photos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
+      const rawPhotos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
         ? item.portfolio_photos.map(mapPhotoRow)
         : [];
-      photos.sort((a, b) => a.sortOrder - b.sortOrder);
+      const photos = mergeCollectionPhotos(col, rawPhotos);
       col.photos = photos;
       col.photosCount = photos.length;
-      col.coverPhotoUrl = photos[0]?.url || '/hero.png';
+      col.coverPhotoUrl = getCollectionCoverOverride(col.id) || photos[0]?.url || '/hero.png';
       return col;
     });
   }
@@ -488,12 +576,13 @@ export async function getPublicCollections(
       items = items.filter((c) => c.featured);
     }
     return items.map((c) => {
-      const photos = DEMO_PHOTOS.filter((p) => p.collectionId === c.id);
+      const rawPhotos = DEMO_PHOTOS.filter((p) => p.collectionId === c.id);
+      const photos = mergeCollectionPhotos(c, rawPhotos);
       return {
         ...c,
         photos,
         photosCount: photos.length,
-        coverPhotoUrl: photos[0]?.url || c.coverPhotoUrl || '/hero.png',
+        coverPhotoUrl: getCollectionCoverOverride(c.id) || photos[0]?.url || c.coverPhotoUrl || '/hero.png',
       };
     });
   }
@@ -521,25 +610,26 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
     if (!data) return null;
 
     const col = mapCollectionRow(data as any, (data as any).concepts);
-    const photos: PortfolioPhoto[] = Array.isArray((data as any).portfolio_photos)
+    const rawPhotos: PortfolioPhoto[] = Array.isArray((data as any).portfolio_photos)
       ? (data as any).portfolio_photos.map(mapPhotoRow)
       : [];
-    photos.sort((a, b) => a.sortOrder - b.sortOrder);
+    const photos = mergeCollectionPhotos(col, rawPhotos);
     col.photos = photos;
     col.photosCount = photos.length;
-    col.coverPhotoUrl = photos[0]?.url || '/hero.png';
+    col.coverPhotoUrl = getCollectionCoverOverride(col.id) || photos[0]?.url || '/hero.png';
     return col;
   }
 
   if (isDemoModeEnabled()) {
     const found = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
     if (!found) return null;
-    const photos = DEMO_PHOTOS.filter((p) => p.collectionId === found.id);
+    const rawPhotos = DEMO_PHOTOS.filter((p) => p.collectionId === found.id);
+    const photos = mergeCollectionPhotos(found, rawPhotos);
     return {
       ...found,
       photos,
       photosCount: photos.length,
-      coverPhotoUrl: photos[0]?.url || found.coverPhotoUrl || '/hero.png',
+      coverPhotoUrl: getCollectionCoverOverride(found.id) || photos[0]?.url || found.coverPhotoUrl || '/hero.png',
     };
   }
 
@@ -595,13 +685,13 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
 
     return (data || []).map((item: any) => {
       const col = mapCollectionRow(item, item.concepts);
-      const photos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
+      const rawPhotos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
         ? item.portfolio_photos.map(mapPhotoRow)
         : [];
-      photos.sort((a, b) => a.sortOrder - b.sortOrder);
+      const photos = mergeCollectionPhotos(col, rawPhotos);
       col.photos = photos;
       col.photosCount = photos.length;
-      col.coverPhotoUrl = photos[0]?.url || '/hero.png';
+      col.coverPhotoUrl = getCollectionCoverOverride(col.id) || photos[0]?.url || '/hero.png';
       return col;
     });
   }
@@ -611,11 +701,16 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
     if (statusFilter && statusFilter !== 'ALL') {
       items = items.filter((c) => c.status === statusFilter);
     }
-    return items.map((c) => ({
-      ...c,
-      photos: DEMO_PHOTOS.filter((p) => p.collectionId === c.id),
-      photosCount: DEMO_PHOTOS.filter((p) => p.collectionId === c.id).length,
-    }));
+    return items.map((c) => {
+      const rawPhotos = DEMO_PHOTOS.filter((p) => p.collectionId === c.id);
+      const photos = mergeCollectionPhotos(c, rawPhotos);
+      return {
+        ...c,
+        photos,
+        photosCount: photos.length,
+        coverPhotoUrl: getCollectionCoverOverride(c.id) || photos[0]?.url || c.coverPhotoUrl || '/hero.png',
+      };
+    });
   }
 
   return [];
@@ -693,6 +788,15 @@ export async function updatePhotoFocalPoint(
       throw new Error(`Không thể cập nhật điểm tiêu cự: ${error.message}`);
     }
 
+    // Also update in local cache if present
+    const cached = getCustomPhotosFromLocalCache();
+    const target = cached.find((p) => p.id === photoId);
+    if (target) {
+      target.focalX = focalX;
+      target.focalY = focalY;
+      saveCustomPhotoToLocalCache(target);
+    }
+
     return { success: true, photoId };
   }
 
@@ -702,8 +806,226 @@ export async function updatePhotoFocalPoint(
       photo.focalX = focalX;
       photo.focalY = focalY;
     }
+    const cached = getCustomPhotosFromLocalCache();
+    const target = cached.find((p) => p.id === photoId);
+    if (target) {
+      target.focalX = focalX;
+      target.focalY = focalY;
+      saveCustomPhotoToLocalCache(target);
+    }
     return { success: true, photoId };
   }
 
   throw new Error('Supabase not configured and demo mode disabled.');
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function generateSafeUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export interface AddPhotoInput {
+  id?: string;
+  url: string;
+  filename?: string;
+  width?: number;
+  height?: number;
+  focalX?: number;
+  focalY?: number;
+  altText?: string;
+  caption?: string;
+  sortOrder?: number;
+  featured?: boolean;
+  variants?: PhotoVariants;
+}
+
+/**
+ * Adds a new photo to a portfolio collection (Persists in Supabase DB and local cache)
+ */
+export async function addPhotoToCollection(
+  collectionId: string,
+  photo: AddPhotoInput
+): Promise<PortfolioPhoto> {
+  const photoId = (photo.id && UUID_PATTERN.test(photo.id)) ? photo.id : generateSafeUuid();
+
+  const newPhoto: PortfolioPhoto = {
+    id: photoId,
+    collectionId,
+    url: photo.url,
+    filename: photo.filename || 'photo.webp',
+    width: photo.width || 1200,
+    height: photo.height || 800,
+    focalX: photo.focalX ?? 50,
+    focalY: photo.focalY ?? 50,
+    altText: photo.altText || '',
+    caption: photo.caption,
+    sortOrder: photo.sortOrder || 0,
+    featured: Boolean(photo.featured),
+    variants: photo.variants,
+  };
+
+  // Unmark if previously in deleted set
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const deleted = getDeletedPhotoIdsFromLocalCache();
+      if (deleted.has(photoId)) {
+        deleted.delete(photoId);
+        localStorage.setItem(LOCAL_STORAGE_DELETED_PHOTOS_KEY, JSON.stringify(Array.from(deleted)));
+      }
+    } catch {}
+  }
+
+  // 1. If Supabase is active, persist to database
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('portfolio_photos')
+        .insert({
+          id: photoId,
+          collection_id: collectionId,
+          url: newPhoto.url,
+          filename: newPhoto.filename,
+          width: newPhoto.width,
+          height: newPhoto.height,
+          focal_x: newPhoto.focalX,
+          focal_y: newPhoto.focalY,
+          alt_text: newPhoto.altText,
+          caption: newPhoto.caption || null,
+          sort_order: newPhoto.sortOrder,
+          featured: newPhoto.featured,
+          variants: (newPhoto.variants as unknown as Record<string, unknown>) || {},
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        const persisted = mapPhotoRow(data);
+        saveCustomPhotoToLocalCache(persisted);
+        return persisted;
+      }
+      console.warn('Notice: Supabase insert portfolio_photos returned:', error?.message);
+    } catch (err: any) {
+      console.warn('Notice: Supabase insert exception:', err?.message);
+    }
+  }
+
+  // 2. Always persist to local cache and in-memory structures
+  saveCustomPhotoToLocalCache(newPhoto);
+
+  if (!DEMO_PHOTOS.some((p) => p.id === newPhoto.id)) {
+    DEMO_PHOTOS.push(newPhoto);
+  }
+
+  const col = DEMO_COLLECTIONS.find((c) => c.id === collectionId);
+  if (col) {
+    if (!col.photos) col.photos = [];
+    if (!col.photos.some((p) => p.id === newPhoto.id)) {
+      col.photos.push(newPhoto);
+    }
+    col.photosCount = col.photos.length;
+    if (!col.coverPhotoUrl) col.coverPhotoUrl = newPhoto.url;
+  }
+
+  return newPhoto;
+}
+
+/**
+ * Deletes a photo from a collection (Persists deletion in Supabase DB and local cache)
+ */
+export async function deletePhotoFromCollection(
+  photoId: string,
+  collectionId: string
+): Promise<{ success: boolean; photoId: string }> {
+  // 1. Mark as deleted in local deleted set & remove from local cache
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const deleted = getDeletedPhotoIdsFromLocalCache();
+      deleted.add(photoId);
+      localStorage.setItem(LOCAL_STORAGE_DELETED_PHOTOS_KEY, JSON.stringify(Array.from(deleted)));
+      removeCustomPhotoFromLocalCache(photoId);
+    } catch (e) {
+      console.warn('Local storage delete photo warning:', e);
+    }
+  }
+
+  // 2. If Supabase configured, attempt delete from database
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('portfolio_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) {
+        console.warn('Supabase delete photo error:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase delete exception:', err?.message);
+    }
+  }
+
+  // 3. Remove from in-memory DEMO_PHOTOS
+  const demoIdx = DEMO_PHOTOS.findIndex((p) => p.id === photoId);
+  if (demoIdx >= 0) {
+    DEMO_PHOTOS.splice(demoIdx, 1);
+  }
+
+  // 4. Update DEMO_COLLECTIONS
+  const col = DEMO_COLLECTIONS.find((c) => c.id === collectionId);
+  if (col && col.photos) {
+    col.photos = col.photos.filter((p) => p.id !== photoId);
+    col.photosCount = col.photos.length;
+    if (col.photos.length > 0) {
+      col.coverPhotoUrl = col.photos[0].url;
+    }
+  }
+
+  return { success: true, photoId };
+}
+
+/**
+ * Sets a photo as the collection cover photo
+ */
+export async function setCollectionCoverPhoto(
+  collectionId: string,
+  coverPhotoUrl: string
+): Promise<{ success: boolean }> {
+  // 1. If Supabase configured, update cover photo in portfolio_collections
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase
+        .from('portfolio_collections')
+        .update({
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', collectionId);
+    } catch {}
+  }
+
+  // 2. Save in local storage cover photo overrides
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_COVER_OVERRIDES_KEY);
+      const overrides = raw ? JSON.parse(raw) : {};
+      overrides[collectionId] = coverPhotoUrl;
+      localStorage.setItem(LOCAL_STORAGE_COVER_OVERRIDES_KEY, JSON.stringify(overrides));
+    } catch {}
+  }
+
+  const col = DEMO_COLLECTIONS.find((c) => c.id === collectionId);
+  if (col) {
+    col.coverPhotoUrl = coverPhotoUrl;
+  }
+
+  return { success: true };
 }

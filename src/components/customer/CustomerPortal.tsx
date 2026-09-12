@@ -366,18 +366,21 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                   </div>
                 </div>
 
-                {/* Progress Bar */}
+                {/* 8-Step Timeline (Issue #8) */}
                 <div style={{ backgroundColor: '#FFFDF6', padding: '1.2rem', borderRadius: '12px', border: '1px solid var(--mipa-beige)', marginBottom: '1.2rem' }}>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#8C6E53', marginBottom: '0.8rem' }}>
                     TIẾN ĐỘ BUỔI CHỤP:
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', fontSize: '0.78rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
                     {[
-                      { label: '1. Đã Nhận Cọc', done: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
-                      { label: '2. Đã Check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '3. Đang Chụp', done: ['SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '4. Hậu Kỳ', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '5. Đã Giao Ảnh', done: ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.driveReadyForCustomer },
+                      { label: '1. Đã đặt lịch', done: true },
+                      { label: '2. Đã nhận cọc', done: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
+                      { label: '3. Studio duyệt lịch', done: !['DRAFT', 'PENDING_PAYMENT', 'CANCELLED'].includes(b.bookingStatus) },
+                      { label: '4. Đã check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '5. Đang chụp', done: ['SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '6. Đã chụp xong', done: ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '7. Đang xử lý ảnh', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '8. Ảnh sẵn sàng', done: b.delivery?.status === 'READY_FOR_CUSTOMER' && Boolean(b.delivery?.driveFolderUrl) },
                     ].map((step, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: step.done ? '#047857' : '#A39385', fontWeight: step.done ? 600 : 400 }}>
                         <Check size={14} color={step.done ? '#047857' : '#A39385'} />
@@ -389,7 +392,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
 
                 {/* Customer Acknowledgements & Delivery Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem' }}>
-                  <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     {/* Schedule confirmation acknowledgement */}
                     {b.bookingStatus === 'CONFIRMED' && !b.customerScheduleConfirmedAt && (
                       <button
@@ -418,31 +421,54 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       </button>
                     )}
 
-                    {/* Google Drive Delivery Button (#8 integration) */}
-                    {(b.driveReadyForCustomer || b.driveFolderUrl || b.bookingStatus === 'READY_FOR_REVIEW' || b.bookingStatus === 'DELIVERED') ? (
-                      <a
-                        href={b.driveFolderUrl || 'https://drive.google.com'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-mipa-gold"
-                        style={{
-                          fontSize: '0.88rem',
-                          padding: '0.5rem 1.2rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          backgroundColor: '#047857',
-                          color: '#FFFFFF',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <FolderDown size={16} /> Lấy Ảnh Google Drive
-                      </a>
-                    ) : (
-                      <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
-                        ⏳ Ảnh đang được hậu kỳ kỹ lưỡng
-                      </span>
-                    )}
+                    {/* Google Drive Delivery Button (#8 integration: Strictly Authoritative) */}
+                    {(() => {
+                      const isOwner = user ? b.customerId === user.id : true;
+                      const isReady = b.delivery?.status === 'READY_FOR_CUSTOMER' && Boolean(b.delivery?.driveFolderUrl);
+                      const isRevoked = b.delivery?.status === 'REVOKED';
+                      const url = b.delivery?.driveFolderUrl;
+
+                      if (isReady && isOwner && url) {
+                        return (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-mipa-gold"
+                            style={{
+                              fontSize: '0.88rem',
+                              padding: '0.5rem 1.2rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              backgroundColor: '#047857',
+                              color: '#FFFFFF',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <FolderDown size={16} /> Lấy Ảnh Google Drive
+                          </a>
+                        );
+                      }
+
+                      if (isRevoked) {
+                        return (
+                          <span style={{ fontSize: '0.8rem', color: '#DC2626', fontWeight: 600 }}>
+                            🔒 Quyền truy cập ảnh đã thu hồi
+                          </span>
+                        );
+                      }
+
+                      if (['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW'].includes(b.bookingStatus)) {
+                        return (
+                          <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                            ⏳ Ảnh đang được hậu kỳ kỹ lưỡng
+                          </span>
+                        );
+                      }
+
+                      return null;
+                    })()}
                   </div>
 
                   {/* Reschedule / Cancel options */}

@@ -1135,6 +1135,133 @@ export interface Database {
         };
         Relationships: [];
       };
+      booking_deliveries: {
+        Row: {
+          id: string;
+          booking_id: string;
+          provider: string;
+          drive_folder_id: string | null;
+          drive_folder_url: string | null;
+          status: string;
+          customer_permission_id: string | null;
+          share_email: string | null;
+          created_by: string | null;
+          ready_by: string | null;
+          revoked_by: string | null;
+          created_at: string;
+          updated_at: string;
+          ready_at: string | null;
+          revoked_at: string | null;
+          last_reconciled_at: string | null;
+          last_error: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          provider?: string;
+          drive_folder_id?: string | null;
+          drive_folder_url?: string | null;
+          status?: string;
+          customer_permission_id?: string | null;
+          share_email?: string | null;
+          created_by?: string | null;
+          ready_by?: string | null;
+          revoked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          ready_at?: string | null;
+          revoked_at?: string | null;
+          last_reconciled_at?: string | null;
+          last_error?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          provider?: string;
+          drive_folder_id?: string | null;
+          drive_folder_url?: string | null;
+          status?: string;
+          customer_permission_id?: string | null;
+          share_email?: string | null;
+          created_by?: string | null;
+          ready_by?: string | null;
+          revoked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          ready_at?: string | null;
+          revoked_at?: string | null;
+          last_reconciled_at?: string | null;
+          last_error?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_deliveries_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      google_drive_oauth_states: {
+        Row: {
+          state: string;
+          created_by: string | null;
+          redirect_uri: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          state: string;
+          created_by?: string | null;
+          redirect_uri: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          state?: string;
+          created_by?: string | null;
+          redirect_uri?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      google_drive_integrations: {
+        Row: {
+          id: string;
+          account_email: string | null;
+          root_folder_id: string | null;
+          refresh_token: string;
+          is_active: boolean;
+          connected_by: string | null;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_email?: string | null;
+          root_folder_id?: string | null;
+          refresh_token: string;
+          is_active?: boolean;
+          connected_by?: string | null;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          account_email?: string | null;
+          root_folder_id?: string | null;
+          refresh_token?: string;
+          is_active?: boolean;
+          connected_by?: string | null;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1148,6 +1275,19 @@ export interface Database {
       };
       get_auth_role: {
         Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      get_booking_delivery_secure: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: unknown;
+      };
+      enqueue_drive_delivery_email: {
+        Args: {
+          p_booking_id: string;
+          p_actor_id?: string | null;
+        };
         Returns: string;
       };
       create_booking: {

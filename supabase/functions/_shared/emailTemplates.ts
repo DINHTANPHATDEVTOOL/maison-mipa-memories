@@ -308,6 +308,32 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
       `;
       break;
 
+    case 'drive_delivery_ready':
+    case 'DRIVE_DELIVERY_READY':
+      subject = `Ảnh của bạn đã sẵn sàng — Maison MIPA Memories`;
+      bodyContent = `
+        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Ảnh Của Bạn Đã Sẵn Sàng!</h2>
+        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
+        <p style="color: #604634; line-height: 1.6;">
+          Maison MIPA Memories xin thông báo bộ ảnh kỷ niệm cho đơn chụp <strong>#${data.bookingCode || ''}</strong> của bạn đã được đội ngũ hậu kỳ hoàn thiện kỹ lưỡng và sẵn sàng bàn giao.
+        </p>
+        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 6px 0; color: #166534; font-weight: bold;">🔒 Quyền Riêng Tư & Bảo Mật</p>
+          <p style="margin: 0; color: #166534; font-size: 13.5px; line-height: 1.5;">
+            Quyền xem và tải ảnh chất lượng gốc trên Google Drive đã được phân quyền trực tiếp tới địa chỉ email xác thực của bạn.
+          </p>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.accountUrl || 'https://maisonmipa.io.vn/account'}" style="background-color: ${BRAND_GOLD}; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Đăng Nhập Cổng Khách Hàng Để Lấy Ảnh
+          </a>
+        </div>
+        <p style="color: #8C6E53; font-size: 13px; text-align: center;">
+          (Vui lòng đăng nhập bằng đúng tài khoản email đã xác thực để truy cập thư mục ảnh cá nhân)
+        </p>
+      `;
+      break;
+
     case 'album_ready':
       subject = `[Maison MIPA] Bộ ảnh của bạn đã sẵn sàng! #${data.bookingCode || ''}`;
       bodyContent = `
@@ -410,7 +436,7 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${subject}</title>
     </head>
-    <body style="margin: 0; padding: 20px; background-color: #F8F6F0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <body style="margin: 0; padding: 20px; background-color: ${BRAND_BG}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       <div style="max-width: 600px; margin: 0 auto; background-color: ${BRAND_CARD}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
         ${emailHeader}
         <div style="padding: 30px;">

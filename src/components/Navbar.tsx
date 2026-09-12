@@ -44,38 +44,23 @@ export interface NavbarProps {
 }
 
 // Bespoke Luxury Studio Monogram Emblem
-export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 36 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 44 44"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ flexShrink: 0, display: 'block' }}
-  >
-    <defs>
-      <linearGradient id="mipaEmblemBg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#8C6E53" />
-        <stop offset="100%" stopColor="#4A3525" />
-      </linearGradient>
-      <linearGradient id="mipaGoldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#F5E6C8" />
-        <stop offset="50%" stopColor="#C6A45F" />
-        <stop offset="100%" stopColor="#8C6E53" />
-      </linearGradient>
-    </defs>
-    <circle cx="22" cy="22" r="21" fill="url(#mipaEmblemBg)" stroke="url(#mipaGoldAccent)" strokeWidth="1.5" />
-    <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(239, 230, 201, 0.35)" strokeWidth="0.75" strokeDasharray="2 1" />
-    <path d="M14 16 L22 11 L30 16" stroke="rgba(198, 164, 95, 0.4)" strokeWidth="0.8" fill="none" />
-    <path
-      d="M14 29 V18 L18.5 24.5 L22 20 L25.5 24.5 L30 18 V29"
-      stroke="#FFFDF6"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="22" cy="14" r="1.5" fill="#EFE6C9" />
-  </svg>
+export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 38 }) => (
+  <img
+    src="/logo.png"
+    alt="Maison MIPA Memories Logo"
+    style={{
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: '10px',
+      objectFit: 'contain',
+      backgroundColor: '#FAF6EE',
+      display: 'block',
+      flexShrink: 0,
+      border: '1px solid rgba(198, 164, 95, 0.4)',
+      boxShadow: '0 2px 8px rgba(96, 70, 52, 0.08)',
+      padding: '2px',
+    }}
+  />
 );
 
 // Bespoke Luxury User Monogram Avatar Badge
@@ -369,7 +354,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           to="/"
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}
         >
-          <MipaStudioEmblem size={38} />
+          <MipaStudioEmblem size={42} />
           <div>
             <div style={{
               fontFamily: 'var(--mipa-font-heading)',

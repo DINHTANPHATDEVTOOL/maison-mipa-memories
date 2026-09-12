@@ -195,10 +195,40 @@ export interface Booking {
   cancelRequestedReason?: string;
   driveFolderUrl?: string;
   driveReadyForCustomer?: boolean;
+  delivery?: BookingDelivery;
   albumId?: string;
   conceptId?: string;
   conceptIds?: string[];
   conceptName?: string;
+}
+
+export type DeliveryStatus =
+  | 'NOT_CREATED'
+  | 'CREATING'
+  | 'READY_FOR_UPLOAD'
+  | 'READY_FOR_CUSTOMER'
+  | 'ERROR'
+  | 'REVOKED'
+  | 'NEEDS_RECONCILE';
+
+export interface BookingDelivery {
+  id: string;
+  bookingId: string;
+  provider: 'GOOGLE_DRIVE';
+  driveFolderId?: string;
+  driveFolderUrl?: string;
+  status: DeliveryStatus;
+  customerPermissionId?: string;
+  shareEmail?: string;
+  createdBy?: string;
+  readyBy?: string;
+  revokedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  readyAt?: string;
+  revokedAt?: string;
+  lastReconciledAt?: string;
+  lastError?: string;
 }
 
 export type PhotoType = 'RAW' | 'PREVIEW' | 'SELECTED' | 'FINAL';

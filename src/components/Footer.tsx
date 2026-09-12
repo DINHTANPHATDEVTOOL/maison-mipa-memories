@@ -20,21 +20,22 @@ export const Footer: React.FC = () => {
         {/* Brand Col */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: '#C6A45F',
-              color: '#2C221E',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--mipa-font-heading)',
-              fontSize: '1.3rem',
-            }}>
-              M
-            </div>
+            <img
+              src="/logo.png"
+              alt="Maison MIPA Memories Logo"
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '10px',
+                objectFit: 'contain',
+                backgroundColor: '#FAF6EE',
+                display: 'block',
+                border: '1.5px solid #C6A45F',
+                flexShrink: 0,
+                padding: '2px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+              }}
+            />
             <div>
               <div style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.4rem', fontWeight: 700, color: '#EFE6C9' }}>
                 MAISON MIPA

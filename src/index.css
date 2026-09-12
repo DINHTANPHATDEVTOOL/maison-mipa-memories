@@ -171,22 +171,22 @@ h1, h2, h3, h4, .font-heading {
   gap: 0.35rem;
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
 }
 
-.badge-draft { background: #F3F4F6; color: #4B5563; }
-.badge-pending { background: #FEF3C7; color: #92400E; }
-.badge-deposit { background: #E0E7FF; color: #3730A3; }
-.badge-confirmed { background: #D1FAE5; color: #065F46; }
-.badge-checkedin { background: #DDD6FE; color: #5B21B6; }
-.badge-shooting { background: #FCE7F3; color: #9D174D; border: 1px solid #F472B6; }
+.badge-draft { background: #F3F4F6; color: #4B5563; border: 1px solid #E5E7EB; }
+.badge-pending { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.badge-deposit { background: #E0E7FF; color: #3730A3; border: 1px solid #C7D2FE; }
+.badge-confirmed { background: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+.badge-checkedin { background: #EDE9FE; color: #5B21B6; border: 1px solid #DDD6FE; }
+.badge-shooting { background: #FCE7F3; color: #9D174D; border: 1px solid #FBCFE8; }
+.badge-editing { background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; }
+.badge-ready { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
 .badge-completed { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
-.badge-editing { background: #FEF3C7; color: #B45309; }
-.badge-ready { background: #DBEAFE; color: #1E40AF; }
-.badge-cancelled { background: #FEE2E2; color: #991B1B; }
+.badge-cancelled { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
 
 /* Custom Inputs */
 .mipa-input {
@@ -396,3 +396,56 @@ html, body, #root {
     padding: 0.25rem !important;
   }
 }
+
+/* ==========================================================================
+   OPERATIONS WORKSTATION & LUXURY DASHBOARD LAYOUT
+   ========================================================================== */
+
+.mipa-dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.12fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .mipa-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+.mipa-sticky-sidebar {
+  position: sticky;
+  top: 86px;
+  max-height: calc(100vh - 106px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+@media (max-width: 1080px) {
+  .mipa-sticky-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+.mipa-metric-number {
+  font-family: var(--mipa-font-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #604634;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.mipa-metric-unit {
+  font-family: var(--mipa-font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #8C6E53;
+  margin-left: 0.25rem;
+}
+

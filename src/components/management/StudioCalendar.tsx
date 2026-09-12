@@ -383,7 +383,7 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
               </span>
             </div>
 
-            <h3 style={{ fontSize: '1.4rem', color: '#604634', margin: '0 0 1rem 0' }}>
+            <h3 style={{ fontSize: '1.45rem', color: '#604634', margin: '0 0 1rem 0', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
               {selectedBooking.packageName} ({selectedBooking.serviceName})
             </h3>
 

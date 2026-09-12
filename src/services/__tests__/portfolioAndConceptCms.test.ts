@@ -4,8 +4,12 @@ import {
   getPublicCollections,
   getPublicCollectionBySlug,
   getManagementCollections,
+  getAllCollections,
   publishPortfolioCollection,
   updatePhotoFocalPoint,
+  addPhotoToCollection,
+  deletePhotoFromCollection,
+  setCollectionCoverPhoto,
   DEMO_CONCEPTS,
   DEMO_COLLECTIONS,
 } from '../portfolioService';
@@ -117,5 +121,92 @@ describe('Portfolio and Concept CMS Service', () => {
 
     const updated = await updatePhotoFocalPoint(photo.id, 35, 75);
     expect(updated.success).toBe(true);
+  });
+
+  it('persists uploaded photos across re-fetching and simulates page reload', async () => {
+    const targetCol = DEMO_COLLECTIONS[0];
+    const initialCount = targetCol.photos?.length || 0;
+
+    // Add new photo
+    const newPhoto = await addPhotoToCollection(targetCol.id, {
+      url: '/test-custom-upload.webp',
+      filename: 'custom_wedding_01.webp',
+      width: 1920,
+      height: 1080,
+      focalX: 50,
+      focalY: 50,
+      altText: 'Custom photo test',
+    });
+
+    expect(newPhoto.id).toBeDefined();
+    expect(newPhoto.collectionId).toBe(targetCol.id);
+    expect(newPhoto.url).toBe('/test-custom-upload.webp');
+
+    // Simulate page reload by re-fetching collections
+    const reloadedCols = await getAllCollections();
+    const reloadedCol = reloadedCols.find(c => c.id === targetCol.id);
+    expect(reloadedCol).toBeDefined();
+    expect(reloadedCol!.photos?.some(p => p.id === newPhoto.id)).toBe(true);
+    expect(reloadedCol!.photosCount).toBeGreaterThanOrEqual(initialCount + 1);
+
+    // Also verify public collections query reflects the newly added photo
+    const publicCols = await getPublicCollections();
+    const pubCol = publicCols.find(c => c.id === targetCol.id);
+    if (pubCol && targetCol.status === 'PUBLISHED') {
+      expect(pubCol.photos?.some(p => p.id === newPhoto.id)).toBe(true);
+    }
+  });
+
+  it('deletes photos from collection and persists deletion across re-fetching', async () => {
+    const targetCol = DEMO_COLLECTIONS[0];
+
+    // Add a photo first so we have a dedicated one to delete
+    const added = await addPhotoToCollection(targetCol.id, {
+      url: '/photo-to-delete.webp',
+      filename: 'to_delete.webp',
+      width: 800,
+      height: 600,
+    });
+
+    // Verify it is present
+    let collections = await getAllCollections();
+    let col = collections.find(c => c.id === targetCol.id)!;
+    expect(col.photos?.some(p => p.id === added.id)).toBe(true);
+
+    // Delete photo
+    const deleteResult = await deletePhotoFromCollection(added.id, targetCol.id);
+    expect(deleteResult.success).toBe(true);
+    expect(deleteResult.photoId).toBe(added.id);
+
+    // Simulate reload by re-fetching collections
+    collections = await getAllCollections();
+    col = collections.find(c => c.id === targetCol.id)!;
+    expect(col.photos?.some(p => p.id === added.id)).toBe(false);
+
+    // Verify public query also excludes the deleted photo
+    const publicCols = await getPublicCollections();
+    const pubCol = publicCols.find(c => c.id === targetCol.id);
+    if (pubCol) {
+      expect(pubCol.photos?.some(p => p.id === added.id)).toBe(false);
+    }
+  });
+
+  it('sets custom cover photo and preserves it across collection re-fetching', async () => {
+    const targetCol = DEMO_COLLECTIONS[0];
+    const newCover = '/new-cover-image.webp';
+
+    const res = await setCollectionCoverPhoto(targetCol.id, newCover);
+    expect(res.success).toBe(true);
+
+    // Re-fetch collections
+    const collections = await getAllCollections();
+    const col = collections.find(c => c.id === targetCol.id)!;
+    expect(col.coverPhotoUrl).toBe(newCover);
+
+    const pubCols = await getPublicCollections();
+    const pubCol = pubCols.find(c => c.id === targetCol.id);
+    if (pubCol && targetCol.status === 'PUBLISHED') {
+      expect(pubCol.coverPhotoUrl).toBe(newCover);
+    }
   });
 });

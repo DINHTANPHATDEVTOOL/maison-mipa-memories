@@ -110,13 +110,24 @@ async function verifyTables() {
   console.log('\n----------------------------------------------------------------');
   console.log(`Tables Check Summary: ${passCount} Passed, ${failCount} Failed.`);
 
+  // Check Issue #8 Google Drive Delivery table
+  console.log('\n2. Checking Issue #8 Google Drive Delivery Tables:');
+  console.log('----------------------------------------------------------------');
+  const { error: deliveryErr } = await supabase.from('booking_deliveries').select('*').limit(0);
+  if (deliveryErr && (deliveryErr.code === '42P01' || deliveryErr.code === 'PGRST205')) {
+    console.log('  ⏳ [PENDING DEPLOY] booking_deliveries   -> Pending migration 20260912000001_booking_deliveries_google_drive.sql');
+    console.log('     👉 Note for Owner: Apply supabase/migrations/20260912000001_booking_deliveries_google_drive.sql in Supabase SQL Editor.');
+  } else {
+    console.log('  ✅ [PASS] booking_deliveries             -> Verified on database');
+  }
+
   if (failCount > 0) {
-    console.log('\n⚠️ ATTENTION OWNER: Database schema is missing tables.');
+    console.log('\n⚠️ ATTENTION OWNER: Core database schema is missing tables.');
     console.log('Please run migrations in Supabase SQL Editor or execute:');
     console.log('  npx supabase db push --project-ref dkvkhysnabhtbbuvommu\n');
     process.exit(1);
   } else {
-    console.log('\n🎉 ALL APPLICATION TABLES VERIFIED SUCCESSFULLY!\n');
+    console.log('\n🎉 ALL APPLICATION CORE TABLES VERIFIED SUCCESSFULLY!\n');
     process.exit(0);
   }
 }

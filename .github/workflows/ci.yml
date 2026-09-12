@@ -2,9 +2,8 @@ name: CI Quality Gate
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'ai/**' ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   quality-gate:
