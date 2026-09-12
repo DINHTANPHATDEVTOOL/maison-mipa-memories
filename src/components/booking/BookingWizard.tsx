@@ -621,21 +621,39 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: '1rem',
         }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700 }}>
-              MAISON MIPA MEMORIES
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <img
+              src="/logo.png"
+              alt="Maison MIPA Memories Logo"
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                objectFit: 'contain',
+                backgroundColor: '#FAF6EE',
+                border: '1px solid rgba(198, 164, 95, 0.4)',
+                boxShadow: '0 2px 8px rgba(96, 70, 52, 0.08)',
+                flexShrink: 0,
+                padding: '2px',
+              }}
+            />
+            <div>
+              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700 }}>
+                MAISON MIPA MEMORIES
+              </div>
+              <h3 style={{ fontSize: '1.35rem', color: '#604634', margin: 0, fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
+                {step === 7 ? 'Đặt lịch Thành Công!' : `Bước ${step}/6 — ${
+                  step === 1 ? 'Chọn Loại hình Dịch vụ' :
+                  step === 2 ? 'Chọn Gói Package phù hợp' :
+                  step === 3 ? 'Chọn Ngày & Giờ Chụp' :
+                  step === 4 ? 'Dịch vụ Bổ sung (Add-ons)' :
+                  step === 5 ? 'Thông tin Khách hàng' :
+                  'Xác nhận & Thanh toán Tiền cọc'
+                }`}
+              </h3>
             </div>
-            <h3 style={{ fontSize: '1.4rem', color: '#604634', margin: 0 }}>
-              {step === 7 ? 'Đặt lịch Thành Công!' : `Bước ${step}/6 — ${
-                step === 1 ? 'Chọn Loại hình Dịch vụ' :
-                step === 2 ? 'Chọn Gói Package phù hợp' :
-                step === 3 ? 'Chọn Ngày & Giờ Chụp' :
-                step === 4 ? 'Dịch vụ Bổ sung (Add-ons)' :
-                step === 5 ? 'Thông tin Khách hàng' :
-                'Xác nhận & Thanh toán Tiền cọc'
-              }`}
-            </h3>
           </div>
           <button
             onClick={onClose}

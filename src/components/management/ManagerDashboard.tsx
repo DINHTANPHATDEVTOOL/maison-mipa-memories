@@ -30,6 +30,31 @@ import {
 import { INITIAL_EMPLOYEES } from '../../mockData';
 import { createDriveFolder, deliverToCustomer, revokeCustomerAccess, reconcileDriveDelivery } from '../../services/deliveryService';
 
+// Vietnamese Luxury Status & Payment Dictionaries
+export const BOOKING_STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+  DRAFT: { label: 'Bản nháp', badgeClass: 'badge-draft' },
+  PENDING_PAYMENT: { label: 'Chờ thanh toán cọc', badgeClass: 'badge-pending' },
+  DEPOSIT_PAID: { label: 'Đã đặt cọc (Chờ nhận)', badgeClass: 'badge-deposit' },
+  CONFIRMED: { label: 'Đã xác nhận lịch', badgeClass: 'badge-confirmed' },
+  CHECKED_IN: { label: 'Đã check-in studio', badgeClass: 'badge-checkedin' },
+  SHOOTING: { label: 'Đang chụp tại phòng', badgeClass: 'badge-shooting' },
+  SHOOT_COMPLETED: { label: 'Chụp xong (Chờ hậu kỳ)', badgeClass: 'badge-editing' },
+  EDITING: { label: 'Đang chỉnh sửa ảnh', badgeClass: 'badge-editing' },
+  READY_FOR_REVIEW: { label: 'Chờ duyệt ảnh & giao Drive', badgeClass: 'badge-ready' },
+  DELIVERED: { label: 'Đã giao Google Drive', badgeClass: 'badge-completed' },
+  COMPLETED: { label: 'Hoàn thành', badgeClass: 'badge-completed' },
+  CANCELLED: { label: 'Đã hủy lịch', badgeClass: 'badge-cancelled' },
+  REFUNDED: { label: 'Đã hoàn tiền', badgeClass: 'badge-cancelled' },
+};
+
+export const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  UNPAID: { label: 'Chưa thanh toán', color: '#DC2626' },
+  DEPOSIT_PENDING: { label: 'Chờ duyệt cọc', color: '#D97706' },
+  DEPOSIT_PAID: { label: 'Đã thanh toán cọc', color: '#047857' },
+  FULLY_PAID: { label: 'Đã thanh toán 100%', color: '#047857' },
+  REFUNDED: { label: 'Đã hoàn tiền', color: '#6B7280' },
+};
+
 interface ManagerDashboardProps {
   bookings: Booking[];
   employees: Employee[];
@@ -275,7 +300,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             }}
           >
             <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ CỌC / XÁC NHẬN CỌC</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.pendingDepositAndConfirmationCount} đơn</div>
+            <div className="mipa-metric-number" style={{ marginTop: '0.2rem' }}>
+              {inboxStats.pendingDepositAndConfirmationCount} <span className="mipa-metric-unit">đơn</span>
+            </div>
           </button>
 
           <button
@@ -294,7 +321,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             }}
           >
             <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHƯA GẮN KÍP CHỤP</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.unassignedStaffCount} đơn</div>
+            <div className="mipa-metric-number" style={{ marginTop: '0.2rem' }}>
+              {inboxStats.unassignedStaffCount} <span className="mipa-metric-unit">đơn</span>
+            </div>
           </button>
 
           <button
@@ -313,7 +342,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             }}
           >
             <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG CHỤP TRONG PHÒNG</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.shootingNowCount} ca</div>
+            <div className="mipa-metric-number" style={{ marginTop: '0.2rem' }}>
+              {inboxStats.shootingNowCount} <span className="mipa-metric-unit">ca</span>
+            </div>
           </button>
 
           <button
@@ -332,13 +363,15 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             }}
           >
             <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ DUYỆT GIAO ẢNH</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.readyToDeliverCount} bộ</div>
+            <div className="mipa-metric-number" style={{ marginTop: '0.2rem' }}>
+              {inboxStats.readyToDeliverCount} <span className="mipa-metric-unit">bộ</span>
+            </div>
           </button>
         </div>
       </div>
 
       {/* Main Section: Schedule & Booking Control Pipeline */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr', gap: '1.5rem' }}>
+      <div className="mipa-dashboard-grid">
 
         {/* Left Column: Bookings Table / List */}
         <div className="mipa-card" style={{ padding: '1.5rem', borderRadius: '20px' }}>
@@ -451,11 +484,16 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <strong style={{ color: '#8C6E53', fontSize: '0.9rem' }}>{b.bookingCode}</strong>
-                        <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                          ● {b.bookingStatus}
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        <strong style={{ color: '#8C6E53', fontSize: '0.92rem', fontFamily: 'monospace' }}>#{b.bookingCode}</strong>
+                        {(() => {
+                          const statusConf = BOOKING_STATUS_CONFIG[b.bookingStatus] || { label: b.bookingStatus, badgeClass: `badge-${b.bookingStatus.toLowerCase()}` };
+                          return (
+                            <span className={`badge-status ${statusConf.badgeClass}`}>
+                              ● {statusConf.label}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
@@ -465,19 +503,24 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <h4 style={{ fontSize: '1.1rem', color: '#604634', margin: 0 }}>{b.packageName} ({b.serviceName})</h4>
+                        <h4 style={{ fontSize: '1.1rem', color: '#604634', margin: 0, fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>{b.packageName} ({b.serviceName})</h4>
                         <div style={{ fontSize: '0.82rem', color: '#6E5F55', marginTop: '0.2rem' }}>
                           Khách: <strong>{b.customerName}</strong> • SĐT: <strong>{b.customerPhone}</strong>
                         </div>
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#8C6E53' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#8C6E53', fontFamily: 'var(--mipa-font-heading)' }}>
                           {b.totalAmount.toLocaleString('vi-VN')} đ
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' ? '#047857' : '#D97706', fontWeight: 600 }}>
-                          Cọc: {b.depositAmount.toLocaleString('vi-VN')} đ ({b.paymentStatus})
-                        </div>
+                        {(() => {
+                          const payConf = PAYMENT_STATUS_CONFIG[b.paymentStatus] || { label: b.paymentStatus, color: '#D97706' };
+                          return (
+                            <div style={{ fontSize: '0.78rem', color: payConf.color, fontWeight: 600 }}>
+                              Cọc: {b.depositAmount.toLocaleString('vi-VN')} đ ({payConf.label})
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -532,8 +575,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Selected Booking Detail & Operations Action Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+        {/* Right Column: Selected Booking Detail & Operations Action Card (Sticky on Desktop) */}
+        <div className="mipa-sticky-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           {activeBookingTimeline ? (
             <div className="mipa-card" style={{ padding: '1.5rem', borderRadius: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', color: '#604634', marginBottom: '1rem', borderBottom: '1px solid #EFE6C9', paddingBottom: '0.5rem' }}>
@@ -752,7 +795,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     ĐIỀU PHỐI NHÂN SỰ STUDIO
                   </div>
-                  <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                  <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
                     Phân Công: #{assigningBooking.bookingCode}
                   </h3>
                 </div>

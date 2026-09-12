@@ -51,12 +51,14 @@ export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 38 }) => 
     style={{
       width: `${size}px`,
       height: `${size}px`,
-      borderRadius: '9px',
-      objectFit: 'cover',
+      borderRadius: '10px',
+      objectFit: 'contain',
+      backgroundColor: '#FAF6EE',
       display: 'block',
       flexShrink: 0,
-      border: '1px solid #EFE6C9',
-      boxShadow: '0 2px 6px rgba(96, 70, 52, 0.1)',
+      border: '1px solid rgba(198, 164, 95, 0.4)',
+      boxShadow: '0 2px 8px rgba(96, 70, 52, 0.08)',
+      padding: '2px',
     }}
   />
 );

@@ -289,13 +289,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               src="/logo.png"
               alt="Maison MIPA Memories Logo"
               style={{
-                width: '38px',
-                height: '38px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '8px',
-                objectFit: 'cover',
+                objectFit: 'contain',
+                backgroundColor: '#FAF6EE',
                 display: 'block',
                 border: '1px solid rgba(239, 230, 201, 0.4)',
                 flexShrink: 0,
+                padding: '2px',
               }}
             />
             <div>

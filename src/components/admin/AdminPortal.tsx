@@ -347,17 +347,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             key={tab.id}
             onClick={() => setAdminTab(tab.id as any)}
             style={{
-              background: adminTab === tab.id ? '#8C6E53' : 'transparent',
+              background: adminTab === tab.id
+                ? 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)'
+                : '#FFFDF6',
               color: adminTab === tab.id ? '#FFFDF6' : '#604634',
-              border: 'none',
-              padding: '0.6rem 1.4rem',
+              border: adminTab === tab.id ? '1px solid #604634' : '1px solid #EFE6C9',
+              padding: '0.6rem 1.3rem',
               borderRadius: '20px',
               fontWeight: 700,
-              fontSize: '0.88rem',
+              fontSize: '0.86rem',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem',
+              boxShadow: adminTab === tab.id ? '0 4px 12px rgba(96, 70, 52, 0.2)' : 'none',
               transition: 'all 0.2s ease',
             }}
           >

@@ -24,13 +24,16 @@ export const Footer: React.FC = () => {
               src="/logo.png"
               alt="Maison MIPA Memories Logo"
               style={{
-                width: '44px',
-                height: '44px',
+                width: '46px',
+                height: '46px',
                 borderRadius: '10px',
-                objectFit: 'cover',
+                objectFit: 'contain',
+                backgroundColor: '#FAF6EE',
                 display: 'block',
                 border: '1.5px solid #C6A45F',
                 flexShrink: 0,
+                padding: '2px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
               }}
             />
             <div>
