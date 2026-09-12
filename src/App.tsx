@@ -38,6 +38,11 @@ const StaffPage = lazy(() => import('./pages/StaffPage'));
 const ManagementPage = lazy(() => import('./pages/ManagementPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
+// Cinematic Motion & Art Direction
+import { CustomCursor } from './motion/CustomCursor';
+import { PageTransition } from './motion/PageTransition';
+import { FilmGrainOverlay } from './components/public/FilmGrainOverlay';
+
 function AppContent() {
   const { user: currentUser, role: currentRole, logout } = useAuth();
   const navigate = useNavigate();
@@ -175,9 +180,10 @@ function AppContent() {
       />
 
       {/* Main Presentation Body */}
-      <main style={{ flex: 1 }}>
-        {/* Real URL Router Routes */}
-        <Suspense fallback={
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <PageTransition>
+          {/* Real URL Router Routes */}
+          <Suspense fallback={
           <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8C6E53' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{
@@ -262,7 +268,7 @@ function AppContent() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
-
+        </PageTransition>
       </main>
 
       {/* Footer */}
@@ -370,6 +376,10 @@ function AppContent() {
           </button>
         </div>
       )}
+
+      {/* Photography Exhibition Micro-Interactions & Film Grain */}
+      <CustomCursor />
+      <FilmGrainOverlay />
 
     </div>
   );

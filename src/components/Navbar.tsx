@@ -21,7 +21,6 @@ import {
   Layers,
   Tag,
   Image as ImageIcon,
-  Sparkles,
   Crown,
   Check,
   CheckCheck,
@@ -180,6 +179,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 60);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Dynamic interactive notifications with localStorage persistence
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
@@ -300,7 +309,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         ];
       case 'CUSTOMER':
         return [
-          { id: 'customer_portal', to: '/account', label: 'Lịch của tôi', icon: Sparkles },
+          { id: 'customer_portal', to: '/account', label: 'Lịch của tôi', icon: Calendar },
           { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
           { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
           { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
@@ -349,45 +358,48 @@ export const Navbar: React.FC<NavbarProps> = ({
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      backgroundColor: 'rgba(255, 253, 246, 0.94)',
+      backgroundColor: isScrolled ? 'rgba(21, 17, 14, 0.94)' : 'rgba(21, 17, 14, 0.85)',
       backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(140, 110, 83, 0.15)',
-      boxShadow: '0 4px 20px rgba(96, 70, 52, 0.04)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: isScrolled ? '1px solid rgba(198, 164, 95, 0.22)' : '1px solid rgba(198, 164, 95, 0.12)',
+      boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.45)' : 'none',
+      transition: 'background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
     }}>
       <div className="mipa-container" style={{
         maxWidth: '1350px',
         margin: '0 auto',
-        padding: '0.6rem 1rem',
+        padding: isScrolled ? '0.55rem 1.25rem' : '0.85rem 1.25rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '0.5rem',
+        gap: '1rem',
         width: '100%',
+        transition: 'padding 280ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         {/* Brand Logo Link */}
         <Link
           to="/"
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}
         >
-          <MipaStudioEmblem size={38} />
+          <MipaStudioEmblem size={34} />
           <div>
             <div style={{
-              fontFamily: 'var(--mipa-font-heading)',
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              color: '#604634',
+              fontFamily: 'var(--editorial-font-heading)',
+              fontSize: '1.3rem',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              color: '#FBF6EE',
               lineHeight: 1.1,
               whiteSpace: 'nowrap',
             }}>
               MAISON MIPA
             </div>
             <div style={{
-              fontSize: '0.6rem',
-              letterSpacing: '0.2em',
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: '#8C6E53',
-              fontWeight: 600,
+              color: '#C6A45F',
+              fontWeight: 500,
               whiteSpace: 'nowrap',
             }}>
               Memories Studio
@@ -395,11 +407,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </Link>
 
-        {/* Dynamic Navigation Links (Desktop) */}
-        <nav className="mipa-mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        {/* Dynamic Navigation Links (Desktop Editorial Style) */}
+        <nav className="mipa-mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '1.6rem' }}>
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = isRouteActive(link.to);
+            const isPublicPage = ['home', 'services', 'packages', 'portfolio'].includes(link.id);
 
             return (
               <NavLink
@@ -410,25 +423,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                   if (legacySetActiveTab) legacySetActiveTab(link.id);
                 }}
                 style={{
-                  background: isActive
-                    ? 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)'
-                    : 'transparent',
-                  color: isActive ? '#FFFDF6' : '#4A3525',
-                  border: '1px solid transparent',
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '20px',
-                  fontSize: '0.82rem',
-                  fontWeight: isActive ? 700 : 500,
+                  background: 'transparent',
+                  color: isActive ? '#E0C287' : '#D1C4B7',
+                  border: 'none',
+                  borderBottom: isActive ? '1.5px solid #C6A45F' : '1.5px solid transparent',
+                  padding: '0.5rem 0.1rem',
+                  fontSize: '0.92rem',
+                  fontWeight: isActive ? 600 : 400,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  transition: 'color 0.2s ease, border-color 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
                   textDecoration: 'none',
-                  boxShadow: isActive ? '0 3px 10px rgba(96, 70, 52, 0.2)' : 'none',
+                  borderRadius: 0,
+                  boxShadow: 'none',
                 }}
               >
-                {Icon && <Icon size={15} strokeWidth={1.8} style={{ color: isActive ? '#EFE6C9' : '#8C6E53' }} />}
+                {!isPublicPage && Icon && (
+                  <Icon size={15} strokeWidth={1.8} style={{ color: isActive ? '#E0C287' : '#C6A45F' }} />
+                )}
                 {link.label}
               </NavLink>
             );
@@ -442,25 +456,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           style={{
             display: 'none',
             border: 'none',
-            background: 'rgba(140, 110, 83, 0.1)',
+            background: 'transparent',
             padding: '0.5rem',
-            borderRadius: '10px',
-            color: '#604634',
+            color: '#FBF6EE',
             cursor: 'pointer',
           }}
+          aria-label="Menu"
         >
           {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
         {/* Actions & Role Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <button
             onClick={onOpenBooking}
-            className="btn-mipa-gold"
-            style={{ height: '36px', fontSize: '0.82rem', padding: '0 1rem' }}
+            className="public-btn-primary"
+            style={{ height: '36px', fontSize: '0.85rem', padding: '0 1.25rem', fontWeight: 600 }}
           >
-            <Camera size={14} />
-            ĐẶT LỊCH
+            Đặt lịch
           </button>
 
           {/* Interactive Notifications button & dismissible dropdown */}
@@ -671,18 +684,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.4rem 0.85rem',
-                    backgroundColor: '#604634',
-                    color: '#FFFDF6',
-                    border: 'none',
+                    backgroundColor: 'var(--editorial-gold-accent, #C6A45F)',
+                    color: '#15110E',
+                    border: '1px solid var(--editorial-gold-accent, #C6A45F)',
                     borderRadius: '20px',
                     cursor: 'pointer',
                     fontWeight: 600,
                     fontSize: '0.82rem',
-                    boxShadow: '0 2px 8px rgba(96, 70, 52, 0.2)',
+                    boxShadow: '0 2px 10px rgba(198, 164, 95, 0.25)',
                   }}
                 >
                   <LogIn size={14} />
-                  Đăng Nhập
+                  Đăng nhập
                 </button>
                 <button
                   onClick={() => onOpenAuthModal('REGISTER')}
@@ -691,9 +704,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.4rem 0.85rem',
-                    backgroundColor: '#8C6E53',
-                    color: '#FFFDF6',
-                    border: 'none',
+                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                    color: '#FBF6EE',
+                    border: '1px solid rgba(198, 164, 95, 0.35)',
                     borderRadius: '20px',
                     cursor: 'pointer',
                     fontWeight: 600,
@@ -701,7 +714,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                 >
                   <UserPlus size={14} />
-                  Đăng Ký
+                  Đăng ký
                 </button>
               </div>
             ) : (
@@ -811,7 +824,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           border: '1px solid #E6D7B9',
                         }}
                       >
-                        <Sparkles size={14} style={{ color: '#8C6E53' }} />
+                        <Calendar size={14} style={{ color: '#8C6E53' }} />
                         <span>Quản lý đơn & Album</span>
                       </Link>
                     )}
@@ -900,22 +913,22 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Slide-down Navigation Drawer */}
       {isMobileMenuOpen && (
         <div style={{
-          backgroundColor: '#FFFDF6',
-          borderBottom: '2px solid #8C6E53',
-          padding: '1.2rem 1.5rem',
+          backgroundColor: '#1A1411',
+          borderBottom: '1px solid rgba(198, 164, 95, 0.22)',
+          padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1rem',
-          boxShadow: '0 10px 25px rgba(96, 70, 52, 0.15)',
+          gap: '1.2rem',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
           animation: 'slideUp 0.25s ease-out',
         }}>
-
-
           {/* Mobile Nav Links */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = isRouteActive(link.to);
+              const isPublic = ['home', 'services', 'packages', 'portfolio'].includes(link.id);
+
               return (
                 <NavLink
                   key={link.id}
@@ -923,63 +936,63 @@ export const Navbar: React.FC<NavbarProps> = ({
                   role="button"
                   onClick={() => handleLinkClick(link.to, link.id)}
                   style={{
-                    background: isActive ? '#8C6E53' : 'rgba(239, 230, 201, 0.3)',
-                    color: isActive ? '#FFFDF6' : '#2C221E',
-                    border: 'none',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '12px',
-                    fontSize: '0.9rem',
-                    fontWeight: isActive ? 700 : 500,
+                    background: 'transparent',
+                    color: isActive ? '#E0C287' : '#FBF6EE',
+                    borderBottom: '1px solid rgba(198, 164, 95, 0.12)',
+                    padding: '0.9rem 0',
+                    fontFamily: isPublic ? 'var(--editorial-font-heading)' : 'var(--editorial-font-body)',
+                    fontSize: isPublic ? '1.3rem' : '0.95rem',
+                    fontWeight: isActive ? 600 : 400,
                     textAlign: 'left',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.6rem',
+                    justifyContent: 'space-between',
                     textDecoration: 'none',
                   }}
                 >
-                  {Icon && <Icon size={18} style={{ color: isActive ? '#EFE6C9' : '#8C6E53' }} />}
-                  {link.label}
+                  <span>{link.label}</span>
+                  {!isPublic && Icon && <Icon size={16} style={{ color: '#C6A45F' }} />}
                 </NavLink>
               );
             })}
           </div>
 
           {/* Mobile Auth & Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', paddingTop: '0.6rem', borderTop: '1px solid var(--mipa-beige)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.5rem' }}>
             <button
               onClick={() => {
                 navigate('/booking');
                 onOpenBooking();
                 setIsMobileMenuOpen(false);
               }}
-              className="btn-mipa-gold"
-              style={{ width: '100%', height: '42px' }}
+              className="public-btn-primary"
+              style={{ width: '100%', height: '44px', fontSize: '0.95rem', fontWeight: 600 }}
             >
-              <Calendar size={16} /> ĐẶT LỊCH NGAY
+              Đặt lịch chụp
             </button>
 
             {currentRole === 'GUEST' ? (
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button
                   onClick={() => {
                     onOpenAuthModal('LOGIN');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="btn-mipa-primary"
-                  style={{ flex: 1, padding: '0.6rem' }}
+                  className="public-btn-secondary"
+                  style={{ flex: 1, height: '40px', fontSize: '0.88rem' }}
                 >
-                  <LogIn size={15} /> Đăng Nhập
+                  Đăng Nhập
                 </button>
                 <button
                   onClick={() => {
                     onOpenAuthModal('REGISTER');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="btn-mipa-secondary"
-                  style={{ flex: 1, padding: '0.6rem' }}
+                  className="public-btn-secondary"
+                  style={{ flex: 1, height: '40px', fontSize: '0.88rem' }}
                 >
-                  <UserPlus size={15} /> Đăng Ký
+                  Đăng Ký
                 </button>
               </div>
             ) : (

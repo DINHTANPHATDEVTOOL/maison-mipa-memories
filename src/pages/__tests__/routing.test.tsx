@@ -74,20 +74,20 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('renders homepage at /', async () => {
     renderRoute('/');
-    expect(screen.getByText(/Capture the moment/i)).toBeInTheDocument();
-    expect(screen.getByText(/Keep the memory/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Bước vào căn phòng của những ký ức/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/MAISON MIPA \/ ATELIER/i).length).toBeGreaterThan(0);
   });
 
   it('renders services catalog at /dich-vu', async () => {
     renderRoute('/dich-vu');
     expect(screen.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeInTheDocument();
-    expect(screen.getByText(/DANH MỤC GÓI CHỤP STUDIO/i)).toBeInTheDocument();
+    expect(screen.getByText(/MAISON MIPA \/ DỊCH VỤ/i)).toBeInTheDocument();
   });
 
   it('renders couple service detail at /dich-vu/couple', async () => {
     renderRoute('/dich-vu/couple');
     expect(screen.getByRole('heading', { name: /Chụp Ảnh Couple & Kỷ Niệm Tình Yêu/i })).toBeInTheDocument();
-    expect(screen.getByText(/Bảng Giá Gói Chụp Cho Couple Photography/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Gói Chụp Cho Couple Photography/i })).toBeInTheDocument();
   });
 
   it('renders portrait service detail at /dich-vu/portrait', async () => {
@@ -107,20 +107,20 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('renders pricing page at /bang-gia', async () => {
     renderRoute('/bang-gia');
-    expect(screen.getByRole('heading', { level: 1, name: /Bảng Giá Dịch Vụ Chụp Ảnh Studio/i })).toBeInTheDocument();
-    expect(screen.getByText(/Cam kết không phát sinh chi phí ẩn/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Bảng Giá Dịch Vụ Chụp Ảnh/i })).toBeInTheDocument();
+    expect(screen.getByText(/MINH BẠCH & TRỌN GÓI/i)).toBeInTheDocument();
   });
 
   it('renders portfolio page at /portfolio', async () => {
     renderRoute('/portfolio');
-    expect(screen.getByRole('heading', { level: 1, name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Bộ Sưu Tập Hình Ảnh/i })).toBeInTheDocument();
     expect(screen.getAllByText(/GALERIE DE MAISON MIPA/i).length).toBeGreaterThan(0);
   });
 
   it('renders dedicated booking page at /booking', async () => {
     renderRoute('/booking');
-    expect(screen.getByRole('heading', { name: /Đặt Lịch Chụp Ảnh Trực Tuyến/i })).toBeInTheDocument();
-    expect(screen.getByText(/QUY TRÌNH 6 BƯỚC ĐẶT LỊCH CHUẨN/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Đặt Lịch Chụp Ảnh/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/MAISON MIPA \/ ĐẶT LỊCH/i).length).toBeGreaterThan(0);
   });
 
   it('renders 404 NotFoundPage for unknown URLs', async () => {

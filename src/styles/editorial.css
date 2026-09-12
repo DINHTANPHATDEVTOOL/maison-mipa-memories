@@ -1,0 +1,801 @@
+/* ==============================================================================
+   MAISON MIPA MEMORIES — FRENCH EDITORIAL STYLING SYSTEM
+   Art Direction: French Editorial Photography + Contemporary Print Magazine
+   + Warm Saigon Studio + Quiet / Restrained / Photography-First
+   ============================================================================== */
+
+:root {
+  --editorial-bg: #15110E;
+  --editorial-paper: #221A15;
+  --editorial-surface-raised: #2C221C;
+  --editorial-white: #FFFFFF;
+  
+  --editorial-text-primary: #FBF6EE;
+  --editorial-text-secondary: #D1C4B7;
+  --editorial-text-muted: #A39385;
+  
+  --editorial-brown: #FBF6EE;
+  --editorial-brown-accent: #C6A45F;
+  --editorial-gold-accent: #C6A45F;
+  --editorial-gold-bright: #E8CF9B;
+  
+  --editorial-divider: rgba(198, 164, 95, 0.18);
+  --editorial-divider-subtle: rgba(198, 164, 95, 0.10);
+
+  --editorial-font-heading: 'Cormorant Garamond', Georgia, serif;
+  --editorial-font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+
+  --editorial-radius-sm: 4px;
+  --editorial-radius-md: 8px;
+  --editorial-radius-lg: 14px;
+
+  --editorial-darkroom-bg: #15110E;
+  --editorial-darkroom-text: #FBF6EE;
+  --editorial-brown-secondary: #D1C4B7;
+  --editorial-accent: #C6A45F;
+
+  /* Booking Semantic Tokens (WCAG-compliant Light Surfaces) */
+  --booking-bg: #F7F2EA;
+  --booking-surface: #FFFFFF;
+  --booking-surface-muted: #F0EAE1;
+  --booking-text: #2B211B;
+  --booking-text-secondary: #67584D;
+  --booking-border: #D8C9B9;
+  --booking-accent: #8B6C3F;
+  --booking-accent-dark: #604634;
+}
+
+/* Base Editorial Typography */
+.editorial-root {
+  background-color: var(--editorial-bg);
+  color: var(--editorial-text-primary);
+  font-family: var(--editorial-font-body);
+  line-height: 1.65;
+}
+
+.editorial-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.editorial-container-narrow {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.editorial-container-wide {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Sections */
+.editorial-section {
+  padding: 5rem 0;
+  position: relative;
+  background-color: var(--editorial-bg);
+  color: var(--editorial-text-primary);
+}
+
+.editorial-section-sm {
+  padding: 3rem 0;
+}
+
+.editorial-section-lg {
+  padding: 7rem 0;
+}
+
+/* Overlines */
+.editorial-overline {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--editorial-gold-accent);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
+}
+
+/* Headings */
+.editorial-h1 {
+  font-family: var(--editorial-font-heading);
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  line-height: 1.1;
+  color: var(--editorial-text-primary);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.5rem 0;
+}
+
+.editorial-h2 {
+  font-family: var(--editorial-font-heading);
+  font-size: clamp(2.2rem, 4vw, 3.8rem);
+  line-height: 1.18;
+  color: var(--editorial-text-primary);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.25rem 0;
+}
+
+.editorial-h3 {
+  font-family: var(--editorial-font-heading);
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  line-height: 1.25;
+  color: var(--editorial-text-primary);
+  font-weight: 500;
+  margin: 0 0 0.75rem 0;
+}
+
+.editorial-lead {
+  font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+  color: var(--editorial-text-secondary);
+  line-height: 1.7;
+  max-width: 600px;
+  margin: 0 0 2rem 0;
+}
+
+.editorial-copy {
+  font-size: 0.98rem;
+  color: var(--editorial-text-secondary);
+  line-height: 1.7;
+  margin: 0 0 1rem 0;
+}
+
+.editorial-caption {
+  font-size: 0.82rem;
+  color: var(--editorial-text-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+/* Horizontal Dividers */
+.editorial-rule {
+  border: none;
+  border-top: 1px solid var(--editorial-divider);
+  margin: 0;
+  width: 100%;
+}
+
+.editorial-rule-subtle {
+  border: none;
+  border-top: 1px solid var(--editorial-divider-subtle);
+  margin: 0;
+  width: 100%;
+}
+
+/* Editorial Button System */
+.public-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--editorial-gold-accent);
+  color: #15110E;
+  font-family: var(--editorial-font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.85rem 1.8rem;
+  border-radius: var(--editorial-radius-sm);
+  border: 1px solid var(--editorial-gold-accent);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+  box-shadow: 0 4px 15px rgba(198, 164, 95, 0.25);
+}
+
+.public-btn-primary:hover {
+  background-color: var(--editorial-gold-bright);
+  border-color: var(--editorial-gold-bright);
+  color: #15110E;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(198, 164, 95, 0.35);
+}
+
+.public-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--editorial-text-primary);
+  font-family: var(--editorial-font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.85rem 1.8rem;
+  border-radius: var(--editorial-radius-sm);
+  border: 1px solid rgba(198, 164, 95, 0.35);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+  box-shadow: none;
+}
+
+.public-btn-secondary:hover {
+  border-color: var(--editorial-gold-accent);
+  color: var(--editorial-gold-accent);
+  background-color: rgba(198, 164, 95, 0.10);
+  transform: translateY(-1px);
+}
+
+/* Animations: Ambient Particles & Marquee */
+@keyframes floatDustMote {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.8);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.75;
+  }
+  75% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-90px) translateX(30px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+@keyframes marqueeScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.editorial-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 32s linear infinite;
+  will-change: transform;
+}
+
+.editorial-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.public-btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--editorial-brown);
+  font-family: var(--editorial-font-body);
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.public-btn-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--editorial-brown);
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+}
+
+.public-btn-link:hover {
+  color: var(--editorial-gold-bright, #E8CF9B);
+}
+
+.public-btn-link:hover::after {
+  background-color: var(--editorial-gold-bright, #E8CF9B);
+  opacity: 1;
+}
+
+/* Photography Elements (Restrained Frames, No 24px Rounding, No Heavy Shadows) */
+.editorial-image-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--editorial-radius-sm);
+  background-color: #241D1A;
+}
+
+.editorial-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-image-frame:hover img {
+  transform: scale(1.02);
+}
+
+/* Editorial Asymmetrical Grid (Concepts / Works) */
+.editorial-concept-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.editorial-concept-subgrid {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* Editorial Alternating Service Rows */
+.editorial-service-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  padding: 4rem 0;
+  border-top: 1px solid var(--editorial-divider);
+}
+
+.editorial-service-row:last-child {
+  border-bottom: 1px solid var(--editorial-divider);
+}
+
+.editorial-service-row.reverse {
+  grid-template-columns: 1fr 1.1fr;
+}
+
+.editorial-service-row.reverse .editorial-service-image {
+  order: 2;
+}
+
+.editorial-service-row.reverse .editorial-service-text {
+  order: 1;
+}
+
+/* Editorial Story & Process */
+.editorial-story-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 4.5rem;
+  align-items: center;
+}
+
+.editorial-process-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  margin-top: 4rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--editorial-divider);
+}
+
+.editorial-process-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editorial-process-num {
+  font-family: var(--editorial-font-heading);
+  font-size: 1.5rem;
+  color: var(--editorial-brown-accent);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.editorial-process-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--editorial-brown);
+  margin: 0;
+}
+
+.editorial-process-desc {
+  font-size: 0.88rem;
+  color: var(--editorial-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Editorial Price Menu Rows */
+.editorial-price-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.editorial-price-row {
+  display: grid;
+  grid-template-columns: 2fr 3fr 1.5fr 1.5fr;
+  gap: 2rem;
+  align-items: center;
+  padding: 2.2rem 0;
+  border-bottom: 1px solid var(--editorial-divider);
+  transition: background-color 0.2s ease;
+}
+
+.editorial-price-row:first-child {
+  border-top: 1px solid var(--editorial-divider);
+}
+
+.editorial-price-name {
+  font-family: var(--editorial-font-heading);
+  font-size: 1.6rem;
+  color: var(--editorial-brown);
+  font-weight: 600;
+  margin: 0 0 0.3rem 0;
+}
+
+.editorial-price-meta {
+  font-size: 0.82rem;
+  color: var(--editorial-brown-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.editorial-price-inclusions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.editorial-price-inclusions li {
+  font-size: 0.88rem;
+  color: var(--editorial-text-secondary);
+  line-height: 1.4;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.editorial-price-inclusions li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--editorial-brown-accent);
+}
+
+.editorial-price-amount {
+  font-family: var(--editorial-font-heading);
+  font-size: 1.8rem;
+  color: var(--editorial-brown);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.editorial-price-currency {
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--editorial-text-muted);
+}
+
+/* Minimalist Accordion (FAQ) */
+.editorial-faq-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.editorial-faq-item {
+  border-bottom: 1px solid var(--editorial-divider);
+}
+
+.editorial-faq-item:first-child {
+  border-top: 1px solid var(--editorial-divider);
+}
+
+.editorial-faq-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.6rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 1.5rem;
+  color: var(--editorial-brown);
+  font-family: var(--editorial-font-heading);
+  font-size: 1.35rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.editorial-faq-button:hover {
+  color: var(--editorial-brown-accent);
+}
+
+.editorial-faq-answer {
+  padding: 0 0 1.6rem 0;
+  color: var(--editorial-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+/* ==============================================================================
+   RESPONSIVE EDITORIAL BREAKPOINTS
+   ============================================================================== */
+
+@media (max-width: 1024px) {
+  .editorial-concept-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .editorial-service-row,
+  .editorial-service-row.reverse {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .editorial-service-row.reverse .editorial-service-image {
+    order: 1;
+  }
+  .editorial-service-row.reverse .editorial-service-text {
+    order: 2;
+  }
+  .editorial-story-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .editorial-process-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  .editorial-price-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .editorial-section {
+    padding: 3.5rem 0;
+  }
+  .editorial-process-strip {
+    grid-template-columns: 1fr;
+    gap: 1.8rem;
+  }
+  .editorial-price-row {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    padding: 1.8rem 0;
+  }
+}
+
+/* ==============================================================================
+   BOOKING WIZARD EDITORIAL STYLES
+   ============================================================================== */
+
+.booking-wizard-container {
+  background-color: var(--booking-bg);
+  color: var(--booking-text);
+  --editorial-brown: var(--booking-text);
+  --editorial-brown-secondary: var(--booking-text-secondary);
+  --editorial-text-primary: var(--booking-text);
+  --editorial-text-secondary: var(--booking-text-secondary);
+  --editorial-text-muted: #7E6F64;
+  --editorial-divider: var(--booking-border);
+  --editorial-paper: var(--booking-bg);
+  --editorial-white: var(--booking-surface);
+  --editorial-brown-accent: var(--booking-accent);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 1040px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(43, 33, 27, 0.22);
+  border: 1px solid var(--booking-border);
+  overflow: hidden;
+}
+
+.booking-wizard-container strong,
+.booking-wizard-container b {
+  color: var(--booking-text);
+}
+
+.booking-wizard-container .mipa-input,
+.booking-wizard-container select,
+.booking-wizard-container input,
+.booking-wizard-container textarea {
+  background-color: var(--booking-surface);
+  color: var(--booking-text);
+  border: 1px solid var(--booking-border);
+}
+
+.booking-wizard-container .mipa-input:focus,
+.booking-wizard-container select:focus,
+.booking-wizard-container input:focus,
+.booking-wizard-container textarea:focus {
+  border-color: var(--booking-accent);
+  box-shadow: 0 0 0 3px rgba(139, 108, 63, 0.15);
+  background-color: #FFFFFF;
+}
+
+.booking-wizard-container .mipa-label {
+  color: var(--booking-text);
+}
+
+.booking-wizard-container input::placeholder,
+.booking-wizard-container textarea::placeholder {
+  color: #8E7E73;
+}
+
+@media (max-width: 768px) {
+  .booking-wizard-container {
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+}
+
+.booking-wizard-header {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--booking-border);
+  background-color: var(--booking-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.booking-progress-bar {
+  display: flex;
+  height: 3px;
+  background-color: rgba(103, 88, 77, 0.12);
+}
+
+.booking-progress-step {
+  flex: 1;
+  background-color: transparent;
+  transition: background-color 0.25s ease;
+}
+
+.booking-progress-step.active {
+  background-color: var(--booking-accent);
+}
+
+.booking-card-option {
+  background-color: var(--booking-surface);
+  border: 1px solid var(--booking-border);
+  border-radius: 4px;
+  padding: 1rem;
+  cursor: pointer;
+  color: var(--booking-text);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.booking-card-option:hover {
+  border-color: var(--booking-accent);
+  box-shadow: 0 2px 8px rgba(43, 33, 27, 0.08);
+}
+
+.booking-card-option.selected {
+  border: 2px solid var(--booking-accent);
+  background-color: #FFFDF8;
+}
+
+/* ==============================================================================
+   RESPONSIVE ATELIER 3D VIEWPORT (Blocker 4 & 23)
+   ============================================================================== */
+.atelier-viewport {
+  width: 100%;
+  height: clamp(620px, 72vh, 820px);
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(198, 164, 95, 0.2);
+  transition: background 1.2s ease;
+}
+
+@media (max-width: 1024px) {
+  .atelier-viewport {
+    height: min(68vh, 680px);
+  }
+}
+
+@media (max-width: 768px) {
+  .atelier-viewport {
+    height: clamp(460px, 62vh, 600px);
+  }
+}
+
+/* Calm Step Crossfade & Horizontal Slide (240ms) */
+@keyframes bookingStepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.booking-step-content {
+  animation: bookingStepFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-step-content {
+    animation: none !important;
+  }
+}
+
+/* ==============================================================================
+   The Living French Atelier Studio Diorama — 3D Spatial Animations & Shaders
+   ============================================================================== */
+@keyframes linenBreeze {
+  0%, 100% {
+    transform: rotateZ(0deg) skewX(0deg);
+  }
+  50% {
+    transform: rotateZ(1.2deg) skewX(-0.8deg);
+  }
+}
+
+@keyframes softboxGlow {
+  0%, 100% {
+    opacity: 0.88;
+    filter: drop-shadow(0 0 45px rgba(255, 215, 150, 0.45));
+  }
+  50% {
+    opacity: 0.98;
+    filter: drop-shadow(0 0 65px rgba(255, 225, 170, 0.65));
+  }
+}
+
+@keyframes floatDustSlow {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-25px) translateX(12px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-50px) translateX(-6px);
+    opacity: 0.1;
+  }
+}
+
+@keyframes floatDustFast {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-40px) translateX(-18px);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(-80px) translateX(10px);
+    opacity: 0.15;
+  }
+}
+
+.living-atelier-linen-drape {
+  animation: linenBreeze 7s ease-in-out infinite;
+  transform-origin: top left;
+}
+
+.living-atelier-softbox-glow {
+  animation: softboxGlow 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .living-atelier-linen-drape,
+  .living-atelier-softbox-glow {
+    animation: none !important;
+  }
+}
+

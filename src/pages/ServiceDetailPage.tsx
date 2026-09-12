@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Camera, Check, ChevronRight, Home, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Home } from 'lucide-react';
 import { getServices, getPackages } from '../services/catalogService';
 import type { ServiceCategory, PackageItem } from '../types';
 import { SeoHead, generateServiceSchema, generateBreadcrumbSchema } from '../components/seo/SeoHead';
@@ -61,7 +61,7 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
 
   return (
-    <div style={{ backgroundColor: 'var(--mipa-background)', minHeight: '80vh', paddingBottom: '4rem' }}>
+    <div style={{ backgroundColor: 'var(--editorial-bg)', minHeight: '80vh', paddingBottom: '5rem' }}>
       <SeoHead
         title={metaTitle}
         description={description}
@@ -73,9 +73,9 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
 
       {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb" style={{
-        maxWidth: '1350px',
+        maxWidth: '1240px',
         margin: '0 auto',
-        padding: '1.2rem 1rem 0',
+        padding: '1.5rem 1.5rem 0',
       }}>
         <ol style={{
           listStyle: 'none',
@@ -85,109 +85,77 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
           alignItems: 'center',
           gap: '0.5rem',
           fontSize: '0.85rem',
-          color: '#8C6E53',
+          color: 'var(--editorial-text-secondary)',
         }}>
           <li>
-            <Link to="/" style={{ color: '#8C6E53', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Link to="/" style={{ color: 'var(--editorial-text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <Home size={14} /> Trang chủ
             </Link>
           </li>
-          <li><ChevronRight size={14} color="#C6A45F" /></li>
+          <li><ChevronRight size={13} color="var(--editorial-brown-accent)" /></li>
           <li>
-            <Link to="/dich-vu" style={{ color: '#8C6E53', textDecoration: 'none' }}>
+            <Link to="/dich-vu" style={{ color: 'var(--editorial-text-secondary)', textDecoration: 'none' }}>
               Dịch vụ
             </Link>
           </li>
-          <li><ChevronRight size={14} color="#C6A45F" /></li>
-          <li style={{ fontWeight: 600, color: '#604634' }} aria-current="page">
+          <li><ChevronRight size={13} color="var(--editorial-brown-accent)" /></li>
+          <li style={{ fontWeight: 500, color: 'var(--editorial-brown)' }} aria-current="page">
             {serviceConfig?.shortTitle || serviceData?.name}
           </li>
         </ol>
       </nav>
 
       {/* Service Header Section */}
-      <header className="mipa-container" style={{
-        maxWidth: '1350px',
-        margin: '1.5rem auto 3rem',
-        padding: '0 1rem',
+      <header style={{
+        maxWidth: '1240px',
+        margin: '2.5rem auto 4rem',
+        padding: '0 1.5rem',
       }}>
-        <div className="mipa-grid-2" style={{ alignItems: 'center', gap: '2.5rem' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          alignItems: 'center',
+          gap: '3.5rem',
+        }}>
           <div>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.35rem 1rem',
-              backgroundColor: '#EFE6C9',
-              color: '#604634',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              marginBottom: '1rem',
-            }}>
-              <Sparkles size={14} color="#C6A45F" /> MAISON MIPA SPECIALTY
-            </div>
+            <span className="editorial-overline">MAISON MIPA SPECIALTY</span>
 
-            <h1 style={{
-              fontSize: 'clamp(2.2rem, 5vw, 3.2rem)',
-              lineHeight: 1.15,
-              color: '#604634',
-              marginBottom: '1.2rem',
-              fontWeight: 700,
-            }}>
+            <h1 className="editorial-h1" style={{ marginBottom: '1.2rem', lineHeight: 1.15 }}>
               {title}
             </h1>
 
-            <p style={{
-              fontSize: '1.1rem',
-              color: '#6E5F55',
-              lineHeight: 1.7,
-              marginBottom: '2rem',
-              maxWidth: '560px',
-            }}>
+            <p className="editorial-lead" style={{ marginBottom: '2.2rem' }}>
               {description}
             </p>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button
+                type="button"
                 onClick={onOpenBooking}
-                className="btn-mipa-gold"
-                style={{ padding: '0.85rem 1.8rem', fontSize: '1rem' }}
+                className="public-btn-primary"
               >
-                <Camera size={18} /> Đặt Lịch Chụp Ngay
+                Đặt lịch chụp
               </button>
               <Link
                 to="/bang-gia"
-                role="button"
-                className="btn-mipa-secondary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.85rem 1.6rem',
-                  borderRadius: '20px',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                }}
+                className="public-btn-secondary"
               >
-                Xem Bảng Giá <ArrowRight size={16} />
+                Xem bảng giá <ArrowRight size={14} />
               </Link>
             </div>
           </div>
 
           <div>
             <div style={{
-              borderRadius: '24px',
+              borderRadius: '4px',
               overflow: 'hidden',
-              boxShadow: '0 20px 40px rgba(96, 70, 52, 0.15)',
-              border: '4px solid #FFFFFF',
-              maxHeight: '440px',
+              backgroundColor: '#241D1A',
+              maxHeight: '480px',
             }}>
               <img
                 src={image}
                 alt={title}
+                loading="eager"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             </div>
@@ -196,61 +164,71 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
       </header>
 
       {/* Pricing Packages Section for this Service */}
-      <section className="mipa-container" style={{ maxWidth: '1250px', margin: '0 auto 3rem', padding: '0 1rem' }}>
-        <div style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 2rem' }}>
-          <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#8C6E53', fontWeight: 700 }}>
-            CÁC GÓI CHỤP PHÙ HỢP
-          </div>
-          <h2 style={{ fontSize: '2.2rem', color: '#604634', marginTop: '0.4rem' }}>
-            Bảng Giá Gói Chụp Cho {serviceConfig?.shortTitle || serviceData?.name}
+      <section style={{ maxWidth: '1240px', margin: '0 auto 4rem', padding: '0 1.5rem' }}>
+        <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 3rem' }}>
+          <span className="editorial-overline">BẢNG GIÁ DỊCH VỤ</span>
+          <h2 className="editorial-h2">
+            Gói chụp cho {serviceConfig?.shortTitle || serviceData?.name}
           </h2>
-          <p style={{ color: '#6E5F55', fontSize: '0.95rem' }}>
-            Giá trọn gói rõ ràng, cam kết tặng toàn bộ file gốc và phòng chụp riêng tư 100%.
+          <p className="editorial-copy">
+            Chi phí niêm yết rõ ràng, nhận đầy đủ file gốc và phòng chụp riêng tư suốt buổi.
           </p>
         </div>
 
-        <div className="mipa-grid-3" style={{ display: 'grid', gap: '2rem' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '2rem',
+        }}>
           {(packages.filter(p => serviceData?.id ? p.serviceId === serviceData.id : true).length > 0
             ? packages.filter(p => serviceData?.id ? p.serviceId === serviceData.id : true)
             : packages
           ).map((pkg) => (
             <div
               key={pkg.id}
-              className={`mipa-card ${pkg.recommended ? 'mipa-card-gold' : ''}`}
+              className={`booking-card-option ${pkg.recommended ? 'selected' : ''}`}
               style={{
                 padding: '2rem',
-                borderRadius: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                position: 'relative',
               }}
             >
               <div>
                 {pkg.popularTag && (
                   <div style={{
-                    position: 'absolute',
-                    top: '-14px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: '#C6A45F',
-                    color: '#FFFDF6',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    padding: '0.3rem 1rem',
-                    borderRadius: '20px',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    color: 'var(--editorial-brown-accent)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    marginBottom: '0.4rem',
                   }}>
-                    ★ {pkg.popularTag}
+                    {pkg.popularTag === 'POPULAR' ? 'Được chọn nhiều' : pkg.popularTag}
                   </div>
                 )}
-                <h3 style={{ fontSize: '1.5rem', color: '#604634', marginBottom: '0.5rem', marginTop: '0.5rem' }}>{pkg.name}</h3>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#8C6E53', marginBottom: '1.2rem', fontFamily: 'var(--mipa-font-heading)' }}>
-                  {pkg.price.toLocaleString('vi-VN')} <span style={{ fontSize: '1rem', fontWeight: 400 }}>đ</span>
+                <h3 style={{
+                  fontFamily: 'var(--editorial-font-heading)',
+                  fontSize: '1.5rem',
+                  color: 'var(--editorial-brown)',
+                  marginBottom: '0.4rem',
+                  fontWeight: 600,
+                }}>
+                  {pkg.name}
+                </h3>
+                <div style={{
+                  fontFamily: 'var(--editorial-font-heading)',
+                  fontSize: '1.8rem',
+                  fontWeight: 600,
+                  color: 'var(--editorial-brown)',
+                  marginBottom: '1.2rem',
+                }}>
+                  {pkg.price.toLocaleString('vi-VN')} <span style={{ fontSize: '0.95rem', fontWeight: 400, color: 'var(--editorial-text-muted)' }}>đ</span>
                 </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {pkg.features.map((feat, idx) => (
-                    <li key={idx} style={{ fontSize: '0.85rem', color: '#2C221E', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <Check size={15} color="#C6A45F" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <li key={idx} style={{ fontSize: '0.86rem', color: 'var(--editorial-text-secondary)', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                      <Check size={14} color="var(--editorial-brown-accent)" style={{ marginTop: '3px', flexShrink: 0 }} />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -258,11 +236,12 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
               </div>
 
               <button
+                type="button"
                 onClick={onOpenBooking}
-                className={pkg.recommended ? 'btn-mipa-gold' : 'btn-mipa-primary'}
-                style={{ width: '100%', padding: '0.8rem' }}
+                className={pkg.recommended ? 'public-btn-primary' : 'public-btn-secondary'}
+                style={{ width: '100%', padding: '0.75rem' }}
               >
-                Đặt Lịch Gói Này
+                Đặt lịch gói này
               </button>
             </div>
           ))}
@@ -270,11 +249,11 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
       </section>
 
       {/* Internal Navigation Links Bar */}
-      <footer className="mipa-container" style={{
-        maxWidth: '1250px',
+      <footer style={{
+        maxWidth: '1240px',
         margin: '0 auto',
-        padding: '2rem 1rem 0',
-        borderTop: '1px solid rgba(140, 110, 83, 0.15)',
+        padding: '2rem 1.5rem 0',
+        borderTop: '1px solid var(--editorial-divider)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -283,22 +262,22 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
       }}>
         <Link
           to="/dich-vu"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#8C6E53', textDecoration: 'none', fontWeight: 600 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--editorial-brown)', textDecoration: 'none', fontWeight: 500, fontSize: '0.88rem' }}
         >
-          <ArrowLeft size={16} /> Quay lại danh sách dịch vụ
+          <ArrowLeft size={15} /> Quay lại danh sách dịch vụ
         </Link>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1.5rem' }}>
           <Link
             to="/portfolio"
-            style={{ color: '#604634', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600 }}
+            style={{ color: 'var(--editorial-text-secondary)', textDecoration: 'none', fontSize: '0.88rem' }}
           >
-            Xem Portfolio Gallery →
+            Xem bộ sưu tập ảnh →
           </Link>
           <Link
             to="/bang-gia"
-            style={{ color: '#604634', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600 }}
+            style={{ color: 'var(--editorial-text-secondary)', textDecoration: 'none', fontSize: '0.88rem' }}
           >
-            Bảng Giá Toàn Bộ →
+            Bảng giá trọn gói →
           </Link>
         </div>
       </footer>

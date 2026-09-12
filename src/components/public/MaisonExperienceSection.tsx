@@ -2,7 +2,7 @@
 // Maison MIPA Memories - Maison Experience (4 Pillars of Quiet Luxury Studio)
 // ==============================================================================
 import React from 'react';
-import { Palette, Sparkles, Smile, FolderHeart } from 'lucide-react';
+import { Palette, Check, Smile, FolderHeart } from 'lucide-react';
 
 export const MaisonExperienceSection: React.FC = () => {
   const pillars = [
@@ -12,7 +12,7 @@ export const MaisonExperienceSection: React.FC = () => {
       description: 'Chuyên viên lắng nghe câu chuyện và cùng bạn lựa chọn tone màu, trang phục phù hợp với thần thái của riêng bạn.',
     },
     {
-      icon: Sparkles,
+      icon: Check,
       title: '2. Makeup Chuẩn Nét Pháp',
       description: 'Lớp nền mỏng nhẹ, tôn vinh đường nét tự nhiên với mỹ phẩm cao cấp an toàn cho mọi làn da nhạy cảm.',
     },
