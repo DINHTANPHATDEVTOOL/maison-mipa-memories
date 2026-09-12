@@ -18,6 +18,9 @@ import {
   getAllCollections,
   publishPortfolioCollection,
   updatePhotoFocalPoint,
+  addPhotoToCollection,
+  deletePhotoFromCollection,
+  setCollectionCoverPhoto,
 } from '../../services/portfolioService';
 import {
   optimizeImageFile,
@@ -38,6 +41,9 @@ import {
   Image as ImageIcon,
   Check,
   RefreshCw,
+  Trash2,
+  Star,
+  Loader2,
 } from 'lucide-react';
 
 export const PortfolioCMS: React.FC = () => {
@@ -61,10 +67,12 @@ export const PortfolioCMS: React.FC = () => {
   const [selectedCropRatio, setSelectedCropRatio] = useState<CropAspectRatio>('3:2');
   const [isSavingFocal, setIsSavingFocal] = useState<boolean>(false);
 
-  // Upload state
+  // Upload & action state
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadStats, setUploadStats] = useState<{ originalTotal: number; optimizedTotal: number } | null>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [settingCoverPhotoId, setSettingCoverPhotoId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial CMS data
@@ -112,7 +120,7 @@ export const PortfolioCMS: React.FC = () => {
     }
   };
 
-  // Handle batch file upload with client-side WebP compression
+  // Handle batch file upload with client-side WebP compression & authoritative persistence
   const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !activeCollection) return;
@@ -130,26 +138,30 @@ export const PortfolioCMS: React.FC = () => {
         const file = files[i];
         origBytes += file.size;
 
-        // Strip EXIF/GPS and compress
+        // Strip EXIF/GPS and compress into WebP
         const optimized = await optimizeImageFile(file, file.name);
         optBytes += optimized.optimizedSizeBytes;
 
-        const photoObj: PortfolioPhoto = {
-          id: `pho_${Date.now()}_${i}`,
-          collectionId: activeCollection.id,
-          url: optimized.variants.gallery?.url || optimized.variants.card?.url || URL.createObjectURL(file),
+        const photoUrl =
+          optimized.variants.gallery?.url ||
+          optimized.variants.card?.url ||
+          URL.createObjectURL(file);
+
+        // Authoritatively persist into database and local cache
+        const savedPhoto = await addPhotoToCollection(activeCollection.id, {
+          url: photoUrl,
           filename: file.name,
           width: optimized.originalWidth,
           height: optimized.originalHeight,
           focalX: 50,
           focalY: 50,
-          altText: `${activeCollection.title} - Ảnh ${i + 1}`,
+          altText: `${activeCollection.title} - Ảnh ${(activeCollection.photos?.length || 0) + i + 1}`,
           sortOrder: (activeCollection.photos?.length || 0) + i + 1,
-          featured: i === 0,
+          featured: (activeCollection.photos?.length || 0) === 0 && i === 0,
           variants: optimized.variants,
-        };
+        });
 
-        newPhotos.push(photoObj);
+        newPhotos.push(savedPhoto);
         setUploadProgress(Math.round(((i + 1) / files.length) * 90));
       }
 
@@ -159,7 +171,7 @@ export const PortfolioCMS: React.FC = () => {
         ...activeCollection,
         photos: updatedPhotos,
         photosCount: updatedPhotos.length,
-        coverPhotoUrl: updatedPhotos[0]?.url || activeCollection.coverPhotoUrl,
+        coverPhotoUrl: activeCollection.coverPhotoUrl || updatedPhotos[0]?.url || '/hero.png',
       };
 
       setActiveCollection(updatedCol);
@@ -167,13 +179,73 @@ export const PortfolioCMS: React.FC = () => {
       setUploadStats({ originalTotal: origBytes, optimizedTotal: optBytes });
       setUploadProgress(100);
       setSuccessMessage(
-        `Đã nén và thêm ${files.length} ảnh WebP thành công! EXIF/GPS đã được loại bỏ. Dung lượng: ${(origBytes / 1024 / 1024).toFixed(2)} MB -> ${(optBytes / 1024).toFixed(0)} KB.`
+        `Đã nén và lưu ${newPhotos.length} ảnh WebP vào hệ thống thành công! Ảnh đã được lưu vĩnh viễn (không mất khi tải lại trang). EXIF/GPS đã được loại bỏ an toàn. Dung lượng: ${(origBytes / 1024 / 1024).toFixed(2)} MB -> ${(optBytes / 1024).toFixed(0)} KB.`
       );
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
-      setErrorMessage(`Lỗi xử lý nén ảnh: ${err.message}`);
+      setErrorMessage(`Lỗi xử lý nén & lưu ảnh: ${err.message}`);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle Delete Photo from Collection
+  const handleDeletePhoto = async (photo: PortfolioPhoto) => {
+    if (!activeCollection) return;
+    const confirmDelete = window.confirm(
+      `Bạn có chắc chắn muốn xóa ảnh "${photo.filename || photo.id}" khỏi bộ sưu tập "${activeCollection.title}" không? Hành động này sẽ cập nhật ngay trên web.`
+    );
+    if (!confirmDelete) return;
+
+    setDeletingPhotoId(photo.id);
+    setErrorMessage(null);
+
+    try {
+      await deletePhotoFromCollection(photo.id, activeCollection.id);
+
+      const remainingPhotos = (activeCollection.photos || []).filter((p) => p.id !== photo.id);
+      const updatedCol: PortfolioCollection = {
+        ...activeCollection,
+        photos: remainingPhotos,
+        photosCount: remainingPhotos.length,
+        coverPhotoUrl:
+          activeCollection.coverPhotoUrl === photo.url
+            ? remainingPhotos[0]?.url || '/hero.png'
+            : activeCollection.coverPhotoUrl,
+      };
+
+      setActiveCollection(updatedCol);
+      setCollections((prev) => prev.map((c) => (c.id === updatedCol.id ? updatedCol : c)));
+      setSuccessMessage(`Đã xóa ảnh "${photo.filename}" khỏi bộ sưu tập thành công.`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Không thể xóa ảnh.');
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
+
+  // Handle Set Cover Photo
+  const handleSetCover = async (photo: PortfolioPhoto) => {
+    if (!activeCollection) return;
+    setSettingCoverPhotoId(photo.id);
+    setErrorMessage(null);
+
+    try {
+      await setCollectionCoverPhoto(activeCollection.id, photo.url);
+      const updatedCol: PortfolioCollection = {
+        ...activeCollection,
+        coverPhotoUrl: photo.url,
+      };
+      setActiveCollection(updatedCol);
+      setCollections((prev) => prev.map((c) => (c.id === updatedCol.id ? updatedCol : c)));
+      setSuccessMessage(`Đã đặt ảnh làm ảnh bìa cho bộ sưu tập "${activeCollection.title}".`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Không thể đặt ảnh bìa.');
+    } finally {
+      setSettingCoverPhotoId(null);
     }
   };
 
@@ -419,7 +491,16 @@ export const PortfolioCMS: React.FC = () => {
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={loadData}
+                className="btn-mipa-secondary"
+                style={{ fontSize: '0.85rem', padding: '0.5rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                title="Tải lại danh sách ảnh từ máy chủ"
+              >
+                <RefreshCw size={14} /> Làm mới
+              </button>
+
               <input
                 type="file"
                 ref={fileInputRef}
@@ -434,7 +515,8 @@ export const PortfolioCMS: React.FC = () => {
                 className="btn-mipa-gold"
                 style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
-                <Upload size={16} /> {isUploading ? `Đang nén ${uploadProgress}%...` : 'Tải lên ảnh mới'}
+                {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                {isUploading ? `Đang nén & lưu ${uploadProgress}%...` : 'Tải lên ảnh mới'}
               </button>
 
               {canPublish && (
@@ -450,59 +532,239 @@ export const PortfolioCMS: React.FC = () => {
           </div>
 
           {/* Photos Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.2rem' }}>
-            {(activeCollection.photos || []).map((photo, idx) => (
-              <div
-                key={photo.id}
-                style={{
-                  borderRadius: '14px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FAF8F5',
-                  border: '1px solid var(--mipa-beige)',
-                  position: 'relative',
-                }}
+          {(!activeCollection.photos || activeCollection.photos.length === 0) ? (
+            <div
+              style={{
+                padding: '3.5rem 1.5rem',
+                textAlign: 'center',
+                borderRadius: '16px',
+                border: '2px dashed var(--mipa-beige)',
+                backgroundColor: '#FAF8F5',
+                color: '#8C6E53',
+                margin: '1rem 0',
+              }}
+            >
+              <ImageIcon size={42} style={{ margin: '0 auto 0.8rem', opacity: 0.6 }} />
+              <h4 style={{ margin: '0 0 0.4rem', color: '#604634', fontSize: '1.15rem' }}>
+                Chưa có ảnh nào trong bộ sưu tập này
+              </h4>
+              <p style={{ margin: '0 0 1.2rem', fontSize: '0.85rem', color: '#8C6E53' }}>
+                Nhấn nút "Tải lên ảnh mới" phía trên để thêm ảnh WebP chuẩn nét vào bộ sưu tập.
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="btn-mipa-gold"
+                style={{ fontSize: '0.85rem', padding: '0.5rem 1.2rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
               >
-                <div style={{ height: '180px', position: 'relative', backgroundColor: '#2C221E' }}>
-                  <img
-                    src={photo.url}
-                    alt={photo.altText}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      ...getFocalPointStyle(photo.focalX, photo.focalY),
-                    }}
-                  />
-                  <div style={{ position: 'absolute', bottom: '6px', left: '6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFF', fontSize: '0.68rem', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
-                    Tiêu cự: {photo.focalX}% - {photo.focalY}%
-                  </div>
-                </div>
+                <Upload size={16} /> Tải lên ảnh ngay
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.2rem' }}>
+              {activeCollection.photos.map((photo, idx) => {
+                const isCover = activeCollection.coverPhotoUrl === photo.url;
+                const isDeleting = deletingPhotoId === photo.id;
+                const isSettingCover = settingCoverPhotoId === photo.id;
 
-                <div style={{ padding: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.78rem', color: '#604634', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
-                    #{idx + 1} {photo.filename}
-                  </div>
-                  <button
-                    onClick={() => setEditingPhoto(photo)}
+                return (
+                  <div
+                    key={photo.id}
                     style={{
-                      border: '1px solid var(--mipa-beige)',
-                      background: '#FFFDF6',
-                      color: '#604634',
-                      padding: '0.3rem 0.6rem',
-                      borderRadius: '8px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                      borderRadius: '14px',
+                      overflow: 'hidden',
+                      backgroundColor: '#FAF8F5',
+                      border: isCover ? '2px solid #C6A45F' : '1px solid var(--mipa-beige)',
+                      position: 'relative',
+                      boxShadow: isCover ? '0 4px 12px rgba(198, 164, 95, 0.2)' : 'none',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
+                      flexDirection: 'column',
                     }}
                   >
-                    <Sliders size={13} /> Chỉnh tiêu cự
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                    {/* Photo Preview with focal point */}
+                    <div style={{ height: '190px', position: 'relative', backgroundColor: '#2C221E' }}>
+                      <img
+                        src={photo.url}
+                        alt={photo.altText || photo.filename}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          ...getFocalPointStyle(photo.focalX, photo.focalY),
+                        }}
+                      />
+
+                      {/* Top Overlay Badges & Quick Actions */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          left: '8px',
+                          right: '8px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                        }}
+                      >
+                        {isCover ? (
+                          <span
+                            style={{
+                              backgroundColor: '#C6A45F',
+                              color: '#FFF',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            }}
+                          >
+                            <Star size={11} fill="#FFF" /> Ảnh bìa
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleSetCover(photo)}
+                            disabled={isSettingCover}
+                            style={{
+                              background: 'rgba(44, 34, 30, 0.75)',
+                              backdropFilter: 'blur(4px)',
+                              color: '#FDFBF7',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.25rem 0.55rem',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.2s ease',
+                            }}
+                            title="Đặt làm ảnh bìa cho bộ sưu tập này"
+                          >
+                            <Star size={11} /> {isSettingCover ? '...' : 'Đặt bìa'}
+                          </button>
+                        )}
+
+                        {/* Quick Delete overlay button */}
+                        <button
+                          onClick={() => handleDeletePhoto(photo)}
+                          disabled={isDeleting}
+                          style={{
+                            background: 'rgba(220, 38, 38, 0.85)',
+                            backdropFilter: 'blur(4px)',
+                            color: '#FFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '0.25rem 0.55rem',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          title="Xóa ảnh khỏi bộ sưu tập"
+                        >
+                          <Trash2 size={12} /> {isDeleting ? '...' : 'Xóa'}
+                        </button>
+                      </div>
+
+                      {/* Focal Point Indicator Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '6px',
+                          left: '6px',
+                          backgroundColor: 'rgba(0,0,0,0.65)',
+                          backdropFilter: 'blur(2px)',
+                          color: '#FFF',
+                          fontSize: '0.68rem',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        Tiêu cự: {photo.focalX}% - {photo.focalY}%
+                      </div>
+                    </div>
+
+                    {/* Card Footer Info and Action Buttons */}
+                    <div
+                      style={{
+                        padding: '0.8rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.6rem',
+                        flex: 1,
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '0.78rem',
+                          color: '#604634',
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={photo.filename}
+                      >
+                        #{idx + 1} {photo.filename}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => setEditingPhoto(photo)}
+                          style={{
+                            border: '1px solid var(--mipa-beige)',
+                            background: '#FFFDF6',
+                            color: '#604634',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '8px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                          }}
+                          title="Chỉnh sửa điểm tiêu cự (focal point) cho ảnh"
+                        >
+                          <Sliders size={13} /> Chỉnh tiêu cự
+                        </button>
+
+                        <button
+                          onClick={() => handleDeletePhoto(photo)}
+                          disabled={isDeleting}
+                          style={{
+                            border: '1px solid #FECACA',
+                            background: '#FEF2F2',
+                            color: '#DC2626',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '8px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            opacity: isDeleting ? 0.6 : 1,
+                          }}
+                          title="Xóa vĩnh viễn ảnh khỏi bộ sưu tập"
+                        >
+                          <Trash2 size={13} /> {isDeleting ? 'Đang xóa...' : 'Xóa'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
