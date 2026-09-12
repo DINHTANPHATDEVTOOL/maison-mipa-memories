@@ -153,7 +153,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           </Link>
         )}
 
-        {(user?.role === 'ADMIN' || isRootOwner) && (
+        {isRootOwner && (
           <Link
             to="/admin?tab=gdrive"
             style={{
@@ -168,11 +168,12 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
+              marginLeft: '0.5rem',
               transition: 'all 0.2s ease',
             }}
-            title="Cấu hình Google Drive Customer Delivery"
+            title="Cấu hình Google Drive Customer Delivery (Dành riêng cho Root Owner)"
           >
-            <FolderUp size={14} color="#C6A45F" /> Google Drive
+            <FolderUp size={14} color="#C6A45F" /> Cấu Hình Google Drive
           </Link>
         )}
       </div>

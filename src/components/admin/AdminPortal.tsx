@@ -35,6 +35,7 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -196,16 +197,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       if (params.get('drive') === 'connected') {
         showNotice('✓ Đã kết nối tài khoản Google Drive của Studio thành công!', 'success');
       }
-      setAdminTab('gdrive');
-      loadDriveStatus();
+      if (isRootOwner) {
+        setAdminTab('gdrive');
+        loadDriveStatus();
+      }
     }
-  }, []);
+  }, [isRootOwner]);
 
   useEffect(() => {
-    if (adminTab === 'gdrive') {
+    if (adminTab === 'gdrive' && isRootOwner) {
       loadDriveStatus();
     }
-  }, [adminTab]);
+  }, [adminTab, isRootOwner]);
+
+  // Guard admin tabs: Settings tabs (bank, email, gdrive) are strictly Root Owner only
+  useEffect(() => {
+    if (!isRootOwner && ['bank', 'email', 'gdrive'].includes(adminTab)) {
+      setAdminTab('users');
+    }
+  }, [isRootOwner, adminTab]);
 
   // Update user role and status via backend RPC (Root Owner Only)
   const handleUpdateUser = async (userId: string, newRole: UserRole, newStaffRole?: StaffRole, newStatus: UserStatus = 'ACTIVE') => {
@@ -322,13 +332,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </Link>
       </div>
 
-      {/* Synchronized Tabs Control identical to CustomerPortal */}
+      {/* Synchronized Tabs Control: Settings (bank, email, gdrive) are ONLY rendered for Root Owner */}
       <div style={{ display: 'flex', gap: '0.8rem', borderBottom: '1px solid var(--mipa-beige)', paddingBottom: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {[
           { id: 'users', label: 'Tài Khoản & Phân Quyền', icon: Users },
-          { id: 'bank', label: 'Tài Khoản VietQR', icon: CreditCard },
-          { id: 'email', label: 'Cấu Hình Email', icon: Mail },
-          { id: 'gdrive', label: 'Google Drive Delivery', icon: FolderUp },
+          ...(isRootOwner ? [
+            { id: 'bank', label: 'Tài Khoản VietQR', icon: CreditCard },
+            { id: 'email', label: 'Cấu Hình Email', icon: Mail },
+            { id: 'gdrive', label: 'Google Drive Delivery', icon: FolderUp },
+          ] : []),
           { id: 'audit', label: 'Audit Logs', icon: FileText },
         ].map(tab => (
           <button
@@ -646,8 +658,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* TAB 2: BANK & VIETQR */}
-      {adminTab === 'bank' && (
+      {/* TAB 2: BANK & VIETQR (ROOT OWNER ONLY) */}
+      {adminTab === 'bank' && isRootOwner && (
         <div className="mipa-card" style={{ maxWidth: '750px', padding: '2rem', borderRadius: '18px' }}>
           <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CreditCard size={20} color="#8C6E53" /> Cấu Hình Tài Khoản Nhận Cọc VietQR
@@ -761,8 +773,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* TAB 3: EMAIL CONFIGURATION HEALTH */}
-      {adminTab === 'email' && (
+      {/* TAB 3: EMAIL CONFIGURATION HEALTH (ROOT OWNER ONLY) */}
+      {adminTab === 'email' && isRootOwner && (
         <div className="mipa-card" style={{ maxWidth: '750px', padding: '2rem', borderRadius: '18px' }}>
           <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Mail size={20} color="#8C6E53" /> Trạng Thái Nhà Cung Cấp Email (Resend)
@@ -796,8 +808,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* TAB: GOOGLE DRIVE DELIVERY */}
-      {adminTab === 'gdrive' && (
+      {/* TAB 4: GOOGLE DRIVE DELIVERY (ROOT OWNER ONLY) */}
+      {adminTab === 'gdrive' && isRootOwner && (
         <div className="mipa-card" style={{ padding: '2rem', borderRadius: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
@@ -946,7 +958,27 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* TAB 4: AUDIT LOGS */}
+      {/* RESTRICTED SETTINGS NOTICE FOR NON-ROOT ADMINS */}
+      {['bank', 'email', 'gdrive'].includes(adminTab) && !isRootOwner && (
+        <div className="mipa-card" style={{ padding: '3rem 2rem', textAlign: 'center', borderRadius: '18px', maxWidth: '650px', margin: '2rem auto' }}>
+          <ShieldAlert size={54} color="#D97706" style={{ margin: '0 auto 1.2rem' }} />
+          <h3 style={{ color: '#604634', marginBottom: '0.6rem', fontSize: '1.4rem' }}>
+            Đặc Quyền Cấu Hình Giới Hạn
+          </h3>
+          <p style={{ color: '#6E5F55', lineHeight: 1.6, fontSize: '0.92rem', marginBottom: '1.5rem' }}>
+            Các tác vụ cấu hình hệ thống (Tài khoản nhận cọc VietQR, Máy chủ Email, Kết nối Google Drive) là đặc quyền bảo mật độc quyền của tài khoản <strong>Chủ Sở Hữu Gốc (Root Owner)</strong>.
+          </p>
+          <button
+            onClick={() => setAdminTab('users')}
+            className="btn-mipa-gold"
+            style={{ fontSize: '0.88rem', padding: '0.65rem 1.4rem' }}
+          >
+            Quay Lại Danh Sách Tài Khoản
+          </button>
+        </div>
+      )}
+
+      {/* TAB 5: AUDIT LOGS */}
       {adminTab === 'audit' && (
         <div className="mipa-card" style={{ padding: '1.8rem', borderRadius: '18px' }}>
           <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
