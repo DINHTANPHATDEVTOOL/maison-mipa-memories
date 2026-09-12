@@ -15,13 +15,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeroSection } from '../components/public/HeroSection';
-import { MaisonStorySection } from '../components/public/MaisonStorySection';
 import { FeaturedConceptsSection } from '../components/public/FeaturedConceptsSection';
 import { ServicesSection } from '../components/public/ServicesSection';
-import { MaisonExperienceSection } from '../components/public/MaisonExperienceSection';
+import { MaisonStorySection } from '../components/public/MaisonStorySection';
 import { PackagesSection } from '../components/public/PackagesSection';
-import { ProcessSection } from '../components/public/ProcessSection';
-import { TestimonialsSection } from '../components/public/TestimonialsSection';
 import { FaqSection } from '../components/public/FaqSection';
 import { FinalCtaSection } from '../components/public/FinalCtaSection';
 import { SeoHead, generateStudioLocalBusinessSchema } from '../components/seo/SeoHead';
@@ -51,16 +48,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         jsonLd={generateStudioLocalBusinessSchema()}
       />
 
-      {/* 1. Cinematic Hero */}
+      {/* 01. Hero */}
       <HeroSection onOpenBooking={onOpenBooking} />
 
-      {/* 2. Maison MIPA Story */}
-      <MaisonStorySection />
-
-      {/* 3. Featured Concepts */}
+      {/* 02. Selected Work / Featured Concepts */}
       <FeaturedConceptsSection onOpenBooking={handleOpenBookingWithConcept} />
 
-      {/* 4. Services */}
+      {/* 03. Services */}
       <ServicesSection
         onSelectService={(serviceId, slug) => {
           const matchedSlug = slug || serviceId.replace('srv_', '');
@@ -68,22 +62,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
         }}
       />
 
-      {/* 5. Maison Experience */}
-      <MaisonExperienceSection />
+      {/* 04. Maison Story & Experience */}
+      <MaisonStorySection />
 
-      {/* 6. Packages */}
+      {/* 05. Pricing Preview */}
       <PackagesSection onOpenBooking={onOpenBooking} />
 
-      {/* 7. Quy trình 4 bước */}
-      <ProcessSection />
-
-      {/* 8. Testimonials (Genuine Editorial Reflection) */}
-      <TestimonialsSection />
-
-      {/* 9. FAQ & Policies */}
+      {/* 06. Frequently Asked Questions */}
       <FaqSection />
 
-      {/* 10. Emotional Final CTA */}
+      {/* 07. Quiet Final CTA */}
       <FinalCtaSection onOpenBooking={onOpenBooking} />
     </>
   );

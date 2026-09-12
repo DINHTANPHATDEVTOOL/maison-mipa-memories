@@ -18,8 +18,6 @@ import type { PortfolioCollection, PortfolioPhoto } from '../types';
 import {
   ChevronRight,
   Home,
-  Camera,
-  Sparkles,
   ArrowLeft,
   ArrowRight,
   X,
@@ -119,10 +117,10 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--mipa-background)' }}>
-        <div style={{ textAlign: 'center', color: '#604634' }}>
-          <Sparkles size={32} color="#C6A45F" className="animate-spin" />
-          <p style={{ marginTop: '1rem', fontSize: '1rem', fontStyle: 'italic' }}>Đang tải bộ sưu tập nghệ thuật...</p>
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--editorial-bg)' }}>
+        <div style={{ textAlign: 'center', color: 'var(--editorial-brown)' }}>
+          <div className="editorial-loading-spinner" style={{ width: 28, height: 28, border: '2px solid var(--editorial-divider)', borderTopColor: 'var(--editorial-brown)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+          <p style={{ marginTop: '1rem', fontSize: '0.95rem', color: 'var(--editorial-brown-secondary)' }}>Đang tải bộ sưu tập...</p>
         </div>
       </div>
     );
@@ -130,12 +128,12 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
   if (errorMessage || !collection) {
     return (
-      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--mipa-background)' }}>
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--editorial-bg)' }}>
         <div style={{ textAlign: 'center', maxWidth: '500px', padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.8rem', color: '#604634', marginBottom: '0.8rem' }}>Bộ sưu tập không khả dụng</h2>
-          <p style={{ color: '#6E5F55', marginBottom: '1.5rem' }}>{errorMessage || 'Bộ sưu tập này có thể đang ở chế độ nháp hoặc đã được cập nhật.'}</p>
-          <Link to="/portfolio" className="btn-mipa-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Layers size={16} /> Xem các bộ ảnh khác
+          <h2 className="editorial-heading" style={{ fontSize: '1.8rem', color: 'var(--editorial-brown)', marginBottom: '0.8rem', fontWeight: 500 }}>Bộ sưu tập không khả dụng</h2>
+          <p className="editorial-copy" style={{ marginBottom: '1.5rem' }}>{errorMessage || 'Bộ sưu tập này có thể đang ở chế độ nháp hoặc đã được cập nhật.'}</p>
+          <Link to="/portfolio" className="public-btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Layers size={16} /> Quay lại danh mục
           </Link>
         </div>
       </div>
@@ -169,7 +167,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
             </Link>
           </li>
           <li><ChevronRight size={14} color="#C6A45F" /></li>
-          <li style={{ fontWeight: 600, color: '#604634' }} aria-current="page">
+          <li style={{ fontWeight: 500, color: 'var(--editorial-brown)' }} aria-current="page">
             {collection.title}
           </li>
         </ol>
@@ -180,13 +178,13 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
         <div
           style={{
             position: 'relative',
-            borderRadius: '28px',
+            borderRadius: '4px',
             overflow: 'hidden',
-            minHeight: '420px',
+            minHeight: '400px',
             display: 'flex',
             alignItems: 'flex-end',
             backgroundColor: '#2C221E',
-            boxShadow: '0 20px 45px rgba(96, 70, 52, 0.2)',
+            border: '1px solid var(--editorial-divider)',
           }}
         >
           <img
@@ -204,20 +202,20 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to top, rgba(44, 34, 30, 0.95) 0%, rgba(44, 34, 30, 0.3) 50%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(41, 35, 31, 0.95) 0%, rgba(41, 35, 31, 0.4) 50%, transparent 100%)',
             }}
           />
 
           <div style={{ position: 'relative', zIndex: 1, padding: 'clamp(1.5rem, 5vw, 3.5rem)', maxWidth: '850px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.9rem', borderRadius: '20px', backgroundColor: 'rgba(239, 230, 201, 0.25)', color: '#EFE6C9', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.8rem', backdropFilter: 'blur(6px)' }}>
-              <Sparkles size={14} color="#C6A45F" /> CONCEPT: {collection.conceptName || 'MAISON MIPA'}
+            <div className="editorial-overline" style={{ color: '#EFE6C9', marginBottom: '0.8rem' }}>
+              CONCEPT: {collection.conceptName || 'MAISON MIPA'}
             </div>
 
-            <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.4rem)', color: '#FFFDF6', margin: '0 0 1rem 0', fontFamily: 'var(--mipa-font-heading)', lineHeight: 1.15, fontWeight: 700 }}>
+            <h1 className="editorial-heading" style={{ fontSize: 'clamp(2rem, 5vw, 3.4rem)', color: '#FFFDF9', margin: '0 0 1rem 0', lineHeight: 1.15, fontWeight: 500 }}>
               {collection.title}
             </h1>
 
-            <p style={{ color: '#EFE6C9', fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 1.8rem 0', maxWidth: '650px' }}>
+            <p style={{ color: '#EFE6C9', fontSize: '1rem', lineHeight: 1.6, margin: '0 0 1.8rem 0', maxWidth: '650px' }}>
               {collection.description}
             </p>
 
@@ -225,14 +223,14 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={handleBookConcept}
-                className="btn-mipa-gold"
-                style={{ padding: '0.85rem 2rem', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.6rem' }}
+                className="public-btn-primary"
+                style={{ padding: '0.85rem 1.8rem', fontSize: '0.95rem' }}
               >
-                <Calendar size={18} /> Đặt Concept Này
+                Đặt concept này
               </button>
 
               <span style={{ color: 'rgba(239, 230, 201, 0.8)', fontSize: '0.88rem' }}>
-                {photos.length} hình ảnh nghệ thuật độc bản
+                {photos.length} hình ảnh
               </span>
             </div>
           </div>
@@ -241,12 +239,12 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
       {/* Gallery Section */}
       <main style={{ maxWidth: '1350px', margin: '0 auto', padding: '0 1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', color: '#604634', margin: 0, fontFamily: 'var(--mipa-font-heading)' }}>
-            Khung Hình Chi Tiết
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h2 className="editorial-heading" style={{ fontSize: '1.5rem', color: 'var(--editorial-brown)', margin: 0, fontWeight: 500 }}>
+            Khung hình chi tiết
           </h2>
-          <span style={{ fontSize: '0.85rem', color: '#8C6E53' }}>
-            Nhấp vào từng ảnh để phóng to và điều hướng bàn phím (← / → / Esc)
+          <span style={{ fontSize: '0.85rem', color: 'var(--editorial-brown-secondary)' }}>
+            Nhấp vào từng ảnh để phóng to (← / → / Esc)
           </span>
         </div>
 
@@ -262,20 +260,20 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
             <div
               key={photo.id}
               onClick={() => setActivePhotoIndex(idx)}
-              className="mipa-card"
+              className="editorial-image-frame"
               role="button"
               aria-label={`Xem ảnh ${idx + 1}: ${photo.altText || collection.title}`}
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter') setActivePhotoIndex(idx); }}
               style={{
-                borderRadius: '20px',
+                borderRadius: '4px',
                 overflow: 'hidden',
                 cursor: 'pointer',
                 backgroundColor: '#2C221E',
                 position: 'relative',
                 aspectRatio: '3 / 2',
-                boxShadow: 'var(--mipa-shadow-sm)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                border: '1px solid var(--editorial-divider)',
+                transition: 'transform 0.2s ease',
               }}
             >
               <img
@@ -286,7 +284,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                   width: '100%',
                   height: '100%',
                   display: 'block',
-                  transition: 'transform 0.5s ease',
+                  transition: 'transform 0.4s ease',
                   ...getFocalPointStyle(photo.focalX, photo.focalY),
                 }}
               />
@@ -296,19 +294,18 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(44, 34, 30, 0.8) 0%, transparent 60%)',
+                  background: 'linear-gradient(to top, rgba(41, 35, 31, 0.85) 0%, transparent 60%)',
                   display: 'flex',
                   alignItems: 'flex-end',
                   padding: '1.2rem',
-                  opacity: 0.9,
                 }}
               >
                 <div>
-                  <div style={{ color: '#EFE6C9', fontSize: '0.75rem', fontWeight: 600 }}>
+                  <div style={{ color: '#EFE6C9', fontSize: '0.75rem', fontWeight: 500 }}>
                     #{idx + 1} / {photos.length}
                   </div>
                   {photo.caption && (
-                    <div style={{ color: '#FFFDF6', fontSize: '0.95rem', fontWeight: 600, marginTop: '0.2rem' }}>
+                    <div style={{ color: '#FFFDF9', fontSize: '0.9rem', fontWeight: 500, marginTop: '0.2rem' }}>
                       {photo.caption}
                     </div>
                   )}
@@ -319,19 +316,19 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
         </div>
 
         {/* Bottom Booking Prompt */}
-        <div style={{ marginTop: '4rem', textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: '#FFFDF6', borderRadius: '24px', border: '1px solid var(--mipa-beige)' }}>
-          <h3 style={{ fontSize: '1.8rem', color: '#604634', marginBottom: '0.8rem', fontFamily: 'var(--mipa-font-heading)' }}>
+        <div style={{ marginTop: '4rem', textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: 'var(--editorial-paper)', borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}>
+          <h3 className="editorial-heading" style={{ fontSize: '1.8rem', color: 'var(--editorial-brown)', marginBottom: '0.8rem', fontWeight: 500 }}>
             Yêu thích phong cách của bộ ảnh này?
           </h3>
-          <p style={{ color: '#6E5F55', fontSize: '1rem', maxWidth: '600px', margin: '0 auto 1.8rem', lineHeight: 1.6 }}>
-            Đặt lịch chụp ngay hôm nay để Maison MIPA cùng bạn kiến tạo những khung hình cảm xúc và thơ mộng nhất.
+          <p className="editorial-copy" style={{ maxWidth: '600px', margin: '0 auto 1.8rem' }}>
+            Đặt lịch chụp để Maison MIPA cùng bạn lưu lại những khoảnh khắc tự nhiên nhất.
           </p>
           <button
             onClick={handleBookConcept}
-            className="btn-mipa-gold"
-            style={{ padding: '0.9rem 2.2rem', fontSize: '1.05rem' }}
+            className="public-btn-primary"
+            style={{ padding: '0.85rem 2rem' }}
           >
-            <Camera size={18} /> Đặt Lịch Chụp Concept Này
+            Đặt lịch chụp concept này
           </button>
         </div>
       </main>
@@ -347,8 +344,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(28, 20, 16, 0.96)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(28, 20, 16, 0.98)',
             zIndex: 10000,
             display: 'flex',
             flexDirection: 'column',
@@ -368,7 +364,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
               aria-label="Đóng xem ảnh"
               style={{
                 border: 'none',
-                background: 'rgba(255, 255, 255, 0.1)',
+                background: 'rgba(255, 255, 255, 0.15)',
                 color: '#FFF',
                 padding: '0.5rem',
                 borderRadius: '50%',
@@ -392,7 +388,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                 position: 'absolute',
                 left: '10px',
                 border: 'none',
-                background: 'rgba(0, 0, 0, 0.5)',
+                background: 'rgba(0, 0, 0, 0.6)',
                 color: '#FFF',
                 padding: '0.8rem',
                 borderRadius: '50%',
@@ -411,8 +407,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                 maxWidth: '90vw',
                 maxHeight: '75vh',
                 objectFit: 'contain',
-                borderRadius: '12px',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                borderRadius: '4px',
               }}
             />
 
@@ -424,7 +419,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                 position: 'absolute',
                 right: '10px',
                 border: 'none',
-                background: 'rgba(0, 0, 0, 0.5)',
+                background: 'rgba(0, 0, 0, 0.6)',
                 color: '#FFF',
                 padding: '0.8rem',
                 borderRadius: '50%',
@@ -439,9 +434,9 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           {/* Lightbox Bottom Caption */}
           <div style={{ textAlign: 'center', color: '#EFE6C9', padding: '0.5rem' }}>
             {activePhoto.caption ? (
-              <div style={{ fontSize: '1.05rem', fontWeight: 600, color: '#FFFDF6' }}>{activePhoto.caption}</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 500, color: '#FFFDF6' }}>{activePhoto.caption}</div>
             ) : (
-              <div style={{ fontSize: '0.9rem', color: '#C6A45F' }}>Maison MIPA Memories — Parisian Artistry</div>
+              <div style={{ fontSize: '0.85rem', color: '#EFE6C9' }}>Maison MIPA / Saigon</div>
             )}
             <div style={{ fontSize: '0.8rem', color: 'rgba(239, 230, 201, 0.6)', marginTop: '0.2rem' }}>
               Dùng phím mũi tên ← → trên bàn phím để chuyển ảnh, Esc để đóng.

@@ -2,7 +2,7 @@
 // Maison MIPA Memories - 4-Step Guest Workflow Section (#6 & #16)
 // ==============================================================================
 import React from 'react';
-import { CalendarCheck, Sparkles, Camera, FolderCheck } from 'lucide-react';
+import { CalendarCheck, Check, Camera, FolderCheck } from 'lucide-react';
 
 export const ProcessSection: React.FC = () => {
   const steps = [
@@ -14,7 +14,7 @@ export const ProcessSection: React.FC = () => {
     },
     {
       num: '02',
-      icon: Sparkles,
+      icon: Check,
       title: 'Tư Vấn Trang Phục',
       desc: 'Maison MIPA gửi hướng dẫn chuẩn bị trang phục theo concept và hỗ trợ chọn đồ tại studio.',
     },

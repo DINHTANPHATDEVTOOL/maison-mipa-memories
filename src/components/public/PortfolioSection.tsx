@@ -1,13 +1,13 @@
 // ==============================================================================
-// Maison MIPA Memories - Public Portfolio Section (#16 & #6)
-// Connected to real portfolioService data. No Unsplash or fake demo collections.
+// Maison MIPA Memories - Public Portfolio Section
+// Editorial Photography Gallery connected to real portfolioService data.
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getPublicCollections, getPublicConcepts } from '../../services/portfolioService';
 import { getFocalPointStyle } from '../../utils/imageOptimizer';
 import type { PortfolioCollection, Concept } from '../../types';
-import { Sparkles, ArrowRight, Camera } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface PortfolioSectionProps {
   onOpenBooking?: (conceptSlug?: string) => void;
@@ -54,54 +54,54 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
     : collections.filter((c) => c.conceptSlug === selectedConceptSlug || c.conceptId === selectedConceptSlug);
 
   return (
-    <section id="portfolio" className="mipa-container" style={{ padding: '3.5rem 1rem', backgroundColor: '#FAF8F5', maxWidth: '1350px', margin: '0 auto' }}>
+    <section id="portfolio" className="editorial-section" style={{ padding: '2.5rem 0', maxWidth: '1240px', margin: '0 auto' }}>
       <div>
         {/* Section Header */}
         {!hideHeader && (
-          <div style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 2.5rem' }}>
-            <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#8C6E53', fontWeight: 700 }}>
-              GALERIE DE MAISON MIPA
-            </div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', color: '#604634', marginTop: '0.4rem', marginBottom: '0.8rem', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
-              Bộ Sưu Tập Kỷ Niệm Thơ Mộng
+          <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 3rem' }}>
+            <span className="editorial-overline">GALERIE DE MAISON MIPA</span>
+            <h2 className="editorial-h2" style={{ marginBottom: '1rem' }}>
+              Bộ sưu tập hình ảnh
             </h2>
-            <p style={{ color: '#6E5F55', fontSize: '1rem', lineHeight: 1.6 }}>
-              Mỗi khung hình là một câu chuyện tình yêu, gia đình hay thanh xuân được chăm chút tỉ mỉ từ ánh sáng tự nhiên đến cảm xúc chân thật nhất.
+            <p className="editorial-copy" style={{ margin: '0 auto' }}>
+              Mỗi khung hình là một khoảnh khắc được lưu giữ tự nhiên từ ánh sáng, góc máy đến cảm xúc chân thật nhất.
             </p>
           </div>
         )}
 
-        {/* Concept Filter Pills */}
+        {/* Concept Filter */}
         {!featuredOnly && concepts.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.6rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
             <button
+              type="button"
               onClick={() => setSelectedConceptSlug('ALL')}
               style={{
-                border: '1px solid var(--mipa-beige)',
-                background: selectedConceptSlug === 'ALL' ? '#604634' : '#FFFDF6',
-                color: selectedConceptSlug === 'ALL' ? '#FFFDF6' : '#604634',
-                padding: '0.45rem 1.1rem',
-                borderRadius: '20px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
+                border: 'none',
+                borderBottom: selectedConceptSlug === 'ALL' ? '2px solid var(--editorial-brown)' : '2px solid transparent',
+                background: 'transparent',
+                color: selectedConceptSlug === 'ALL' ? 'var(--editorial-brown)' : 'var(--editorial-text-secondary)',
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.9rem',
+                fontWeight: selectedConceptSlug === 'ALL' ? 600 : 400,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
             >
-              Tất Cả
+              Tất cả
             </button>
             {concepts.map((concept) => (
               <button
                 key={concept.id}
+                type="button"
                 onClick={() => setSelectedConceptSlug(concept.slug)}
                 style={{
-                  border: '1px solid var(--mipa-beige)',
-                  background: selectedConceptSlug === concept.slug ? '#604634' : '#FFFDF6',
-                  color: selectedConceptSlug === concept.slug ? '#FFFDF6' : '#604634',
-                  padding: '0.45rem 1.1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
+                  border: 'none',
+                  borderBottom: selectedConceptSlug === concept.slug ? '2px solid var(--editorial-brown)' : '2px solid transparent',
+                  background: 'transparent',
+                  color: selectedConceptSlug === concept.slug ? 'var(--editorial-brown)' : 'var(--editorial-text-secondary)',
+                  padding: '0.4rem 0.8rem',
+                  fontSize: '0.9rem',
+                  fontWeight: selectedConceptSlug === concept.slug ? 600 : 400,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
@@ -114,20 +114,19 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
 
         {/* Collections Gallery Grid */}
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '3rem 0', color: '#8C6E53' }}>
-            <Sparkles size={24} color="#C6A45F" className="animate-spin" />
-            <p style={{ marginTop: '0.8rem', fontSize: '0.95rem' }}>Đang tải bộ sưu tập nghệ thuật...</p>
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--editorial-brown-accent)' }}>
+            <p style={{ fontSize: '0.95rem' }}>Đang chuẩn bị bộ sưu tập...</p>
           </div>
         ) : filteredCollections.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 0', color: '#6E5F55' }}>
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--editorial-text-secondary)' }}>
             Chưa có bộ sưu tập nào thuộc concept này.
           </div>
         ) : (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '2rem',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+              gap: '2.5rem',
             }}
           >
             {filteredCollections.map((col) => {
@@ -139,23 +138,23 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                 <div
                   key={col.id}
                   onClick={() => navigate(`/portfolio/${col.slug}`)}
-                  className="mipa-card"
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/portfolio/${col.slug}`); }}
                   style={{
-                    borderRadius: '24px',
-                    overflow: 'hidden',
-                    backgroundColor: '#FFFDF6',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    border: '1px solid var(--mipa-beige)',
-                    boxShadow: 'var(--mipa-shadow-sm)',
-                    transition: 'transform 0.4s ease, box-shadow 0.4s ease',
+                    backgroundColor: 'transparent',
                   }}
                 >
-                  <div style={{ position: 'relative', height: '260px', overflow: 'hidden', backgroundColor: '#2C221E' }}>
+                  <div style={{
+                    position: 'relative',
+                    height: '280px',
+                    overflow: 'hidden',
+                    backgroundColor: '#241D1A',
+                    borderRadius: '4px',
+                  }}>
                     <img
                       src={col.coverPhotoUrl || coverPhoto?.url || '/hero.png'}
                       alt={col.title}
@@ -164,34 +163,27 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                         width: '100%',
                         height: '100%',
                         display: 'block',
-                        transition: 'transform 0.6s ease',
+                        objectFit: 'cover',
+                        transition: 'transform 0.5s ease',
                         ...getFocalPointStyle(focalX, focalY),
                       }}
                     />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: 'linear-gradient(to top, rgba(44, 34, 30, 0.7) 0%, transparent 60%)',
-                      }}
-                    />
 
-                    {/* Concept badge */}
+                    {/* Concept overline */}
                     <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
                       <span
                         style={{
-                          backgroundColor: 'rgba(96, 70, 52, 0.85)',
-                          backdropFilter: 'blur(4px)',
-                          color: '#EFE6C9',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
+                          backgroundColor: 'rgba(36, 29, 26, 0.85)',
+                          color: '#FFFDF9',
+                          fontSize: '0.7rem',
+                          fontWeight: 500,
+                          letterSpacing: '0.08em',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          padding: '0.3rem 0.8rem',
-                          borderRadius: '20px',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '2px',
                         }}
                       >
-                        {col.conceptName || 'CONCEPT'}
+                        {col.conceptName || 'Concept'}
                       </span>
                     </div>
 
@@ -199,11 +191,11 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                     <div style={{ position: 'absolute', bottom: '12px', right: '12px' }}>
                       <span
                         style={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                          color: '#FFFDF6',
+                          backgroundColor: 'rgba(36, 29, 26, 0.75)',
+                          color: '#FFFDF9',
                           fontSize: '0.72rem',
-                          padding: '0.25rem 0.6rem',
-                          borderRadius: '12px',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '2px',
                         }}
                       >
                         {col.photosCount || col.photos?.length || 1} ảnh
@@ -211,18 +203,30 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                     </div>
                   </div>
 
-                  <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.5rem', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
-                        {col.title}
-                      </h3>
-                      <p style={{ color: '#6E5F55', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
-                        {col.description}
-                      </p>
-                    </div>
+                  <div style={{ paddingTop: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <h3 style={{
+                      fontFamily: 'var(--editorial-font-heading)',
+                      fontSize: '1.45rem',
+                      color: 'var(--editorial-brown)',
+                      fontWeight: 600,
+                      margin: 0,
+                    }}>
+                      {col.title}
+                    </h3>
+                    <p style={{ color: 'var(--editorial-text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+                      {col.description}
+                    </p>
 
-                    <div style={{ marginTop: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#8C6E53', fontSize: '0.85rem', fontWeight: 600 }}>
-                      Xem chi tiết bộ ảnh <ArrowRight size={15} />
+                    <div style={{
+                      marginTop: '0.5rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      color: 'var(--editorial-brown)',
+                      fontSize: '0.88rem',
+                      fontWeight: 500,
+                    }}>
+                      Xem bộ ảnh <ArrowRight size={14} />
                     </div>
                   </div>
                 </div>

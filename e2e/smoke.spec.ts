@@ -109,12 +109,12 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
   test('5. Deep link trực tiếp vào /portfolio và refresh không bị 404', async ({ page }) => {
     await page.goto('/portfolio');
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Hình Ảnh/i })).toBeVisible();
 
     // Refresh page
     await page.reload();
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Hình Ảnh/i })).toBeVisible();
   });
 
   test('6. Deep link trực tiếp vào /dich-vu/couple và refresh không bị 404', async ({ page }) => {

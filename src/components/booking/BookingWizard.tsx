@@ -107,11 +107,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [activeBankConfig, setActiveBankConfig] = useState<BusinessBankConfig | null>(null);
 
   // Customer details (pre-filled from authenticated user if available)
-  const [customerName, setCustomerName] = useState<string>(user?.fullName || 'Khách Hàng MIPA');
-  const [customerPhone, setCustomerPhone] = useState<string>(user?.phone || '0908 123 456');
-  const [customerEmail, setCustomerEmail] = useState<string>(user?.email || 'khachhang@maisonmipa.vn');
+  const [customerName, setCustomerName] = useState<string>(user?.fullName || '');
+  const [customerPhone, setCustomerPhone] = useState<string>(user?.phone || '');
+  const [customerEmail, setCustomerEmail] = useState<string>(user?.email || '');
   const [occasion, setOccasion] = useState<string>('Kỷ niệm');
-  const [customerNote, setCustomerNote] = useState<string>('Mong muốn tone màu sáng tự nhiên & rèm lụa.');
+  const [customerNote, setCustomerNote] = useState<string>('');
   const [voucherCode, setVoucherCode] = useState<string>('');
   const [isVoucherApplied, setIsVoucherApplied] = useState<boolean>(false);
 
@@ -601,71 +601,57 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{
-        backgroundColor: '#FFFDF6',
-        borderRadius: '24px',
-        width: '100%',
-        maxWidth: '900px',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 25px 60px rgba(60, 40, 25, 0.25)',
-        border: '1px solid var(--mipa-beige)',
-        overflow: 'hidden',
-      }}>
+      <div className="modal-content booking-wizard-container">
         {/* Header Bar */}
-        <div style={{
-          padding: '1.2rem 1.8rem',
-          borderBottom: '1px solid rgba(140, 110, 83, 0.15)',
-          backgroundColor: '#FFFDF6',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
+        <div className="booking-wizard-header">
           <div>
-            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700 }}>
-              MAISON MIPA MEMORIES
-            </div>
-            <h3 style={{ fontSize: '1.4rem', color: '#604634', margin: 0 }}>
-              {step === 7 ? 'Đặt lịch Thành Công!' : `Bước ${step}/6 — ${
-                step === 1 ? 'Chọn Loại hình Dịch vụ' :
-                step === 2 ? 'Chọn Gói Package phù hợp' :
-                step === 3 ? 'Chọn Ngày & Giờ Chụp' :
-                step === 4 ? 'Dịch vụ Bổ sung (Add-ons)' :
-                step === 5 ? 'Thông tin Khách hàng' :
-                'Xác nhận & Thanh toán Tiền cọc'
+            <span className="editorial-overline" style={{ marginBottom: '0.2rem' }}>
+              MAISON MIPA / ĐẶT LỊCH
+            </span>
+            <h3 style={{
+              fontFamily: 'var(--editorial-font-heading)',
+              fontSize: '1.4rem',
+              color: 'var(--editorial-brown)',
+              margin: 0,
+              fontWeight: 600,
+            }}>
+              {step === 7 ? 'Đặt lịch thành công' : `Bước ${step}/6 — ${
+                step === 1 ? 'Chọn loại hình dịch vụ' :
+                step === 2 ? 'Chọn gói package phù hợp' :
+                step === 3 ? 'Chọn ngày & giờ chụp' :
+                step === 4 ? 'Dịch vụ bổ sung' :
+                step === 5 ? 'Thông tin khách hàng' :
+                'Xác nhận & thanh toán tiền cọc'
               }`}
             </h3>
           </div>
           <button
             onClick={onClose}
+            aria-label="Đóng"
             style={{
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              border: '1px solid var(--mipa-beige)',
+              border: '1px solid var(--editorial-divider)',
               background: '#FFFFFF',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              color: 'var(--editorial-brown)',
             }}
           >
-            <X size={18} color="#604634" />
+            <X size={18} />
           </button>
         </div>
 
         {/* Progress Bar */}
         {step <= 6 && (
-          <div style={{ display: 'flex', height: '4px', backgroundColor: '#EFE6C9' }}>
+          <div className="booking-progress-bar">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                style={{
-                  flex: 1,
-                  backgroundColor: i <= step ? '#8C6E53' : 'transparent',
-                  transition: 'background-color 0.3s ease',
-                }}
+                className={`booking-progress-step ${i <= step ? 'active' : ''}`}
               />
             ))}
           </div>
@@ -675,9 +661,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         {errorMessage && (
           <div style={{
             backgroundColor: '#FEF2F2',
-            borderBottom: '1px solid #F87171',
+            borderBottom: '1px solid #FCA5A5',
             padding: '0.75rem 1.8rem',
-            color: '#B91C1C',
+            color: '#991B1B',
             fontSize: '0.88rem',
             display: 'flex',
             alignItems: 'center',
@@ -685,20 +671,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             gap: '0.75rem',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={18} color="#B91C1C" />
+              <AlertCircle size={18} color="#991B1B" />
               <span>{errorMessage}</span>
             </div>
             {step >= 4 && (
               <button
                 onClick={() => { setErrorMessage(null); setStep(3); }}
                 style={{
-                  backgroundColor: '#DC2626',
+                  backgroundColor: '#991B1B',
                   color: '#FFF',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '3px',
                   padding: '0.3rem 0.6rem',
                   fontSize: '0.78rem',
-                  fontWeight: 600,
+                  fontWeight: 500,
                   cursor: 'pointer',
                 }}
               >
@@ -714,10 +700,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {/* STEP 1: SERVICE SELECTION */}
           {step === 1 && (
             <div>
-              <p style={{ color: '#6E5F55', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
-                Bạn muốn lưu giữ khoảnh khắc đáng nhớ nào cùng Maison MIPA? {isLoadingCatalog && '(Đang đồng bộ...)'}
+              <p style={{ color: 'var(--editorial-text-secondary)', marginBottom: '1.4rem', fontSize: '0.95rem' }}>
+                Bạn muốn lưu giữ khoảnh khắc đáng nhớ nào cùng Maison MIPA? {isLoadingCatalog && '(Đang tải danh mục...)'}
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
                 {services.map((srv) => {
                   const isSelected = selectedService.id === srv.id;
                   return (
@@ -731,35 +717,45 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           setSelectedPackage(preferred);
                         }
                       }}
-                      className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
+                      className={`booking-card-option ${isSelected ? 'selected' : ''}`}
                       style={{
-                        padding: '1rem',
                         cursor: 'pointer',
-                        borderColor: isSelected ? '#C6A45F' : 'rgba(140, 110, 83, 0.18)',
-                        borderWidth: isSelected ? '2px' : '1px',
-                        transform: isSelected ? 'translateY(-3px)' : 'none',
+                        padding: '1.1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
                       }}
                     >
-                      <div style={{ position: 'relative', height: '130px', borderRadius: '12px', overflow: 'hidden', marginBottom: '0.8rem' }}>
+                      <div style={{ position: 'relative', height: '140px', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.85rem' }}>
                         <img src={srv.image} alt={srv.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         {srv.badge && (
                           <span style={{
                             position: 'absolute',
                             top: '8px',
                             right: '8px',
-                            backgroundColor: '#604634',
-                            color: '#EFE6C9',
+                            backgroundColor: 'var(--editorial-brown)',
+                            color: 'var(--editorial-paper)',
                             fontSize: '0.65rem',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             padding: '0.2rem 0.6rem',
-                            borderRadius: '12px',
+                            borderRadius: '2px',
+                            letterSpacing: '0.04em',
                           }}>
                             {srv.badge}
                           </span>
                         )}
                       </div>
-                      <h4 style={{ fontSize: '1.15rem', color: '#604634', marginBottom: '0.25rem' }}>{srv.name}</h4>
-                      <p style={{ fontSize: '0.8rem', color: '#6E5F55', lineHeight: 1.4 }}>{srv.description}</p>
+                      <h4 style={{
+                        fontFamily: 'var(--editorial-font-heading)',
+                        fontSize: '1.25rem',
+                        color: 'var(--editorial-brown)',
+                        marginBottom: '0.3rem',
+                        fontWeight: 600,
+                      }}>
+                        {srv.name}
+                      </h4>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                        {srv.description}
+                      </p>
                     </div>
                   );
                 })}
@@ -770,13 +766,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {/* STEP 2: PACKAGE SELECTION */}
           {step === 2 && (
             <div>
-              <p style={{ color: '#6E5F55', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
+              <p style={{ color: 'var(--editorial-text-secondary)', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
                 Gói dịch vụ chọn cho loại hình <strong>{selectedService.name}</strong>:
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.2rem' }}>
                 {displayedPackages.length === 0 ? (
-                  <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '2.5rem', color: '#8C6E53', background: '#FFFDF6', borderRadius: '12px', border: '1px dashed #EFE6C9' }}>
-                    <p style={{ margin: 0, fontWeight: 600 }}>Đang cập nhật danh mục gói chụp cho dịch vụ này...</p>
+                  <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '2.5rem', color: 'var(--editorial-brown-accent)', background: '#FAF6EE', borderRadius: '4px', border: '1px dashed var(--editorial-divider)' }}>
+                    <p style={{ margin: 0, fontWeight: 500 }}>Đang cập nhật danh mục gói chụp cho dịch vụ này...</p>
                   </div>
                 ) : (
                   displayedPackages.map((pkg) => {
@@ -785,73 +781,91 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <div
                         key={pkg.id}
                         onClick={() => setSelectedPackage(pkg)}
-                        className={`mipa-card ${isSelected ? 'mipa-card-gold' : ''}`}
-                      style={{
-                        padding: '1.5rem',
-                        cursor: 'pointer',
-                        borderColor: isSelected ? '#C6A45F' : 'rgba(140, 110, 83, 0.18)',
-                        borderWidth: isSelected ? '2px' : '1px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        {pkg.popularTag && (
-                          <div style={{
-                            backgroundColor: '#C6A45F',
-                            color: '#FFFDF6',
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            padding: '0.25rem 0.6rem',
-                            borderRadius: '12px',
-                            display: 'inline-block',
-                            marginBottom: '0.5rem',
+                        className={`booking-card-option ${isSelected ? 'selected' : ''}`}
+                        style={{
+                          padding: '1.4rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          boxShadow: 'none',
+                        }}
+                      >
+                        <div>
+                          {pkg.popularTag && (
+                            <div style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: 'var(--editorial-brown-accent)',
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              marginBottom: '0.4rem',
+                            }}>
+                              {pkg.popularTag === 'POPULAR' ? 'Được chọn nhiều' : pkg.popularTag}
+                            </div>
+                          )}
+                          <h4 style={{
+                            fontFamily: 'var(--editorial-font-heading)',
+                            fontSize: '1.35rem',
+                            color: 'var(--editorial-brown)',
+                            marginBottom: '0.4rem',
+                            fontWeight: 600,
                           }}>
-                            ★ {pkg.popularTag}
+                            {pkg.name}
+                          </h4>
+                          <div style={{
+                            fontFamily: 'var(--editorial-font-heading)',
+                            fontSize: '1.65rem',
+                            fontWeight: 600,
+                            color: 'var(--editorial-brown)',
+                            marginBottom: '1rem',
+                          }}>
+                            {pkg.price.toLocaleString('vi-VN')}đ
                           </div>
-                        )}
-                        <h4 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.4rem' }}>{pkg.name}</h4>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#8C6E53', marginBottom: '1rem' }}>
-                          {pkg.price.toLocaleString('vi-VN')}đ
+                          
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {pkg.features.map((feat, idx) => (
+                              <li key={idx} style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
+                                <Check size={13} color="var(--editorial-brown-accent)" style={{ marginTop: '3px', flexShrink: 0 }} />
+                                <span>{feat}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {pkg.features.map((feat, idx) => (
-                            <li key={idx} style={{ fontSize: '0.82rem', color: '#4A3B32', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
-                              <Check size={14} color="#C6A45F" style={{ marginTop: '2px', flexShrink: 0 }} />
-                              <span>{feat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
 
-                      <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                        <button
-                          className={isSelected ? 'btn-mipa-primary' : 'btn-mipa-secondary'}
-                          style={{ width: '100%', fontSize: '0.85rem' }}
-                        >
-                          {isSelected ? 'Đã Chọn Gói Này' : 'Chọn Gói Này'}
-                        </button>
+                        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className={isSelected ? 'public-btn-primary' : 'public-btn-secondary'}
+                            style={{ width: '100%', fontSize: '0.85rem', padding: '0.65rem 1rem' }}
+                          >
+                            {isSelected ? 'Đã chọn gói này' : 'Chọn gói này'}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                }))}
+                    );
+                  })
+                )}
               </div>
 
               {/* Concept Selection within Step 2 */}
-              <div style={{ marginTop: '2rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)', paddingTop: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--editorial-divider)', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
-                    <h4 style={{ fontSize: '1.1rem', color: '#604634', margin: 0, fontWeight: 600 }}>
+                    <h4 style={{
+                      fontFamily: 'var(--editorial-font-heading)',
+                      fontSize: '1.3rem',
+                      color: 'var(--editorial-brown)',
+                      margin: 0,
+                      fontWeight: 600,
+                    }}>
                       Chọn Concept Nghệ Thuật ({selectedConcepts.length}/{maxConcepts})
                     </h4>
-                    <p style={{ fontSize: '0.82rem', color: '#6E5F55', margin: '0.2rem 0 0 0' }}>
-                      Gói <strong>{selectedPackage.name}</strong> hỗ trợ tối đa <strong>{maxConcepts}</strong> Concept phong cách
+                    <p style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', margin: '0.2rem 0 0 0' }}>
+                      Gói <strong>{selectedPackage.name}</strong> hỗ trợ tối đa <strong>{maxConcepts}</strong> concept phong cách
                     </p>
                   </div>
                   {selectedConcepts.length > 0 && (
-                    <span style={{ fontSize: '0.78rem', backgroundColor: '#EFE6C9', color: '#604634', padding: '0.3rem 0.75rem', borderRadius: '12px', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.8rem', backgroundColor: '#FAF6EE', color: 'var(--editorial-brown)', padding: '0.3rem 0.75rem', borderRadius: '3px', border: '1px solid var(--editorial-divider)', fontWeight: 500 }}>
                       Đã chọn: {selectedConcepts.map(c => c.name).join(', ')}
                     </span>
                   )}
@@ -865,16 +879,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         key={cnc.id}
                         onClick={() => handleToggleConcept(cnc)}
                         style={{
-                          borderRadius: '12px',
-                          border: isSelected ? '2px solid #8C6E53' : '1px solid var(--mipa-beige)',
-                          backgroundColor: isSelected ? '#FFFDF6' : '#FFFFFF',
+                          borderRadius: '4px',
+                          border: isSelected ? '2px solid var(--editorial-brown)' : '1px solid var(--editorial-divider)',
+                          backgroundColor: isSelected ? '#FAF6EE' : '#FFFFFF',
                           cursor: 'pointer',
                           overflow: 'hidden',
-                          transition: 'all 0.2s ease',
-                          boxShadow: isSelected ? '0 4px 12px rgba(140, 110, 83, 0.15)' : 'none',
+                          transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                          boxShadow: 'none',
                         }}
                       >
-                        <div style={{ position: 'relative', height: '120px', backgroundColor: '#EDE4D8' }}>
+                        <div style={{ position: 'relative', height: '130px', backgroundColor: '#EDE4D8' }}>
                           <img
                             src={cnc.coverPhotoUrl || '/hero.png'}
                             alt={cnc.name}
@@ -885,9 +899,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                               position: 'absolute',
                               top: '6px',
                               right: '6px',
-                              backgroundColor: '#8C6E53',
+                              backgroundColor: 'var(--editorial-brown)',
                               color: '#FFF',
-                              borderRadius: '50%',
+                              borderRadius: '2px',
                               width: '22px',
                               height: '22px',
                               display: 'flex',
@@ -898,11 +912,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             </div>
                           )}
                         </div>
-                        <div style={{ padding: '0.75rem' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#604634', marginBottom: '0.2rem' }}>
+                        <div style={{ padding: '0.85rem' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--editorial-brown)', marginBottom: '0.2rem' }}>
                             {cnc.name}
                           </div>
-                          <p style={{ fontSize: '0.75rem', color: '#6E5F55', margin: 0, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', margin: 0, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {cnc.description || 'Phong cách nghệ thuật tinh tế'}
                           </p>
                         </div>
@@ -914,24 +928,35 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             </div>
           )}
 
-          {/* STEP 3: DATE, TIME & RESOURCE CHECK */}
+          {/* STEP 3: DATE, TIME & STUDIO */}
           {step === 3 && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
                 <div>
-                  <label className="mipa-label">1. Chọn Ngày Chụp Mong Muốn</label>
+                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600, marginBottom: '0.5rem' }}>
+                    1. Chọn ngày chụp mong muốn
+                  </label>
                   <input
                     type="date"
                     min={getTodayVn()}
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="mipa-input"
-                    style={{ fontSize: '1rem', fontWeight: 600, padding: '0.8rem' }}
+                    style={{
+                      fontSize: '0.95rem',
+                      fontWeight: 500,
+                      padding: '0.75rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--editorial-divider)',
+                      backgroundColor: '#FFFFFF',
+                    }}
                   />
 
-                  <div style={{ marginTop: '1.5rem' }}>
-                    <label className="mipa-label">2. Chọn Phòng Studio / Phân khu</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ marginTop: '1.8rem' }}>
+                    <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      2. Chọn không gian studio
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                       {studios.map((std) => {
                         const isSel = selectedStudio.id === std.id;
                         return (
@@ -939,23 +964,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             key={std.id}
                             onClick={() => setSelectedStudio(std)}
                             style={{
-                              padding: '0.8rem 1rem',
-                              borderRadius: '12px',
-                              border: isSel ? '2px solid #8C6E53' : '1px solid var(--mipa-beige)',
-                              backgroundColor: isSel ? '#FFFDF6' : '#FFFFFF',
+                              padding: '0.85rem 1rem',
+                              borderRadius: '4px',
+                              border: isSel ? '2px solid var(--editorial-brown)' : '1px solid var(--editorial-divider)',
+                              backgroundColor: isSel ? '#FAF6EE' : '#FFFFFF',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
+                              transition: 'border-color 0.2s ease, background-color 0.2s ease',
                             }}
                           >
                             <div>
-                              <div style={{ fontWeight: 600, color: '#604634', fontSize: '0.9rem' }}>{std.name}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#6E5F55' }}>
-                                Sức chứa: {std.capacity} người • {std.description ? `${std.description.slice(0, 45)}...` : ''}
+                              <div style={{ fontWeight: 600, color: 'var(--editorial-brown)', fontSize: '0.92rem' }}>{std.name}</div>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', marginTop: '0.15rem' }}>
+                                Sức chứa: {std.capacity} người • {std.description ? `${std.description.slice(0, 48)}...` : ''}
                               </div>
                             </div>
-                            {isSel && <Check size={18} color="#8C6E53" />}
+                            {isSel && <Check size={16} color="var(--editorial-brown)" />}
                           </div>
                         );
                       })}
@@ -964,21 +990,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="mipa-label">3. Kiểm tra Lịch Khả Dụng (Real Engine)</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600, margin: 0 }}>
+                      3. Chọn giờ chụp
+                    </label>
                     {isLoadingSlots && (
-                      <span style={{ fontSize: '0.75rem', color: '#8C6E53', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <RefreshCw size={12} className="animate-spin" /> Đang tính toán...
+                      <span style={{ fontSize: '0.75rem', color: 'var(--editorial-brown-accent)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <RefreshCw size={12} className="animate-spin" /> Đang kiểm tra...
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#8C6E53', marginBottom: '0.8rem' }}>
-                    * Tổng thời lượng buổi chụp: <strong>{totalDurationMinutes} phút</strong> (Gói {selectedPackage.durationMinutes}p + Add-ons {pricing.totalDurationMinutes - selectedPackage.durationMinutes}p).
+                  <p style={{ fontSize: '0.82rem', color: 'var(--editorial-text-secondary)', marginBottom: '0.85rem', lineHeight: 1.4 }}>
+                    Tổng thời lượng: <strong>{totalDurationMinutes} phút</strong> (Gói {selectedPackage.durationMinutes}p{pricing.totalDurationMinutes > selectedPackage.durationMinutes ? ` + dịch vụ thêm ${pricing.totalDurationMinutes - selectedPackage.durationMinutes}p` : ''}).
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '350px', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '340px', overflowY: 'auto' }}>
                     {availableSlots.length === 0 ? (
-                      <div style={{ padding: '1rem', textAlign: 'center', color: '#6E5F55', fontSize: '0.85rem' }}>
+                      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--editorial-text-secondary)', fontSize: '0.88rem', background: '#FAF6EE', borderRadius: '4px', border: '1px dashed var(--editorial-divider)' }}>
                         Không có khung giờ khả dụng cho ngày này. Vui lòng chọn ngày khác.
                       </div>
                     ) : (
@@ -999,40 +1027,39 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              padding: '0.8rem 1rem',
-                              borderRadius: '12px',
+                              padding: '0.75rem 1rem',
+                              borderRadius: '4px',
                               border: isBooked
-                                ? '1px dashed #FECACA'
+                                ? '1px solid rgba(0, 0, 0, 0.08)'
                                 : isSel
-                                ? '2px solid #C6A45F'
-                                : '1px solid var(--mipa-beige)',
+                                ? '2px solid var(--editorial-brown)'
+                                : '1px solid var(--editorial-divider)',
                               backgroundColor: isBooked
-                                ? '#FEF2F2'
+                                ? '#F7F5F2'
                                 : isSel
-                                ? '#FFFDF6'
+                                ? '#FAF6EE'
                                 : '#FFFFFF',
-                              opacity: isBooked ? 0.55 : 1,
+                              opacity: isBooked ? 0.6 : 1,
                               cursor: isBooked ? 'not-allowed' : 'pointer',
                               pointerEvents: isBooked ? 'none' : 'auto',
                               textAlign: 'left',
                               transition: 'all 0.2s ease',
-                              filter: isBooked ? 'grayscale(80%)' : 'none',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <Clock size={16} color={isBooked ? '#9CA3AF' : isSel ? '#C6A45F' : '#8C6E53'} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <Clock size={15} color={isBooked ? '#9E9287' : isSel ? 'var(--editorial-brown)' : 'var(--editorial-brown-accent)'} />
                               <div>
                                 <span
                                   style={{
-                                    fontWeight: 700,
-                                    fontSize: '0.95rem',
-                                    color: isBooked ? '#9CA3AF' : '#2C221E',
+                                    fontWeight: 600,
+                                    fontSize: '0.92rem',
+                                    color: isBooked ? '#9E9287' : 'var(--editorial-text-primary)',
                                     textDecoration: isBooked ? 'line-through' : 'none',
                                   }}
                                 >
                                   {slot.time}
                                 </span>
-                                <span style={{ fontSize: '0.8rem', color: isBooked ? '#9CA3AF' : '#6E5F55', marginLeft: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: isBooked ? '#9E9287' : 'var(--editorial-text-secondary)', marginLeft: '0.5rem' }}>
                                   ({slot.label})
                                 </span>
                               </div>
@@ -1040,26 +1067,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
                             <div>
                               {isBooked ? (
-                                <span
-                                  style={{
-                                    fontSize: '0.72rem',
-                                    backgroundColor: '#FEE2E2',
-                                    color: '#991B1B',
-                                    padding: '0.2rem 0.6rem',
-                                    borderRadius: '8px',
-                                    fontWeight: 600,
-                                    border: '1px solid #FECACA',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                  }}
-                                >
-                                  🚫 {slot.reason || 'Đã kín lịch'}
+                                <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 500 }}>
+                                  Đã kín lịch
                                 </span>
                               ) : slot.tag ? (
-                                <span style={{ fontSize: '0.72rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 600 }}>{slot.tag}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--editorial-brown-accent)', fontWeight: 500 }}>{slot.tag}</span>
                               ) : (
-                                <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>✓ Còn chỗ</span>
+                                <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 500 }}>Còn chỗ</span>
                               )}
                             </div>
                           </button>
@@ -1075,10 +1089,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {/* STEP 4: ADDONS */}
           {step === 4 && (
             <div>
-              <p style={{ color: '#6E5F55', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
-                Chọn thêm dịch vụ đi kèm nâng cao trải nghiệm buổi chụp:
+              <p style={{ color: 'var(--editorial-text-secondary)', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
+                Chọn thêm dịch vụ đi kèm để hoàn thiện buổi chụp:
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
                 {addons.map((addon) => {
                   const isChecked = selectedAddons.some(a => a.id === addon.id);
                   return (
@@ -1086,58 +1100,70 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       key={addon.id}
                       onClick={() => handleToggleAddon(addon)}
                       style={{
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        border: isChecked ? '2px solid #8C6E53' : '1px solid var(--mipa-beige)',
-                        backgroundColor: isChecked ? '#FFFDF6' : '#FFFFFF',
+                        padding: '1.1rem',
+                        borderRadius: '4px',
+                        border: isChecked ? '2px solid var(--editorial-brown)' : '1px solid var(--editorial-divider)',
+                        backgroundColor: isChecked ? '#FAF6EE' : '#FFFFFF',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: '0.75rem',
+                        transition: 'border-color 0.2s ease, background-color 0.2s ease',
                       }}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}} // handled by div
-                        style={{ width: '18px', height: '18px', marginTop: '3px', accentColor: '#8C6E53' }}
+                        style={{ width: '16px', height: '16px', marginTop: '3px', accentColor: 'var(--editorial-brown)' }}
                       />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h5 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#604634' }}>{addon.name}</h5>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#8C6E53' }}>
+                          <h5 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--editorial-brown)', margin: 0 }}>{addon.name}</h5>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--editorial-brown-accent)' }}>
                             +{addon.price.toLocaleString('vi-VN')}đ
                           </span>
                         </div>
-                        <p style={{ fontSize: '0.78rem', color: '#6E5F55', marginTop: '0.2rem' }}>{addon.description}</p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--editorial-text-secondary)', marginTop: '0.3rem', margin: '0.3rem 0 0 0', lineHeight: 1.4 }}>
+                          {addon.description}
+                        </p>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Realtime Calc Footer Summary */}
+              {/* Summary of Selection */}
               <div style={{
-                marginTop: '1.5rem',
-                padding: '1rem 1.2rem',
-                backgroundColor: '#F8F3E6',
-                borderRadius: '12px',
-                border: '1px solid rgba(198, 164, 95, 0.4)',
+                marginTop: '1.8rem',
+                padding: '1.2rem',
+                backgroundColor: '#FAF6EE',
+                borderRadius: '4px',
+                border: '1px solid var(--editorial-divider)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem',
               }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: '#604634' }}>
-                    Gói <strong>{selectedPackage.name}</strong> ({selectedPackage.price.toLocaleString('vi-VN')}đ) + Add-ons ({addonTotal.toLocaleString('vi-VN')}đ)
+                  <div style={{ fontSize: '0.88rem', color: 'var(--editorial-brown)' }}>
+                    Gói <strong>{selectedPackage.name}</strong> ({selectedPackage.price.toLocaleString('vi-VN')}đ) + Dịch vụ thêm ({addonTotal.toLocaleString('vi-VN')}đ)
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#8C6E53' }}>
-                    Tiền cọc giữ lịch bắt buộc (30%): <strong>{depositAmount.toLocaleString('vi-VN')}đ</strong>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--editorial-text-secondary)', marginTop: '0.2rem' }}>
+                    Tiền cọc giữ lịch (30%): <strong>{depositAmount.toLocaleString('vi-VN')}đ</strong>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#6E5F55' }}>TẠM TÍNH</span>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#8C6E53' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--editorial-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block' }}>
+                    TẠM TÍNH
+                  </span>
+                  <div style={{
+                    fontFamily: 'var(--editorial-font-heading)',
+                    fontSize: '1.6rem',
+                    fontWeight: 600,
+                    color: 'var(--editorial-brown)',
+                  }}>
                     {subtotal.toLocaleString('vi-VN')}đ
                   </div>
                 </div>
@@ -1151,10 +1177,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               {!user && (
                 <div style={{
                   marginBottom: '1.5rem',
-                  padding: '1.2rem',
-                  borderRadius: '14px',
+                  padding: '1.2rem 1.4rem',
+                  borderRadius: '4px',
                   backgroundColor: '#FAF6EE',
-                  border: '1px solid #E6DAC4',
+                  border: '1px solid var(--editorial-divider)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -1162,27 +1188,27 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   gap: '1rem',
                 }}>
                   <div>
-                    <div style={{ fontWeight: 600, color: '#3A2E26', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <LogIn size={18} color="#8C6E53" /> Đang đặt lịch với tư cách Khách
+                    <div style={{ fontWeight: 600, color: 'var(--editorial-brown)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <LogIn size={16} color="var(--editorial-brown-accent)" /> Đang đặt lịch với tư cách Khách
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#6E5F55', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
-                      Đăng nhập để đồng bộ lịch hẹn, nhận ảnh bảo mật và xác thực thanh toán tức thì. Lựa chọn của bạn sẽ được giữ nguyên vẹn.
+                    <p style={{ fontSize: '0.82rem', color: 'var(--editorial-text-secondary)', margin: '0.25rem 0 0 0', lineHeight: 1.4 }}>
+                      Đăng nhập để đồng bộ lịch hẹn và theo dõi tiến độ bộ ảnh thuận tiện hơn. Lựa chọn của bạn sẽ được giữ nguyên vẹn.
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '0.6rem' }}>
                     <button
                       type="button"
                       onClick={() => handleGuestAuthRedirect('LOGIN')}
-                      className="btn-mipa-secondary"
-                      style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}
+                      className="public-btn-secondary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                     >
                       Đăng Nhập
                     </button>
                     <button
                       type="button"
                       onClick={() => handleGuestAuthRedirect('REGISTER')}
-                      className="btn-mipa-primary"
-                      style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}
+                      className="public-btn-primary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                     >
                       Đăng Ký
                     </button>
@@ -1190,87 +1216,92 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.2rem' }}>
                 <div>
-                  <label className="mipa-label">Họ và tên Khách hàng *</label>
+                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Họ và tên *</label>
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="mipa-input"
-                    placeholder="Nhập họ tên đầy đủ..."
+                    placeholder="Họ và tên"
+                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                   />
                 </div>
                 <div>
-                  <label className="mipa-label">Số điện thoại liên hệ *</label>
+                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Số điện thoại *</label>
                   <input
                     type="text"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="mipa-input"
-                    placeholder="090x xxx xxx..."
+                    placeholder="Số điện thoại"
+                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.3rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <ShieldCheck size={14} /> Hồ sơ Khách hàng liên kết theo SĐT này.
+                  <div style={{ fontSize: '0.75rem', color: 'var(--editorial-text-muted)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <ShieldCheck size={13} color="var(--editorial-brown-accent)" /> Studio sẽ liên hệ xác nhận qua số điện thoại này.
                   </div>
                 </div>
                 <div>
-                  <label className="mipa-label">Địa chỉ Email nhận album ảnh *</label>
+                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Email *</label>
                   <input
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="mipa-input"
-                    placeholder="email@example.com"
+                    placeholder="Email"
+                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                   />
                 </div>
                 <div>
-                  <label className="mipa-label">Dịp chụp hình đặc biệt</label>
+                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Dịp chụp hình</label>
                   <select
                     value={occasion}
                     onChange={(e) => setOccasion(e.target.value)}
                     className="mipa-input"
+                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                   >
                     <option value="Kỷ niệm">Kỷ niệm tình yêu / Ngày cưới</option>
                     <option value="Sinh nhật">Sinh nhật / Tuổi mới</option>
                     <option value="Cưới">Chụp ảnh cưới / Studio Wedding</option>
                     <option value="Tốt nghiệp">Kỷ yếu / Tốt nghiệp</option>
-                    <option value="Gia đình">Kỷ niệm Gia đình</option>
-                    <option value="Cá nhân">Profile Cá nhân / Concept</option>
+                    <option value="Gia đình">Kỷ niệm gia đình</option>
+                    <option value="Cá nhân">Chân dung cá nhân</option>
                   </select>
                 </div>
               </div>
 
               <div style={{ marginTop: '1.2rem' }}>
-                <label className="mipa-label">Yêu cầu đặc biệt & Ghi chú cho Studio</label>
+                <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Ghi chú thêm cho studio</label>
                 <textarea
                   rows={3}
                   value={customerNote}
                   onChange={(e) => setCustomerNote(e.target.value)}
                   className="mipa-input"
-                  placeholder="Ghi chú về đạo cụ, makeup, tone màu mong muốn hoặc bé nhỏ đi cùng..."
+                  placeholder="Ghi chú về đạo cụ, trang phục, makeup hoặc tone màu mong muốn..."
+                  style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                 />
               </div>
 
               {/* Voucher Code Box */}
-              <div style={{ marginTop: '1.2rem', padding: '1rem', backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid var(--mipa-beige)' }}>
-                <label className="mipa-label">Mã Giảm Giá / Voucher (VD: MIPA20 hoặc SUMMERMEMORY)</label>
+              <div style={{ marginTop: '1.2rem', padding: '1rem 1.2rem', backgroundColor: '#FAF6EE', borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}>
+                <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Mã ưu đãi (nếu có)</label>
                 <div style={{ display: 'flex', gap: '0.6rem' }}>
                   <input
                     type="text"
                     value={voucherCode}
                     onChange={(e) => setVoucherCode(e.target.value)}
-                    placeholder="Nhập mã voucher..."
+                    placeholder="Nhập mã ưu đãi..."
                     className="mipa-input"
-                    style={{ textTransform: 'uppercase' }}
+                    style={{ textTransform: 'uppercase', borderRadius: '4px', border: '1px solid var(--editorial-divider)', maxWidth: '280px' }}
                   />
-                  <button onClick={handleApplyVoucher} className="btn-mipa-secondary" style={{ flexShrink: 0 }}>
+                  <button type="button" onClick={handleApplyVoucher} className="public-btn-secondary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>
                     Áp dụng
                   </button>
                 </div>
                 {isVoucherApplied && (
-                  <div style={{ marginTop: '0.5rem', color: '#047857', fontSize: '0.82rem', fontWeight: 600 }}>
-                    ✓ Đã áp dụng voucher thành công! Giảm: -{discountTotal.toLocaleString('vi-VN')}đ
+                  <div style={{ marginTop: '0.5rem', color: '#047857', fontSize: '0.82rem', fontWeight: 500 }}>
+                    ✓ Đã áp dụng mã giảm giá (-{discountTotal.toLocaleString('vi-VN')}đ)
                   </div>
                 )}
               </div>
@@ -1280,84 +1311,99 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {/* STEP 6: CONFIRMATION & DEPOSIT PAYMENT */}
           {step === 6 && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.8rem' }}>
                 
                 {/* Summary Card */}
-                <div style={{ padding: '1.2rem', backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid var(--mipa-beige)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px dashed var(--mipa-beige)', paddingBottom: '0.75rem' }}>
+                <div style={{ padding: '1.4rem', backgroundColor: '#FFFFFF', borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid var(--editorial-divider)', paddingBottom: '0.85rem' }}>
                     <div>
-                      <h4 style={{ fontSize: '1.2rem', color: '#604634', margin: 0 }}>{selectedService.name}</h4>
-                      <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontWeight: 600 }}>{selectedPackage.name}</span>
+                      <h4 style={{
+                        fontFamily: 'var(--editorial-font-heading)',
+                        fontSize: '1.35rem',
+                        color: 'var(--editorial-brown)',
+                        margin: 0,
+                        fontWeight: 600,
+                      }}>
+                        {selectedService.name}
+                      </h4>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--editorial-brown-accent)' }}>{selectedPackage.name}</span>
                     </div>
                     {currentPayment?.status === 'PAID' ? (
-                      <span className="badge-status badge-confirmed">ĐÃ NHẬN CỌC</span>
+                      <span style={{ fontSize: '0.78rem', color: '#047857', fontWeight: 600 }}>ĐÃ NHẬN CỌC</span>
                     ) : isTransferSubmitted ? (
-                      <span className="badge-status badge-pending" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>CHỜ ĐỐI SOÁT</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--editorial-brown-accent)', fontWeight: 600 }}>CHỜ ĐỐI SOÁT</span>
                     ) : (
-                      <span className="badge-status badge-pending">CHỜ ĐẶT CỌC</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--editorial-brown)', fontWeight: 600 }}>CHỜ ĐẶT CỌC</span>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.88rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6E5F55' }}>Mã đặt lịch:</span>
-                      <strong>{createdBooking?.bookingCode || 'Đang tạo...'}</strong>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Mã đặt lịch:</span>
+                      <strong style={{ color: 'var(--editorial-brown)' }}>{createdBooking?.bookingCode || 'Đang tạo...'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6E5F55' }}>Thời gian:</span>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Thời gian:</span>
                       <strong>{selectedDate} • {selectedTimeSlot} ({totalDurationMinutes} phút)</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6E5F55' }}>Không gian chụp:</span>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Không gian chụp:</span>
                       <strong>{selectedStudio.name}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6E5F55' }}>Khách hàng:</span>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Khách hàng:</span>
                       <strong>{customerName} ({customerPhone})</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6E5F55' }}>Concept nghệ thuật:</span>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Concept nghệ thuật:</span>
                       <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Mặc định'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6E5F55' }}>Dịch vụ kèm theo:</span>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Dịch vụ kèm theo:</span>
                       <strong>{selectedAddons.length > 0 ? selectedAddons.map(a => a.name).join(', ') : 'Không có'}</strong>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '1.2rem', borderTop: '1px dashed var(--mipa-beige)', paddingTop: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6E5F55' }}>
-                      <span>Giá gói gốc:</span>
+                  <div style={{ marginTop: '1.4rem', borderTop: '1px solid var(--editorial-divider)', paddingTop: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: 'var(--editorial-text-secondary)', marginBottom: '0.4rem' }}>
+                      <span>Giá gói:</span>
                       <span>{selectedPackage.price.toLocaleString('vi-VN')}đ</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6E5F55' }}>
-                      <span>Tổng tiền Add-ons:</span>
-                      <span>+{addonTotal.toLocaleString('vi-VN')}đ</span>
-                    </div>
+                    {addonTotal > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: 'var(--editorial-text-secondary)', marginBottom: '0.4rem' }}>
+                        <span>Dịch vụ thêm:</span>
+                        <span>+{addonTotal.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
                     {discountTotal > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#047857' }}>
-                        <span>Voucher giảm giá:</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: '#047857', marginBottom: '0.4rem' }}>
+                        <span>Giảm giá:</span>
                         <span>-{discountTotal.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, color: '#604634', marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 600, color: 'var(--editorial-brown)', marginTop: '0.6rem', borderTop: '1px dashed var(--editorial-divider)', paddingTop: '0.6rem' }}>
                       <span>Tổng tiền dịch vụ:</span>
                       <span>{totalAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
 
                     <div style={{
-                      marginTop: '0.8rem',
-                      padding: '0.75rem',
-                      backgroundColor: '#FEF3C7',
-                      borderRadius: '8px',
-                      color: '#92400E',
-                      fontWeight: 700,
+                      marginTop: '0.85rem',
+                      padding: '0.85rem 1rem',
+                      backgroundColor: '#FAF6EE',
+                      borderRadius: '4px',
+                      border: '1px solid var(--editorial-divider)',
+                      color: 'var(--editorial-brown)',
+                      fontWeight: 600,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}>
-                      <span>TIỀN CỌC GIỮ LỊCH (30%):</span>
-                      <span style={{ fontSize: '1.2rem' }}>
+                      <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tiền cọc giữ lịch (30%):</span>
+                      <span style={{
+                        fontFamily: 'var(--editorial-font-heading)',
+                        fontSize: '1.4rem',
+                        fontWeight: 600,
+                      }}>
                         {(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ
                       </span>
                     </div>
@@ -1368,42 +1414,51 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {!isValidProductionBankConfig(activeBankConfig) ? (
                     <div style={{
-                      padding: '1.2rem',
-                      backgroundColor: '#FEF3C7',
-                      borderRadius: '16px',
-                      border: '1px solid #F59E0B',
-                      color: '#92400E',
+                      padding: '1.4rem',
+                      backgroundColor: '#FAF6EE',
+                      borderRadius: '4px',
+                      border: '1px solid var(--editorial-divider)',
+                      color: 'var(--editorial-brown)',
                       textAlign: 'center',
                     }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                        <AlertCircle size={20} color="#D97706" /> Chưa cấu hình tài khoản nhận cọc
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                        <AlertCircle size={18} color="var(--editorial-brown-accent)" /> Tài khoản chuyển khoản studio
                       </div>
-                      <p style={{ fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
-                        Hệ thống ngân hàng nhận thanh toán đang được cấu hình. Quý khách vui lòng liên hệ Studio Hotline <strong>0908 123 456</strong> để được hỗ trợ chuyển khoản đối soát trực tiếp.
+                      <p style={{ fontSize: '0.84rem', margin: 0, lineHeight: 1.6, color: 'var(--editorial-text-secondary)' }}>
+                        Quý khách vui lòng liên hệ hotline <strong>0908 123 456</strong> để được studio hướng dẫn chuyển khoản đặt cọc trực tiếp.
                       </p>
                     </div>
                   ) : (
-                    <div style={{ padding: '1rem', backgroundColor: '#F8F3E6', borderRadius: '16px', border: '1px solid #C6A45F', textAlign: 'center' }}>
-                      <h5 style={{ fontSize: '0.95rem', color: '#604634', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                        <QrCode size={18} color="#8C6E53" /> Quét Mã VietQR Thanh Toán Cọc
+                    <div style={{ padding: '1.2rem', backgroundColor: '#FAF6EE', borderRadius: '4px', border: '1px solid var(--editorial-divider)', textAlign: 'center' }}>
+                      <h5 style={{
+                        fontFamily: 'var(--editorial-font-heading)',
+                        fontSize: '1.15rem',
+                        color: 'var(--editorial-brown)',
+                        marginBottom: '0.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                        fontWeight: 600,
+                      }}>
+                        <QrCode size={16} color="var(--editorial-brown)" /> Quét mã VietQR chuyển khoản cọc
                       </h5>
-                      <div style={{ fontSize: '0.75rem', color: '#8C6E53', marginBottom: '0.6rem' }}>
-                        Tự động điền số tài khoản, số tiền & cú pháp đối soát chính xác
+                      <div style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', marginBottom: '0.8rem' }}>
+                        Mã đã tích hợp sẵn số tài khoản, số tiền và nội dung đối soát
                       </div>
                       
                       <div style={{
-                        width: '170px',
-                        height: '170px',
-                        margin: '0.5rem auto',
+                        width: '160px',
+                        height: '160px',
+                        margin: '0.5rem auto 1rem',
                         backgroundColor: '#FFFFFF',
                         padding: '0.5rem',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                        borderRadius: '4px',
+                        border: '1px solid var(--editorial-divider)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        position: 'relative',
                       }}>
                         <img
                           src={generateVietQrUrl(
@@ -1411,15 +1466,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             currentPayment?.transfer_reference || `MIPA ${customerPhone}`,
                             activeBankConfig
                           )}
-                          alt="Maison MIPA VietQR Code"
-                          style={{ width: '140px', height: '140px', objectFit: 'contain' }}
+                          alt="VietQR Code Maison MIPA"
+                          style={{ width: '135px', height: '135px', objectFit: 'contain' }}
                         />
-                        <div style={{ position: 'absolute', bottom: '4px', background: '#604634', color: '#FFF', fontSize: '0.52rem', padding: '1px 6px', borderRadius: '4px' }}>
-                          MIPA VIETQR
-                        </div>
                       </div>
 
-                      <div style={{ fontSize: '0.8rem', color: '#604634', marginTop: '0.5rem', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.75rem', borderRadius: '10px', border: '1px solid #EFE6C9', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--editorial-text-primary)', textAlign: 'left', backgroundColor: '#FFFFFF', padding: '0.85rem 1rem', borderRadius: '4px', border: '1px solid var(--editorial-divider)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         <div>Ngân hàng: <strong>{activeBankConfig.bankName}</strong></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span>Số tài khoản: <strong>{activeBankConfig.accountNumber}</strong></span>
@@ -1429,57 +1481,57 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#92400E',
+                              color: 'var(--editorial-brown)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.2rem',
                               fontSize: '0.75rem',
-                              fontWeight: 600,
+                              fontWeight: 500,
                             }}
                           >
-                            <Copy size={13} /> {isCopiedAccount ? 'Đã sao chép!' : 'Sao chép'}
+                            <Copy size={12} /> {isCopiedAccount ? 'Đã sao chép' : 'Sao chép'}
                           </button>
                         </div>
                         <div>Chủ tài khoản: <strong>{activeBankConfig.accountName}</strong></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Số tiền cọc: <strong style={{ color: '#B45309' }}>{(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ</strong></span>
+                          <span>Số tiền cọc: <strong>{(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ</strong></span>
                           <button
                             type="button"
                             onClick={handleCopyAmount}
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#92400E',
+                              color: 'var(--editorial-brown)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.2rem',
                               fontSize: '0.75rem',
-                              fontWeight: 600,
+                              fontWeight: 500,
                             }}
                           >
-                            <Copy size={13} /> {isCopiedAmount ? 'Đã sao chép!' : 'Sao chép'}
+                            <Copy size={12} /> {isCopiedAmount ? 'Đã sao chép' : 'Sao chép'}
                           </button>
                         </div>
-                        <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FEF3C7', padding: '0.35rem 0.5rem', borderRadius: '6px' }}>
-                          <span>Nội dung CK: <strong style={{ color: '#B45309' }}>{currentPayment?.transfer_reference || `MIPA ${customerPhone}`}</strong></span>
+                        <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FAF6EE', padding: '0.4rem 0.6rem', borderRadius: '3px', border: '1px solid var(--editorial-divider)' }}>
+                          <span>Nội dung CK: <strong style={{ color: 'var(--editorial-brown)' }}>{currentPayment?.transfer_reference || `MIPA ${customerPhone}`}</strong></span>
                           <button
                             type="button"
                             onClick={handleCopyTransferRef}
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#92400E',
+                              color: 'var(--editorial-brown)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.2rem',
                               fontSize: '0.75rem',
-                              fontWeight: 600,
+                              fontWeight: 500,
                             }}
                           >
-                            <Copy size={13} /> {isCopiedRef ? 'Đã sao chép!' : 'Sao chép'}
+                            <Copy size={12} /> {isCopiedRef ? 'Đã sao chép' : 'Sao chép'}
                           </button>
                         </div>
                       </div>
@@ -1488,50 +1540,50 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
                   <div style={{
                     padding: '0.85rem 1rem',
-                    backgroundColor: '#FEF3C7',
-                    borderRadius: '12px',
-                    border: '1px solid #FCD34D',
-                    color: '#92400E',
-                    fontSize: '0.85rem',
+                    backgroundColor: '#FAF6EE',
+                    borderRadius: '4px',
+                    border: '1px solid var(--editorial-divider)',
+                    color: 'var(--editorial-brown)',
+                    fontSize: '0.82rem',
                     textAlign: 'center',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '0.35rem',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-                      <RefreshCw size={16} className="animate-spin" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, letterSpacing: '0.04em' }}>
+                      <RefreshCw size={14} className="animate-spin" />
                       <span>TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#78350F', lineHeight: 1.4 }}>
-                      Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận. Hệ thống sẽ tự động chuyển sang trang Hoàn tất ngay khi ACB nhận được tiền (không bắt buộc ấn nút dưới nếu đã thanh toán qua app).
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', lineHeight: 1.4 }}>
+                      Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận. Hệ thống sẽ tự động cập nhật ngay khi nhận được tiền cọc.
                     </p>
                   </div>
 
                   {isTransferSubmitted && currentPayment?.status === 'PENDING' && (
                     <div style={{
                       padding: '0.75rem',
-                      backgroundColor: '#FEF3C7',
-                      borderRadius: '10px',
-                      color: '#92400E',
+                      backgroundColor: '#FAF6EE',
+                      borderRadius: '4px',
+                      color: 'var(--editorial-brown)',
                       fontSize: '0.82rem',
                       textAlign: 'center',
-                      border: '1px solid #FCD34D',
+                      border: '1px solid var(--editorial-divider)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
                     }}>
-                      <RefreshCw size={16} className="animate-spin" />
-                      <span>Đã gửi thông tin chuyển khoản. Đang chờ Studio đối soát & xác nhận...</span>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Đã gửi thông tin chuyển khoản. Đang chờ studio xác nhận...</span>
                     </div>
                   )}
 
                   <button
                     disabled={isSubmitting}
                     onClick={handleConfirmTransfer}
-                    className="btn-mipa-gold"
-                    style={{ width: '100%', padding: '0.9rem', fontSize: '1rem' }}
+                    className="public-btn-primary"
+                    style={{ width: '100%', padding: '0.9rem', fontSize: '0.95rem' }}
                   >
                     {isSubmitting ? (
                       <span>Đang xử lý thông tin...</span>
@@ -1539,7 +1591,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <span>ĐÃ GỬI XÁC NHẬN • CHỜ STUDIO XÁC NHẬN</span>
                     ) : (
                       <>
-                        <ShieldCheck size={18} />
+                        <ShieldCheck size={16} />
                         XÁC NHẬN ĐÃ CHUYỂN CỌC ({(currentPayment?.amount || depositAmount).toLocaleString('vi-VN')}đ)
                       </>
                     )}
@@ -1554,55 +1606,62 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {step === 7 && confirmedBooking && (
             <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
               <div style={{
-                width: '70px',
-                height: '70px',
+                width: '56px',
+                height: '56px',
                 borderRadius: '50%',
-                backgroundColor: '#ECFDF5',
-                color: '#047857',
+                backgroundColor: '#FAF6EE',
+                color: 'var(--editorial-brown)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 1rem',
-                border: '2px solid #A7F3D0',
+                margin: '0 auto 1.2rem',
+                border: '1px solid var(--editorial-divider)',
               }}>
-                <Check size={36} />
+                <Check size={28} />
               </div>
-              <h2 style={{ fontSize: '1.8rem', color: '#604634', marginBottom: '0.3rem' }}>Booking Của Bạn Đã Xác Nhận!</h2>
-              <p style={{ color: '#6E5F55', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-                Maison MIPA trân trọng cảm ơn bạn. Thông tin xác nhận đã gửi đến email <strong>{confirmedBooking.customerEmail}</strong>.
+              <h2 style={{
+                fontFamily: 'var(--editorial-font-heading)',
+                fontSize: '2rem',
+                color: 'var(--editorial-brown)',
+                marginBottom: '0.4rem',
+                fontWeight: 600,
+              }}>
+                Booking Của Bạn Đã Xác Nhận!
+              </h2>
+              <p style={{ color: 'var(--editorial-text-secondary)', fontSize: '0.95rem', marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem' }}>
+                Maison MIPA trân trọng cảm ơn bạn. Thông tin xác nhận chi tiết đã được gửi tới email <strong>{confirmedBooking.customerEmail}</strong>.
               </p>
 
               {/* Receipt Ticket */}
               <div style={{
-                maxWidth: '450px',
+                maxWidth: '480px',
                 margin: '0 auto',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '16px',
-                border: '2px dashed #C6A45F',
+                borderRadius: '4px',
+                border: '1px solid var(--editorial-divider)',
                 padding: '1.5rem',
                 textAlign: 'left',
-                boxShadow: '0 8px 25px rgba(96, 70, 52, 0.08)',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #EFE6C9', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
-                  <span style={{ color: '#8C6E53', fontWeight: 600, fontSize: '0.85rem' }}>MÃ BOOKING NỘI BỘ</span>
-                  <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#604634' }}>{confirmedBooking.bookingCode}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--editorial-divider)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                  <span style={{ color: 'var(--editorial-text-muted)', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>MÃ BOOKING NỘI BỘ</span>
+                  <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--editorial-brown)' }}>{confirmedBooking.bookingCode}</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.88rem' }}>
                   <div>Gói chụp: <strong>{confirmedBooking.packageName}</strong> ({confirmedBooking.serviceName})</div>
                   <div>Thời gian: <strong>{confirmedBooking.bookingDate} lúc {confirmedBooking.startTime}</strong></div>
                   <div>Studio: <strong>{confirmedBooking.studioName}</strong></div>
-                  <div>Trạng thái: <span className="badge-status badge-confirmed">ĐÃ XÁC NHẬN - ĐÃ CỌC 30%</span></div>
+                  <div>Trạng thái: <strong style={{ color: '#047857' }}>Đã xác nhận & nhận cọc 30%</strong></div>
                 </div>
 
-                <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #EFE6C9', fontSize: '0.8rem', color: '#8C6E53', textAlign: 'center' }}>
-                  🌿 Maison MIPA hẹn gặp lại bạn vào ngày chụp!
+                <div style={{ marginTop: '1.2rem', paddingTop: '0.85rem', borderTop: '1px solid var(--editorial-divider)', fontSize: '0.82rem', color: 'var(--editorial-brown-accent)', textAlign: 'center' }}>
+                  Maison MIPA hẹn gặp bạn trong buổi chụp tới.
                 </div>
               </div>
 
-              <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                <button onClick={onClose} className="btn-mipa-primary">
-                  Đóng & Về Trang Chủ
+              <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+                <button onClick={onClose} className="public-btn-primary">
+                  Đóng & Về trang chủ
                 </button>
               </div>
             </div>
@@ -1614,27 +1673,29 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         {step <= 6 && (
           <div style={{
             padding: '1rem 1.8rem',
-            borderTop: '1px solid rgba(140, 110, 83, 0.15)',
-            backgroundColor: '#FFFDF6',
+            borderTop: '1px solid var(--editorial-divider)',
+            backgroundColor: 'var(--editorial-paper)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
             {step > 1 ? (
               <button
+                type="button"
                 onClick={() => { setErrorMessage(null); setStep(step - 1); }}
-                className="btn-mipa-secondary"
-                style={{ fontSize: '0.85rem' }}
+                className="public-btn-secondary"
+                style={{ fontSize: '0.85rem', padding: '0.6rem 1.2rem' }}
               >
                 <ChevronLeft size={16} /> Quay lại
               </button>
             ) : <div />}
 
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontWeight: 600 }}>
+            <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.88rem', color: 'var(--editorial-brown)', fontWeight: 600 }}>
                 Tạm tính: {subtotal.toLocaleString('vi-VN')}đ
               </span>
               <button
+                type="button"
                 onClick={() => {
                   setErrorMessage(null);
                   if (step === 3) {
@@ -1661,8 +1722,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   }
                 }}
                 disabled={isSubmitting}
-                className="btn-mipa-primary"
-                style={{ fontSize: '0.85rem' }}
+                className="public-btn-primary"
+                style={{ fontSize: '0.85rem', padding: '0.6rem 1.4rem' }}
               >
                 {step === 6 ? 'Xác Nhận Đặt Lịch' : 'Tiếp Theo'} <ChevronRight size={16} />
               </button>

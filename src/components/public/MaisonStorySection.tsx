@@ -1,52 +1,82 @@
 // ==============================================================================
-// Maison MIPA Memories - Maison Story Section (Art Direction: French Maison)
+// Maison MIPA Memories — Integrated Studio Story & Experience
+// Merged: Studio narrative + 4-step workflow underneath.
+// Art Direction: Contemporary magazine editorial, concrete copy, no cards or icon boxes.
 // ==============================================================================
 import React from 'react';
-import { Sparkles, Heart } from 'lucide-react';
 
 export const MaisonStorySection: React.FC = () => {
+  const steps = [
+    {
+      num: '01',
+      title: 'Tư vấn',
+      desc: 'Lắng nghe mong muốn của bạn, thống nhất ý tưởng và concept phù hợp trước ngày chụp.',
+    },
+    {
+      num: '02',
+      title: 'Chuẩn bị',
+      desc: 'Hướng dẫn lựa chọn trang phục và chuẩn bị makeup tự nhiên tại studio.',
+    },
+    {
+      num: '03',
+      title: 'Buổi chụp',
+      desc: 'Không gian riêng tư, ánh sáng êm dịu giúp bạn thả lỏng và tận hưởng buổi chụp.',
+    },
+    {
+      num: '04',
+      title: 'Nhận ảnh',
+      desc: 'Toàn bộ file ảnh gốc chất lượng cao và ảnh chỉnh sửa được bàn giao qua Google Drive.',
+    },
+  ];
+
   return (
-    <section style={{ padding: '4rem 1rem', backgroundColor: '#FFFDF6', borderTop: '1px solid var(--mipa-beige)', borderBottom: '1px solid var(--mipa-beige)' }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.2em', color: '#8C6E53', fontWeight: 700, marginBottom: '0.6rem' }}>
-          L''HISTOIRE DE MAISON MIPA
+    <section className="editorial-section" style={{ backgroundColor: 'var(--editorial-bg)' }}>
+      <div className="editorial-container">
+        {/* Top: Studio Photo + Narrative Column */}
+        <div className="editorial-story-grid">
+          {/* Column A: Studio Image */}
+          <div
+            className="editorial-image-frame"
+            style={{
+              height: '460px',
+              border: '1px solid rgba(96, 70, 52, 0.12)',
+            }}
+          >
+            <img
+              src="/studio.png"
+              alt="Maison MIPA Memories — Không gian phòng chụp ánh sáng tự nhiên"
+              loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
+
+          {/* Column B: Editorial Story Narrative */}
+          <div style={{ maxWidth: '560px' }}>
+            <span className="editorial-overline">MAISON MIPA</span>
+
+            <h2 className="editorial-h2" style={{ marginBottom: '1.5rem' }}>
+              Một căn phòng ngập tràn ánh sáng và những câu chuyện của bạn.
+            </h2>
+
+            <p className="editorial-copy" style={{ marginBottom: '1.25rem' }}>
+              Maison MIPA được xây dựng từ mong muốn có một không gian chụp ảnh yên tĩnh và ấm cúng giữa Sài Gòn. Ở đây, ánh sáng tự nhiên từ những khung cửa sổ lớn luôn là chất liệu chủ đạo cho mọi khung hình.
+            </p>
+
+            <p className="editorial-copy">
+              Chúng tôi trân trọng sự thoải mái của người chụp hơn những dáng đứng gượng gạo. Mỗi ca chụp chỉ phục vụ duy nhất một khách hàng, để bạn hoàn toàn thảnh thơi là chính mình.
+            </p>
+          </div>
         </div>
 
-        <h2
-          style={{
-            fontSize: 'clamp(2rem, 4.5vw, 3rem)',
-            color: '#604634',
-            marginBottom: '1.5rem',
-            fontFamily: 'var(--mipa-font-heading)',
-            fontWeight: 700,
-            lineHeight: 1.25,
-          }}
-        >
-          Nơi Những Cảm Xúc Tự Nhiên<br />
-          <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#8C6E53' }}>
-            Hóa Thành Kỷ Niệm Vĩnh Cửu
-          </span>
-        </h2>
-
-        <p
-          style={{
-            color: '#6E5F55',
-            fontSize: '1.05rem',
-            lineHeight: 1.8,
-            maxWidth: '780px',
-            margin: '0 auto 2rem',
-          }}
-        >
-          Được truyền cảm hứng từ vẻ đẹp cổ điển và chất thơ lãng mạn của những căn hộ Paris, Maison MIPA được sáng lập với mong muốn tạo nên một không gian chụp ảnh ấm cúng, thư thái. Chúng tôi không chụp những bức ảnh gượng gạo, mà bắt trọn ánh mắt, nụ cười và những cử chỉ yêu thương tự nhiên nhất của bạn.
-        </p>
-
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', flexWrap: 'wrap', marginTop: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8C6E53', fontSize: '0.9rem', fontStyle: 'italic' }}>
-            <Sparkles size={16} color="#C6A45F" /> Ánh Sáng Tự Nhiên Dịu Mát
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8C6E53', fontSize: '0.9rem', fontStyle: 'italic' }}>
-            <Heart size={16} color="#C6A45F" /> Cảm Xúc Chân Thật Là Trọng Tâm
-          </div>
+        {/* Bottom: 4-Step Process Strip Underneath (No cards, no rounded icon boxes) */}
+        <div className="editorial-process-strip">
+          {steps.map((step) => (
+            <div key={step.num} className="editorial-process-step">
+              <span className="editorial-process-num">{step.num}</span>
+              <h4 className="editorial-process-title">{step.title}</h4>
+              <p className="editorial-process-desc">{step.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
