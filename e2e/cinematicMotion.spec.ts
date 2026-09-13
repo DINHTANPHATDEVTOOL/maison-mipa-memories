@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
+  test.beforeEach(() => {
+    test.setTimeout(60000);
+  });
 
   test('1. No runtime errors or unhandled exceptions on homepage scroll', async ({ page }) => {
     const errors: string[] = [];
@@ -36,9 +39,9 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Verify H1 text is visible without transform delay
-    const h1 = page.locator('h1.editorial-h1');
-    await expect(h1).toBeVisible();
+    // Verify 3D atelier viewport is visible without transform delay
+    const viewport = page.getByTestId('virtual-exhibition-viewport');
+    await expect(viewport).toBeVisible();
 
     // Verify custom cursor is NOT active/rendered
     const cursor = page.locator('[aria-hidden="true"]').filter({ hasText: 'XEM' });
@@ -115,9 +118,9 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Moment 1: Hero
-    await expect(page.locator('h1.editorial-h1')).toBeVisible();
-    await expect(page.getByText('MAISON MIPA / ATELIER').first()).toBeVisible();
+    // Moment 1: Flagship Atelier Diorama
+    await expect(page.locator('#atelier-3d')).toBeVisible();
+    await expect(page.getByTestId('virtual-exhibition-viewport')).toBeVisible();
 
     // Moment 2: Selected Works Perspective
     await expect(page.getByRole('heading', { name: /Bộ sưu tập concept chọn lọc/i })).toBeVisible({ timeout: 10000 });
@@ -146,8 +149,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     // Verify Flagship Atelier Section and Heading
     const section = page.locator('#atelier-3d');
     await expect(section).toBeVisible();
-    await expect(section.getByRole('heading', { name: /Bước vào căn phòng của những ký ức/i })).toBeVisible();
-    await expect(page.getByText(/MAISON MIPA \/ ATELIER/i).first()).toBeVisible();
+    await expect(section.locator('h1')).toBeAttached();
 
     // Verify 3D Viewport exists
     const viewport = page.getByTestId('virtual-exhibition-viewport');

@@ -101,8 +101,8 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
       className="editorial-section hero-3d-section living-french-atelier"
       aria-label="Căn phòng atelier Maison MIPA"
       style={{
-        paddingTop: '2rem',
-        paddingBottom: '3.5rem',
+        paddingTop: '0.75rem',
+        paddingBottom: '2.5rem',
         backgroundColor: '#15110E',
         color: '#FBF6EE',
         overflow: 'hidden',
@@ -111,63 +111,13 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
       }}
     >
       <div className="editorial-container-wide">
-        {/* =====================================================================
-            HERO EDITORIAL HEADER (Blocker 14 & 32: Curated, calm, restrained)
-            ===================================================================== */}
-        <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 1.4rem' }}>
-          <span
-            className="editorial-overline"
-            style={{
-              display: 'block',
-              letterSpacing: '0.22em',
-              color: '#C6A45F',
-              marginBottom: '0.45rem',
-              fontSize: '0.74rem',
-            }}
-          >
-            MAISON MIPA / ATELIER
-          </span>
-
-          <h1
-            className="editorial-h1"
-            style={{
-              fontSize: 'clamp(2.1rem, 4.2vw, 3.4rem)',
-              lineHeight: 1.18,
-              marginBottom: '0.6rem',
-              color: '#FBF6EE',
-              fontWeight: 500,
-            }}
-          >
-            Bước vào căn phòng của những ký ức.
-          </h1>
-
-          <p
-            className="editorial-copy"
-            style={{
-              fontSize: '0.96rem',
-              maxWidth: '560px',
-              margin: '0 auto',
-              color: '#D1C4B7',
-              lineHeight: 1.6,
-            }}
-          >
-            Không gian studio phong cách Pháp với ánh sáng tự nhiên và các tác phẩm nghệ thuật chọn lọc.
-          </p>
-        </div>
+        {/* Semantic H1 for SEO and screen readers without promotional feature copy */}
+        <h1 className="sr-only">
+          Maison MIPA Memories — Living French Atelier
+        </h1>
 
         {/* =====================================================================
-            RESTRAINED EDITORIAL CONTROLS (Blocker 24 & 31: Curatorial typography)
-            ===================================================================== */}
-        <AtelierControls
-          activeLighting={lightingMode}
-          activeCamera={cameraMode}
-          onSelectLighting={handleSelectLighting}
-          onSelectCamera={handleSelectCamera}
-          onResetCamera={handleResetCamera}
-        />
-
-        {/* =====================================================================
-            THE LIVING FRENCH ATELIER 3D VIEWPORT (Blocker 4 & 23: Responsive height)
+            THE LIVING FRENCH ATELIER 3D VIEWPORT (Pure Visual Hero Display)
             ===================================================================== */}
         <div
           data-testid="virtual-exhibition-viewport"
@@ -293,6 +243,17 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
             </div>
           )}
         </div>
+
+        {/* =====================================================================
+            RESTRAINED EDITORIAL CONTROLS (Subtle curatorial typography below scene)
+            ===================================================================== */}
+        <AtelierControls
+          activeLighting={lightingMode}
+          activeCamera={cameraMode}
+          onSelectLighting={handleSelectLighting}
+          onSelectCamera={handleSelectCamera}
+          onResetCamera={handleResetCamera}
+        />
 
         {/* =====================================================================
             DARKROOM CURATORIAL INSPECTION OVERLAY

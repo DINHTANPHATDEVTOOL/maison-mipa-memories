@@ -25,8 +25,7 @@ describe('Hero3DExhibitionSection Component (Flagship Atelier V4)', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Bước vào căn phòng của những ký ức/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/MAISON MIPA \/ ATELIER/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { level: 1, name: /Maison MIPA Memories/i })).toBeInTheDocument();
     expect(screen.getByTestId('virtual-exhibition-viewport')).toBeInTheDocument();
   });
 
