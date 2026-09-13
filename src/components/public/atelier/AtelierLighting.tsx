@@ -128,11 +128,11 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
         decay={1.8}
       />
 
-      {/* 5. FRONT STUDIO RIM FILL (Ensures leatherette, champagne rims and prints catch warm luster) */}
+      {/* 5. FRONT STUDIO RIM & HARDWARE FILL (Highlights Canon magnesium chassis, red ring and optical glass) */}
       <directionalLight
-        color="#FFF6E8"
-        intensity={0.68}
-        position={[0.5, 3.5, 6.5]}
+        color="#FFF9F0"
+        intensity={0.92}
+        position={[0.8, 3.6, 6.2]}
       />
     </>
   );

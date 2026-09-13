@@ -21,11 +21,11 @@ export const FloatingAccessories: React.FC<FloatingAccessoriesProps> = ({
     if (reducedMotion) return;
     const t = state.clock.getElapsedTime();
     if (lensRef.current) {
-      lensRef.current.position.y = -0.44 + Math.sin(t * 1.4 + 1.0) * 0.018;
+      lensRef.current.position.y = -0.42 + Math.sin(t * 1.4 + 1.0) * 0.018;
       lensRef.current.rotation.y = -0.32 + Math.sin(t * 0.9) * 0.025;
     }
     if (compassRef.current) {
-      compassRef.current.position.y = 0.12 + Math.sin(t * 1.2 + 2.0) * 0.018;
+      compassRef.current.position.y = 0.14 + Math.sin(t * 1.2 + 2.0) * 0.018;
       compassRef.current.rotation.z = Math.sin(t * 0.7) * 0.02;
     }
   });
@@ -35,44 +35,65 @@ export const FloatingAccessories: React.FC<FloatingAccessoriesProps> = ({
   return (
     <group position={[0, 0, 0]}>
       {/* =====================================================================
-          1. FLOATING DETACHED VINTAGE PRIME LENS + LENS CAP
+          1. FLOATING DETACHED CANON RF L-SERIES PRIME LENS + LENS CAP
           ===================================================================== */}
-      <group ref={lensRef} position={[0.64, -0.44, 0.65]} rotation={[0.48, -0.32, 0.15]}>
-        {/* Main Lens Barrel */}
+      <group ref={lensRef} position={[0.72, -0.44, 0.55]} rotation={[0.15, 0.2, -0.05]}>
+        {/* Main Lens Barrel (Modern Matte Charcoal) */}
         <mesh>
-          <cylinderGeometry args={[0.16, 0.17, 0.25, 24]} />
-          <meshStandardMaterial color="#2E241E" roughness={0.55} metalness={0.45} />
+          <cylinderGeometry args={[0.16, 0.17, 0.26, 24]} />
+          <meshStandardMaterial color="#1A1B1E" roughness={0.4} metalness={0.5} />
         </mesh>
-        {/* Knurled Focus Grip Ring */}
-        <mesh position={[0, 0.02, 0]}>
+        {/* Rubber Control Ring */}
+        <mesh position={[0, -0.06, 0]}>
+          <cylinderGeometry args={[0.168, 0.168, 0.05, 24]} />
+          <meshStandardMaterial color="#121315" roughness={0.85} metalness={0.15} />
+        </mesh>
+        {/* Wide Ribbed Focus Grip Ring */}
+        <mesh position={[0, 0.03, 0]}>
           <cylinderGeometry args={[0.172, 0.172, 0.09, 24]} />
-          <meshStandardMaterial color="#221A15" roughness={0.82} metalness={0.25} />
+          <meshStandardMaterial color="#101113" roughness={0.9} metalness={0.1} />
         </mesh>
-        {/* Polished Silver Aperture Index Ring */}
-        <mesh position={[0, -0.07, 0]}>
-          <cylinderGeometry args={[0.166, 0.166, 0.025, 24]} />
-          <meshStandardMaterial color="#D8D1C7" roughness={0.2} metalness={0.92} />
-        </mesh>
-        {/* Front Lens Chrome Bezel */}
-        <mesh position={[0, 0.126, 0]}>
-          <cylinderGeometry args={[0.165, 0.165, 0.015, 24]} />
-          <meshStandardMaterial color="#C5BCAD" roughness={0.25} metalness={0.85} />
-        </mesh>
-        {/* Front Multi-Coated Optical Glass Reflection */}
-        <mesh position={[0, 0.128, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.145, 24]} />
-          <meshStandardMaterial color="#101D2C" roughness={0.06} metalness={0.98} />
+        {/* Stainless Steel Lens Mount Collar */}
+        <mesh position={[0, -0.125, 0]}>
+          <cylinderGeometry args={[0.165, 0.165, 0.02, 24]} />
+          <meshStandardMaterial color="#DDE2E8" roughness={0.18} metalness={0.94} />
         </mesh>
 
-        {/* Detached Lens Cap Lying Nearby */}
-        <group position={[0.26, -0.08, -0.08]} rotation={[-0.35, 0.15, 0.3]}>
+        {/* ===================================================================
+            ICONIC CANON L-SERIES RED RING ON DETACHED LENS
+            =================================================================== */}
+        <mesh position={[0, 0.105, 0]}>
+          <cylinderGeometry args={[0.172, 0.172, 0.016, 24]} />
+          <meshStandardMaterial
+            color="#FF1A26"
+            emissive="#A30812"
+            emissiveIntensity={0.6}
+            roughness={0.2}
+            metalness={0.8}
+          />
+        </mesh>
+
+        {/* Front Lens Outer Bezel */}
+        <mesh position={[0, 0.128, 0]}>
+          <cylinderGeometry args={[0.166, 0.166, 0.02, 24]} />
+          <meshStandardMaterial color="#161719" roughness={0.35} metalness={0.6} />
+        </mesh>
+        {/* Front Multi-Coated Optical Glass Reflection */}
+        <mesh position={[0, 0.132, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.145, 24]} />
+          <meshStandardMaterial color="#08141E" roughness={0.04} metalness={0.98} />
+        </mesh>
+
+        {/* Detached Canon Lens Cap Resting Flat Beside Lens */}
+        <group position={[0.26, -0.10, 0.08]} rotation={[-Math.PI / 2 + 0.1, 0, 0.2]}>
           <mesh>
-            <cylinderGeometry args={[0.17, 0.17, 0.03, 24]} />
-            <meshStandardMaterial color="#2A1F18" roughness={0.65} metalness={0.35} />
+            <cylinderGeometry args={[0.15, 0.15, 0.02, 24]} />
+            <meshStandardMaterial color="#18191B" roughness={0.6} metalness={0.35} />
           </mesh>
-          <mesh position={[0, 0.018, 0]}>
-            <cylinderGeometry args={[0.13, 0.13, 0.008, 24]} />
-            <meshStandardMaterial color="#A88258" roughness={0.3} metalness={0.75} />
+          {/* Inner Canon Logo Emboss on Cap */}
+          <mesh position={[0, 0.012, 0]}>
+            <boxGeometry args={[0.09, 0.022, 0.006]} />
+            <meshStandardMaterial color="#FAF5EE" roughness={0.2} metalness={0.7} />
           </mesh>
         </group>
       </group>
@@ -80,7 +101,7 @@ export const FloatingAccessories: React.FC<FloatingAccessoriesProps> = ({
       {/* =====================================================================
           2. FLOATING ANTIQUE BRONZE WIND ROSE COMPASS MOTIF
           ===================================================================== */}
-      <group ref={compassRef} position={[0.68, 0.08, 0.38]} rotation={[0.08, -0.18, 0]}>
+      <group ref={compassRef} position={[0.76, 0.14, 0.38]} rotation={[0.08, -0.18, 0]}>
         {/* Compass Outer Ring */}
         <mesh>
           <torusGeometry args={[0.22, 0.014, 12, 32]} />

@@ -12,7 +12,7 @@ import type {
 } from './atelierTypes';
 import { AtelierCameraRig } from './AtelierCameraRig';
 import { AtelierLighting } from './AtelierLighting';
-import { TwinLensCamera } from './TwinLensCamera';
+import { ModernCanonCamera } from './ModernCanonCamera';
 import { FloatingOrnateFrames } from './FloatingOrnateFrames';
 import { FannedPolaroids } from './FannedPolaroids';
 import { FloatingAccessories } from './FloatingAccessories';
@@ -105,8 +105,8 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
         position={isMobile ? [-0.2, -0.05, 0] : [-1.22, 0, 0]}
         scale={isMobile ? [0.82, 0.82, 0.82] : [0.84, 0.84, 0.84]}
       >
-        {/* Vintage Rolleiflex Twin-Lens Reflex Camera */}
-        <TwinLensCamera reducedMotion={reducedMotion} isMobile={isMobile} />
+        {/* Modern Flagship Canon EOS R Camera with RF L-Series Lens */}
+        <ModernCanonCamera reducedMotion={reducedMotion} isMobile={isMobile} />
 
         {/* Floating Ornate Baroque Picture Frames With Real Photographs */}
         <FloatingOrnateFrames
