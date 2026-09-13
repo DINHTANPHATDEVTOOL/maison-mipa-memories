@@ -9,7 +9,10 @@ interface AtelierWindowProps {
   sunbeamOpacity?: number;
 }
 
-export const AtelierWindow: React.FC<AtelierWindowProps> = () => {
+export const AtelierWindow: React.FC<AtelierWindowProps> = ({
+  sunbeamColor,
+  sunbeamOpacity,
+}) => {
   // Atmospheric French Morning / Golden Hour Sky gradient texture
   const skyTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
@@ -34,6 +37,38 @@ export const AtelierWindow: React.FC<AtelierWindowProps> = () => {
     sunGlow.addColorStop(0.4, 'rgba(255, 246, 230, 0.55)');
     sunGlow.addColorStop(1, 'rgba(255, 246, 230, 0)');
     ctx.fillStyle = sunGlow;
+    ctx.fillRect(0, 0, 512, 512);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }, []);
+
+  // Volumetric daylight sun shaft gradient texture
+  const sunbeamTexture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Angled volumetric light shaft gradient
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, 'rgba(255, 250, 235, 0.45)');
+    grad.addColorStop(0.25, 'rgba(255, 244, 220, 0.30)');
+    grad.addColorStop(0.65, 'rgba(255, 238, 208, 0.14)');
+    grad.addColorStop(1, 'rgba(255, 238, 208, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Soft lateral falloff to soften shaft edges
+    const hGrad = ctx.createLinearGradient(0, 0, 512, 0);
+    hGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    hGrad.addColorStop(0.18, 'rgba(255, 255, 255, 0.88)');
+    hGrad.addColorStop(0.82, 'rgba(255, 255, 255, 0.88)');
+    hGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fillStyle = hGrad;
     ctx.fillRect(0, 0, 512, 512);
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -173,6 +208,26 @@ export const AtelierWindow: React.FC<AtelierWindowProps> = () => {
             </mesh>
           </group>
         </group>
+
+        {/* =====================================================================
+            5. VOLUMETRIC MORNING DAYLIGHT SUNBEAM (Atmospheric French God-Ray)
+            Streams diagonally across the room onto the honey oak floor & dust
+            ===================================================================== */}
+        <mesh
+          position={[1.15, -1.05, 1.35]}
+          rotation={[0.30, 0.45, -0.40]}
+        >
+          <planeGeometry args={[3.2, 5.8]} />
+          <meshBasicMaterial
+            map={sunbeamTexture || undefined}
+            transparent
+            opacity={sunbeamOpacity ?? 0.62}
+            color={sunbeamColor ?? '#FFF8E8'}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
       </group>
     </group>
   );

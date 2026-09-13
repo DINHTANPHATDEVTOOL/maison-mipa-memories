@@ -145,17 +145,71 @@ function createWallArtTexture(type: 'editorial' | 'chateau' | 'portrait'): THREE
   return texture;
 }
 
+/**
+ * Procedural Fine French Venetian Limestone / Chalk Plaster Wall Texture
+ * Eliminates flat polygon CG appearance with authentic tactile stone mottling
+ */
+function createWallPlasterTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    // Warm French limestone / chalk plaster base with vertical daylight gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
+    bgGrad.addColorStop(0, '#EAE0D0');
+    bgGrad.addColorStop(0.35, '#F5EDE0');
+    bgGrad.addColorStop(0.85, '#EBE0D0');
+    bgGrad.addColorStop(1, '#DFD1BD');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1024, 512);
+
+    // Subtle chalk mottling & sponge plaster texture
+    for (let i = 0; i < 350; i++) {
+      const px = Math.random() * 1024;
+      const py = Math.random() * 512;
+      const pr = 20 + Math.random() * 50;
+      const isLight = Math.random() > 0.45;
+      const pGrad = ctx.createRadialGradient(px, py, 2, px, py, pr);
+      pGrad.addColorStop(0, isLight ? 'rgba(255, 252, 246, 0.16)' : 'rgba(210, 195, 175, 0.14)');
+      pGrad.addColorStop(1, isLight ? 'rgba(255, 252, 246, 0)' : 'rgba(210, 195, 175, 0)');
+      ctx.fillStyle = pGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Micro plaster stone stippling for organic tactile realism
+    ctx.fillStyle = 'rgba(70, 50, 32, 0.035)';
+    for (let i = 0; i < 1800; i++) {
+      ctx.fillRect(Math.random() * 1024, Math.random() * 512, 1.2, 1.2);
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 1);
+  texture.anisotropy = 16;
+  return texture;
+}
+
 export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F2E9DC' }) => {
+  const wallPlasterTexture = useMemo(() => createWallPlasterTexture(), []);
   const artTexture1 = useMemo(() => createWallArtTexture('editorial'), []);
   const artTexture2 = useMemo(() => createWallArtTexture('chateau'), []);
   const artTexture3 = useMemo(() => createWallArtTexture('portrait'), []);
 
   return (
     <group position={[0, 0, -3.2]}>
-      {/* 1. MAIN WALL BACKING (Luminous Warm French Limestone / Plaster) */}
+      {/* 1. MAIN WALL BACKING (Authentic Parisian Venetian Limestone Plaster) */}
       <mesh position={[0, 1.8, 0]} receiveShadow>
         <planeGeometry args={[26, 8.5]} />
-        <meshStandardMaterial color={wallTone} roughness={0.88} metalness={0.02} />
+        <meshStandardMaterial
+          map={wallPlasterTexture}
+          color={wallTone}
+          roughness={0.92}
+          metalness={0.02}
+        />
       </mesh>
 
       {/* 2. LOWER SKIRTING / BASEBOARD (French Plaster Wainscot Base) */}
@@ -222,7 +276,11 @@ export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F
           {/* Inner Recessed Bevel Panel */}
           <mesh position={[0, 0, 0.005]}>
             <planeGeometry args={[1.74, 1.80]} />
-            <meshStandardMaterial color="#FAF5EB" roughness={0.88} />
+            <meshStandardMaterial
+              map={wallPlasterTexture}
+              color="#F7F0E4"
+              roughness={0.92}
+            />
           </mesh>
         </group>
       ))}

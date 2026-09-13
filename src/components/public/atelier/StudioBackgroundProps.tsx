@@ -528,10 +528,23 @@ export const StudioBackgroundProps: React.FC = () => {
               <cylinderGeometry args={[0.012, 0.02, 0.24, 8]} />
               <meshStandardMaterial color="#68584B" roughness={0.9} />
             </mesh>
-            {/* Sage-Green Olive Leaf Cluster */}
-            <mesh position={[0, 0.08, 0]} castShadow>
-              <sphereGeometry args={[1, 10, 8]} />
-              <meshStandardMaterial color="#5C6950" roughness={0.78} />
+            {/* Layered Feathery Mediterranean Olive Leaf Clusters */}
+            {[-0.08, 0, 0.08].map((ox, lx) => (
+              <group key={`leaf-${lx}`} position={[ox, 0.06 + lx * 0.03, ox * 0.5]} rotation={[lx * 0.4, lx * 0.8, lx * 0.3]}>
+                <mesh castShadow>
+                  <planeGeometry args={[0.24, 0.14]} />
+                  <meshStandardMaterial color="#526442" roughness={0.72} side={THREE.DoubleSide} />
+                </mesh>
+                <mesh position={[0, 0, 0.008]} rotation={[0, Math.PI / 3, 0]}>
+                  <planeGeometry args={[0.21, 0.12]} />
+                  <meshStandardMaterial color="#677A55" roughness={0.75} side={THREE.DoubleSide} />
+                </mesh>
+              </group>
+            ))}
+            {/* Inner Dark Foliage Core */}
+            <mesh position={[0, 0.05, 0]}>
+              <sphereGeometry args={[0.11, 8, 6]} />
+              <meshStandardMaterial color="#3E4C32" roughness={0.88} />
             </mesh>
           </group>
         ))}
