@@ -295,9 +295,132 @@ export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F
                 metalness={0.02}
               />
             </mesh>
+            {/* Museum Exhibition Brass Curatorial Plaque */}
+            <group position={[0, -0.72, 0.02]}>
+              <mesh>
+                <boxGeometry args={[0.22, 0.045, 0.01]} />
+                <meshStandardMaterial color="#C8A663" metalness={0.85} roughness={0.25} />
+              </mesh>
+              {/* Twin brass plaque mounting screws */}
+              {[-0.085, 0.085].map((sx, sIdx) => (
+                <mesh key={`screw-${sIdx}`} position={[sx, 0, 0.006]}>
+                  <cylinderGeometry args={[0.003, 0.003, 0.004, 8]} />
+                  <meshStandardMaterial color="#8C6E32" metalness={0.9} roughness={0.2} />
+                </mesh>
+              ))}
+            </group>
           </group>
         );
       })}
+
+      {/* =====================================================================
+          7. HAUSSMANN NEOCLASSICAL DENTIL CROWN MOLDING (Ceiling Cornice)
+          Frames the grand room height with authentic French limestone moulding
+          ===================================================================== */}
+      <group position={[0, 3.65, 0.08]}>
+        {/* Topmost Projecting Limestone Fascia */}
+        <mesh position={[0, 0.14, 0.06]}>
+          <boxGeometry args={[26, 0.08, 0.22]} />
+          <meshStandardMaterial color="#EAE1D2" roughness={0.78} />
+        </mesh>
+        {/* Stepped Bedmoulding */}
+        <mesh position={[0, 0.07, 0.03]}>
+          <boxGeometry args={[26, 0.06, 0.16]} />
+          <meshStandardMaterial color="#E2D7C6" roughness={0.75} />
+        </mesh>
+        {/* Classical Haussmann Dentil Blocks along ceiling perimeter */}
+        {Array.from({ length: 65 }).map((_, dIdx) => (
+          <mesh key={`dentil-${dIdx}`} position={[-12.8 + dIdx * 0.4, 0.02, 0.08]}>
+            <boxGeometry args={[0.16, 0.04, 0.08]} />
+            <meshStandardMaterial color="#EAE1D2" roughness={0.75} />
+          </mesh>
+        ))}
+        {/* Lower Cyma Reversa Curved Architrave */}
+        <mesh position={[0, -0.06, 0]}>
+          <boxGeometry args={[26, 0.08, 0.10]} />
+          <meshStandardMaterial color="#DFD2BF" roughness={0.80} />
+        </mesh>
+        {/* Delicate Gold Leaf Inlay String */}
+        <mesh position={[0, -0.11, 0.01]}>
+          <boxGeometry args={[26, 0.015, 0.02]} />
+          <meshStandardMaterial color="#C8A663" metalness={0.75} roughness={0.35} />
+        </mesh>
+      </group>
+
+      {/* =====================================================================
+          8. CENTRAL NEOCLASSICAL BAS-RELIEF CARTOUCHE MEDALLION
+          Fine French plaster relief crest centered above the main gallery frame
+          ===================================================================== */}
+      <group position={[0, 2.76, 0.04]}>
+        {/* Outer Laurel Garland Ring */}
+        <mesh>
+          <torusGeometry args={[0.26, 0.025, 16, 32]} />
+          <meshStandardMaterial color="#EDE3D4" roughness={0.82} />
+        </mesh>
+        {/* Inner Cameo Plaster Field */}
+        <mesh position={[0, 0, -0.005]}>
+          <cylinderGeometry args={[0.24, 0.24, 0.02, 32]} />
+          <meshStandardMaterial color="#F5ECE0" roughness={0.88} />
+        </mesh>
+        {/* Bas-Relief Crest Emblem (Maison MIPA Stylized Antique Monogram) */}
+        <mesh position={[0, 0, 0.012]}>
+          <boxGeometry args={[0.08, 0.12, 0.01]} />
+          <meshStandardMaterial color="#C8A663" metalness={0.75} roughness={0.35} />
+        </mesh>
+        <mesh position={[0, 0.08, 0.012]}>
+          <coneGeometry args={[0.06, 0.06, 3]} />
+          <meshStandardMaterial color="#C8A663" metalness={0.75} roughness={0.35} />
+        </mesh>
+      </group>
+
+      {/* =====================================================================
+          9. FLANKING NEOCLASSICAL BRASS WALL SCONCES WITH PLEATED SILK SHADES
+          Positioned on the outer wall stiles to add warm, authentic residential lighting
+          ===================================================================== */}
+      {[-4.4, 4.4].map((sx, sIdx) => (
+        <group key={`sconce-${sIdx}`} position={[sx, 1.95, 0.06]}>
+          {/* Cast Brass Wall Backplate */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.065, 0.075, 0.025, 20]} />
+            <meshStandardMaterial color="#C8A663" metalness={0.85} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.045, 0.045, 0.02, 20]} />
+            <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+          </mesh>
+          {/* Classical Curved Swan-Neck Arm */}
+          <mesh position={[0, 0.06, 0.10]} rotation={[0.4, 0, 0]}>
+            <cylinderGeometry args={[0.012, 0.012, 0.22, 12]} />
+            <meshStandardMaterial color="#C8A663" metalness={0.85} roughness={0.25} />
+          </mesh>
+          {/* Fluted Candle-Cup & Bobeche Drip Pan */}
+          <group position={[0, 0.16, 0.16]}>
+            <mesh>
+              <cylinderGeometry args={[0.042, 0.025, 0.02, 16]} />
+              <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+            </mesh>
+            {/* Candle Stem */}
+            <mesh position={[0, 0.05, 0]}>
+              <cylinderGeometry args={[0.016, 0.016, 0.09, 16]} />
+              <meshStandardMaterial color="#FAF5EE" roughness={0.7} />
+            </mesh>
+            {/* Tapered French Pleated Silk Empire Shade */}
+            <mesh position={[0, 0.14, 0]} castShadow>
+              <cylinderGeometry args={[0.065, 0.125, 0.15, 24, 1, true]} />
+              <meshStandardMaterial
+                color="#FBF4E8"
+                roughness={0.85}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+            {/* Shade Top Brass Finial */}
+            <mesh position={[0, 0.22, 0]}>
+              <sphereGeometry args={[0.012, 12, 12]} />
+              <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+            </mesh>
+          </group>
+        </group>
+      ))}
     </group>
   );
 };

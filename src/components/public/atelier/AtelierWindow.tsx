@@ -113,6 +113,66 @@ export const AtelierWindow: React.FC<AtelierWindowProps> = () => {
             metalness={0.10}
           />
         </mesh>
+
+        {/* =====================================================================
+            3. PARISIAN WROUGHT-IRON JULIET RAILING (Garde-corps en fer forgé)
+            Authentic Haussmannian decorative ironwork visible outside the glass
+            ===================================================================== */}
+        <group position={[0, -1.85, -0.12]}>
+          {/* Top Iron Handrail */}
+          <mesh position={[0, 0.52, 0]}>
+            <boxGeometry args={[2.55, 0.035, 0.035]} />
+            <meshStandardMaterial color="#1E2024" metalness={0.85} roughness={0.35} />
+          </mesh>
+          {/* Bottom Iron Base Rail */}
+          <mesh position={[0, -0.52, 0]}>
+            <boxGeometry args={[2.55, 0.03, 0.03]} />
+            <meshStandardMaterial color="#1E2024" metalness={0.85} roughness={0.35} />
+          </mesh>
+          {/* Slender Vertical Iron Balusters */}
+          {Array.from({ length: 17 }).map((_, bIdx) => (
+            <mesh key={`iron-bar-${bIdx}`} position={[-1.12 + bIdx * 0.14, 0, 0]}>
+              <cylinderGeometry args={[0.008, 0.008, 1.02, 8]} />
+              <meshStandardMaterial color="#1E2024" metalness={0.85} roughness={0.35} />
+            </mesh>
+          ))}
+          {/* Decorative Parisian Ironwork Central Rosette Rings */}
+          {[-0.56, 0, 0.56].map((rx, rIdx) => (
+            <mesh key={`iron-rosette-${rIdx}`} position={[rx, 0, 0.008]}>
+              <torusGeometry args={[0.075, 0.008, 8, 20]} />
+              <meshStandardMaterial color="#2B2D33" metalness={0.8} roughness={0.4} />
+            </mesh>
+          ))}
+        </group>
+
+        {/* =====================================================================
+            4. FRENCH LINEN CURTAIN DRAPE & BRASS WALL TIEBACK
+            Gathered gracefully to the right side of the window frame
+            ===================================================================== */}
+        <group position={[1.36, -0.25, 0.14]}>
+          {/* Upper Gathered Curtain Swag */}
+          <mesh position={[0.08, 1.1, 0]} rotation={[0, 0, -0.08]} castShadow>
+            <cylinderGeometry args={[0.18, 0.14, 2.2, 16]} />
+            <meshStandardMaterial color="#DFD3C2" roughness={0.88} />
+          </mesh>
+          {/* Lower Cascading Curtain Tail */}
+          <mesh position={[0.16, -0.95, 0]} rotation={[0, 0, 0.06]} castShadow>
+            <cylinderGeometry args={[0.12, 0.22, 2.0, 16]} />
+            <meshStandardMaterial color="#D8CABE" roughness={0.88} />
+          </mesh>
+          {/* Polished Brass Wall Tieback Rosette & Hook */}
+          <group position={[-0.04, 0.02, 0.04]}>
+            <mesh rotation={[0, Math.PI / 2, 0]}>
+              <cylinderGeometry args={[0.038, 0.045, 0.025, 16]} />
+              <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+            </mesh>
+            {/* Curved Tieback Hook Arm */}
+            <mesh position={[0.03, 0, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.045, 0.01, 10, 16, Math.PI]} />
+              <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+            </mesh>
+          </group>
+        </group>
       </group>
     </group>
   );
