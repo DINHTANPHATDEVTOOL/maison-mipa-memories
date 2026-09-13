@@ -128,11 +128,25 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
         decay={1.8}
       />
 
-      {/* 5. FRONT STUDIO RIM & HARDWARE FILL (Highlights Canon magnesium chassis, red ring and optical glass) */}
+      {/* 5. CAMERA STUDIO SOFTBOX KEY LIGHT (Directly illuminates camera front, lens faceplate, red ring, and chassis) */}
       <directionalLight
-        color="#FFF9F0"
-        intensity={0.92}
-        position={[0.8, 3.6, 6.2]}
+        color="#FFF9F2"
+        intensity={1.35}
+        position={[-0.6, 0.8, 3.8]}
+      />
+
+      {/* 6. HARDWARE SPECULAR ACCENT LIGHT (Crisp highlights on metallic dials, chrome shutter, and lens rings) */}
+      <directionalLight
+        color="#F0F5FF"
+        intensity={0.95}
+        position={[0.8, -0.2, 3.2]}
+      />
+
+      {/* 7. TOP-BACK STUDIO RIM LIGHT (Outlines EVF hump, dials, and lens barrel with crisp metallic sheen) */}
+      <directionalLight
+        color="#FFF6EB"
+        intensity={1.4}
+        position={[-1.2, 3.2, -0.8]}
       />
     </>
   );

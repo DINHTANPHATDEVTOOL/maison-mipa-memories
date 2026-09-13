@@ -233,35 +233,35 @@ export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
   };
 
   // Calibrated positions relative to diorama cluster root:
-  // - Wedding frame: hovering above-left of camera
-  // - Lifestyle frame: far left, fully visible with artistic tilt
-  // - Baby frame: hovering above-right of camera, safely left of the editorial card!
+  // - Wedding frame: hovering high above-left of camera with generous clearance
+  // - Lifestyle frame: placed elegantly on the left, fully within screen bounds
+  // - Baby frame: hovering high on the right with spacious breathing room
   const frameConfigs = [
     {
       artwork: weddingArt,
       basePosition: isMobile
-        ? ([-0.9, 0.65, 0.1] as [number, number, number])
-        : ([-1.12, 0.74, 0.12] as [number, number, number]),
-      baseRotation: [0.04, 0.2, -0.07] as [number, number, number],
-      frameScale: (isMobile ? [0.85, 1.12, 1] : [1.02, 1.35, 1]) as [number, number, number],
+        ? ([-0.95, 0.76, 0.08] as [number, number, number])
+        : ([-1.42, 1.06, -0.10] as [number, number, number]),
+      baseRotation: [0.04, 0.14, -0.05] as [number, number, number],
+      frameScale: (isMobile ? [0.80, 1.06, 1] : [0.94, 1.25, 1]) as [number, number, number],
       floatOffset: 0,
     },
     {
       artwork: lifestyleArt,
       basePosition: isMobile
-        ? ([-1.75, 0.05, -0.2] as [number, number, number])
-        : ([-1.98, 0.1, -0.22] as [number, number, number]),
-      baseRotation: [0.03, 0.3, 0.12] as [number, number, number],
-      frameScale: (isMobile ? [0.72, 0.96, 1] : [0.84, 1.1, 1]) as [number, number, number],
+        ? ([-1.75, 0.12, -0.20] as [number, number, number])
+        : ([-2.15, 0.22, -0.22] as [number, number, number]),
+      baseRotation: [0.03, 0.28, 0.12] as [number, number, number],
+      frameScale: (isMobile ? [0.68, 0.90, 1] : [0.78, 1.04, 1]) as [number, number, number],
       floatOffset: 1.8,
     },
     {
       artwork: babyArt,
       basePosition: isMobile
-        ? ([0.75, 0.55, -0.05] as [number, number, number])
-        : ([0.95, 0.68, -0.05] as [number, number, number]),
-      baseRotation: [-0.03, -0.15, 0.05] as [number, number, number],
-      frameScale: (isMobile ? [0.76, 1.02, 1] : [0.92, 1.22, 1]) as [number, number, number],
+        ? ([0.85, 0.70, -0.08] as [number, number, number])
+        : ([1.38, 0.92, -0.16] as [number, number, number]),
+      baseRotation: [-0.03, -0.18, 0.05] as [number, number, number],
+      frameScale: (isMobile ? [0.72, 0.96, 1] : [0.85, 1.14, 1]) as [number, number, number],
       floatOffset: 3.2,
     },
   ];

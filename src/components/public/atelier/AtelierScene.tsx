@@ -17,6 +17,10 @@ import { FloatingOrnateFrames } from './FloatingOrnateFrames';
 import { FannedPolaroids } from './FannedPolaroids';
 import { FloatingAccessories } from './FloatingAccessories';
 import { AtelierDust } from './AtelierDust';
+import { AtelierBoiserie } from './AtelierBoiserie';
+import { AtelierWindow } from './AtelierWindow';
+import { AtelierFloor } from './AtelierFloor';
+import { StudioBackgroundProps } from './StudioBackgroundProps';
 
 interface AtelierSceneProps {
   cameraMode: AtelierCameraMode;
@@ -77,28 +81,17 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
       {/* 3. WARM STUDIO LIGHTING ENGINE */}
       <AtelierLighting preset={lightingPreset} reducedMotion={reducedMotion} />
 
-      {/* 4. WARM CREAM STUDIO CYCLORAMA WALL & FLOOR (Tactile French Studio) */}
-      <mesh position={[0, 1.4, -3.2]}>
-        <planeGeometry args={[28, 16]} />
-        <meshStandardMaterial color="#F8F3EA" roughness={0.96} />
-      </mesh>
+      {/* 4. PARISIAN BOISERIE WALL & MOULDINGS (Rich Neoclassical Architecture) */}
+      <AtelierBoiserie wallTone="#F6F1E6" />
 
-      {/* Ground Plaster Studio Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.35, 0]}>
-        <planeGeometry args={[28, 22]} />
-        <meshStandardMaterial color="#EFE7DA" roughness={0.88} />
-      </mesh>
+      {/* 5. GRAND FRENCH ARCHED STUDIO WINDOW (Left Background Daylight) */}
+      <AtelierWindow />
 
-      {/* Soft Floating Contact Shadows Grounding the Entire Diorama */}
-      <ContactShadows
-        position={isMobile ? [-0.2, -1.34, 0] : [-0.85, -1.34, 0]}
-        opacity={0.36}
-        scale={18}
-        blur={2.8}
-        far={5.0}
-        color="#3E2A1C"
-        frames={1}
-      />
+      {/* 6. FRENCH ATELIER STUDIO PROPS (Wooden Artist Easel & Pedestal) */}
+      <StudioBackgroundProps />
+
+      {/* 7. LUMINOUS FRENCH CHEVRON OAK PARQUET FLOOR & SHADOWS */}
+      <AtelierFloor />
 
       {/* 5. COHESIVE LIVING ATELIER DIORAMA GROUP (Carefully Balanced Spatial Cluster) */}
       <group
