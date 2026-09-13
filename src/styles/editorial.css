@@ -743,10 +743,10 @@
 /* Floating Editorial Card (Mockup Exact Match) */
 .hero-floating-card {
   position: absolute;
-  right: clamp(1.5rem, 3.5vw, 4rem);
+  right: clamp(2rem, 4.2vw, 4.8rem);
   top: 50%;
   transform: translateY(-50%);
-  width: clamp(340px, 28vw, 440px);
+  width: clamp(320px, 25vw, 395px);
   z-index: 15;
   pointer-events: auto;
 }

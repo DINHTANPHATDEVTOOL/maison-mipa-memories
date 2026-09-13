@@ -78,44 +78,50 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
       <AtelierLighting preset={lightingPreset} reducedMotion={reducedMotion} />
 
       {/* 4. WARM CREAM STUDIO CYCLORAMA WALL & FLOOR (Tactile French Studio) */}
-      <mesh position={[0, 1.4, -3.2]} receiveShadow>
+      <mesh position={[0, 1.4, -3.2]}>
         <planeGeometry args={[28, 16]} />
         <meshStandardMaterial color="#F8F3EA" roughness={0.96} />
       </mesh>
 
       {/* Ground Plaster Studio Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.35, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.35, 0]}>
         <planeGeometry args={[28, 22]} />
-        <meshStandardMaterial color="#EFE7DA" roughness={0.85} />
+        <meshStandardMaterial color="#EFE7DA" roughness={0.88} />
       </mesh>
 
-      {/* Soft Contact Shadows Grounding the Diorama */}
+      {/* Soft Floating Contact Shadows Grounding the Entire Diorama */}
       <ContactShadows
-        position={[0, -1.34, 0]}
-        opacity={0.38}
-        scale={20}
-        blur={2.0}
-        far={4.5}
-        color="#422E1F"
+        position={isMobile ? [-0.2, -1.34, 0] : [-0.85, -1.34, 0]}
+        opacity={0.36}
+        scale={18}
+        blur={2.8}
+        far={5.0}
+        color="#3E2A1C"
         frames={1}
       />
 
-      {/* 5. VINTAGE ROLLEIFLEX TWIN-LENS REFLEX CAMERA (Centerpiece) */}
-      <TwinLensCamera reducedMotion={reducedMotion} isMobile={isMobile} />
+      {/* 5. COHESIVE LIVING ATELIER DIORAMA GROUP (Carefully Balanced Spatial Cluster) */}
+      <group
+        position={isMobile ? [-0.2, -0.05, 0] : [-1.22, 0, 0]}
+        scale={isMobile ? [0.82, 0.82, 0.82] : [0.84, 0.84, 0.84]}
+      >
+        {/* Vintage Rolleiflex Twin-Lens Reflex Camera */}
+        <TwinLensCamera reducedMotion={reducedMotion} isMobile={isMobile} />
 
-      {/* 6. FLOATING ORNATE BAROQUE PICTURE FRAMES WITH REAL PHOTOGRAPHS */}
-      <FloatingOrnateFrames
-        artworks={artworks}
-        onSelectArtwork={onSelectArtwork}
-        reducedMotion={reducedMotion}
-        isMobile={isMobile}
-      />
+        {/* Floating Ornate Baroque Picture Frames With Real Photographs */}
+        <FloatingOrnateFrames
+          artworks={artworks}
+          onSelectArtwork={onSelectArtwork}
+          reducedMotion={reducedMotion}
+          isMobile={isMobile}
+        />
 
-      {/* 7. FANNED ARCHIVAL POLAROID PRINTS DECK */}
-      <FannedPolaroids reducedMotion={reducedMotion} isMobile={isMobile} />
+        {/* Fanned Archival Polaroid Prints Deck */}
+        <FannedPolaroids reducedMotion={reducedMotion} isMobile={isMobile} />
 
-      {/* 8. FLOATING PRIME LENS & COMPASS ROSE ACCESSORIES */}
-      <FloatingAccessories reducedMotion={reducedMotion} isMobile={isMobile} />
+        {/* Floating Prime Lens & Compass Rose Accessories */}
+        <FloatingAccessories reducedMotion={reducedMotion} isMobile={isMobile} />
+      </group>
 
       {/* 9. SUBTLE AIRBORNE WARM DUST PARTICLES */}
       <AtelierDust count={isMobile ? 35 : 75} reducedMotion={reducedMotion} />

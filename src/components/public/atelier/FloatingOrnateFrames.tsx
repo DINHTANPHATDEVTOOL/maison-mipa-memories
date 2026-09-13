@@ -1,6 +1,6 @@
 // ==============================================================================
 // Maison MIPA — Floating Ornate Baroque Picture Frames with Real Photographs
-// Zero Z-fighting, Genuine Photographic Prints & Carved Baroque Wood Trim
+// Multi-Tiered Beveled Wood Carvings, Gold Leaf Beads & Calibrated Spacing
 // ==============================================================================
 import React, { useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -46,15 +46,15 @@ const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
   texture.generateMipmaps = true;
 
   const [w, h] = [frameScale[0], frameScale[1]];
-  const borderW = 0.16;
-  const frameD = 0.07;
+  const borderW = 0.14;
+  const frameD = 0.06;
 
   useFrame((state) => {
     if (reducedMotion || !ref.current) return;
     const t = state.clock.getElapsedTime() + floatOffset;
-    ref.current.position.y = basePosition[1] + Math.sin(t * 1.1) * 0.04;
-    ref.current.rotation.z = baseRotation[2] + Math.sin(t * 0.9) * 0.015;
-    ref.current.rotation.x = baseRotation[0] + Math.cos(t * 0.8) * 0.01;
+    ref.current.position.y = basePosition[1] + Math.sin(t * 1.1) * 0.035;
+    ref.current.rotation.z = baseRotation[2] + Math.sin(t * 0.9) * 0.012;
+    ref.current.rotation.x = baseRotation[0] + Math.cos(t * 0.8) * 0.008;
   });
 
   return (
@@ -72,116 +72,135 @@ const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
         onClick();
       }}
     >
-      {/* 1. BACK BOARD */}
-      <mesh position={[0, 0, -0.01]} castShadow receiveShadow>
-        <boxGeometry args={[w + borderW * 2 + 0.1, h + borderW * 2 + 0.1, 0.03]} />
-        <meshStandardMaterial color="#4A3425" roughness={0.8} />
+      {/* 1. SOLID WOODEN BACKBOARD */}
+      <mesh position={[0, 0, -0.012]} castShadow receiveShadow>
+        <boxGeometry args={[w + borderW * 2 + 0.06, h + borderW * 2 + 0.06, 0.025]} />
+        <meshStandardMaterial color="#3D291C" roughness={0.8} />
       </mesh>
 
       {/* 2. MUSEUM PASSE-PARTOUT (Warm Ivory Mat Board) */}
       <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[w + borderW * 0.8, h + borderW * 0.8]} />
-        <meshStandardMaterial color="#F7F3EB" roughness={0.9} />
+        <planeGeometry args={[w + borderW * 0.7, h + borderW * 0.7]} />
+        <meshStandardMaterial color="#FAF7F0" roughness={0.92} />
       </mesh>
 
-      {/* 3. SHARP GENUINE PHOTOGRAPHIC PRINT (Guaranteed in front with no overlap) */}
-      <mesh position={[0, 0, 0.02]} castShadow receiveShadow>
+      {/* 3. SHARP GENUINE PHOTOGRAPHIC PRINT */}
+      <mesh position={[0, 0, 0.018]} castShadow receiveShadow>
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial
           map={texture}
-          roughness={0.3}
+          roughness={0.28}
           metalness={0.02}
         />
       </mesh>
 
-      {/* 4. CARVED WOODEN BORDER BARS (Framing the photo without covering it) */}
+      {/* 4. CARVED WOODEN BORDER BARS (Warm Walnut Stepped Profile) */}
       {/* Top bar */}
-      <mesh position={[0, h / 2 + borderW / 2, 0.03]} castShadow>
+      <mesh position={[0, h / 2 + borderW / 2, 0.026]}>
         <boxGeometry args={[w + borderW * 2, borderW, frameD]} />
-        <meshStandardMaterial color="#6E4D35" roughness={0.55} metalness={0.15} />
+        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
       </mesh>
+      {/* Top chamfer ridge */}
+      <mesh position={[0, h / 2 + borderW / 2, 0.046]}>
+        <boxGeometry args={[w + borderW * 2, borderW * 0.45, 0.015]} />
+        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+      </mesh>
+
       {/* Bottom bar */}
-      <mesh position={[0, -h / 2 - borderW / 2, 0.03]} castShadow>
+      <mesh position={[0, -h / 2 - borderW / 2, 0.026]}>
         <boxGeometry args={[w + borderW * 2, borderW, frameD]} />
-        <meshStandardMaterial color="#6E4D35" roughness={0.55} metalness={0.15} />
+        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
       </mesh>
+      {/* Bottom chamfer ridge */}
+      <mesh position={[0, -h / 2 - borderW / 2, 0.046]}>
+        <boxGeometry args={[w + borderW * 2, borderW * 0.45, 0.015]} />
+        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+      </mesh>
+
       {/* Left bar */}
-      <mesh position={[-w / 2 - borderW / 2, 0, 0.03]} castShadow>
+      <mesh position={[-w / 2 - borderW / 2, 0, 0.026]}>
         <boxGeometry args={[borderW, h, frameD]} />
-        <meshStandardMaterial color="#6E4D35" roughness={0.55} metalness={0.15} />
+        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
       </mesh>
+      {/* Left chamfer ridge */}
+      <mesh position={[-w / 2 - borderW / 2, 0, 0.046]}>
+        <boxGeometry args={[borderW * 0.45, h, 0.015]} />
+        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+      </mesh>
+
       {/* Right bar */}
-      <mesh position={[w / 2 + borderW / 2, 0, 0.03]} castShadow>
+      <mesh position={[w / 2 + borderW / 2, 0, 0.026]}>
         <boxGeometry args={[borderW, h, frameD]} />
-        <meshStandardMaterial color="#6E4D35" roughness={0.55} metalness={0.15} />
+        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
+      </mesh>
+      {/* Right chamfer ridge */}
+      <mesh position={[w / 2 + borderW / 2, 0, 0.046]}>
+        <boxGeometry args={[borderW * 0.45, h, 0.015]} />
+        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
       </mesh>
 
-      {/* 5. GOLD LEAF INNER MOLDING TRIM BEADS */}
-      {/* Top inner bead */}
-      <mesh position={[0, h / 2 + 0.01, 0.042]}>
-        <boxGeometry args={[w, 0.02, 0.02]} />
+      {/* 5. GOLD LEAF INNER BEADED MOLDING (Gilded Filigree Accent) */}
+      {/* Top bead */}
+      <mesh position={[0, h / 2 + 0.008, 0.036]}>
+        <boxGeometry args={[w, 0.016, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F5DFC0' : '#D4AF37'}
-          roughness={0.25}
+          color={isHovered ? '#F8E8D0' : '#DAB56C'}
+          roughness={0.24}
           metalness={0.88}
         />
       </mesh>
-      {/* Bottom inner bead */}
-      <mesh position={[0, -h / 2 - 0.01, 0.042]}>
-        <boxGeometry args={[w, 0.02, 0.02]} />
+      {/* Bottom bead */}
+      <mesh position={[0, -h / 2 - 0.008, 0.036]}>
+        <boxGeometry args={[w, 0.016, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F5DFC0' : '#D4AF37'}
-          roughness={0.25}
+          color={isHovered ? '#F8E8D0' : '#DAB56C'}
+          roughness={0.24}
           metalness={0.88}
         />
       </mesh>
-      {/* Left inner bead */}
-      <mesh position={[-w / 2 - 0.01, 0, 0.042]}>
-        <boxGeometry args={[0.02, h, 0.02]} />
+      {/* Left bead */}
+      <mesh position={[-w / 2 - 0.008, 0, 0.036]}>
+        <boxGeometry args={[0.016, h, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F5DFC0' : '#D4AF37'}
-          roughness={0.25}
+          color={isHovered ? '#F8E8D0' : '#DAB56C'}
+          roughness={0.24}
           metalness={0.88}
         />
       </mesh>
-      {/* Right inner bead */}
-      <mesh position={[w / 2 + 0.01, 0, 0.042]}>
-        <boxGeometry args={[0.02, h, 0.02]} />
+      {/* Right bead */}
+      <mesh position={[w / 2 + 0.008, 0, 0.036]}>
+        <boxGeometry args={[0.016, h, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F5DFC0' : '#D4AF37'}
-          roughness={0.25}
+          color={isHovered ? '#F8E8D0' : '#DAB56C'}
+          roughness={0.24}
           metalness={0.88}
         />
       </mesh>
 
-      {/* 6. ORNATE CARVED CORNER MEDALLIONS */}
+      {/* 6. ORNATE CARVED CORNER ROSETTES (Seamless Wooden Carvings With Gold Pips) */}
       {[
         [-w / 2 - borderW / 2, h / 2 + borderW / 2],
         [w / 2 + borderW / 2, h / 2 + borderW / 2],
         [-w / 2 - borderW / 2, -h / 2 - borderW / 2],
         [w / 2 + borderW / 2, -h / 2 - borderW / 2],
       ].map(([cx, cy], idx) => (
-        <group key={`corner-${idx}`} position={[cx, cy, 0.045]}>
-          <mesh>
-            <cylinderGeometry args={[0.09, 0.09, 0.03, 16]} />
-            <meshStandardMaterial color="#5E402C" roughness={0.65} metalness={0.18} />
+        <group key={`corner-rosette-${idx}`} position={[cx, cy, 0.038]}>
+          {/* Wood Scalloped Boss */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.048, 0.048, 0.016, 16]} />
+            <meshStandardMaterial color="#885E42" roughness={0.48} metalness={0.14} />
           </mesh>
-          <mesh position={[0, 0, 0.02]}>
-            <sphereGeometry args={[0.045, 12, 12]} />
+          {/* Center Gilded Pin */}
+          <mesh position={[0, 0, 0.014]}>
+            <sphereGeometry args={[0.018, 12, 12]} />
             <meshStandardMaterial
-              color={isHovered ? '#F5DFC0' : '#D4AF37'}
+              color={isHovered ? '#F8E8D0' : '#DDB86C'}
               roughness={0.22}
               metalness={0.88}
             />
           </mesh>
         </group>
       ))}
-
-      {/* 7. SOFT AMBIENT DROP SHADOW BEHIND FRAME */}
-      <mesh position={[0.08, -0.1, -0.06]}>
-        <planeGeometry args={[w + borderW * 2 + 0.3, h + borderW * 2 + 0.3]} />
-        <meshBasicMaterial color="#3C2A1E" transparent opacity={0.22} />
-      </mesh>
     </group>
   );
 };
@@ -195,10 +214,6 @@ export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   useCursor(hoveredId !== null, 'pointer', 'default');
 
-  // Explicitly assign artwork images to match user mockup:
-  // 1. Wedding frame: romantic wedding couple
-  // 2. Baby frame: toddler
-  // 3. Lifestyle frame: bridal portrait
   const weddingArt: AtelierArtwork = {
     ...(artworks.find((a) => a.wallPosition === 'center') || artworks[0]),
     imageUrl: '/hero-couple.jpg',
@@ -217,36 +232,36 @@ export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
     title: 'Nàng Thơ Paris',
   };
 
-  // Positions matching user's exact mockup:
-  // - Wedding frame: upper left of camera
-  // - Lifestyle frame: far left, angled outward
-  // - Baby frame: floating to the right of camera (before editorial card)
+  // Calibrated positions relative to diorama cluster root:
+  // - Wedding frame: hovering above-left of camera
+  // - Lifestyle frame: far left, fully visible with artistic tilt
+  // - Baby frame: hovering above-right of camera, safely left of the editorial card!
   const frameConfigs = [
     {
       artwork: weddingArt,
       basePosition: isMobile
-        ? ([-1.2, 0.65, 0.1] as [number, number, number])
-        : ([-1.85, 0.62, 0.3] as [number, number, number]),
-      baseRotation: [0.05, 0.24, -0.08] as [number, number, number],
-      frameScale: (isMobile ? [0.95, 1.25, 1] : [1.18, 1.55, 1]) as [number, number, number],
+        ? ([-0.9, 0.65, 0.1] as [number, number, number])
+        : ([-1.12, 0.74, 0.12] as [number, number, number]),
+      baseRotation: [0.04, 0.2, -0.07] as [number, number, number],
+      frameScale: (isMobile ? [0.85, 1.12, 1] : [1.02, 1.35, 1]) as [number, number, number],
       floatOffset: 0,
     },
     {
       artwork: lifestyleArt,
       basePosition: isMobile
-        ? ([-2.1, 0.05, -0.3] as [number, number, number])
-        : ([-3.25, 0.1, -0.2] as [number, number, number]),
-      baseRotation: [0.04, 0.38, 0.12] as [number, number, number],
-      frameScale: (isMobile ? [0.8, 1.08, 1] : [0.98, 1.3, 1]) as [number, number, number],
+        ? ([-1.75, 0.05, -0.2] as [number, number, number])
+        : ([-1.98, 0.1, -0.22] as [number, number, number]),
+      baseRotation: [0.03, 0.3, 0.12] as [number, number, number],
+      frameScale: (isMobile ? [0.72, 0.96, 1] : [0.84, 1.1, 1]) as [number, number, number],
       floatOffset: 1.8,
     },
     {
       artwork: babyArt,
       basePosition: isMobile
-        ? ([0.45, 0.55, -0.1] as [number, number, number])
-        : ([0.15, 0.58, 0.1] as [number, number, number]),
-      baseRotation: [-0.04, -0.16, 0.05] as [number, number, number],
-      frameScale: (isMobile ? [0.85, 1.15, 1] : [1.08, 1.42, 1]) as [number, number, number],
+        ? ([0.75, 0.55, -0.05] as [number, number, number])
+        : ([0.95, 0.68, -0.05] as [number, number, number]),
+      baseRotation: [-0.03, -0.15, 0.05] as [number, number, number],
+      frameScale: (isMobile ? [0.76, 1.02, 1] : [0.92, 1.22, 1]) as [number, number, number],
       floatOffset: 3.2,
     },
   ];

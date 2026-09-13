@@ -78,27 +78,34 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
     }
   });
 
+  const dirTarget = useRef<THREE.Object3D>(new THREE.Object3D());
+  const spotTarget = useRef<THREE.Object3D>(new THREE.Object3D());
+
+  React.useEffect(() => {
+    dirTarget.current.position.set(-1.15, -0.2, 0);
+    spotTarget.current.position.set(-1.15, 0.2, 0);
+    if (sunRef.current) {
+      sunRef.current.target = dirTarget.current;
+    }
+    if (spotRef.current) {
+      spotRef.current.target = spotTarget.current;
+    }
+  }, []);
+
   return (
     <>
-      {/* 1. ROOM AMBIENT TONE */}
-      <ambientLight ref={ambientRef} color={preset.ambientColor} intensity={preset.ambientIntensity} />
+      <primitive object={dirTarget.current} />
+      <primitive object={spotTarget.current} />
 
-      {/* 2. MAIN DIRECTIONAL WINDOW LIGHT (Key Light) */}
+      {/* 1. ROOM AMBIENT TONE (Soft Warm French Atelier) */}
+      <ambientLight ref={ambientRef} color={preset.ambientColor} intensity={preset.ambientIntensity * 1.05} />
+
+      {/* 2. MAIN DIRECTIONAL KEY LIGHT (Soft Diffused Studio Illumination) */}
       <directionalLight
         ref={sunRef}
         color={preset.sunColor}
-        intensity={preset.sunIntensity}
-        position={preset.sunPosition}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={0.5}
-        shadow-camera-far={25}
-        shadow-camera-left={-7}
-        shadow-camera-right={7}
-        shadow-camera-top={7}
-        shadow-camera-bottom={-7}
-        shadow-bias={-0.0001}
+        intensity={preset.sunIntensity * 1.1}
+        position={[-2.2, 6.5, 4.5]}
       />
 
       {/* 3. ARTWORK INTIMATE SPOTLIGHT (Soft Beauty Light) */}
@@ -106,8 +113,7 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
         ref={spotRef}
         color={preset.spotColor}
         intensity={preset.spotIntensity * 0.8}
-        position={preset.spotPosition}
-        target-position={[-0.8, 0.2, 0]}
+        position={[-1.2, 4.8, 3.2]}
         angle={0.65}
         penumbra={0.9}
       />
@@ -116,17 +122,17 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
       <pointLight
         ref={fillRef}
         color={preset.fillColor}
-        intensity={preset.fillIntensity}
+        intensity={preset.fillIntensity * 1.1}
         position={[-1.8, 1.1, 1.8]}
         distance={12}
         decay={1.8}
       />
 
-      {/* 5. FRONT ARCHITECTURAL FILL (Ensures boiserie moldings and props catch warm rim luster) */}
+      {/* 5. FRONT STUDIO RIM FILL (Ensures leatherette, champagne rims and prints catch warm luster) */}
       <directionalLight
-        color="#FFF4E0"
-        intensity={0.48}
-        position={[1.5, 4.2, 7.5]}
+        color="#FFF6E8"
+        intensity={0.68}
+        position={[0.5, 3.5, 6.5]}
       />
     </>
   );
