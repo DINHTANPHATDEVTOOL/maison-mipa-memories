@@ -1,9 +1,10 @@
 // ==============================================================================
-// Maison MIPA — The Living French Atelier Scene (R3F Assembly)
+// Maison MIPA — The Living French Atelier Scene (Light Cream Spatial Diorama)
 // ==============================================================================
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
+import { ContactShadows } from '@react-three/drei';
 import type {
   AtelierArtwork,
   AtelierCameraMode,
@@ -11,12 +12,10 @@ import type {
 } from './atelierTypes';
 import { AtelierCameraRig } from './AtelierCameraRig';
 import { AtelierLighting } from './AtelierLighting';
-import { AtelierFloor } from './AtelierFloor';
-import { AtelierCurtain } from './AtelierCurtain';
-import { AtelierVintageCamera } from './AtelierVintageCamera';
-import { AtelierEasel } from './AtelierEasel';
-import { AtelierBoiserie } from './AtelierBoiserie';
-import { AtelierWindow } from './AtelierWindow';
+import { TwinLensCamera } from './TwinLensCamera';
+import { FloatingOrnateFrames } from './FloatingOrnateFrames';
+import { FannedPolaroids } from './FannedPolaroids';
+import { FloatingAccessories } from './FloatingAccessories';
 import { AtelierDust } from './AtelierDust';
 
 interface AtelierSceneProps {
@@ -35,7 +34,7 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
   cameraMode,
   lightingPreset,
   artworks,
-  activeArtworkId,
+  activeArtworkId: _activeArtworkId,
   pointer,
   pointerRef,
   onSelectArtwork,
@@ -48,7 +47,6 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
 
   targetFogColor.current.set(lightingPreset.fogColor);
 
-  // Blocker 7: smoothly interpolate fog color, near, and far
   useFrame((_, delta) => {
     if (scene.fog && scene.fog instanceof THREE.Fog) {
       const lerpSpeed = reducedMotion ? 1.0 : Math.min(1.0, delta * 3.0);
@@ -61,13 +59,13 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
 
   return (
     <>
-      {/* 1. SCENE FOG (Atmospheric Depth) */}
+      {/* 1. SCENE FOG (Gentle Warm Atmospheric Depth) */}
       <fog
         attach="fog"
         args={[lightingPreset.fogColor, lightingPreset.fogNear, lightingPreset.fogFar]}
       />
 
-      {/* 2. CURATED CAMERA RIG */}
+      {/* 2. CURATED CAMERA RIG WITH SMOOTH PARALLAX */}
       <AtelierCameraRig
         cameraMode={cameraMode}
         pointer={pointer}
@@ -76,36 +74,51 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
         isMobile={isMobile}
       />
 
-      {/* 3. LIGHTING ENGINE */}
+      {/* 3. WARM STUDIO LIGHTING ENGINE */}
       <AtelierLighting preset={lightingPreset} reducedMotion={reducedMotion} />
 
-      {/* 4. FLOOR PLANE (Chevron Parquet) */}
-      <AtelierFloor />
+      {/* 4. WARM CREAM STUDIO CYCLORAMA WALL & FLOOR (Tactile French Studio) */}
+      <mesh position={[0, 1.4, -3.2]} receiveShadow>
+        <planeGeometry args={[28, 16]} />
+        <meshStandardMaterial color="#F8F3EA" roughness={0.96} />
+      </mesh>
 
-      {/* 5. BACK BOISERIE WALL & SOFTBOX PROP */}
-      <AtelierBoiserie />
+      {/* Ground Plaster Studio Floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.35, 0]} receiveShadow>
+        <planeGeometry args={[28, 22]} />
+        <meshStandardMaterial color="#EFE7DA" roughness={0.85} />
+      </mesh>
 
-      {/* 6. ARCHED WINDOW & LIGHT SHAFT (Blocker 29: subtle atmospheric haze 0.08-0.12) */}
-      <AtelierWindow
-        sunbeamColor={lightingPreset.sunColor}
-        sunbeamOpacity={lightingPreset.id === 'SUNSET' ? 0.08 : lightingPreset.id === 'MORNING' ? 0.12 : 0.10}
+      {/* Soft Contact Shadows Grounding the Diorama */}
+      <ContactShadows
+        position={[0, -1.34, 0]}
+        opacity={0.38}
+        scale={20}
+        blur={2.0}
+        far={4.5}
+        color="#422E1F"
+        frames={1}
       />
 
-      {/* 7. CENTERPIECE EASEL & ARTWORKS */}
-      <AtelierEasel
+      {/* 5. VINTAGE ROLLEIFLEX TWIN-LENS REFLEX CAMERA (Centerpiece) */}
+      <TwinLensCamera reducedMotion={reducedMotion} isMobile={isMobile} />
+
+      {/* 6. FLOATING ORNATE BAROQUE PICTURE FRAMES WITH REAL PHOTOGRAPHS */}
+      <FloatingOrnateFrames
         artworks={artworks}
-        activeArtworkId={activeArtworkId}
         onSelectArtwork={onSelectArtwork}
+        reducedMotion={reducedMotion}
+        isMobile={isMobile}
       />
 
-      {/* 8. FOREGROUND LINEN CURTAIN (Layer A Left) */}
-      <AtelierCurtain reducedMotion={reducedMotion} isMobile={isMobile} />
+      {/* 7. FANNED ARCHIVAL POLAROID PRINTS DECK */}
+      <FannedPolaroids reducedMotion={reducedMotion} isMobile={isMobile} />
 
-      {/* 9. FOREGROUND VINTAGE CAMERA & STOOL (Layer A Right) */}
-      <AtelierVintageCamera isMobile={isMobile} />
+      {/* 8. FLOATING PRIME LENS & COMPASS ROSE ACCESSORIES */}
+      <FloatingAccessories reducedMotion={reducedMotion} isMobile={isMobile} />
 
-      {/* 10. ATMOSPHERIC DUST PARTICLES */}
-      <AtelierDust count={isMobile ? 50 : 160} reducedMotion={reducedMotion} />
+      {/* 9. SUBTLE AIRBORNE WARM DUST PARTICLES */}
+      <AtelierDust count={isMobile ? 35 : 75} reducedMotion={reducedMotion} />
     </>
   );
 };

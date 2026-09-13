@@ -90,39 +90,43 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
         intensity={preset.sunIntensity}
         position={preset.sunPosition}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-camera-near={0.5}
         shadow-camera-far={25}
-        shadow-camera-left={-6}
-        shadow-camera-right={6}
-        shadow-camera-top={6}
-        shadow-camera-bottom={-6}
-        shadow-bias={-0.0005}
+        shadow-camera-left={-7}
+        shadow-camera-right={7}
+        shadow-camera-top={7}
+        shadow-camera-bottom={-7}
+        shadow-bias={-0.0001}
       />
 
-      {/* 3. ARTWORK INTIMATE SPOTLIGHT (Shining down on Master Photograph) */}
+      {/* 3. ARTWORK INTIMATE SPOTLIGHT (Soft Beauty Light) */}
       <spotLight
         ref={spotRef}
         color={preset.spotColor}
-        intensity={preset.spotIntensity}
+        intensity={preset.spotIntensity * 0.8}
         position={preset.spotPosition}
-        target-position={[0, 0.95, 0]}
-        angle={0.55}
-        penumbra={0.8}
-        castShadow
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
+        target-position={[-0.8, 0.2, 0]}
+        angle={0.65}
+        penumbra={0.9}
       />
 
-      {/* 4. SOFTBOX WARM FILL LIGHT */}
+      {/* 4. WARM ROOM BOUNCE FILL LIGHT */}
       <pointLight
         ref={fillRef}
         color={preset.fillColor}
         intensity={preset.fillIntensity}
-        position={[-2.8, 1.2, 1.2]}
-        distance={8}
-        decay={2}
+        position={[-1.8, 1.1, 1.8]}
+        distance={12}
+        decay={1.8}
+      />
+
+      {/* 5. FRONT ARCHITECTURAL FILL (Ensures boiserie moldings and props catch warm rim luster) */}
+      <directionalLight
+        color="#FFF4E0"
+        intensity={0.48}
+        position={[1.5, 4.2, 7.5]}
       />
     </>
   );

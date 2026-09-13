@@ -94,154 +94,215 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
     if (!hasInteracted) setHasInteracted(true);
   };
 
+// Curated filmstrip data matching user mockup
+const HERO_FILMSTRIP_ITEMS = [
+  {
+    id: 'film-1',
+    title: 'Nàng Thơ Paris',
+    category: 'Cô dâu',
+    imageUrl: '/hero-bride.jpg',
+    artworkIndex: 1,
+  },
+  {
+    id: 'film-2',
+    title: 'Nụ Cười Tuổi Thơ',
+    category: 'Em bé',
+    imageUrl: '/hero-baby.jpg',
+    artworkIndex: 2,
+  },
+  {
+    id: 'film-3',
+    title: 'Nghệ Thuật Cổ Điển',
+    category: 'Máy ảnh',
+    imageUrl: '/hero-camera.jpg',
+    artworkIndex: 0,
+  },
+  {
+    id: 'film-4',
+    title: 'Hôn Lễ Vượt Thời Gian',
+    category: 'Couple',
+    imageUrl: '/hero-couple.jpg',
+    artworkIndex: 0,
+  },
+  {
+    id: 'film-5',
+    title: 'Không Gian Atelier',
+    category: 'Studio',
+    imageUrl: '/studio.png',
+    artworkIndex: 0,
+  },
+  {
+    id: 'film-6',
+    title: 'Ký Ức Nghệ Thuật',
+    category: 'Nghệ thuật',
+    imageUrl: '/hero.png',
+    artworkIndex: 1,
+  },
+];
+
   return (
     <section
       id="atelier-3d"
       data-testid="hero-3d-exhibition"
       className="editorial-section hero-3d-section living-french-atelier"
       aria-label="Căn phòng atelier Maison MIPA"
-      style={{
-        paddingTop: '0.75rem',
-        paddingBottom: '2.5rem',
-        backgroundColor: '#15110E',
-        color: '#FBF6EE',
-        overflow: 'hidden',
-        position: 'relative',
-        transition: 'background-color 1.2s ease',
-      }}
     >
       <div className="editorial-container-wide">
-        {/* Semantic H1 for SEO and screen readers without promotional feature copy */}
+        {/* Semantic H1 for SEO and screen readers */}
         <h1 className="sr-only">
           Maison MIPA Memories — Living French Atelier
         </h1>
 
         {/* =====================================================================
-            THE LIVING FRENCH ATELIER 3D VIEWPORT (Pure Visual Hero Display)
+            HERO 3D STAGE & FLOATING EDITORIAL CARD (Mockup Exact Composition)
             ===================================================================== */}
-        <div
-          data-testid="virtual-exhibition-viewport"
-          className="atelier-viewport"
-          onPointerDown={() => { if (!hasInteracted) setHasInteracted(true); }}
-          style={{
-            background: currentLighting.bgGradient,
-          }}
-        >
-          {webglAvailable ? (
-            <React.Suspense
-              fallback={
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: currentLighting.bgGradient,
-                  }}
-                >
-                  <img
-                    src="/studio.png"
-                    alt="Maison MIPA Atelier"
+        <div className="hero-stage-container">
+          {/* 3D Viewport */}
+          <div
+            data-testid="virtual-exhibition-viewport"
+            className="atelier-viewport"
+            onPointerDown={() => { if (!hasInteracted) setHasInteracted(true); }}
+            style={{
+              background: currentLighting.bgGradient,
+            }}
+          >
+            {webglAvailable ? (
+              <React.Suspense
+                fallback={
+                  <div
                     style={{
-                      maxWidth: '480px',
-                      width: '75%',
-                      opacity: 0.5,
-                      borderRadius: '4px',
-                      filter: 'sepia(20%)',
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: currentLighting.bgGradient,
                     }}
+                  >
+                    <img
+                      src="/hero-couple.jpg"
+                      alt="Maison MIPA Atelier"
+                      style={{
+                        maxWidth: '480px',
+                        width: '75%',
+                        opacity: 0.8,
+                        borderRadius: '8px',
+                        boxShadow: '0 12px 30px rgba(0,0,0,0.12)',
+                      }}
+                    />
+                  </div>
+                }
+              >
+                <AtelierCanvas
+                  cameraMode={cameraMode}
+                  lightingPreset={currentLighting}
+                  artworks={artworks}
+                  activeArtworkId={selectedArtwork?.id || artworks[0]?.id || 'c1000000-0000-0000-0000-000000000002'}
+                  onSelectArtwork={handleSelectArtwork}
+                  reducedMotion={prefersReduced}
+                  onWebGLFailure={() => setWebglAvailable(false)}
+                />
+              </React.Suspense>
+            ) : (
+              /* Graceful Fallback for Non-WebGL / Low-Power Devices */
+              <div
+                data-testid="atelier-fallback-view"
+                className="atelier-fallback-box"
+              >
+                <div className="atelier-fallback-card">
+                  <img
+                    src="/hero-couple.jpg"
+                    alt="Maison MIPA Atelier"
+                    style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }}
                   />
                 </div>
-              }
-            >
-              <AtelierCanvas
-                cameraMode={cameraMode}
-                lightingPreset={currentLighting}
-                artworks={artworks}
-                activeArtworkId={selectedArtwork?.id || artworks[0]?.id || 'c1000000-0000-0000-0000-000000000002'}
-                onSelectArtwork={handleSelectArtwork}
-                reducedMotion={prefersReduced}
-                onWebGLFailure={() => setWebglAvailable(false)}
-              />
-            </React.Suspense>
-          ) : (
-            /* Graceful Fallback for Non-WebGL / Low-Power Devices */
-            <div
-              data-testid="atelier-fallback-view"
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '2rem',
-                background:
-                  'radial-gradient(ellipse at 50% 40%, #342820 0%, #1E1712 60%, #15110E 100%)',
-                color: '#FAF4EB',
-                textAlign: 'center',
-              }}
-            >
+                <h3 className="atelier-fallback-title">
+                  MAISON MIPA / ATELIER
+                </h3>
+                <p className="atelier-fallback-desc">
+                  Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp & tinh tế.
+                </p>
+              </div>
+            )}
+
+            {/* Floating Guidance Badge (hides upon real interaction) */}
+            {!hasInteracted && (
+              <div className="hero-guidance-badge">
+                <Compass size={14} style={{ color: '#8C6347' }} />
+                <span>{isMobile ? 'Chạm để tương tác góc nhìn 3D' : 'Rê chuột để cảm nhận chiều sâu 3D'}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Floating Editorial Card on the Right (Mockup Exact Match) */}
+          <div className="hero-floating-card">
+            <div className="hero-card-inner">
+              <h2 className="hero-card-title">
+                CAPTURING YOUR TIMELESS STORIES
+              </h2>
+              <p className="hero-card-subtitle">
+                Photography and artistry for life's most beautiful moments.
+              </p>
+              <div className="hero-card-actions">
+                <button
+                  type="button"
+                  className="hero-btn-discover"
+                  onClick={() => {
+                    const el = document.getElementById('selected-works') || document.querySelector('.featured-concepts-section');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  DISCOVER OUR WORK
+                </button>
+                <button
+                  type="button"
+                  className="hero-btn-book"
+                  onClick={() => onOpenBooking()}
+                >
+                  BOOK A SESSION
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* =====================================================================
+            BOTTOM CURATED FILMSTRIP (Mockup Exact 6 Photo Thumbnails)
+            ===================================================================== */}
+        <div className="hero-filmstrip-wrapper">
+          <div className="hero-filmstrip-grid">
+            {HERO_FILMSTRIP_ITEMS.map((item) => (
               <div
-                style={{
-                  maxWidth: '500px',
-                  border: '8px solid #3A2A1E',
-                  outline: '1px solid rgba(198, 164, 95, 0.5)',
-                  boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
-                  backgroundColor: '#261E18',
-                  padding: '8px',
-                  marginBottom: '1.2rem',
+                key={item.id}
+                className="hero-filmstrip-card"
+                onClick={() => {
+                  const targetArtwork = artworks[item.artworkIndex] || artworks[0];
+                  if (targetArtwork) handleSelectArtwork(targetArtwork);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    const targetArtwork = artworks[item.artworkIndex] || artworks[0];
+                    if (targetArtwork) handleSelectArtwork(targetArtwork);
+                  }
                 }}
               >
                 <img
-                  src="/studio.png"
-                  alt="Maison MIPA Atelier"
-                  style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }}
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="hero-filmstrip-img"
+                  loading="lazy"
                 />
+                <div className="hero-filmstrip-overlay">
+                  <span className="hero-filmstrip-cat">{item.category}</span>
+                  <span className="hero-filmstrip-title">{item.title}</span>
+                </div>
               </div>
-              <h3
-                style={{
-                  fontFamily: 'var(--editorial-font-heading, serif)',
-                  fontSize: '1.35rem',
-                  color: '#FAF4EB',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                MAISON MIPA / ATELIER
-              </h3>
-              <p style={{ color: '#D1C4B7', fontSize: '0.88rem', maxWidth: '420px', margin: 0 }}>
-                Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp & tinh tế.
-              </p>
-            </div>
-          )}
-
-          {/* Floating Guidance Badge (Blocker 10: hides upon real interaction; mobile-friendly text) */}
-          {!hasInteracted && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '18px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 20,
-                padding: '0.45rem 1rem',
-                borderRadius: '999px',
-                backgroundColor: 'rgba(18, 14, 11, 0.85)',
-                color: '#FAF4EB',
-                border: '1px solid rgba(198, 164, 95, 0.3)',
-                backdropFilter: 'blur(8px)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontSize: '0.78rem',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                pointerEvents: 'none',
-              }}
-            >
-              <Compass size={14} style={{ color: '#C6A45F' }} />
-              <span>{isMobile ? 'Chạm để khám phá atelier' : 'Chạm hoặc rê chuột để khám phá atelier'}</span>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
         {/* =====================================================================

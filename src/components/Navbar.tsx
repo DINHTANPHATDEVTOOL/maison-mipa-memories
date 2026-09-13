@@ -353,16 +353,24 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsMobileMenuOpen(false);
   };
 
+  const isEditorialPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname);
+
   return (
     <header style={{
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      backgroundColor: isScrolled ? 'rgba(21, 17, 14, 0.94)' : 'rgba(21, 17, 14, 0.85)',
+      backgroundColor: isEditorialPage
+        ? (isScrolled ? 'rgba(248, 243, 235, 0.96)' : 'rgba(248, 243, 235, 0.92)')
+        : (isScrolled ? 'rgba(21, 17, 14, 0.94)' : 'rgba(21, 17, 14, 0.85)'),
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: isScrolled ? '1px solid rgba(198, 164, 95, 0.22)' : '1px solid rgba(198, 164, 95, 0.12)',
-      boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.45)' : 'none',
+      borderBottom: isEditorialPage
+        ? (isScrolled ? '1px solid rgba(198, 164, 95, 0.28)' : '1px solid rgba(198, 164, 95, 0.18)')
+        : (isScrolled ? '1px solid rgba(198, 164, 95, 0.22)' : '1px solid rgba(198, 164, 95, 0.12)'),
+      boxShadow: isEditorialPage
+        ? (isScrolled ? '0 4px 20px rgba(60, 42, 30, 0.08)' : 'none')
+        : (isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.45)' : 'none'),
       transition: 'background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
     }}>
       <div className="mipa-container" style={{
@@ -388,7 +396,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontSize: '1.3rem',
               fontWeight: 600,
               letterSpacing: '0.06em',
-              color: '#FBF6EE',
+              color: isEditorialPage ? '#382417' : '#FBF6EE',
               lineHeight: 1.1,
               whiteSpace: 'nowrap',
             }}>
@@ -398,7 +406,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontSize: '0.62rem',
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: '#C6A45F',
+              color: isEditorialPage ? '#8C6E53' : '#C6A45F',
               fontWeight: 500,
               whiteSpace: 'nowrap',
             }}>
@@ -424,9 +432,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 style={{
                   background: 'transparent',
-                  color: isActive ? '#E0C287' : '#D1C4B7',
+                  color: isActive
+                    ? (isEditorialPage ? '#382417' : '#E0C287')
+                    : (isEditorialPage ? '#6A564A' : '#D1C4B7'),
                   border: 'none',
-                  borderBottom: isActive ? '1.5px solid #C6A45F' : '1.5px solid transparent',
+                  borderBottom: isActive
+                    ? (isEditorialPage ? '1.5px solid #8C6E53' : '1.5px solid #C6A45F')
+                    : '1.5px solid transparent',
                   padding: '0.5rem 0.1rem',
                   fontSize: '0.92rem',
                   fontWeight: isActive ? 600 : 400,
@@ -458,7 +470,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             border: 'none',
             background: 'transparent',
             padding: '0.5rem',
-            color: '#FBF6EE',
+            color: isEditorialPage ? '#382417' : '#FBF6EE',
             cursor: 'pointer',
           }}
           aria-label="Menu"
@@ -470,8 +482,25 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <button
             onClick={onOpenBooking}
-            className="public-btn-primary"
-            style={{ height: '36px', fontSize: '0.85rem', padding: '0 1.25rem', fontWeight: 600 }}
+            className={isEditorialPage ? 'hero-btn-discover' : 'public-btn-primary'}
+            style={isEditorialPage ? {
+              height: '36px',
+              fontSize: '0.82rem',
+              padding: '0 1.25rem',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              borderRadius: '6px',
+              backgroundColor: '#734B36',
+              color: '#FAF5EE',
+              boxShadow: '0 3px 10px rgba(115, 75, 54, 0.25)',
+              border: 'none',
+              cursor: 'pointer',
+            } : {
+              height: '36px',
+              fontSize: '0.85rem',
+              padding: '0 1.25rem',
+              fontWeight: 600,
+            }}
           >
             Đặt lịch
           </button>
@@ -684,14 +713,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.4rem 0.85rem',
-                    backgroundColor: 'var(--editorial-gold-accent, #C6A45F)',
-                    color: '#15110E',
-                    border: '1px solid var(--editorial-gold-accent, #C6A45F)',
+                    backgroundColor: isEditorialPage ? '#FAF5EE' : 'var(--editorial-gold-accent, #C6A45F)',
+                    color: isEditorialPage ? '#382417' : '#15110E',
+                    border: isEditorialPage ? '1px solid rgba(198, 164, 95, 0.45)' : '1px solid var(--editorial-gold-accent, #C6A45F)',
                     borderRadius: '20px',
                     cursor: 'pointer',
                     fontWeight: 600,
                     fontSize: '0.82rem',
-                    boxShadow: '0 2px 10px rgba(198, 164, 95, 0.25)',
+                    boxShadow: isEditorialPage ? '0 2px 8px rgba(60, 42, 30, 0.08)' : '0 2px 10px rgba(198, 164, 95, 0.25)',
                   }}
                 >
                   <LogIn size={14} />
@@ -704,9 +733,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.4rem 0.85rem',
-                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                    color: '#FBF6EE',
-                    border: '1px solid rgba(198, 164, 95, 0.35)',
+                    backgroundColor: isEditorialPage ? 'transparent' : 'rgba(255, 255, 255, 0.06)',
+                    color: isEditorialPage ? '#5A4333' : '#FBF6EE',
+                    border: isEditorialPage ? '1px solid rgba(198, 164, 95, 0.35)' : '1px solid rgba(198, 164, 95, 0.35)',
                     borderRadius: '20px',
                     cursor: 'pointer',
                     fontWeight: 600,

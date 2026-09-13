@@ -42,38 +42,38 @@ const FramedPhotograph: React.FC<{
         onClick();
       }}
     >
-      {/* 1. MOLDED WOODEN PICTURE FRAME */}
-      <mesh position={[0, 0, 0]} castShadow>
+      {/* 1. MOLDED WOODEN PICTURE FRAME WITH DELICATE BEVEL */}
+      <mesh position={[0, 0, 0]} castShadow receiveShadow>
         <boxGeometry args={[width + 0.22, height + 0.22, 0.08]} />
         <meshStandardMaterial
-          color={isCenter ? '#3B291D' : '#453224'}
-          roughness={0.65}
+          color={isCenter ? '#3E2A1D' : '#483526'}
+          roughness={0.6}
           metalness={0.12}
         />
       </mesh>
 
-      {/* Frame Gold Inlay Accent Rim */}
+      {/* Frame Gold Leaf Bevel Accent Inlay */}
       <mesh position={[0, 0, 0.042]}>
-        <boxGeometry args={[width + 0.18, height + 0.18, 0.01]} />
+        <boxGeometry args={[width + 0.18, height + 0.18, 0.012]} />
         <meshStandardMaterial
-          color={isHovered ? '#E0C287' : '#C6A45F'}
-          roughness={0.3}
-          metalness={0.8}
+          color={isHovered ? '#F0D49E' : '#D4AF37'}
+          roughness={0.28}
+          metalness={0.82}
         />
       </mesh>
 
-      {/* 2. MUSEUM PASSE-PARTOUT (MAT BOARD) */}
-      <mesh position={[0, 0, 0.045]}>
+      {/* 2. MUSEUM PASSE-PARTOUT (Archival Mat Board) */}
+      <mesh position={[0, 0, 0.046]}>
         <planeGeometry args={[width + 0.14, height + 0.14]} />
-        <meshStandardMaterial color="#221A15" roughness={0.9} />
+        <meshStandardMaterial color={isCenter ? '#241B15' : '#2A2019'} roughness={0.92} />
       </mesh>
 
-      {/* 3. PHYSICAL PHOTOGRAPHIC PRINT (REMAINS 100% SHARP) */}
-      <mesh position={[0, 0, 0.048]}>
+      {/* 3. PHYSICAL PHOTOGRAPHIC PRINT (REMAINS 100% CRISP & SHARP) */}
+      <mesh position={[0, 0, 0.049]}>
         <planeGeometry args={[width, height]} />
         <meshStandardMaterial
           map={texture}
-          roughness={0.45}
+          roughness={0.42}
           metalness={0.02}
         />
       </mesh>
@@ -83,7 +83,7 @@ const FramedPhotograph: React.FC<{
         <mesh>
           <boxGeometry args={[0.7, 0.12, 0.015]} />
           <meshStandardMaterial
-            color="#261E18"
+            color="#241B15"
             roughness={0.5}
             metalness={0.4}
           />
@@ -91,24 +91,41 @@ const FramedPhotograph: React.FC<{
         <mesh position={[0, 0, 0.009]}>
           <boxGeometry args={[0.68, 0.1, 0.005]} />
           <meshStandardMaterial
-            color={isHovered ? '#E0C287' : '#C6A45F'}
+            color={isHovered ? '#F0D49E' : '#D4AF37'}
             roughness={0.3}
-            metalness={0.7}
+            metalness={0.75}
           />
         </mesh>
       </group>
+
+      {/* 5. BRASS HANGING WIRES (For Wall-Hung Artworks connecting up to Picture Rail) */}
+      {!isCenter && (
+        <group position={[0, height / 2 + 0.1, 0]}>
+          <mesh position={[-width * 0.35, (3.25 - (artwork.position[1] + height / 2)) / 2, 0]}>
+            <cylinderGeometry
+              args={[0.004, 0.004, Math.max(0.2, 3.25 - (artwork.position[1] + height / 2)), 8]}
+            />
+            <meshStandardMaterial color="#C6A45F" metalness={0.8} roughness={0.3} />
+          </mesh>
+          <mesh position={[width * 0.35, (3.25 - (artwork.position[1] + height / 2)) / 2, 0]}>
+            <cylinderGeometry
+              args={[0.004, 0.004, Math.max(0.2, 3.25 - (artwork.position[1] + height / 2)), 8]}
+            />
+            <meshStandardMaterial color="#C6A45F" metalness={0.8} roughness={0.3} />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 };
 
 export const AtelierEasel: React.FC<AtelierEaselProps> = ({
   artworks,
-  activeArtworkId,
+  activeArtworkId: _activeArtworkId,
   onSelectArtwork,
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  // Blocker 8 & 30: switch cursor to pointer on hovering artwork, default otherwise
   useCursor(hoveredId !== null, 'pointer', 'default');
 
   const centerArtwork = artworks.find((a) => a.wallPosition === 'center') || artworks[0];
@@ -122,78 +139,60 @@ export const AtelierEasel: React.FC<AtelierEaselProps> = ({
           ===================================================================== */}
       <group position={[0, 0, 0]}>
         {/* Central Vertical Mast */}
-        <mesh position={[0, 1.05, -0.06]} castShadow>
-          <boxGeometry args={[0.09, 2.7, 0.07]} />
+        <mesh position={[0, 1.2, -0.06]} castShadow>
+          <boxGeometry args={[0.09, 3.1, 0.07]} />
           <meshStandardMaterial color="#4A3423" roughness={0.7} metalness={0.08} />
         </mesh>
 
         {/* Top Crank Mast Extension */}
-        <mesh position={[0, 2.3, -0.05]}>
-          <boxGeometry args={[0.16, 0.1, 0.1]} />
+        <mesh position={[0, 2.65, -0.05]} castShadow>
+          <boxGeometry args={[0.16, 0.12, 0.1]} />
           <meshStandardMaterial color="#5C422E" roughness={0.65} metalness={0.1} />
         </mesh>
+        {/* Brass Top Clamp Knob */}
+        <mesh position={[0, 2.65, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.035, 0.035, 0.06, 16]} />
+          <meshStandardMaterial color="#D4AF37" metalness={0.85} roughness={0.25} />
+        </mesh>
 
-        {/* Bottom Picture Rest Shelf */}
-        <mesh position={[0, 0.26, -0.01]} castShadow>
-          <boxGeometry args={[2.1, 0.08, 0.18]} />
+        {/* Picture Rest Shelf (positioned perfectly under the Master Portrait) */}
+        <mesh position={[0, -0.28, 0.04]} castShadow receiveShadow>
+          <boxGeometry args={[2.3, 0.09, 0.22]} />
           <meshStandardMaterial color="#543C29" roughness={0.65} metalness={0.1} />
+        </mesh>
+        {/* Brass Shelf Adjuster Knobs */}
+        <mesh position={[-0.8, -0.32, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.025, 0.025, 0.06, 12]} />
+          <meshStandardMaterial color="#D4AF37" metalness={0.8} roughness={0.3} />
+        </mesh>
+        <mesh position={[0.8, -0.32, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.025, 0.025, 0.06, 12]} />
+          <meshStandardMaterial color="#D4AF37" metalness={0.8} roughness={0.3} />
         </mesh>
 
         {/* A-Frame Left Slanted Leg */}
-        <mesh position={[-0.45, 0.0, -0.1]} rotation={[0, 0, -0.18]} castShadow>
-          <boxGeometry args={[0.07, 2.5, 0.06]} />
-          <meshStandardMaterial color="#3E2C1D" roughness={0.75} />
+        <mesh position={[-0.48, 0.0, -0.1]} rotation={[0, 0, -0.17]} castShadow>
+          <boxGeometry args={[0.07, 2.7, 0.06]} />
+          <meshStandardMaterial color="#422F20" roughness={0.75} />
         </mesh>
 
         {/* A-Frame Right Slanted Leg */}
-        <mesh position={[0.45, 0.0, -0.1]} rotation={[0, 0, 0.18]} castShadow>
-          <boxGeometry args={[0.07, 2.5, 0.06]} />
-          <meshStandardMaterial color="#3E2C1D" roughness={0.75} />
+        <mesh position={[0.48, 0.0, -0.1]} rotation={[0, 0, 0.17]} castShadow>
+          <boxGeometry args={[0.07, 2.7, 0.06]} />
+          <meshStandardMaterial color="#422F20" roughness={0.75} />
         </mesh>
 
         {/* Back Brace Leg (leaning backward) */}
-        <mesh position={[0, 0.0, -0.75]} rotation={[0.45, 0, 0]} castShadow>
-          <boxGeometry args={[0.07, 2.6, 0.06]} />
+        <mesh position={[0, 0.0, -0.85]} rotation={[0.42, 0, 0]} castShadow>
+          <boxGeometry args={[0.07, 2.8, 0.06]} />
           <meshStandardMaterial color="#3A291A" roughness={0.8} />
         </mesh>
       </group>
 
       {/* =====================================================================
-          SIDE GALLERY PLINTHS (Left & Right Minimal Display Columns)
+          RENDER ARTWORKS (Master on Easel + Wall-Hung Secondary Print)
           ===================================================================== */}
-      {leftArtwork && (
-        <group position={[-2.4, -0.85, -0.6]}>
-          {/* Left Pedestal Column */}
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.65, 1.1, 0.65]} />
-            <meshStandardMaterial color="#2B2019" roughness={0.85} metalness={0.05} />
-          </mesh>
-          {/* Brass Top Rim */}
-          <mesh position={[0, 0.555, 0]}>
-            <boxGeometry args={[0.67, 0.02, 0.67]} />
-            <meshStandardMaterial color="#A68340" roughness={0.4} metalness={0.7} />
-          </mesh>
-        </group>
-      )}
-
-      {rightArtwork && (
-        <group position={[2.3, -0.75, -0.8]}>
-          {/* Right Pedestal Column */}
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.65, 1.3, 0.65]} />
-            <meshStandardMaterial color="#2B2019" roughness={0.85} metalness={0.05} />
-          </mesh>
-          {/* Brass Top Rim */}
-          <mesh position={[0, 0.655, 0]}>
-            <boxGeometry args={[0.67, 0.02, 0.67]} />
-            <meshStandardMaterial color="#A68340" roughness={0.4} metalness={0.7} />
-          </mesh>
-        </group>
-      )}
-
-      {/* =====================================================================
-          RENDER ARTWORKS ON EASEL & PLINTHS
-          ===================================================================== */}
+      {/* 1. MASTER PORTRAIT (Hero of the atelier, occupying 35-45% of visual weight) */}
       {centerArtwork && (
         <FramedPhotograph
           artwork={centerArtwork}
@@ -205,6 +204,7 @@ export const AtelierEasel: React.FC<AtelierEaselProps> = ({
         />
       )}
 
+      {/* 2. SECONDARY ARTWORK (Hung gracefully from the Boiserie Picture Rail) */}
       {leftArtwork && (
         <FramedPhotograph
           artwork={leftArtwork}
@@ -215,6 +215,7 @@ export const AtelierEasel: React.FC<AtelierEaselProps> = ({
         />
       )}
 
+      {/* 3. FAR ARTWORK (If supplied, placed unobtrusively on far wall) */}
       {rightArtwork && (
         <FramedPhotograph
           artwork={rightArtwork}
