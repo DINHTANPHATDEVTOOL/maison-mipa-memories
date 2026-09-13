@@ -37,14 +37,29 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
   const [isIntersecting, setIsIntersecting] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
-  // Detect mobile & viewport size
+  // Cache container bounding rect to prevent layout thrashing on high-frequency pointer moves
+  const rectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
+
+  const updateRect = () => {
+    if (containerRef.current) {
+      const r = containerRef.current.getBoundingClientRect();
+      rectRef.current = { left: r.left, top: r.top, width: r.width, height: r.height };
+    }
+  };
+
+  // Detect mobile & viewport size and sync cached rect
   useEffect(() => {
-    const checkMobile = () => {
+    const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
+      updateRect();
     };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', updateRect, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', updateRect);
+    };
   }, []);
 
   // Performance budget: Pause frameloop when offscreen
@@ -53,6 +68,7 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsIntersecting(entry.isIntersecting);
+        if (entry.isIntersecting) updateRect();
       },
       { rootMargin: '200px 0px 200px 0px', threshold: 0.05 }
     );
@@ -60,10 +76,15 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Handle pointer tracking for camera parallax using ref directly (0 React rerenders)
+  // Handle pointer tracking for camera parallax using cached rect (0 layout reflows, 0 React rerenders)
+  const handlePointerEnter = () => {
+    updateRect();
+  };
+
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (reducedMotion || isMobile || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    if (reducedMotion || isMobile) return;
+    const rect = rectRef.current;
+    if (!rect || rect.width === 0 || rect.height === 0) return;
     pointerRef.current.x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
     pointerRef.current.y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
   };
@@ -78,6 +99,7 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
   return (
     <div
       ref={containerRef}
+      onPointerEnter={handlePointerEnter}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       data-testid="atelier-webgl-container"
@@ -91,7 +113,7 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
     >
       <Canvas
         shadows={{ type: THREE.PCFShadowMap }} // Blocker 2: enable real R3F shadows
-        dpr={isMobile ? [1, 1.25] : [1, 1.6]}
+        dpr={isMobile ? [1, 1.3] : [1, 1.8]}
         frameloop={isIntersecting ? 'always' : 'demand'}
         gl={{
           antialias: true,
@@ -107,7 +129,9 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
           far: 40,
         }}
         onCreated={({ gl }) => {
-          gl.toneMappingExposure = 1.0;
+          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          gl.toneMappingExposure = 1.02;
+          gl.outputColorSpace = THREE.SRGBColorSpace;
 
           // Blocker 36: context loss fallback handling
           const handleContextLost = (event: Event) => {

@@ -35,15 +35,25 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
   targetSpotColor.current.set(preset.spotColor);
 
   useFrame((_, delta) => {
-    const lerpSpeed = reducedMotion ? 1.0 : Math.min(1.0, delta * 3.2);
+    if (reducedMotion) return;
+    const lerpSpeed = Math.min(1.0, delta * 3.2);
 
-    // Lerp colors
-    currentSunColor.current.lerp(targetSunColor.current, lerpSpeed);
-    currentAmbientColor.current.lerp(targetAmbientColor.current, lerpSpeed);
-    currentSpotColor.current.lerp(targetSpotColor.current, lerpSpeed);
+    // Fast convergence check to save CPU/GPU overhead when settled
+    const colorDist =
+      Math.abs(currentSunColor.current.r - targetSunColor.current.r) +
+      Math.abs(currentSunColor.current.g - targetSunColor.current.g) +
+      Math.abs(currentSunColor.current.b - targetSunColor.current.b);
+    if (colorDist > 0.002) {
+      currentSunColor.current.lerp(targetSunColor.current, lerpSpeed);
+      currentAmbientColor.current.lerp(targetAmbientColor.current, lerpSpeed);
+      currentSpotColor.current.lerp(targetSpotColor.current, lerpSpeed);
 
-    if (ambientRef.current) {
-      ambientRef.current.color.copy(currentAmbientColor.current);
+      if (ambientRef.current) ambientRef.current.color.copy(currentAmbientColor.current);
+      if (sunRef.current) sunRef.current.color.copy(currentSunColor.current);
+      if (spotRef.current) spotRef.current.color.copy(currentSpotColor.current);
+    }
+
+    if (ambientRef.current && Math.abs(ambientRef.current.intensity - preset.ambientIntensity) > 0.01) {
       ambientRef.current.intensity = THREE.MathUtils.lerp(
         ambientRef.current.intensity,
         preset.ambientIntensity,
@@ -51,8 +61,7 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
       );
     }
 
-    if (sunRef.current) {
-      sunRef.current.color.copy(currentSunColor.current);
+    if (sunRef.current && Math.abs(sunRef.current.intensity - preset.sunIntensity) > 0.01) {
       sunRef.current.intensity = THREE.MathUtils.lerp(
         sunRef.current.intensity,
         preset.sunIntensity,
@@ -60,8 +69,7 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
       );
     }
 
-    if (spotRef.current) {
-      spotRef.current.color.copy(currentSpotColor.current);
+    if (spotRef.current && Math.abs(spotRef.current.intensity - preset.spotIntensity) > 0.01) {
       spotRef.current.intensity = THREE.MathUtils.lerp(
         spotRef.current.intensity,
         preset.spotIntensity,
@@ -69,7 +77,7 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
       );
     }
 
-    if (fillRef.current) {
+    if (fillRef.current && Math.abs(fillRef.current.intensity - preset.fillIntensity) > 0.01) {
       fillRef.current.intensity = THREE.MathUtils.lerp(
         fillRef.current.intensity,
         preset.fillIntensity,
@@ -97,22 +105,22 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
       <primitive object={dirTarget.current} />
       <primitive object={spotTarget.current} />
 
-      {/* 1. ROOM AMBIENT TONE (Soft Warm French Atelier) */}
-      <ambientLight ref={ambientRef} color={preset.ambientColor} intensity={preset.ambientIntensity * 1.05} />
+      {/* 1. ROOM AMBIENT TONE (Soft French Atelier — Deep Contrast Preserving) */}
+      <ambientLight ref={ambientRef} color={preset.ambientColor} intensity={preset.ambientIntensity} />
 
       {/* 2. MAIN DIRECTIONAL KEY LIGHT (Soft Diffused Studio Illumination) */}
       <directionalLight
         ref={sunRef}
         color={preset.sunColor}
-        intensity={preset.sunIntensity * 1.1}
+        intensity={preset.sunIntensity}
         position={[-2.2, 6.5, 4.5]}
       />
 
-      {/* 3. ARTWORK INTIMATE SPOTLIGHT (Soft Beauty Light) */}
+      {/* 3. ARTWORK INTIMATE SPOTLIGHT (Soft French Studio Key Spot) */}
       <spotLight
         ref={spotRef}
         color={preset.spotColor}
-        intensity={preset.spotIntensity * 0.8}
+        intensity={preset.spotIntensity}
         position={[-1.2, 4.8, 3.2]}
         angle={0.65}
         penumbra={0.9}
@@ -122,30 +130,32 @@ export const AtelierLighting: React.FC<AtelierLightingProps> = ({
       <pointLight
         ref={fillRef}
         color={preset.fillColor}
-        intensity={preset.fillIntensity * 1.1}
+        intensity={preset.fillIntensity}
         position={[-1.8, 1.1, 1.8]}
         distance={12}
         decay={1.8}
       />
 
-      {/* 5. CAMERA STUDIO SOFTBOX KEY LIGHT (Directly illuminates camera front, lens faceplate, red ring, and chassis) */}
-      <directionalLight
-        color="#FFF9F2"
-        intensity={1.35}
-        position={[-0.6, 0.8, 3.8]}
+      {/* 5. CAMERA COMMERCIAL BEAUTY SOFTBOX LIGHT (Directly illuminates Canon camera, lens optics, and red ring) */}
+      <pointLight
+        color="#FFF8F0"
+        intensity={1.15}
+        position={[-0.45, 0.22, 2.1]}
+        distance={4.5}
+        decay={1.6}
       />
 
-      {/* 6. HARDWARE SPECULAR ACCENT LIGHT (Crisp highlights on metallic dials, chrome shutter, and lens rings) */}
+      {/* 6. HARDWARE SPECULAR ACCENT LIGHT (Crisp glints on metallic dials, chrome shutter, and gold leaf) */}
       <directionalLight
-        color="#F0F5FF"
-        intensity={0.95}
-        position={[0.8, -0.2, 3.2]}
+        color="#FFF6EB"
+        intensity={0.45}
+        position={[1.2, 0.4, 3.2]}
       />
 
       {/* 7. TOP-BACK STUDIO RIM LIGHT (Outlines EVF hump, dials, and lens barrel with crisp metallic sheen) */}
       <directionalLight
-        color="#FFF6EB"
-        intensity={1.4}
+        color="#FFEAD0"
+        intensity={0.65}
         position={[-1.2, 3.2, -0.8]}
       />
     </>

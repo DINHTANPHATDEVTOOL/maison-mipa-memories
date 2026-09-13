@@ -31,56 +31,54 @@ function createMasterFrontLensTexture(): THREE.CanvasTexture {
     const cx = 512;
     const cy = 512;
 
-    // 1. Outer Dark Matte Anodized Bezel
-    ctx.fillStyle = '#121418';
+    // 1. Outer Dark Anodized Aluminum Barrel Ring
+    ctx.fillStyle = '#14161A';
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // ===================================================================
-    // THE ICONIC CANON L-SERIES RED RING (Faceplate Front Perimeter)
-    // ===================================================================
-    ctx.strokeStyle = '#FF0F1D';
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 498, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Red ring inner highlight groove
-    ctx.strokeStyle = '#FFA0A8';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 501, -Math.PI * 0.45, Math.PI * 0.05);
-    ctx.stroke();
-
-    // Filter Thread Lathe Grooves
-    for (let r = 425; r < 490; r += 6) {
-      ctx.strokeStyle = (r % 12 === 0) ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)';
+    // Lathe-turned precision metallic filter threads
+    for (let r = 445; r < 500; r += 5) {
+      ctx.strokeStyle = (r % 10 === 0) ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.04)';
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Outer and Inner Inscription Faceplate Boundary Grooves
-    ctx.strokeStyle = '#484E5C';
+    // Outer and inner retention bevel grooves
+    ctx.strokeStyle = '#383D48';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 498, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#282C34';
     ctx.lineWidth = 3.5;
     ctx.beginPath();
-    ctx.arc(cx, cy, 488, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 400, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.strokeStyle = '#343844';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 396, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Faceplate ring background
+    // Matte black faceplate ring (between threads and front element)
     ctx.fillStyle = '#181A20';
     ctx.beginPath();
-    ctx.arc(cx, cy, 486, 0, Math.PI * 2);
-    ctx.arc(cx, cy, 398, 0, Math.PI * 2, true);
+    ctx.arc(cx, cy, 496, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 402, 0, Math.PI * 2, true);
     ctx.fill();
 
-    // 2. Circular Laser-Etched Text on Faceplate Ring
+    // Iconic Canon L-Series ruby red ring line on faceplate perimeter
+    ctx.strokeStyle = '#FF1525';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 492, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Red ring inner delicate highlight groove
+    ctx.strokeStyle = '#FFA0A8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 494, -Math.PI * 0.45, Math.PI * 0.05);
+    ctx.stroke();
+
+    // 2. High-precision laser-etched lettering on faceplate ring
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -108,20 +106,20 @@ function createMasterFrontLensTexture(): THREE.CanvasTexture {
       }
     };
 
-    // Top Arc: CANON LENS RF 50mm F1.2 L USM (Large, bold, high-contrast)
+    // Top Arc: CANON LENS RF 50mm F1.2 L USM
     drawArcText(
       'CANON LENS RF 50mm F1.2',
-      444,
-      -Math.PI * 0.88,
+      446,
+      -Math.PI * 0.86,
       -Math.PI * 0.28,
-      'bold 46px Arial, Helvetica, sans-serif',
+      'bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       '#FFFFFF'
     );
 
     // Red "L" hallmark emblem
     drawArcText(
       'L',
-      444,
+      446,
       -Math.PI * 0.22,
       -Math.PI * 0.22,
       'bold 54px "Times New Roman", Georgia, serif',
@@ -130,129 +128,99 @@ function createMasterFrontLensTexture(): THREE.CanvasTexture {
 
     drawArcText(
       'USM',
-      444,
+      446,
       -Math.PI * 0.17,
       -Math.PI * 0.06,
-      'bold 46px Arial, Helvetica, sans-serif',
+      'bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       '#FFFFFF'
     );
 
     // Bottom Arc: ⌀95mm  IMAGE STABILIZER  MADE IN JAPAN
     drawArcText(
       '⌀95mm   IMAGE STABILIZER   MADE IN JAPAN',
-      444,
-      Math.PI * 0.16,
-      Math.PI * 0.84,
-      'bold 34px Arial, Helvetica, sans-serif',
-      '#E0E6F2'
+      446,
+      Math.PI * 0.18,
+      Math.PI * 0.82,
+      'bold 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      '#D8E0EC'
     );
 
-    // 3. Multi-Coated Optical Glass Base Circle (Radius 0 to 396)
-    const glassGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, 396);
-    glassGrad.addColorStop(0, '#060C14');      // Deep center pupil
-    glassGrad.addColorStop(0.25, '#0B2436');   // Optical glass core
-    glassGrad.addColorStop(0.55, '#0E7260');   // Radiant emerald green AR coating
-    glassGrad.addColorStop(0.78, '#1A5296');   // Deep cobalt blue reflection
-    glassGrad.addColorStop(1.0, '#461A62');    // Royal violet edge coating
+    // 3. Multicoated Front Optical Glass Base Element (Radius 0 to 400)
+    // Deep obsidian Schott glass core with subtle multi-layer anti-reflective sheen
+    const glassGrad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 400);
+    glassGrad.addColorStop(0, '#040609');      // Deep obsidian core
+    glassGrad.addColorStop(0.35, '#070C12');   // Optical glass body
+    glassGrad.addColorStop(0.70, '#0B151C');   // Deep petrol shadow
+    glassGrad.addColorStop(0.92, '#121E24');   // Subtle anti-reflective coating edge
+    glassGrad.addColorStop(1.0, '#1E1428');    // Deep violet edge reflection
 
     ctx.fillStyle = glassGrad;
     ctx.beginPath();
-    ctx.arc(cx, cy, 396, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 400, 0, Math.PI * 2);
     ctx.fill();
 
-    // 4. Internal 9-Blade Aperture Iris Diaphragm
+    // 4. Precision 9-Blade Aperture Iris Diaphragm
     ctx.save();
     ctx.translate(cx, cy);
     const bladeCount = 9;
-    const irisR = 215;
-    const innerR = 80;
+    const irisR = 210;
+    const innerR = 85;
     for (let i = 0; i < bladeCount; i++) {
       ctx.rotate((Math.PI * 2) / bladeCount);
-      ctx.fillStyle = i % 2 === 0 ? '#1E2430' : '#28303E';
-      ctx.strokeStyle = '#687890';
-      ctx.lineWidth = 3;
+      ctx.fillStyle = i % 2 === 0 ? '#11141A' : '#181C24';
+      ctx.strokeStyle = '#323A48';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.moveTo(innerR, 0);
-      ctx.lineTo(irisR, -40);
-      ctx.lineTo(irisR, 75);
-      ctx.lineTo(innerR + 30, 62);
+      ctx.lineTo(irisR, -35);
+      ctx.lineTo(irisR, 70);
+      ctx.lineTo(innerR + 25, 58);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
     }
     // Deep center aperture pupil opening
-    ctx.fillStyle = '#010306';
+    ctx.fillStyle = '#010204';
     ctx.beginPath();
     ctx.arc(0, 0, innerR - 2, 0, Math.PI * 2);
     ctx.fill();
-
-    // Pinpoint internal reflection star inside aperture
-    ctx.fillStyle = 'rgba(160, 245, 255, 0.9)';
-    ctx.beginPath();
-    ctx.arc(18, -18, 9, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
 
-    // 5. Fine Concentric Anti-Reflective Coating Rings
-    for (let r = 215; r < 392; r += 24) {
-      ctx.strokeStyle = (r % 48 === 0)
-        ? 'rgba(0, 245, 170, 0.30)'
-        : 'rgba(90, 165, 255, 0.25)';
-      ctx.lineWidth = 2.5;
+    // 5. Subtle concentric anti-reflective coating rings (Fine, delicate optics)
+    for (let r = 210; r < 395; r += 32) {
+      ctx.strokeStyle = (r % 64 === 0)
+        ? 'rgba(20, 180, 140, 0.12)'
+        : 'rgba(80, 140, 220, 0.10)';
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // 6. Photorealistic Studio Octabox / Softbox Key Reflection (Upper-Right Arc)
-    ctx.save();
-    const keyReflection = ctx.createLinearGradient(cx - 150, cy - 320, cx + 260, cy + 60);
-    keyReflection.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
-    keyReflection.addColorStop(0.20, 'rgba(235, 252, 255, 0.85)');
-    keyReflection.addColorStop(0.50, 'rgba(120, 230, 255, 0.45)');
-    keyReflection.addColorStop(0.85, 'rgba(50, 140, 240, 0.18)');
-    keyReflection.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-    ctx.fillStyle = keyReflection;
+    // 6. Natural Lens Chamfer Edge Bevel Glint
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.ellipse(cx + 90, cy - 115, 240, 110, Math.PI * 0.26, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // 7. Lower-Left Warm Studio Fill Highlight
-    ctx.save();
-    const fillReflection = ctx.createRadialGradient(cx - 180, cy + 160, 10, cx - 180, cy + 160, 190);
-    fillReflection.addColorStop(0, 'rgba(255, 240, 220, 0.65)');
-    fillReflection.addColorStop(0.45, 'rgba(230, 180, 250, 0.35)');
-    fillReflection.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = fillReflection;
-    ctx.beginPath();
-    ctx.arc(cx - 160, cy + 140, 175, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // 8. Crystalline Glass Retaining Bevel Glint
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 394, -Math.PI * 0.52, Math.PI * 0.12);
+    ctx.arc(cx, cy, 398, -Math.PI * 0.45, Math.PI * 0.05);
     ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(150, 235, 255, 0.75)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(180, 220, 255, 0.35)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, 394, Math.PI * 0.52, Math.PI * 0.98);
+    ctx.arc(cx, cy, 398, Math.PI * 0.55, Math.PI * 0.95);
     ctx.stroke();
   }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
+  texture.anisotropy = 16;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   return texture;
 }
 
 /**
  * Procedural authentic "Canon" Pentaprism Nameplate Canvas Texture
+ * Transparent background for seamless integration on 3D magnesium pentaprism
  */
 function createCanonLogoTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -260,28 +228,19 @@ function createCanonLogoTexture(): THREE.CanvasTexture {
   canvas.height = 180;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    ctx.fillStyle = '#181A20';
-    ctx.fillRect(0, 0, 512, 180);
+    ctx.clearRect(0, 0, 512, 180);
 
-    // Fine brushed horizontal metallic grain
-    for (let y = 0; y < 180; y += 3) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.fillRect(0, y, 512, 1.5);
-    }
-
-    // Canon Logotype (Iconic bold serif)
-    ctx.fillStyle = '#FFFFFF';
+    // Canon Logotype (Iconic bold serif with authentic proportions)
+    ctx.fillStyle = '#F4F5F7';
     ctx.font = 'bold 102px "Times New Roman", "Baskerville", Georgia, serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Canon', 256, 80);
-
-    // Red signature accent rule
-    ctx.fillStyle = '#FF1824';
-    ctx.fillRect(110, 140, 292, 9);
+    ctx.fillText('Canon', 256, 90);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 16;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   return texture;
 }
 
@@ -575,7 +534,12 @@ export const ModernCanonCamera: React.FC<ModernCanonCameraProps> = ({
         <group position={[0, 0.06, 0.235]} rotation={[-0.45, 0, 0]}>
           <mesh>
             <planeGeometry args={[0.38, 0.12]} />
-            <meshBasicMaterial map={canonLogoTexture} />
+            <meshStandardMaterial
+              map={canonLogoTexture}
+              transparent
+              roughness={0.28}
+              metalness={0.15}
+            />
           </mesh>
         </group>
 
@@ -762,17 +726,16 @@ export const ModernCanonCamera: React.FC<ModernCanonCameraProps> = ({
 
         {/* ===================================================================
             THE ICONIC CANON L-SERIES RED RING (Forward Anodized Ring)
-            Positioned right behind the front bezel, with wide radius to be
-            spectacularly visible from any viewing angle!
+            Positioned right behind the front bezel, with calibrated satin sheen
             =================================================================== */}
         <mesh position={[0, 0, 0.70]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.322, 0.322, 0.038, 48]} />
+          <cylinderGeometry args={[0.322, 0.322, 0.032, 48]} />
           <meshStandardMaterial
-            color="#FF0F1D"
-            emissive="#FF0F1D"
-            emissiveIntensity={1.2}
-            roughness={0.06}
-            metalness={0.85}
+            color="#FF1525"
+            emissive="#900C16"
+            emissiveIntensity={0.65}
+            roughness={0.20}
+            metalness={0.82}
           />
         </mesh>
 
@@ -783,26 +746,30 @@ export const ModernCanonCamera: React.FC<ModernCanonCameraProps> = ({
         </mesh>
 
         {/* ===================================================================
-            MASTER FRONT LENS DISC WITH RED RING, LASER INSCRIPTION,
-            MULTI-COATED OPTICS AND STUDIO SOFTBOX SPECULAR REFLECTIONS!
+            MASTER FRONT LENS DISC WITH LASER INSCRIPTION & OPTICAL ASSEMBLY
             =================================================================== */}
         <mesh position={[0, 0, 0.755]} rotation={[0, 0, 0]}>
           <circleGeometry args={[0.312, 64]} />
-          <meshBasicMaterial
+          <meshStandardMaterial
             map={masterFrontLensTexture}
+            roughness={0.16}
+            metalness={0.30}
             side={THREE.DoubleSide}
           />
         </mesh>
 
-        {/* Crystalline Glass Protective Layer (Subtle Dynamic Specular Glare) */}
+        {/* Crystalline Glass Front Element (Real 3D Convex Optical Curvature & Specular) */}
         <mesh position={[0, 0, 0.758]} rotation={[0, 0, 0]}>
-          <circleGeometry args={[0.310, 48]} />
-          <meshStandardMaterial
+          <sphereGeometry args={[0.312, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.22]} />
+          <meshPhysicalMaterial
             color="#FFFFFF"
             transparent
-            opacity={0.12}
-            roughness={0.04}
-            metalness={0.2}
+            opacity={0.16}
+            roughness={0.03}
+            transmission={0.92}
+            reflectivity={0.85}
+            clearcoat={1.0}
+            clearcoatRoughness={0.02}
           />
         </mesh>
       </group>

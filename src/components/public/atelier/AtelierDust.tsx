@@ -45,22 +45,13 @@ export const AtelierDust: React.FC<AtelierDustProps> = ({
     return [pos, spd];
   }, [count]);
 
-  useFrame((_, delta) => {
+  useFrame((state) => {
     if (reducedMotion || !pointsRef.current) return;
-    const posAttr = pointsRef.current.geometry.attributes.position;
-    const array = posAttr.array as Float32Array;
-
-    for (let i = 0; i < count; i++) {
-      // Gentle drift upward and slight sway
-      array[i * 3 + 1] += speeds[i * 3 + 1] * delta;
-      array[i * 3] += Math.sin(array[i * 3 + 1] * 1.8 + i) * 0.006;
-
-      // Wrap around when rising above ceiling
-      if (array[i * 3 + 1] > 3.8) {
-        array[i * 3 + 1] = -0.6;
-      }
-    }
-    posAttr.needsUpdate = true;
+    const t = state.clock.getElapsedTime();
+    // Move points container as a whole — 0 CPU vertex buffer uploads, 0 GPU stalls!
+    pointsRef.current.position.y = ((t * 0.09) % 2.5) - 1.25;
+    pointsRef.current.position.x = Math.sin(t * 0.4) * 0.05;
+    pointsRef.current.position.z = Math.cos(t * 0.3) * 0.04;
   });
 
   // Generate soft circular bokeh texture for organic dust particles

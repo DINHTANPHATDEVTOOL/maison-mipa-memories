@@ -46,7 +46,7 @@ function createWallArtTexture(type: 'editorial' | 'chateau' | 'portrait'): THREE
 
     // Fine archival film grain
     ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    for (let i = 0; i < 4000; i++) {
+    for (let i = 0; i < 2000; i++) {
       const rx = Math.random() * 512;
       const ry = Math.random() * 640;
       ctx.fillRect(rx, ry, 1.5, 1.5);
@@ -54,10 +54,12 @@ function createWallArtTexture(type: 'editorial' | 'chateau' | 'portrait'): THREE
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 16;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   return texture;
 }
 
-export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F6F1E6' }) => {
+export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F2E9DC' }) => {
   const artTexture1 = useMemo(() => createWallArtTexture('editorial'), []);
   const artTexture2 = useMemo(() => createWallArtTexture('chateau'), []);
   const artTexture3 = useMemo(() => createWallArtTexture('portrait'), []);
@@ -67,7 +69,7 @@ export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F
       {/* 1. MAIN WALL BACKING (Luminous Warm French Limestone / Plaster) */}
       <mesh position={[0, 1.8, 0]} receiveShadow>
         <planeGeometry args={[26, 8.5]} />
-        <meshStandardMaterial color={wallTone} roughness={0.92} metalness={0.02} />
+        <meshStandardMaterial color={wallTone} roughness={0.88} metalness={0.02} />
       </mesh>
 
       {/* 2. LOWER SKIRTING / BASEBOARD (French Plaster Wainscot Base) */}

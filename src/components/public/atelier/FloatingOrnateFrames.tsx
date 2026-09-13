@@ -28,7 +28,7 @@ interface SingleFrameProps {
   onClick: () => void;
 }
 
-const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
+const SingleOrnateFrame: React.FC<SingleFrameProps> = React.memo(({
   artwork,
   basePosition,
   baseRotation,
@@ -44,6 +44,9 @@ const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
   const texture = useTexture(artwork.imageUrl);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.generateMipmaps = true;
+  texture.anisotropy = 16;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
 
   const [w, h] = [frameScale[0], frameScale[1]];
   const borderW = 0.14;
@@ -62,26 +65,34 @@ const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
       ref={ref}
       position={basePosition}
       rotation={baseRotation}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        onPointerOver();
-      }}
-      onPointerOut={onPointerOut}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
     >
-      {/* 1. SOLID WOODEN BACKBOARD */}
-      <mesh position={[0, 0, -0.012]} castShadow receiveShadow>
-        <boxGeometry args={[w + borderW * 2 + 0.06, h + borderW * 2 + 0.06, 0.025]} />
-        <meshStandardMaterial color="#3D291C" roughness={0.8} />
+      {/* 0. HIGH-PERFORMANCE RAYCAST HIT TEST PLANE (Zero lag, 1 simple quad instead of 25 meshes) */}
+      <mesh
+        position={[0, 0, 0.05]}
+        visible={false}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          onPointerOver();
+        }}
+        onPointerOut={onPointerOut}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        <planeGeometry args={[w + borderW * 2, h + borderW * 2]} />
       </mesh>
 
-      {/* 2. MUSEUM PASSE-PARTOUT (Warm Ivory Mat Board) */}
+      {/* 1. SOLID WOODEN BACKBOARD (Rich Dark Parisian Walnut) */}
+      <mesh position={[0, 0, -0.012]} castShadow receiveShadow>
+        <boxGeometry args={[w + borderW * 2 + 0.04, h + borderW * 2 + 0.04, 0.025]} />
+        <meshStandardMaterial color="#180C05" roughness={0.78} />
+      </mesh>
+
+      {/* 2. MUSEUM PASSE-PARTOUT (Warm Archival Linen Ivory Mat — Slim Classical Bevel) */}
       <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[w + borderW * 0.7, h + borderW * 0.7]} />
-        <meshStandardMaterial color="#FAF7F0" roughness={0.92} />
+        <planeGeometry args={[w + borderW * 0.28, h + borderW * 0.28]} />
+        <meshStandardMaterial color="#F8F3E8" roughness={0.90} />
       </mesh>
 
       {/* 3. SHARP GENUINE PHOTOGRAPHIC PRINT */}
@@ -89,91 +100,91 @@ const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial
           map={texture}
-          roughness={0.28}
-          metalness={0.02}
+          roughness={0.14}
+          metalness={0.01}
         />
       </mesh>
 
-      {/* 4. CARVED WOODEN BORDER BARS (Warm Walnut Stepped Profile) */}
+      {/* 4. CARVED WOODEN BORDER BARS (Rich Parisian Walnut Stepped Profile) */}
       {/* Top bar */}
       <mesh position={[0, h / 2 + borderW / 2, 0.026]}>
         <boxGeometry args={[w + borderW * 2, borderW, frameD]} />
-        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
+        <meshStandardMaterial color="#261208" roughness={0.38} metalness={0.15} />
       </mesh>
       {/* Top chamfer ridge */}
       <mesh position={[0, h / 2 + borderW / 2, 0.046]}>
         <boxGeometry args={[w + borderW * 2, borderW * 0.45, 0.015]} />
-        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+        <meshStandardMaterial color="#3A1B0C" roughness={0.32} metalness={0.20} />
       </mesh>
 
       {/* Bottom bar */}
       <mesh position={[0, -h / 2 - borderW / 2, 0.026]}>
         <boxGeometry args={[w + borderW * 2, borderW, frameD]} />
-        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
+        <meshStandardMaterial color="#261208" roughness={0.38} metalness={0.15} />
       </mesh>
       {/* Bottom chamfer ridge */}
       <mesh position={[0, -h / 2 - borderW / 2, 0.046]}>
         <boxGeometry args={[w + borderW * 2, borderW * 0.45, 0.015]} />
-        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+        <meshStandardMaterial color="#3A1B0C" roughness={0.32} metalness={0.20} />
       </mesh>
 
       {/* Left bar */}
       <mesh position={[-w / 2 - borderW / 2, 0, 0.026]}>
         <boxGeometry args={[borderW, h, frameD]} />
-        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
+        <meshStandardMaterial color="#261208" roughness={0.38} metalness={0.15} />
       </mesh>
       {/* Left chamfer ridge */}
       <mesh position={[-w / 2 - borderW / 2, 0, 0.046]}>
         <boxGeometry args={[borderW * 0.45, h, 0.015]} />
-        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+        <meshStandardMaterial color="#3A1B0C" roughness={0.32} metalness={0.20} />
       </mesh>
 
       {/* Right bar */}
       <mesh position={[w / 2 + borderW / 2, 0, 0.026]}>
         <boxGeometry args={[borderW, h, frameD]} />
-        <meshStandardMaterial color="#78533B" roughness={0.52} metalness={0.1} />
+        <meshStandardMaterial color="#261208" roughness={0.38} metalness={0.15} />
       </mesh>
       {/* Right chamfer ridge */}
       <mesh position={[w / 2 + borderW / 2, 0, 0.046]}>
         <boxGeometry args={[borderW * 0.45, h, 0.015]} />
-        <meshStandardMaterial color="#8E6549" roughness={0.46} metalness={0.14} />
+        <meshStandardMaterial color="#3A1B0C" roughness={0.32} metalness={0.20} />
       </mesh>
 
-      {/* 5. GOLD LEAF INNER BEADED MOLDING (Gilded Filigree Accent) */}
+      {/* 5. GILDED FRENCH GOLD LEAF INNER FILLET BEADS (Luminous Museum Trim) */}
       {/* Top bead */}
       <mesh position={[0, h / 2 + 0.008, 0.036]}>
-        <boxGeometry args={[w, 0.016, 0.016]} />
+        <boxGeometry args={[w + 0.032, 0.016, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F8E8D0' : '#DAB56C'}
-          roughness={0.24}
-          metalness={0.88}
+          color={isHovered ? '#FFF2D4' : '#F0C248'}
+          roughness={0.12}
+          metalness={0.94}
         />
       </mesh>
       {/* Bottom bead */}
       <mesh position={[0, -h / 2 - 0.008, 0.036]}>
-        <boxGeometry args={[w, 0.016, 0.016]} />
+        <boxGeometry args={[w + 0.032, 0.016, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F8E8D0' : '#DAB56C'}
-          roughness={0.24}
-          metalness={0.88}
+          color={isHovered ? '#FFF2D4' : '#F0C248'}
+          roughness={0.12}
+          metalness={0.94}
         />
       </mesh>
       {/* Left bead */}
       <mesh position={[-w / 2 - 0.008, 0, 0.036]}>
         <boxGeometry args={[0.016, h, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F8E8D0' : '#DAB56C'}
-          roughness={0.24}
-          metalness={0.88}
+          color={isHovered ? '#FFF2D4' : '#F0C248'}
+          roughness={0.12}
+          metalness={0.94}
         />
       </mesh>
       {/* Right bead */}
       <mesh position={[w / 2 + 0.008, 0, 0.036]}>
         <boxGeometry args={[0.016, h, 0.016]} />
         <meshStandardMaterial
-          color={isHovered ? '#F8E8D0' : '#DAB56C'}
-          roughness={0.24}
-          metalness={0.88}
+          color={isHovered ? '#FFF2D4' : '#F0C248'}
+          roughness={0.12}
+          metalness={0.94}
         />
       </mesh>
 
@@ -188,22 +199,22 @@ const SingleOrnateFrame: React.FC<SingleFrameProps> = ({
           {/* Wood Scalloped Boss */}
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.048, 0.048, 0.016, 16]} />
-            <meshStandardMaterial color="#885E42" roughness={0.48} metalness={0.14} />
+            <meshStandardMaterial color="#422416" roughness={0.42} metalness={0.14} />
           </mesh>
           {/* Center Gilded Pin */}
           <mesh position={[0, 0, 0.014]}>
             <sphereGeometry args={[0.018, 12, 12]} />
             <meshStandardMaterial
-              color={isHovered ? '#F8E8D0' : '#DDB86C'}
-              roughness={0.22}
-              metalness={0.88}
+              color={isHovered ? '#FFF0D0' : '#F5D058'}
+              roughness={0.15}
+              metalness={0.92}
             />
           </mesh>
         </group>
       ))}
     </group>
   );
-};
+});
 
 export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
   artworks,

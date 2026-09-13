@@ -4,7 +4,6 @@
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { ContactShadows } from '@react-three/drei';
 import type {
   AtelierArtwork,
   AtelierCameraMode,
@@ -52,12 +51,16 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
   targetFogColor.current.set(lightingPreset.fogColor);
 
   useFrame((_, delta) => {
+    if (reducedMotion) return;
     if (scene.fog && scene.fog instanceof THREE.Fog) {
-      const lerpSpeed = reducedMotion ? 1.0 : Math.min(1.0, delta * 3.0);
-      currentFogColor.current.lerp(targetFogColor.current, lerpSpeed);
-      scene.fog.color.copy(currentFogColor.current);
-      scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, lightingPreset.fogNear, lerpSpeed);
-      scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, lightingPreset.fogFar, lerpSpeed);
+      const fogDiff = Math.abs(scene.fog.near - lightingPreset.fogNear);
+      if (fogDiff > 0.05) {
+        const lerpSpeed = Math.min(1.0, delta * 3.0);
+        currentFogColor.current.lerp(targetFogColor.current, lerpSpeed);
+        scene.fog.color.copy(currentFogColor.current);
+        scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, lightingPreset.fogNear, lerpSpeed);
+        scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, lightingPreset.fogFar, lerpSpeed);
+      }
     }
   });
 
@@ -82,7 +85,7 @@ export const AtelierScene: React.FC<AtelierSceneProps> = ({
       <AtelierLighting preset={lightingPreset} reducedMotion={reducedMotion} />
 
       {/* 4. PARISIAN BOISERIE WALL & MOULDINGS (Rich Neoclassical Architecture) */}
-      <AtelierBoiserie wallTone="#F6F1E6" />
+      <AtelierBoiserie wallTone="#EDE2D0" />
 
       {/* 5. GRAND FRENCH ARCHED STUDIO WINDOW (Left Background Daylight) */}
       <AtelierWindow />

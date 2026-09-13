@@ -58,35 +58,35 @@ export const FannedPolaroids: React.FC<FannedPolaroidsProps> = ({
   reducedMotion = false,
   isMobile = false,
 }) => {
-  // Cascading fanned deck spilling gracefully across the lower-left studio table, completely clear of the Canon lens
+  // Cascading fanned deck spilling gracefully across the lower-left studio table, completely clear of the Canon camera
   const cards = [
     {
       img: '/hero-bride.jpg',
-      pos: [-1.40, -0.48, 0.82] as [number, number, number],
+      pos: [-1.82, -0.48, 0.82] as [number, number, number],
       rot: [-0.62, 0.38, -0.45] as [number, number, number],
       offset: 0,
     },
     {
       img: '/hero-baby.jpg',
-      pos: [-1.24, -0.50, 0.92] as [number, number, number],
+      pos: [-1.66, -0.50, 0.90] as [number, number, number],
       rot: [-0.60, 0.28, -0.32] as [number, number, number],
       offset: 0.4,
     },
     {
       img: '/hero-couple.jpg',
-      pos: [-1.08, -0.52, 1.02] as [number, number, number],
+      pos: [-1.50, -0.52, 0.98] as [number, number, number],
       rot: [-0.58, 0.18, -0.18] as [number, number, number],
       offset: 0.8,
     },
     {
       img: '/hero-camera.jpg',
-      pos: [-0.92, -0.54, 1.12] as [number, number, number],
+      pos: [-1.34, -0.54, 1.06] as [number, number, number],
       rot: [-0.56, 0.08, -0.05] as [number, number, number],
       offset: 1.2,
     },
     {
       img: '/studio.png',
-      pos: [-0.76, -0.56, 1.20] as [number, number, number],
+      pos: [-1.18, -0.56, 1.14] as [number, number, number],
       rot: [-0.54, 0.0, 0.08] as [number, number, number],
       offset: 1.6,
     },
