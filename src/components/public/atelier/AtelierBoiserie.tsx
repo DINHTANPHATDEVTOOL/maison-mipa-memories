@@ -10,7 +10,8 @@ interface AtelierBoiserieProps {
 }
 
 /**
- * Procedural Fine Art Archival Sepia Print Canvas Textures
+ * Procedural Fine Art Archival Architectural Etching Lithograph Textures
+ * Crisp, authentic neoclassical line-art with zero glowing blurry halos or flicker
  */
 function createWallArtTexture(type: 'editorial' | 'chateau' | 'portrait'): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -18,39 +19,124 @@ function createWallArtTexture(type: 'editorial' | 'chateau' | 'portrait'): THREE
   canvas.height = 640;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    // Warm archival fine art paper base
-    const baseGrad = ctx.createLinearGradient(0, 0, 512, 640);
+    // 1. Warm archival French museum paper base
+    ctx.fillStyle = '#ECE4D6';
+    ctx.fillRect(0, 0, 512, 640);
+
+    // 2. Archival plate indent debossed border
+    ctx.strokeStyle = '#C4B6A2';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(36, 36, 440, 568);
+
+    // Inner fine archival frame border
+    ctx.strokeStyle = '#382B20';
+    ctx.lineWidth = 2.0;
+    ctx.strokeRect(48, 48, 416, 520);
+
+    // 3. Crisp Neoclassical Architectural Etching Art (Parisian Lithograph)
+    ctx.save();
+    ctx.translate(256, 275);
+    ctx.strokeStyle = '#2C2016';
+    ctx.fillStyle = '#2C2016';
+
     if (type === 'editorial') {
-      baseGrad.addColorStop(0, '#EAE1D2');
-      baseGrad.addColorStop(0.5, '#C4B5A0');
-      baseGrad.addColorStop(1, '#8A7A66');
+      // Grand Haussmann Colonnade / Neoclassical Arch Etching
+      ctx.lineWidth = 2.4;
+      // Arch outline
+      ctx.beginPath();
+      ctx.arc(0, -25, 110, Math.PI, 0);
+      ctx.lineTo(110, 185);
+      ctx.lineTo(-110, 185);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Inner arch
+      ctx.beginPath();
+      ctx.arc(0, -25, 85, Math.PI, 0);
+      ctx.lineTo(85, 185);
+      ctx.lineTo(-85, 185);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Corinthian Columns & Pediment Hatching lines
+      ctx.lineWidth = 1.2;
+      for (let y = -20; y < 185; y += 14) {
+        ctx.beginPath();
+        ctx.moveTo(-105, y);
+        ctx.lineTo(-90, y);
+        ctx.moveTo(90, y);
+        ctx.lineTo(105, y);
+        ctx.stroke();
+      }
+      // Arch keystone
+      ctx.fillRect(-14, -150, 28, 22);
+
+      // Keystone detail vertical hatchings
+      for (let i = -70; i <= 70; i += 14) {
+        ctx.beginPath();
+        ctx.moveTo(i, 80);
+        ctx.lineTo(i, 180);
+        ctx.stroke();
+      }
     } else if (type === 'chateau') {
-      baseGrad.addColorStop(0, '#F2EBE0');
-      baseGrad.addColorStop(0.4, '#D6C8B5');
-      baseGrad.addColorStop(1, '#968572');
+      // Château de Versailles French Parterre Garden & Fountain Study
+      ctx.lineWidth = 2.2;
+      // Symmetrical fountain basin
+      ctx.beginPath();
+      ctx.ellipse(0, 75, 130, 48, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 75, 95, 34, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Central fountain urn
+      ctx.fillRect(-18, 5, 36, 40);
+      ctx.beginPath();
+      ctx.arc(0, -30, 45, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Symmetrical French Cypress trees silhouette
+      [-95, 95].forEach((tx) => {
+        ctx.beginPath();
+        ctx.moveTo(tx, 90);
+        ctx.lineTo(tx - 24, -60);
+        ctx.lineTo(tx, -110);
+        ctx.lineTo(tx + 24, -60);
+        ctx.closePath();
+        ctx.stroke();
+        // Trunk
+        ctx.fillRect(tx - 4, 90, 8, 30);
+      });
     } else {
-      baseGrad.addColorStop(0, '#E8DDD0');
-      baseGrad.addColorStop(0.6, '#BCAE9B');
-      baseGrad.addColorStop(1, '#786856');
-    }
-    ctx.fillStyle = baseGrad;
-    ctx.fillRect(0, 0, 512, 640);
+      // Fine Art Camera & Optical Studies (Vintage French Patent Etching)
+      ctx.lineWidth = 2.2;
+      // Camera chassis contour
+      ctx.strokeRect(-90, -40, 180, 140);
+      // Lens concentric optical elements
+      ctx.beginPath();
+      ctx.arc(0, 30, 52, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 30, 36, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 30, 18, 0, Math.PI * 2);
+      ctx.stroke();
 
-    // Subtle atmospheric artistic vignetting & brushwork
-    const vignette = ctx.createRadialGradient(256, 320, 100, 256, 320, 360);
-    vignette.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
-    vignette.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
-    vignette.addColorStop(1, 'rgba(40, 30, 20, 0.45)');
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, 512, 640);
-
-    // Fine archival film grain
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    for (let i = 0; i < 2000; i++) {
-      const rx = Math.random() * 512;
-      const ry = Math.random() * 640;
-      ctx.fillRect(rx, ry, 1.5, 1.5);
+      // Top rangefinder dial & viewfinder housing
+      ctx.strokeRect(-32, -85, 64, 45);
+      ctx.strokeRect(40, -65, 38, 25);
     }
+    ctx.restore();
+
+    // 4. Fine archival museum typography at base
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#3A2C20';
+    ctx.font = 'bold 15px "Times New Roman", Georgia, serif';
+    ctx.fillText('MAISON MIPA — PARIS', 256, 584);
+    ctx.font = 'italic 12px "Times New Roman", Georgia, serif';
+    ctx.fillStyle = '#685748';
+    ctx.fillText('Atelier d\'Art Photographique • Planche No. IV', 256, 604);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -183,67 +269,30 @@ export const AtelierBoiserie: React.FC<AtelierBoiserieProps> = ({ wallTone = '#F
               </group>
             ))}
 
-            {/* Classical French Gallery Picture Sconce Light above frame */}
-            <group position={[0, 0.78, 0.08]}>
-              {/* Sconce Wall Flange */}
-              <mesh>
-                <cylinderGeometry args={[0.025, 0.025, 0.012, 12]} />
-                <meshStandardMaterial color="#B89348" metalness={0.85} roughness={0.25} />
-              </mesh>
-              {/* Curved Brass Gooseneck Arm */}
-              <mesh position={[0, 0.04, 0.06]} rotation={[0.4, 0, 0]}>
-                <cylinderGeometry args={[0.006, 0.006, 0.12, 8]} />
-                <meshStandardMaterial color="#D4AF37" metalness={0.85} roughness={0.2} />
-              </mesh>
-              {/* Horizontal Brass Lamp Shade */}
-              <mesh position={[0, 0.08, 0.11]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.02, 0.02, 0.28, 16]} />
-                <meshStandardMaterial color="#C8A663" metalness={0.85} roughness={0.25} />
-              </mesh>
-              {/* Warm Soft Glow Bead */}
-              <mesh position={[0, 0.065, 0.11]}>
-                <boxGeometry args={[0.22, 0.008, 0.012]} />
-                <meshBasicMaterial color="#FFF4D0" />
-              </mesh>
-            </group>
-
-            {/* Dark Patinated Walnut / Gilded Wood Outer Frame */}
-            <mesh receiveShadow castShadow>
+            {/* Dark Patinated Parisian Walnut Outer Frame */}
+            <mesh>
               <boxGeometry args={[1.05, 1.28, 0.035]} />
-              <meshStandardMaterial color="#3A291E" roughness={0.65} metalness={0.15} />
+              <meshStandardMaterial color="#221208" roughness={0.65} metalness={0.12} />
             </mesh>
             {/* Inner Gilded Fillet Bead */}
-            <mesh position={[0, 0, 0.015]}>
+            <mesh position={[0, 0, 0.014]}>
               <boxGeometry args={[0.96, 1.19, 0.01]} />
-              <meshStandardMaterial color="#C8A663" roughness={0.35} metalness={0.75} />
+              <meshStandardMaterial color="#C8A663" roughness={0.32} metalness={0.80} />
             </mesh>
 
             {/* Archival Ecru Matboard (Passe-Partout) */}
-            <mesh position={[0, 0, 0.02]}>
+            <mesh position={[0, 0, 0.018]}>
               <planeGeometry args={[0.92, 1.15]} />
-              <meshStandardMaterial color="#F5EFE6" roughness={0.92} />
+              <meshStandardMaterial color="#F6F0E6" roughness={0.92} />
             </mesh>
 
-            {/* Fine Art Photographic Print */}
-            <mesh position={[0, 0, 0.022]}>
-              <planeGeometry args={[0.72, 0.94]} />
+            {/* Fine Art Archival Etching Print (Crisp, High-Contrast, Zero Z-Fighting) */}
+            <mesh position={[0, 0, 0.024]}>
+              <planeGeometry args={[0.74, 0.96]} />
               <meshStandardMaterial
                 map={frame.texture}
-                roughness={0.35}
-                metalness={0.05}
-              />
-            </mesh>
-
-            {/* Glass Glare Reflection */}
-            <mesh position={[0, 0, 0.024]}>
-              <planeGeometry args={[0.92, 1.15]} />
-              <meshPhysicalMaterial
-                color="#FFFFFF"
-                transparent
-                opacity={0.12}
-                roughness={0.05}
-                transmission={0.94}
-                reflectivity={0.6}
+                roughness={0.82}
+                metalness={0.02}
               />
             </mesh>
           </group>

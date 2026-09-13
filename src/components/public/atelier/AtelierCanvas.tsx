@@ -112,7 +112,7 @@ export const AtelierCanvas: React.FC<AtelierCanvasProps> = ({
       }}
     >
       <Canvas
-        shadows={{ type: THREE.PCFShadowMap }} // Blocker 2: enable real R3F shadows
+        shadows={false} // Fast procedural contact shadows eliminate expensive shadow map traversal
         dpr={isMobile ? [1, 1.3] : [1, 1.8]}
         frameloop={isIntersecting ? 'always' : 'demand'}
         gl={{

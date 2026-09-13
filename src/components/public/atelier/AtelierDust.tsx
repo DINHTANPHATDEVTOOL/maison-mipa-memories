@@ -84,11 +84,11 @@ export const AtelierDust: React.FC<AtelierDustProps> = ({
       </bufferGeometry>
       <pointsMaterial
         map={dustTexture || undefined}
-        color="#FFF4DE"
-        size={0.062}
+        color="#FBE6CE"
+        size={0.038}
         transparent
-        opacity={0.72}
-        blending={THREE.AdditiveBlending}
+        opacity={0.35}
+        blending={THREE.NormalBlending}
         depthWrite={false}
       />
     </points>

@@ -105,14 +105,12 @@ export const AtelierWindow: React.FC<AtelierWindowProps> = () => {
         {/* Transparent French Glass Panes with Realistic Specular Sheen */}
         <mesh position={[0, -0.4, -0.02]}>
           <planeGeometry args={[2.4, 4.3]} />
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             color="#FFFDFC"
             transparent
-            opacity={0.16}
-            roughness={0.06}
-            transmission={0.92}
-            thickness={0.06}
-            reflectivity={0.6}
+            opacity={0.14}
+            roughness={0.08}
+            metalness={0.10}
           />
         </mesh>
       </group>

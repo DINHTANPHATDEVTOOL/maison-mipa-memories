@@ -761,15 +761,12 @@ export const ModernCanonCamera: React.FC<ModernCanonCameraProps> = ({
         {/* Crystalline Glass Front Element (Real 3D Convex Optical Curvature & Specular) */}
         <mesh position={[0, 0, 0.758]} rotation={[0, 0, 0]}>
           <sphereGeometry args={[0.312, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.22]} />
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             color="#FFFFFF"
             transparent
-            opacity={0.16}
-            roughness={0.03}
-            transmission={0.92}
-            reflectivity={0.85}
-            clearcoat={1.0}
-            clearcoatRoughness={0.02}
+            opacity={0.12}
+            roughness={0.04}
+            metalness={0.18}
           />
         </mesh>
       </group>
