@@ -8,7 +8,7 @@
 // ==============================================================================
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Camera, ChevronRight, Home, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { ChevronRight, Home, ShieldCheck, UserCheck } from 'lucide-react';
 import { BookingWizard } from '../components/booking/BookingWizard';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
@@ -38,10 +38,10 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   ];
 
   return (
-    <div style={{ backgroundColor: 'var(--mipa-background)', minHeight: '80vh', paddingBottom: '4rem' }}>
+    <div style={{ backgroundColor: 'var(--editorial-bg)', minHeight: '80vh', paddingBottom: '4rem' }}>
       <SeoHead
-        title="Đặt Lịch Chụp Ảnh Trực Tuyến 24/7 | Maison MIPA Memories"
-        description="Đặt lịch chụp ảnh trực tuyến nhanh chóng tại Maison MIPA Memories. Lựa chọn concept nghệ thuật, phòng studio riêng tư, dịch vụ makeup và thanh toán cọc an toàn."
+        title="Đặt lịch chụp ảnh trực tuyến 24/7 | Maison MIPA Memories"
+        description="Đặt lịch chụp ảnh trực tuyến nhanh chóng tại Maison MIPA Memories. Lựa chọn concept, gói chụp, dịch vụ bổ sung và thanh toán cọc an toàn."
         canonicalPath="/booking"
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
@@ -60,58 +60,42 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           alignItems: 'center',
           gap: '0.5rem',
           fontSize: '0.85rem',
-          color: '#8C6E53',
+          color: 'var(--editorial-brown-secondary)',
         }}>
           <li>
-            <Link to="/" style={{ color: '#8C6E53', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Link to="/" style={{ color: 'var(--editorial-brown-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <Home size={14} /> Trang chủ
             </Link>
           </li>
-          <li><ChevronRight size={14} color="#C6A45F" /></li>
-          <li style={{ fontWeight: 600, color: '#604634' }} aria-current="page">
-            Đặt lịch online
+          <li><ChevronRight size={14} color="var(--editorial-accent)" /></li>
+          <li style={{ fontWeight: 500, color: 'var(--editorial-brown)' }} aria-current="page">
+            Đặt lịch
           </li>
         </ol>
       </nav>
 
-      <header className="mipa-container" style={{
+      <header style={{
         maxWidth: '1350px',
         margin: '1.5rem auto 1.5rem',
         padding: '0 1rem',
         textAlign: 'center',
       }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.35rem 1rem',
-          backgroundColor: '#EFE6C9',
-          color: '#604634',
-          borderRadius: '20px',
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          letterSpacing: '0.05em',
-          marginBottom: '0.8rem',
-        }}>
-          <Sparkles size={14} color="#C6A45F" /> QUY TRÌNH 6 BƯỚC ĐẶT LỊCH CHUẨN
+        <div className="editorial-overline" style={{ marginBottom: '0.8rem' }}>
+          MAISON MIPA / ĐẶT LỊCH
         </div>
-        <h1 style={{
+        <h1 className="editorial-heading" style={{
           fontSize: 'clamp(2rem, 5vw, 3rem)',
-          color: '#604634',
+          color: 'var(--editorial-brown)',
           marginBottom: '0.8rem',
-          fontWeight: 700,
-          fontFamily: 'var(--mipa-font-heading)',
+          fontWeight: 500,
         }}>
-          Đặt Lịch Chụp Ảnh Trực Tuyến
+          Đặt lịch chụp ảnh
         </h1>
-        <p style={{
-          color: '#6E5F55',
-          fontSize: '1.05rem',
+        <p className="editorial-copy" style={{
           maxWidth: '720px',
           margin: '0 auto',
-          lineHeight: 1.6,
         }}>
-          Lựa chọn concept, gói chụp, dịch vụ bổ sung và khung giờ trống theo thời gian thực.
+          Lựa chọn dịch vụ, concept, gói chụp và khung giờ phù hợp với bạn.
         </p>
 
         {/* User status badge or guest helper notice */}
@@ -122,11 +106,12 @@ export const BookingPage: React.FC<BookingPageProps> = ({
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.45rem 1.2rem',
-              borderRadius: '20px',
-              backgroundColor: '#EFE6C9',
-              color: '#604634',
+              borderRadius: '4px',
+              backgroundColor: 'var(--editorial-paper)',
+              border: '1px solid var(--editorial-divider)',
+              color: 'var(--editorial-brown)',
               fontSize: '0.85rem',
-              fontWeight: 600,
+              fontWeight: 500,
             }}>
               <ShieldCheck size={16} color="#16A34A" /> Đang đặt lịch với tư cách: {user.fullName || user.email}
             </div>
@@ -136,14 +121,14 @@ export const BookingPage: React.FC<BookingPageProps> = ({
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.45rem 1.2rem',
-              borderRadius: '20px',
-              backgroundColor: '#FFFDF6',
-              border: '1px solid var(--mipa-beige)',
-              color: '#8C6E53',
+              borderRadius: '4px',
+              backgroundColor: 'var(--editorial-paper)',
+              border: '1px solid var(--editorial-divider)',
+              color: 'var(--editorial-brown-secondary)',
               fontSize: '0.85rem',
               fontWeight: 500,
             }}>
-              <UserCheck size={16} color="#C6A45F" /> Quý khách có thể tự do chọn gói & concept trước khi đăng nhập ở bước xác nhận.
+              <UserCheck size={16} color="var(--editorial-accent)" /> Quý khách có thể tự do chọn gói & concept trước khi đăng nhập ở bước xác nhận.
             </div>
           )}
         </div>
@@ -152,10 +137,10 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           <div style={{ marginTop: '1.5rem' }}>
             <button
               onClick={() => setIsWizardOpen(true)}
-              className="btn-mipa-gold"
-              style={{ padding: '0.8rem 2rem', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              className="public-btn-primary"
+              style={{ padding: '0.8rem 2rem' }}
             >
-              <Camera size={16} /> Mở Lại Bảng Đặt Lịch
+              Mở lại bảng đặt lịch
             </button>
           </div>
         )}

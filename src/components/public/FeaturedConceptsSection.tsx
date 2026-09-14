@@ -1,12 +1,16 @@
 // ==============================================================================
-// Maison MIPA Memories - Featured Concepts Showcase Section (#16 & #6)
-// Connected to real portfolioService data. Direct CTA to bookable concepts.
+// Maison MIPA Memories — Signature Moment #2: Selected Works 3D Perspective Entrance
+// Art Direction: Genuine perspective scene (perspective: 1400px).
+// Photos enter from "behind" the page (Z-depth -280px / -160px / -80px) and settle
+// flat into the refined editorial composition as the user scrolls.
 // ==============================================================================
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getPublicConcepts } from '../../services/portfolioService';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { getConcepts } from '../../services/catalogService';
 import type { Concept } from '../../types';
-import { Sparkles, ArrowRight, Calendar } from 'lucide-react';
+import { useReducedMotion } from '../../motion/useReducedMotion';
+import { useGsapContext, gsap } from '../../motion/useGsapContext';
+import { MOTION_CONFIG } from '../../motion/motionConfig';
 
 interface FeaturedConceptsSectionProps {
   onOpenBooking?: (conceptSlug?: string) => void;
@@ -16,29 +20,127 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
   const navigate = useNavigate();
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const prefersReduced = useReducedMotion();
+
+  const sectionRef = useRef<HTMLElement>(null);
+  const primaryFrameRef = useRef<HTMLDivElement>(null);
+  const secondaryFramesRef = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     let mounted = true;
-    async function loadConcepts() {
+    async function loadConceptsData() {
       try {
-        const data = await getPublicConcepts();
+        const data = await getConcepts();
         if (mounted) {
-          // Take top 3 or 4 bookable concepts
-          setConcepts(data.filter((c) => c.bookable).slice(0, 4));
+          setConcepts(data.slice(0, 3));
+          setIsLoading(false);
         }
       } catch (err) {
-        console.error('Lỗi tải concepts:', err);
-      } finally {
+        console.warn('Concepts load error:', err);
         if (mounted) setIsLoading(false);
       }
     }
-    loadConcepts();
-    return () => { mounted = false; };
+    loadConceptsData();
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  // Signature Moment #2: 3D Photo Perspective Entrance from Behind the Page
+  useGsapContext(() => {
+    if (prefersReduced || !sectionRef.current || concepts.length === 0) return;
+
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+    if (!isDesktop) {
+      if (primaryFrameRef.current) gsap.set(primaryFrameRef.current, { opacity: 1, y: 0, z: 0, rotationY: 0 });
+      secondaryFramesRef.current.forEach((el) => {
+        if (el) gsap.set(el, { opacity: 1, y: 0, z: 0, rotationY: 0, x: 0 });
+      });
+      return;
+    }
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        start: 'top 85%',
+        end: 'top 22%',
+        scrub: 1.2,
+      },
+    });
+
+    // Photo A (Primary): Enters from deep Z-depth (-280px) and slight rotationY (-5deg)
+    if (primaryFrameRef.current) {
+      tl.fromTo(
+        primaryFrameRef.current,
+        {
+          z: -280,
+          rotationY: -5,
+          y: 60,
+          scale: 0.94,
+          opacity: 0.7,
+        },
+        {
+          z: 0,
+          rotationY: 0,
+          y: 0,
+          scale: 1,
+          opacity: 1,
+          ease: 'power2.out',
+        },
+        0
+      );
+    }
+
+    // Photo B (Secondary Top): Enters from Z-depth (-160px), offset X (80px), rotationY (3deg)
+    if (secondaryFramesRef.current[0]) {
+      tl.fromTo(
+        secondaryFramesRef.current[0],
+        {
+          z: -160,
+          x: 80,
+          rotationY: 3,
+          y: 40,
+          opacity: 0.75,
+        },
+        {
+          z: 0,
+          x: 0,
+          rotationY: 0,
+          y: 0,
+          opacity: 1,
+          ease: 'power2.out',
+        },
+        0.1
+      );
+    }
+
+    // Photo C (Secondary Bottom): Enters from Z-depth (-80px), offset X (-40px), rotationY (-3deg)
+    if (secondaryFramesRef.current[1]) {
+      tl.fromTo(
+        secondaryFramesRef.current[1],
+        {
+          z: -80,
+          x: -40,
+          rotationY: -3,
+          y: 50,
+          opacity: 0.8,
+        },
+        {
+          z: 0,
+          x: 0,
+          rotationY: 0,
+          y: 0,
+          opacity: 1,
+          ease: 'power2.out',
+        },
+        0.2
+      );
+    }
+  }, sectionRef, [prefersReduced, concepts]);
 
   if (isLoading || concepts.length === 0) return null;
 
-  const handleSelectConcept = (conceptSlug: string) => {
+  const handleConceptClick = (conceptSlug: string) => {
     if (onOpenBooking) {
       onOpenBooking(conceptSlug);
     } else {
@@ -46,86 +148,157 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
     }
   };
 
+  const primaryConcept = concepts[0];
+  const secondaryConcepts = concepts.slice(1, 3);
+
   return (
-    <section className="mipa-container" style={{ padding: '3.5rem 1rem', maxWidth: '1350px', margin: '0 auto' }}>
-      <div style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 2.5rem' }}>
-        <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#8C6E53', fontWeight: 700 }}>
-          CONCEPTS NGHỆ THUẬT ĐẶC TRƯNG
+    <section
+      ref={sectionRef}
+      id="concepts"
+      className="editorial-section cinematic-scene"
+      style={{
+        backgroundColor: 'var(--editorial-bg)',
+        perspective: MOTION_CONFIG.perspective.deep,
+        transformStyle: 'preserve-3d',
+      }}
+    >
+      <div className="editorial-container">
+        {/* Section Header */}
+        <div style={{ marginBottom: '3.5rem', maxWidth: '640px' }}>
+          <span className="editorial-overline">BỘ SƯU TẬP & BỐI CẢNH</span>
+          <h2 className="editorial-h2" style={{ marginBottom: '1rem' }}>
+            Bộ sưu tập concept chọn lọc
+          </h2>
+          <p className="editorial-copy">
+            Mỗi concept được kiến tạo riêng biệt với bảng màu, ánh sáng và góc chụp mang đậm tinh thần tự nhiên.
+          </p>
         </div>
-        <h2 style={{ fontSize: 'clamp(1.8rem, 4.5vw, 2.8rem)', color: '#604634', marginTop: '0.4rem', marginBottom: '0.8rem', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
-          Những Bối Cảnh Được Yêu Thích Nhất
-        </h2>
-        <p style={{ color: '#6E5F55', fontSize: '1rem', lineHeight: 1.6 }}>
-          Mỗi concept được kiến tạo riêng biệt với bảng màu, ánh sáng và đạo cụ thủ công tinh xảo.
-        </p>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.8rem' }}>
-        {concepts.map((concept, idx) => {
-          const fallbackCover = idx % 2 === 0 ? '/hero.png' : '/studio.png';
-          const coverImage = concept.coverPhotoUrl || fallbackCover;
+        {/* Asymmetrical 3D Photo Composition */}
+        <div
+          className="editorial-concept-composition"
+          style={{
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          {/* Primary Dominant Concept (Left) */}
+          {primaryConcept && (
+            <div style={{ display: 'flex', flexDirection: 'column', transformStyle: 'preserve-3d' }}>
+              <div
+                ref={primaryFrameRef}
+                className="editorial-image-frame group cinematic-depth-image"
+                data-cursor="XEM"
+                style={{
+                  height: '460px',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(96, 70, 52, 0.12)',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  transformStyle: 'preserve-3d',
+                  willChange: 'transform, opacity',
+                }}
+                onClick={() => handleConceptClick(primaryConcept.slug)}
+              >
+                <img
+                  src={primaryConcept.coverPhotoUrl || '/hero.png'}
+                  alt={primaryConcept.name}
+                  loading="lazy"
+                  className="transition-transform duration-700 ease-out group-hover:scale-[1.025]"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
 
-          return (
-            <div
-              key={concept.id}
-              className="mipa-card"
-              style={{
-                borderRadius: '22px',
-                overflow: 'hidden',
-                backgroundColor: '#FFFDF6',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                border: '1px solid var(--mipa-beige)',
-                boxShadow: 'var(--mipa-shadow-sm)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              }}
-            >
-              <div>
-                <div style={{ height: '220px', position: 'relative', overflow: 'hidden', backgroundColor: '#2C221E' }}>
+              <div
+                style={{
+                  marginTop: '1.25rem',
+                  transition: 'transform 0.3s ease',
+                }}
+                className="group-hover:-translate-y-0.5"
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <h3 className="editorial-h3" style={{ margin: 0 }}>
+                    {primaryConcept.name}
+                  </h3>
+                  <button
+                    onClick={() => handleConceptClick(primaryConcept.slug)}
+                    className="public-btn-link"
+                  >
+                    Đặt concept này →
+                  </button>
+                </div>
+                <p className="editorial-copy" style={{ marginTop: '0.5rem', maxWidth: '520px' }}>
+                  {primaryConcept.description}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Secondary Stacked Concepts (Right) */}
+          <div className="editorial-concept-subgrid" style={{ transformStyle: 'preserve-3d' }}>
+            {secondaryConcepts.map((concept, idx) => (
+              <div key={concept.id} style={{ display: 'flex', flexDirection: 'column', transformStyle: 'preserve-3d' }}>
+                <div
+                  ref={(el) => {
+                    if (el) secondaryFramesRef.current[idx] = el;
+                  }}
+                  className="editorial-image-frame group cinematic-depth-image"
+                  data-cursor="XEM"
+                  style={{
+                    height: '215px',
+                    cursor: 'pointer',
+                    border: '1px solid rgba(96, 70, 52, 0.12)',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    transformStyle: 'preserve-3d',
+                    willChange: 'transform, opacity',
+                  }}
+                  onClick={() => handleConceptClick(concept.slug)}
+                >
                   <img
-                    src={coverImage}
+                    src={concept.coverPhotoUrl || '/studio.png'}
                     alt={concept.name}
                     loading="lazy"
+                    className="transition-transform duration-700 ease-out group-hover:scale-[1.025]"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
-                    <span style={{ backgroundColor: 'rgba(96, 70, 52, 0.85)', backdropFilter: 'blur(4px)', color: '#EFE6C9', fontSize: '0.72rem', fontWeight: 700, padding: '0.25rem 0.7rem', borderRadius: '14px', textTransform: 'uppercase' }}>
-                      <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} /> BOOKABLE
-                    </span>
-                  </div>
                 </div>
 
-                <div style={{ padding: '1.4rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', color: '#604634', marginBottom: '0.4rem', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
-                    {concept.name}
-                  </h3>
-                  <p style={{ color: '#6E5F55', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
+                <div style={{ marginTop: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <h4
+                      style={{
+                        fontFamily: 'var(--editorial-font-heading)',
+                        fontSize: '1.35rem',
+                        color: 'var(--editorial-brown)',
+                        margin: 0,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {concept.name}
+                    </h4>
+                    <button
+                      onClick={() => handleConceptClick(concept.slug)}
+                      className="public-btn-link"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      Xem concept →
+                    </button>
+                  </div>
+                  <p className="editorial-caption" style={{ marginTop: '0.35rem' }}>
                     {concept.description}
                   </p>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div style={{ padding: '0 1.4rem 1.4rem', display: 'flex', gap: '0.8rem' }}>
-                <button
-                  onClick={() => handleSelectConcept(concept.slug)}
-                  className="btn-mipa-gold"
-                  style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-                >
-                  <Calendar size={15} /> Đặt Concept
-                </button>
-                <button
-                  onClick={() => navigate('/portfolio')}
-                  className="btn-mipa-secondary"
-                  style={{ padding: '0.65rem 0.9rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Xem bộ ảnh mẫu"
-                >
-                  <ArrowRight size={15} />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {/* Quiet link to full portfolio */}
+        <div style={{ marginTop: '3.5rem', textAlign: 'left', borderTop: '1px solid var(--editorial-divider-subtle)', paddingTop: '1.5rem' }}>
+          <Link to="/portfolio" className="public-btn-link" style={{ fontSize: '1rem' }}>
+            Xem toàn bộ bộ sưu tập ảnh Maison MIPA →
+          </Link>
+        </div>
       </div>
     </section>
   );
