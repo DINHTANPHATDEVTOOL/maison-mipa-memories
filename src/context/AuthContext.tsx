@@ -18,6 +18,7 @@ import { mapProfileToUser } from './authHelpers';
 export interface AuthContextType {
   user: User | null;
   role: UserRole;
+  isRootOwner: boolean;
   session: Session | null;
   isLoading: boolean;
   authError: string | null;
@@ -27,6 +28,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (params: { fullName: string; phone?: string }) => Promise<{ success: boolean; error?: string }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
@@ -39,6 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isRootOwner, setIsRootOwner] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -47,6 +50,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearError = useCallback(() => {
     setAuthError(null);
   }, []);
+
+  /**
+   * Check if user is authoritative root owner
+   */
+  const checkRootOwner = useCallback(async (userId?: string): Promise<boolean> => {
+    if (!userId) return false;
+    if (isDemoMode) {
+      // In demo mode, only designated demo owner is root owner, NEVER general ADMIN alone
+      return userId === 'demo_owner' || userId === 'user_owner';
+    }
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { data, error } = await supabase.rpc('is_root_owner', { p_user_id: userId });
+      if (!error && typeof data === 'boolean') {
+        return data;
+      }
+      if (error) {
+        console.warn('is_root_owner check warning:', error.message);
+      }
+      // Direct query fallback on root_owner_config
+      const { data: config } = await supabase
+        .from('root_owner_config')
+        .select('owner_user_id')
+        .eq('id', true)
+        .maybeSingle();
+      if (config && (config as any).owner_user_id === userId) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [isDemoMode]);
 
   /**
    * Fetch authenticated user's profile from Supabase profiles table
@@ -79,18 +115,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const refreshProfile = useCallback(async () => {
     if (!session?.user?.id) return;
+
+    // Security check: email verification is authoritative
+    if (!isDemoMode && !session.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setIsRootOwner(false);
+      setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
+      return;
+    }
+
+    const isOwner = await checkRootOwner(session.user.id);
+    setIsRootOwner(isOwner);
+
     const freshUser = await fetchProfile(session.user.id);
     if (freshUser) {
       if (freshUser.status === 'SUSPENDED' || freshUser.status === 'DISABLED') {
         await supabase.auth.signOut();
         setUser(null);
         setSession(null);
+        setIsRootOwner(false);
         setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng hoạt động.');
         return;
       }
-      setUser(freshUser);
+      setUser({ ...freshUser, isRootOwner: isOwner });
     }
-  }, [session, fetchProfile]);
+  }, [session, fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Initialize Session on Mount & Listen to Supabase Auth State Changes
@@ -114,7 +165,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (initialSession?.user && isMounted) {
+          // Security gate: Email verification is mandatory in production
+          if (!isDemoMode && !initialSession.user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setIsRootOwner(false);
+              setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
+            }
+            return;
+          }
+
           const userProfile = await fetchProfile(initialSession.user.id);
+          const isOwner = await checkRootOwner(initialSession.user.id);
 
           // Security check: Deny suspended/disabled accounts
           if (userProfile && (userProfile.status === 'SUSPENDED' || userProfile.status === 'DISABLED')) {
@@ -122,12 +186,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isMounted) {
               setSession(null);
               setUser(null);
+              setIsRootOwner(false);
               setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
             }
+            return;
           } else if (isMounted) {
             setSession(initialSession);
+            setIsRootOwner(isOwner);
             if (userProfile) {
-              setUser(userProfile);
+              setUser({ ...userProfile, isRootOwner: isOwner });
             } else {
               setUser({
                 id: initialSession.user.id,
@@ -136,6 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 phone: initialSession.user.user_metadata?.phone || '',
                 role: 'CUSTOMER',
                 status: 'ACTIVE',
+                isRootOwner: isOwner,
               });
             }
           }
@@ -154,14 +222,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
         if (currentSession?.user) {
+          // Security gate: Email verification is mandatory in production
+          if (!isDemoMode && !currentSession.user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setIsRootOwner(false);
+              setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
+            }
+            return;
+          }
+
           const profile = await fetchProfile(currentSession.user.id);
+          const isOwner = await checkRootOwner(currentSession.user.id);
+
           if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
             await supabase.auth.signOut();
             if (isMounted) {
               setSession(null);
               setUser(null);
+              setIsRootOwner(false);
               setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
             }
             return;
@@ -169,8 +252,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setSession(currentSession);
           if (isMounted) {
+            setIsRootOwner(isOwner);
             if (profile) {
-              setUser(profile);
+              setUser({ ...profile, isRootOwner: isOwner });
             } else {
               setUser({
                 id: currentSession.user.id,
@@ -179,6 +263,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 phone: currentSession.user.user_metadata?.phone || '',
                 role: 'CUSTOMER',
                 status: 'ACTIVE',
+                isRootOwner: isOwner,
               });
             }
           }
@@ -187,6 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMounted) {
           setSession(null);
           setUser(null);
+          setIsRootOwner(false);
         }
       }
     });
@@ -195,7 +281,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Production Login with Email & Password
@@ -217,9 +303,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setIsLoading(false);
               return { success: false, error: msg };
             }
-            setUser(matchedProfile);
+            const isOwner = matchedProfile.id === 'demo_owner' || matchedProfile.id === 'user_owner';
+            setIsRootOwner(isOwner);
+            const enrichedProfile = { ...matchedProfile, isRootOwner: isOwner };
+            setUser(enrichedProfile);
             setIsLoading(false);
-            return { success: true, user: matchedProfile };
+            return { success: true, user: enrichedProfile };
           }
           const defaultCustomer: User = {
             id: `demo_${Date.now()}`,
@@ -228,7 +317,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: '0908 123 456',
             role: 'CUSTOMER',
             status: 'ACTIVE',
+            isRootOwner: false,
           };
+          setIsRootOwner(false);
           setUser(defaultCustomer);
           setIsLoading(false);
           return { success: true, user: defaultCustomer };
@@ -252,13 +343,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
+      // Authoritative check: Reject unconfirmed users in production
+      if (!isDemoMode && data.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setIsRootOwner(false);
+        const unconfirmedMsg = 'Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư và bấm vào liên kết xác thực trước khi đăng nhập.';
+        setAuthError(unconfirmedMsg);
+        setIsLoading(false);
+        return { success: false, error: unconfirmedMsg };
+      }
+
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
         const profile = await fetchProfile(data.user.id);
+        const isOwner = await checkRootOwner(data.user.id);
+        setIsRootOwner(isOwner);
 
         // Security gate: Deny suspended/disabled
         if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
           await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setIsRootOwner(false);
           const denyMsg = 'Tài khoản này đã bị tạm ngưng hoặc khóa. Vui lòng liên hệ quản lý studio.';
           setAuthError(denyMsg);
           setIsLoading(false);
@@ -266,13 +374,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setSession(data.session);
-        resolvedUser = profile || {
+        resolvedUser = profile ? { ...profile, isRootOwner: isOwner } : {
           id: data.user.id,
           fullName: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Khách Hàng',
           email: data.user.email || '',
           phone: data.user.user_metadata?.phone || '',
           role: 'CUSTOMER',
           status: 'ACTIVE',
+          isRootOwner: isOwner,
         };
         setUser(resolvedUser);
       }
@@ -285,7 +394,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       return { success: false, error: msg };
     }
-  }, [fetchProfile, isDemoMode]);
+  }, [fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Production Registration with Email & Password
@@ -343,6 +452,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
+      // FAIL CLOSED:
+      // In production registration, email verification is mandatory.
+      // If data.session is unexpectedly returned before email verification, FAIL CLOSED:
+      // - signOut immediately
+      // - do not set session
+      // - do not set user
+      // - return/display production configuration error
+      if (!isDemoMode && data.session && !data.user?.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        const configError = 'Cấu hình bảo mật yêu cầu xác thực email bắt buộc. Vui lòng kiểm tra hộp thư để xác thực tài khoản trước khi đăng nhập.';
+        setAuthError(configError);
+        setIsLoading(false);
+        return { success: false, error: configError };
+      }
+
+      // In production, registration never authenticates before verification
+      if (!isDemoMode) {
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+        return { success: true };
+      }
+
+      // Demo mode only fallback
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
         setSession(data.session);
@@ -426,6 +561,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
+   * Update Personal Profile (Full Name, Phone)
+   */
+  const updateProfile = useCallback(async (params: { fullName: string; phone?: string }): Promise<{ success: boolean; error?: string }> => {
+    if (!user?.id) {
+      return { success: false, error: 'Chưa đăng nhập.' };
+    }
+
+    const cleanName = params.fullName?.trim();
+    if (!cleanName) {
+      return { success: false, error: 'Họ và tên không được để trống.' };
+    }
+
+    const cleanPhone = params.phone?.trim() || '';
+
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: cleanName,
+            phone: cleanPhone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          setIsLoading(false);
+          setAuthError(profileError.message);
+          return { success: false, error: profileError.message };
+        }
+
+        // Sync auth user metadata
+        await supabase.auth.updateUser({
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+          },
+        });
+      }
+
+      setUser(prev => prev ? {
+        ...prev,
+        fullName: cleanName,
+        phone: cleanPhone,
+      } : null);
+
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      const msg = err?.message || 'Không thể cập nhật thông tin cá nhân.';
+      setAuthError(msg);
+      return { success: false, error: msg };
+    }
+  }, [user]);
+
+  /**
    * Resend Verification Email
    */
   const resendVerificationEmail = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
@@ -468,6 +663,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setSession(null);
       setUser(null);
+      setIsRootOwner(false);
       setAuthError(null);
       setIsLoading(false);
     }
@@ -484,13 +680,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const demoProfile = CURRENT_USER_PROFILES[targetRole];
     if (demoProfile) {
-      setUser(demoProfile);
+      const isOwner = demoProfile.id === 'demo_owner' || demoProfile.id === 'user_owner';
+      setIsRootOwner(isOwner);
+      setUser({ ...demoProfile, isRootOwner: isOwner });
     }
   }, [isDemoMode]);
 
   const value = useMemo(() => ({
     user,
     role: user?.role || 'GUEST',
+    isRootOwner,
     session,
     isLoading,
     authError,
@@ -500,12 +699,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     resetPassword,
     updatePassword,
+    updateProfile,
     resendVerificationEmail,
     refreshProfile,
     clearError,
     loginAsDemoRole,
   }), [
     user,
+    isRootOwner,
     session,
     isLoading,
     authError,
@@ -515,6 +716,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     resetPassword,
     updatePassword,
+    updateProfile,
     resendVerificationEmail,
     refreshProfile,
     clearError,

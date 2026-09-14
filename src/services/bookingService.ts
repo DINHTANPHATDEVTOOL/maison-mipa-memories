@@ -71,6 +71,102 @@ export function updateBookingInMemory(bookingId: string, updates: Partial<Bookin
   return inMemoryBookings[index];
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SLUG_TO_UUID_MAP: Record<string, string> = {
+  // Services
+  'srv_couple': 'c0000000-0000-0000-0000-000000000001',
+  'couple': 'c0000000-0000-0000-0000-000000000001',
+  'srv_wedding': 'c0000000-0000-0000-0000-000000000002',
+  'wedding': 'c0000000-0000-0000-0000-000000000002',
+  'srv_family': 'c0000000-0000-0000-0000-000000000003',
+  'family': 'c0000000-0000-0000-0000-000000000003',
+  'srv_baby': 'c0000000-0000-0000-0000-000000000004',
+  'baby': 'c0000000-0000-0000-0000-000000000004',
+  'srv_portrait': 'c0000000-0000-0000-0000-000000000005',
+  'portrait': 'c0000000-0000-0000-0000-000000000005',
+  'srv_birthday': 'c0000000-0000-0000-0000-000000000006',
+  'birthday': 'c0000000-0000-0000-0000-000000000006',
+
+  // Packages
+  'pkg_basic': 'd0000000-0000-0000-0000-000000000001',
+  'basic': 'd0000000-0000-0000-0000-000000000001',
+  'pkg_signature': 'd0000000-0000-0000-0000-000000000002',
+  'signature': 'd0000000-0000-0000-0000-000000000002',
+  'pkg_premium': 'd0000000-0000-0000-0000-000000000003',
+  'premium': 'd0000000-0000-0000-0000-000000000003',
+
+  // Studio Rooms
+  'std_room_1': 'f0000000-0000-0000-0000-000000000001',
+  'std_cozy': 'f0000000-0000-0000-0000-000000000001',
+  'room_01': 'f0000000-0000-0000-0000-000000000001',
+  'ROOM_01': 'f0000000-0000-0000-0000-000000000001',
+  'std_room_2': 'f0000000-0000-0000-0000-000000000002',
+  'std_vintage': 'f0000000-0000-0000-0000-000000000002',
+  'room_02': 'f0000000-0000-0000-0000-000000000002',
+  'ROOM_02': 'f0000000-0000-0000-0000-000000000002',
+  'std_garden': 'f0000000-0000-0000-0000-000000000003',
+  'std_nature': 'f0000000-0000-0000-0000-000000000003',
+  'garden': 'f0000000-0000-0000-0000-000000000003',
+  'GARDEN': 'f0000000-0000-0000-0000-000000000003',
+
+  // Addons
+  'add_makeup': 'e0000000-0000-0000-0000-000000000001',
+  'makeup': 'e0000000-0000-0000-0000-000000000001',
+  'add_hair': 'e0000000-0000-0000-0000-000000000002',
+  'hair': 'e0000000-0000-0000-0000-000000000002',
+  'add_concept': 'e0000000-0000-0000-0000-000000000003',
+  'concept': 'e0000000-0000-0000-0000-000000000003',
+  'add_time': 'e0000000-0000-0000-0000-000000000004',
+  'time': 'e0000000-0000-0000-0000-000000000004',
+  'add_album': 'e0000000-0000-0000-0000-000000000005',
+  'album': 'e0000000-0000-0000-0000-000000000005',
+  'add_express': 'e0000000-0000-0000-0000-000000000006',
+  'express': 'e0000000-0000-0000-0000-000000000006',
+};
+
+export async function resolveEntityUuid(
+  idOrSlug: string,
+  table: 'services' | 'packages' | 'studio_rooms' | 'addons',
+  serviceId?: string
+): Promise<string> {
+  if (!idOrSlug) return idOrSlug;
+  if (UUID_REGEX.test(idOrSlug)) return idOrSlug;
+
+  try {
+    if (isSupabaseConfigured()) {
+      let query = supabase.from(table).select('id');
+      if (table === 'studio_rooms') {
+        query = query.or(`slug.eq.${idOrSlug},code.eq.${idOrSlug}`);
+      } else {
+        query = query.eq('slug', idOrSlug);
+        if (table === 'packages' && serviceId && UUID_REGEX.test(serviceId)) {
+          query = (query as any).eq('service_id', serviceId);
+        }
+      }
+      const { data } = await query.limit(1).maybeSingle();
+
+      if (data?.id && UUID_REGEX.test(data.id)) {
+        return data.id;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  // Fallback to INITIAL_PACKAGES for service-specific packages in demo or offline mode
+  if (table === 'packages' && serviceId) {
+    const pkg = INITIAL_PACKAGES.find(
+      p => p.serviceId === serviceId && (p.id === idOrSlug || p.name.toLowerCase().includes(idOrSlug.toLowerCase()))
+    );
+    if (pkg) return pkg.id;
+  }
+
+  if (SLUG_TO_UUID_MAP[idOrSlug]) return SLUG_TO_UUID_MAP[idOrSlug];
+
+  return idOrSlug;
+}
+
 /**
  * Creates a new booking with database-level anti-double-booking protection
  * and authoritative server-side price calculation.
@@ -90,19 +186,27 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
   if (isSupabaseConfigured()) {
     const startIso = `${request.date}T${request.timeSlot}:00+07:00`;
 
+    const serviceId = await resolveEntityUuid(request.serviceId, 'services');
+    const packageId = await resolveEntityUuid(request.packageId, 'packages', serviceId);
+    const studioId = await resolveEntityUuid(request.studioId, 'studio_rooms');
+    const addonIds = await Promise.all(
+      (request.addonIds || []).map(id => resolveEntityUuid(id, 'addons'))
+    );
+    const validConceptIds = conceptIds.filter(id => UUID_REGEX.test(id));
+
     const { data, error } = await supabase.rpc('create_booking', {
-      p_service_id: request.serviceId,
-      p_package_id: request.packageId,
-      p_studio_room_id: request.studioId,
+      p_service_id: serviceId,
+      p_package_id: packageId,
+      p_studio_room_id: studioId,
       p_start_at: startIso,
-      p_addon_ids: request.addonIds || [],
+      p_addon_ids: addonIds.filter(id => UUID_REGEX.test(id)),
       p_voucher_code: request.voucherCode || null,
       p_customer_name: request.customerName || null,
       p_customer_phone: request.customerPhone || null,
       p_customer_email: request.customerEmail || null,
       p_occasion: request.occasion || null,
       p_customer_note: request.customerNote || null,
-      p_concept_ids: conceptIds,
+      p_concept_ids: validConceptIds,
     });
 
     if (error) {
@@ -290,6 +394,72 @@ export async function getBookings(customerId?: string): Promise<Booking[]> {
 export const getCustomerBookings = getBookings;
 
 /**
+ * Subscribes to real-time updates for bookings in PostgreSQL Supabase.
+ * Triggers callback immediately when bookings change, with a background heartbeat fallback.
+ */
+export function subscribeBookings(
+  onChange: (bookings: Booking[]) => void,
+  customerId?: string
+): () => void {
+  let isSubscribed = true;
+
+  const reload = async () => {
+    try {
+      const bks = await getBookings(customerId);
+      if (isSubscribed) {
+        onChange(bks);
+      }
+    } catch (e) {
+      console.warn('Realtime booking refresh warning:', e);
+    }
+  };
+
+  if (isSupabaseConfigured()) {
+    const channelName = `realtime-bookings-${customerId || 'all'}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        () => {
+          if (isSubscribed) reload();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booking_assignments',
+        },
+        () => {
+          if (isSubscribed) reload();
+        }
+      )
+      .subscribe();
+
+    // 8-second safety heartbeat
+    const intervalId = setInterval(() => {
+      if (isSubscribed) reload();
+    }, 8000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
+  }
+
+  return () => {
+    isSubscribed = false;
+  };
+}
+
+/**
  * Updates booking status with authoritative backend state machine.
  */
 export async function updateBookingStatus(
@@ -466,9 +636,26 @@ export async function assignBookingStaff(
       .from('profiles')
       .select('full_name, staff_role')
       .eq('id', employeeId)
-      .single();
+      .maybeSingle();
 
-    const role = (profile?.staff_role || assignmentRole) as any;
+    let empName: string = profile?.full_name || '';
+    if (!empName) {
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('name')
+        .eq('id', employeeId)
+        .maybeSingle();
+      empName = (emp?.name as string) || 'Chuyên Viên MIPA';
+    }
+
+    const role = (assignmentRole || profile?.staff_role || 'PHOTOGRAPHER') as any;
+
+    // Delete existing assignment for this booking and role to cleanly replace staff
+    await supabase
+      .from('booking_assignments')
+      .delete()
+      .eq('booking_id', bookingId)
+      .eq('assignment_role', role);
 
     const { data, error } = await supabase
       .from('booking_assignments')
@@ -488,7 +675,7 @@ export async function assignBookingStaff(
       id: data.id,
       bookingId: data.booking_id,
       employeeId: data.employee_id,
-      employeeName: profile?.full_name || 'Chuyên Viên MIPA',
+      employeeName: empName,
       assignmentRole: data.assignment_role,
       startTime: data.start_at,
       endTime: data.end_at,
@@ -528,9 +715,45 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
   const startAt = record.start_at || record.startAt || '';
   const endAt = record.end_at || record.endAt || '';
 
-  const bookingDate = startAt ? startAt.split('T')[0] : record.bookingDate || '';
-  const startTime = startAt ? startAt.substring(11, 16) : record.startTime || '';
-  const endTime = endAt ? endAt.substring(11, 16) : record.endTime || '';
+  let bookingDate = record.bookingDate || '';
+  let startTime = record.startTime || '';
+  let endTime = record.endTime || '';
+
+  if (startAt) {
+    const d = new Date(startAt);
+    if (!isNaN(d.getTime())) {
+      bookingDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+
+      startTime = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(d);
+    } else {
+      bookingDate = startAt.split('T')[0] || '';
+      startTime = startAt.substring(11, 16) || '';
+    }
+  }
+
+  if (endAt) {
+    const d = new Date(endAt);
+    if (!isNaN(d.getTime())) {
+      endTime = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(d);
+    } else {
+      endTime = endAt.substring(11, 16) || '';
+    }
+  }
 
   const assignments: BookingAssignment[] = Array.isArray(record.booking_assignments)
     ? record.booking_assignments.map((a: any) => ({

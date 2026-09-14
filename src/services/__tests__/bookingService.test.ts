@@ -6,6 +6,7 @@ import {
   getInMemoryBookings,
   updateBookingStatus,
   assignBookingStaff,
+  resolveEntityUuid,
   BookingConflictError,
   BookingValidationError,
 } from '../bookingService';
@@ -243,7 +244,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
     });
   });
 
-  describe('Input Validations', () => {
+  describe('Input Validations & Slug/Mock ID Resolution', () => {
     it('throws BookingValidationError when mandatory fields are missing', async () => {
       await expect(createBooking({
         serviceId: '',
@@ -260,6 +261,39 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
         date: '',
         timeSlot: '10:00',
       })).rejects.toThrowError(BookingValidationError);
+    });
+
+    it('resolves legacy mock IDs and slugs to canonical UUIDs', async () => {
+      const srvUuid = await resolveEntityUuid('srv_couple', 'services');
+      expect(srvUuid).toBe('c0000000-0000-0000-0000-000000000001');
+
+      const pkgUuid = await resolveEntityUuid('pkg_signature', 'packages');
+      expect(pkgUuid).toBe('d0000000-0000-0000-0000-000000000002');
+
+      const stdUuid = await resolveEntityUuid('std_room_1', 'studio_rooms');
+      expect(stdUuid).toBe('f0000000-0000-0000-0000-000000000001');
+
+      const addUuid = await resolveEntityUuid('add_makeup', 'addons');
+      expect(addUuid).toBe('e0000000-0000-0000-0000-000000000001');
+
+      // Valid UUID is returned as-is
+      const existingUuid = '12345678-1234-1234-1234-123456789abc';
+      expect(await resolveEntityUuid(existingUuid, 'services')).toBe(existingUuid);
+    });
+
+    it('creates booking successfully with legacy mock IDs (srv_couple, pkg_signature, std_room_1)', async () => {
+      const booking = await createBooking({
+        serviceId: 'srv_couple',
+        packageId: 'pkg_signature',
+        studioId: 'std_room_1',
+        addonIds: ['add_makeup'],
+        date: '2026-09-20',
+        timeSlot: '14:00',
+        customerName: 'Khách Đặt Với Mock Slug',
+      });
+
+      expect(booking).toBeDefined();
+      expect(booking.bookingCode).toBeDefined();
     });
   });
 });

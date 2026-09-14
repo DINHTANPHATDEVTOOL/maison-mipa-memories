@@ -158,46 +158,125 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
   return slots;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function resolveStudioRoomUuid(studioIdOrSlug: string): Promise<string> {
+  if (!studioIdOrSlug) return studioIdOrSlug;
+  if (UUID_REGEX.test(studioIdOrSlug)) return studioIdOrSlug;
+
+  try {
+    if (isSupabaseConfigured()) {
+      const { data } = await supabase
+        .from('studio_rooms')
+        .select('id')
+        .or(`slug.eq.${studioIdOrSlug},code.eq.${studioIdOrSlug}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.id && UUID_REGEX.test(data.id)) {
+        return data.id;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  if (studioIdOrSlug === 'room_01' || studioIdOrSlug === 'ROOM_01' || studioIdOrSlug === 'std_room_01') {
+    return 'f0000000-0000-0000-0000-000000000001';
+  }
+  if (studioIdOrSlug === 'room_02' || studioIdOrSlug === 'ROOM_02' || studioIdOrSlug === 'std_room_02') {
+    return 'f0000000-0000-0000-0000-000000000002';
+  }
+  if (studioIdOrSlug === 'garden' || studioIdOrSlug === 'GARDEN' || studioIdOrSlug === 'std_garden') {
+    return 'f0000000-0000-0000-0000-000000000003';
+  }
+
+  return studioIdOrSlug;
+}
+
 /**
  * Generates available slots for a given date, studio room, and session duration.
+ * Calls the backend-authoritative get_studio_booked_slots RPC to detect active bookings
+ * across all users without privacy leaks, and dims out booked slots.
  */
 export async function getAvailableSlots(params: AvailabilityParams): Promise<TimeSlot[]> {
   if (!isSupabaseConfigured()) {
     return getAvailableSlotsSync(params);
   }
 
-  const { date, studioId, durationMinutes } = params;
-
+  const { date, studioId, durationMinutes, existingBookings } = params;
   const safeDuration = Math.max(30, durationMinutes || 60);
-  let activeBookingsForStudio: Array<{ start: number; end: number }> = [];
+  let bookedRanges: Array<{ startMs: number; endMs: number }> = [];
 
   try {
-    // Query bookings for this studio on the given date (excluding CANCELLED)
-    const startOfDay = `${date}T00:00:00Z`;
-    const endOfDay = `${date}T23:59:59Z`;
+    const resolvedStudioId = await resolveStudioRoomUuid(studioId);
 
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('start_at, end_at, booking_status')
-      .eq('studio_room_id', studioId)
-      .neq('booking_status', 'CANCELLED')
-      .gte('start_at', startOfDay)
-      .lte('start_at', endOfDay);
+    // 1. Fetch authoritative booked intervals from PostgreSQL RPC (SECURITY DEFINER)
+    const { data, error } = await supabase.rpc('get_studio_booked_slots', {
+      p_studio_room_id: resolvedStudioId,
+      p_date: date,
+    });
 
-    if (!error && data) {
-      activeBookingsForStudio = data
-        .map(b => {
-          const startD = new Date(b.start_at);
-          const endD = new Date(b.end_at);
-          return {
-            start: startD.getHours() * 60 + startD.getMinutes(),
-            end: endD.getHours() * 60 + endD.getMinutes(),
-          };
-        })
-        .filter(Boolean);
+    if (!error && Array.isArray(data)) {
+      bookedRanges = data
+        .map((b: { start_at: string; end_at: string }) => ({
+          startMs: new Date(b.start_at).getTime(),
+          endMs: new Date(b.end_at).getTime(),
+        }))
+        .filter(r => !isNaN(r.startMs) && !isNaN(r.endMs));
+    } else if (error) {
+      console.warn('get_studio_booked_slots RPC error:', error.message);
+      // Fallback to direct query if RPC is temporarily unavailable
+      const startOfDay = `${date}T00:00:00+07:00`;
+      const endOfDay = `${date}T23:59:59+07:00`;
+
+      const { data: bData } = await supabase
+        .from('bookings')
+        .select('start_at, end_at, booking_status')
+        .eq('studio_room_id', resolvedStudioId)
+        .neq('booking_status', 'CANCELLED')
+        .gte('start_at', startOfDay)
+        .lte('start_at', endOfDay);
+
+      if (bData && Array.isArray(bData)) {
+        bookedRanges = bData.map(b => ({
+          startMs: new Date(b.start_at).getTime(),
+          endMs: new Date(b.end_at).getTime(),
+        }));
+      }
     }
-  } catch {
+  } catch (err) {
+    console.warn('Availability loading error, using local fallback:', err);
     return getAvailableSlotsSync(params);
+  }
+
+  // 2. Also incorporate any local in-memory bookings passed in params
+  if (existingBookings && existingBookings.length > 0) {
+    const memRanges = existingBookings
+      .filter(b => {
+        const matchesStudio = b.studioId === studioId;
+        const matchesDate = b.bookingDate === date || (b.startAt && b.startAt.startsWith(date));
+        const isNotCancelled = b.bookingStatus !== 'CANCELLED';
+        return matchesStudio && matchesDate && isNotCancelled;
+      })
+      .map(b => {
+        if (b.startAt && b.endAt) {
+          return {
+            startMs: new Date(b.startAt).getTime(),
+            endMs: new Date(b.endAt).getTime(),
+          };
+        }
+        if (b.startTime && b.endTime) {
+          return {
+            startMs: new Date(`${date}T${b.startTime}:00+07:00`).getTime(),
+            endMs: new Date(`${date}T${b.endTime}:00+07:00`).getTime(),
+          };
+        }
+        return null;
+      })
+      .filter((r): r is { startMs: number; endMs: number } => r !== null && !isNaN(r.startMs));
+
+    bookedRanges.push(...memRanges);
   }
 
   const openingMinutes = STUDIO_CONFIG.OPENING_HOUR * 60 + STUDIO_CONFIG.OPENING_MINUTE;
@@ -214,9 +293,12 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
     const startStr = minutesToTime(candidateStart);
     const endStr = minutesToTime(candidateEnd);
 
+    const candidateStartMs = new Date(`${date}T${startStr}:00+07:00`).getTime();
+    const candidateEndMs = new Date(`${date}T${endStr}:00+07:00`).getTime();
+
     // Overlap check against all active non-cancelled bookings
-    const hasConflict = activeBookingsForStudio.some(existing =>
-      isIntervalOverlapping(candidateStart, candidateEnd, existing.start, existing.end)
+    const hasConflict = bookedRanges.some(existing =>
+      candidateStartMs < existing.endMs && candidateEndMs > existing.startMs
     );
 
     if (hasConflict) {
@@ -225,7 +307,7 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
         endTime: endStr,
         label: `${startStr} - ${endStr}`,
         status: 'BOOKED',
-        reason: 'Phòng đã có lịch đặt trong khung giờ này',
+        reason: 'Khung giờ này đã có khách đặt lịch',
       });
     } else {
       let tag: string | undefined;

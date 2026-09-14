@@ -19,14 +19,14 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // Verify Call-to-action buttons
     await expect(page.getByRole('button', { name: /ĐẶT LỊCH/i }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Đăng Nhập', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Đăng nhập/i })).toBeVisible();
   });
 
   test('2. Auth modal mở được và chuyển đổi tab đăng nhập / đăng ký', async ({ page }) => {
     await page.goto('/');
 
     // Click Login button to open Auth Modal
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
 
     // Verify Auth Modal is displayed
     const authHeader = page.locator('text=MAISON MIPA MEMORIES AUTH');
@@ -46,7 +46,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.goto('/');
 
     // 1. Log in as customer
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
@@ -94,7 +94,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // 2. Login as CUSTOMER
     await page.goto('/');
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('minhanh.nguyen@gmail.com');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
@@ -109,12 +109,12 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
   test('5. Deep link trực tiếp vào /portfolio và refresh không bị 404', async ({ page }) => {
     await page.goto('/portfolio');
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Hình Ảnh/i })).toBeVisible();
 
     // Refresh page
     await page.reload();
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Kỷ Niệm Thơ Mộng/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Hình Ảnh/i })).toBeVisible();
   });
 
   test('6. Deep link trực tiếp vào /dich-vu/couple và refresh không bị 404', async ({ page }) => {
@@ -190,7 +190,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.goto('/');
 
     // Log in as Manager
-    await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
     await page.getByPlaceholder(/Nhập email/i).fill('phat.manager@maisonmipa.vn');
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
@@ -206,6 +206,88 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.getByRole('button', { name: /Portfolio & Concept CMS/i }).click();
     await expect(page.getByText('Portfolio & Concept Collections CMS')).toBeVisible();
     await expect(page.getByText('Hệ thống quản trị bộ ảnh concept')).toBeVisible();
+  });
+
+  test('11. Auth Modal: Quên mật khẩu flow gửi reset request thành công', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
+
+    // Click "Quên mật khẩu?"
+    await page.getByRole('button', { name: /Quên mật khẩu\?/i }).click();
+    await expect(page.getByText('Khôi Phục Mật Khẩu')).toBeVisible();
+
+    // Input email
+    await page.getByPlaceholder(/user@example.com/i).fill('forgot.test@maisonmipa.io.vn');
+    await page.getByRole('button', { name: /Gửi Liên Kết Đặt Lại Mật Khẩu/i }).click();
+
+    // Assert feedback screen
+    await expect(page.getByText('Đã Gửi Email Khôi Phục!')).toBeVisible();
+  });
+
+  test('12. Trang /auth/reset-password hiển thị form và kiểm tra validation', async ({ page }) => {
+    await page.goto('/auth/reset-password');
+    await expect(page.getByText('Thiết Lập Mật Khẩu Mới')).toBeVisible();
+
+    const newPassInput = page.getByPlaceholder(/Ít nhất 6 ký tự\.\.\./i);
+    const confirmPassInput = page.getByPlaceholder(/Nhập lại mật khẩu mới\.\.\./i);
+
+    // Mismatched passwords
+    await newPassInput.fill('SecurePass@1');
+    await confirmPassInput.fill('Mismatch@2');
+    await page.getByRole('button', { name: /Xác Nhận Đổi Mật Khẩu/i }).click();
+
+    await expect(page.getByText('Mật khẩu xác nhận không khớp.')).toBeVisible();
+  });
+
+  test('13. Step 6 Booking hiển thị banner tự động xác nhận qua ACB & payOS', async ({ page }) => {
+    await page.goto('/booking');
+
+    // Step 1 -> 5
+    for (let i = 1; i <= 5; i++) {
+      await expect(page.locator(`text=Bước ${i}/6`)).toBeVisible();
+      await page.getByRole('button', { name: /Tiếp Theo/i }).click();
+    }
+
+    // Step 6: Verify ACB & payOS auto-confirm banner
+    await expect(page.locator('text=Bước 6/6')).toBeVisible();
+    await expect(page.getByText(/TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS/i)).toBeVisible();
+    await expect(page.getByText(/Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận/i)).toBeVisible();
+  });
+
+  test('14. Auth Modal: Đăng ký tài khoản khách hàng mới hoàn tất thành công', async ({ page }) => {
+    await page.goto('/');
+
+    // Mở Auth Modal
+    await page.getByRole('button', { name: /Đăng nhập/i }).click();
+    await expect(page.locator('text=MAISON MIPA MEMORIES AUTH')).toBeVisible();
+
+    // Chuyển sang tab Đăng Ký Nhanh
+    await page.getByRole('button', { name: /ĐĂNG KÝ NHANH/i }).click();
+    await expect(page.getByPlaceholder('Nguyễn Văn A')).toBeVisible();
+
+    // Nhập thông tin đăng ký
+    await page.getByPlaceholder('Nguyễn Văn A').fill('Nguyễn Thị Hoàng Oanh');
+    await page.getByPlaceholder('user@example.com').fill('hoangoanh.test@maisonmipa.io.vn');
+    await page.getByPlaceholder('0901234567').fill('0912345678');
+    await page.getByPlaceholder('Mật khẩu của bạn').fill('MaisonSecure@2026');
+
+    // Bấm nút Đăng Ký Tài Khoản Ngay
+    await page.getByRole('button', { name: /ĐĂNG KÝ TÀI KHOẢN NGAY/i }).click();
+
+    // Kiểm tra kết quả phản hồi: Hoặc xuất hiện màn hình Xác Thực Tài Khoản Email, hoặc tài khoản đăng nhập thành công
+    const verifyScreen = page.getByText(/Xác Thực Tài Khoản Email/i);
+    const userLoggedIn = page.locator('button:has-text("Đăng Xuất")').or(page.getByText('Hoàng Oanh').first());
+
+    await expect(verifyScreen.or(userLoggedIn)).toBeVisible({ timeout: 6000 });
+
+    // Khi ở màn hình Xác Thực Tài Khoản Email, đảm bảo không có nút gây hiểu lầm và nút Quay Lại Đăng Nhập hoạt động đúng
+    if (await verifyScreen.isVisible()) {
+      await expect(page.getByText('Đã Xác Thực • Đăng Nhập Ngay')).not.toBeVisible();
+      const backBtn = page.getByRole('button', { name: 'Quay Lại Đăng Nhập' });
+      await expect(backBtn).toBeVisible();
+      await backBtn.click();
+      await expect(page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i })).toBeVisible();
+    }
   });
 
 });

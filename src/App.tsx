@@ -11,7 +11,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-ro
 import { HelmetProvider } from 'react-helmet-async';
 import type { User, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
-import { getBookings, updateBookingStatus, assignBookingStaff } from './services/bookingService';
+import { getBookings, updateBookingStatus, assignBookingStaff, subscribeBookings } from './services/bookingService';
 import { getStudioRooms, getEmployees } from './services/catalogService';
 import { isSupabaseConfigured, isDemoModeEnabled } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -37,6 +37,11 @@ const AccountPage = lazy(() => import('./pages/AccountPage'));
 const StaffPage = lazy(() => import('./pages/StaffPage'));
 const ManagementPage = lazy(() => import('./pages/ManagementPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+
+// Cinematic Motion & Art Direction
+import { CustomCursor } from './motion/CustomCursor';
+import { PageTransition } from './motion/PageTransition';
+import { FilmGrainOverlay } from './components/public/FilmGrainOverlay';
 
 function AppContent() {
   const { user: currentUser, role: currentRole, logout } = useAuth();
@@ -89,8 +94,19 @@ function AppContent() {
       }
     }
     initData();
-    return () => { active = false; };
-  }, []);
+
+    // Subscribe to realtime database updates for bookings
+    const unsubscribe = subscribeBookings((updatedBookings) => {
+      if (active) {
+        setBookings(updatedBookings);
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [currentUser?.id, currentRole]);
 
   const handleOpenAuthModal = (tab: 'LOGIN' | 'REGISTER' = 'LOGIN', msg?: string) => {
     setAuthInitialTab(tab);
@@ -164,9 +180,10 @@ function AppContent() {
       />
 
       {/* Main Presentation Body */}
-      <main style={{ flex: 1 }}>
-        {/* Real URL Router Routes */}
-        <Suspense fallback={
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <PageTransition>
+          {/* Real URL Router Routes */}
+          <Suspense fallback={
           <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8C6E53' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{
@@ -251,7 +268,7 @@ function AppContent() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
-
+        </PageTransition>
       </main>
 
       {/* Footer */}
@@ -359,6 +376,10 @@ function AppContent() {
           </button>
         </div>
       )}
+
+      {/* Photography Exhibition Micro-Interactions & Film Grain */}
+      <CustomCursor />
+      <FilmGrainOverlay />
 
     </div>
   );

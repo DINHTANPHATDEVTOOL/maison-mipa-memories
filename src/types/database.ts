@@ -263,6 +263,10 @@ export interface Database {
         Row: {
           id: string;
           staff_role: DatabaseStaffRole;
+          name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          avatar_url?: string | null;
           skills: unknown;
           rating: number;
           total_sessions: number;
@@ -274,6 +278,10 @@ export interface Database {
         Insert: {
           id: string;
           staff_role: DatabaseStaffRole;
+          name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          avatar_url?: string | null;
           skills?: unknown;
           rating?: number;
           total_sessions?: number;
@@ -285,6 +293,10 @@ export interface Database {
         Update: {
           id?: string;
           staff_role?: DatabaseStaffRole;
+          name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          avatar_url?: string | null;
           skills?: unknown;
           rating?: number;
           total_sessions?: number;
@@ -661,6 +673,7 @@ export interface Database {
           booking_id: string;
           payment_type: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
           method: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          payment_method?: string | null;
           status: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
           amount: number;
           currency: string;
@@ -674,6 +687,7 @@ export interface Database {
           expired_at: string | null;
           refunded_at: string | null;
           metadata: unknown;
+          qr_code_url?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -682,6 +696,7 @@ export interface Database {
           booking_id: string;
           payment_type?: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
           method?: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          payment_method?: string | null;
           status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
           amount: number;
           currency?: string;
@@ -695,6 +710,7 @@ export interface Database {
           expired_at?: string | null;
           refunded_at?: string | null;
           metadata?: unknown;
+          qr_code_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -703,6 +719,7 @@ export interface Database {
           booking_id?: string;
           payment_type?: 'DEPOSIT' | 'FULL_PAYMENT' | 'ADDON' | 'REMAINING';
           method?: 'BANK_TRANSFER' | 'VIETQR' | 'MOMO' | 'CASH' | 'CARD';
+          payment_method?: string | null;
           status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
           amount?: number;
           currency?: string;
@@ -716,6 +733,7 @@ export interface Database {
           expired_at?: string | null;
           refunded_at?: string | null;
           metadata?: unknown;
+          qr_code_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1093,11 +1111,41 @@ export interface Database {
           }
         ];
       };
+      root_owner_config: {
+        Row: {
+          id: boolean;
+          owner_user_id: string;
+          assigned_by: string | null;
+          assigned_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          owner_user_id: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          owner_user_id?: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      is_root_owner: {
+        Args: {
+          p_user_id?: string | null;
+        };
+        Returns: boolean;
+      };
       get_auth_role: {
         Args: Record<PropertyKey, never>;
         Returns: string;
@@ -1150,6 +1198,16 @@ export interface Database {
           p_method?: string;
         };
         Returns: unknown;
+      };
+      get_studio_booked_slots: {
+        Args: {
+          p_studio_room_id: string;
+          p_date: string;
+        };
+        Returns: {
+          start_at: string;
+          end_at: string;
+        }[];
       };
       mark_transfer_submitted: {
         Args: {
@@ -1282,6 +1340,7 @@ export type PortfolioPhotoInsert = Database['public']['Tables']['portfolio_photo
 export type PortfolioPhotoUpdate = Database['public']['Tables']['portfolio_photos']['Update'];
 
 export type BookingConceptRow = Database['public']['Tables']['booking_concepts']['Row'];
+export type RootOwnerConfigRow = Database['public']['Tables']['root_owner_config']['Row'];
 
 export type PaymentStatus = PaymentRow['status'];
 export type PaymentMethod = PaymentRow['method'];

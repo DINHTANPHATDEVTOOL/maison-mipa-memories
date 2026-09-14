@@ -63,7 +63,7 @@ describe('SecurityGuards and Access Control in App', () => {
     render(<App />);
 
     // Login as Customer
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng Nhập' }));
+    fireEvent.click(screen.getByRole('button', { name: /Đăng Nhập/i }));
     fireEvent.change(screen.getByPlaceholderText(/Nhập email/i), { target: { value: 'minhanh.nguyen@gmail.com' } });
     fireEvent.change(screen.getByPlaceholderText(/••••••••/i), { target: { value: 'securePass123' } });
     fireEvent.click(screen.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }));

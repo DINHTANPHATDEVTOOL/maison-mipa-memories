@@ -104,7 +104,7 @@ export const DEMO_CONCEPTS: Concept[] = [
 
 export const DEMO_COLLECTIONS: PortfolioCollection[] = [
   {
-    id: 'col00000-0000-0000-0000-000000000001',
+    id: 'c2000000-0000-0000-0000-000000000001',
     slug: 'parisian-romance-autumn',
     title: 'Parisian Romance — Thu Cổ Điển',
     description: 'Bộ ảnh couple phong cách Pháp dịu dàng trong ánh nắng chiều thu, ghi dấu những rung động tinh khôi nhất.',
@@ -119,7 +119,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     photosCount: 2,
   },
   {
-    id: 'col00000-0000-0000-0000-000000000002',
+    id: 'c2000000-0000-0000-0000-000000000002',
     slug: 'vintage-loft-intimate',
     title: 'Vintage Loft Moments',
     description: 'Khoảnh khắc đời thường mộc mạc của cặp đôi trong căn phòng loft rực nắng ấm áp.',
@@ -134,7 +134,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     photosCount: 2,
   },
   {
-    id: 'col00000-0000-0000-0000-000000000003',
+    id: 'c2000000-0000-0000-0000-000000000003',
     slug: 'renaissance-white-veil',
     title: 'Renaissance White Veil — Ánh Sáng Tình Yêu',
     description: 'Khăn voan thêu tay cổ điển kết hợp ánh sáng tự nhiên tạo nên những khung hình cưới vượt thời gian.',
@@ -149,7 +149,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     photosCount: 1,
   },
   {
-    id: 'col00000-0000-0000-0000-000000000004',
+    id: 'c2000000-0000-0000-0000-000000000004',
     slug: 'la-famille-douce-home',
     title: 'La Famille Douce — Bình Yên Trọn Vẹn',
     description: 'Kỷ niệm gia đình ngập tràn tiếng cười và sự âu yếm trong không gian studio ấm cúng như chính ngôi nhà bạn.',
@@ -164,7 +164,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     photosCount: 1,
   },
   {
-    id: 'col00000-0000-0000-0000-000000000005',
+    id: 'c2000000-0000-0000-0000-000000000005',
     slug: 'l-ange-pure-whiteness',
     title: "L'Ange — Thiên Thần Bé Nhỏ",
     description: 'Vẻ đẹp thiên thần thơ ngây của bé yêu được nâng niu bằng những chất liệu ren thêu mềm mại nhất.',
@@ -179,7 +179,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     photosCount: 1,
   },
   {
-    id: 'col00000-0000-0000-0000-000000000006',
+    id: 'c2000000-0000-0000-0000-000000000006',
     slug: 'monochrome-soul-draft',
     title: 'Monochrome Soul & Contrast (Draft Preview)',
     description: 'Bộ ảnh chân dung nghệ thuật thử nghiệm đang hoàn thiện hậu kỳ.',
@@ -197,8 +197,8 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
 
 export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
-    id: 'pho00000-0000-0000-0000-000000000001',
-    collectionId: 'col00000-0000-0000-0000-000000000001',
+    id: 'c3000000-0000-0000-0000-000000000001',
+    collectionId: 'c2000000-0000-0000-0000-000000000001',
     url: '/hero.png',
     filename: 'parisian-romance-1.webp',
     width: 1920,
@@ -211,8 +211,8 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     featured: true,
   },
   {
-    id: 'pho00000-0000-0000-0000-000000000002',
-    collectionId: 'col00000-0000-0000-0000-000000000001',
+    id: 'c3000000-0000-0000-0000-000000000002',
+    collectionId: 'c2000000-0000-0000-0000-000000000001',
     url: '/studio.png',
     filename: 'parisian-romance-2.webp',
     width: 1920,
@@ -225,8 +225,8 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     featured: false,
   },
   {
-    id: 'pho00000-0000-0000-0000-000000000003',
-    collectionId: 'col00000-0000-0000-0000-000000000002',
+    id: 'c3000000-0000-0000-0000-000000000003',
+    collectionId: 'c2000000-0000-0000-0000-000000000002',
     url: '/studio.png',
     filename: 'vintage-loft-1.webp',
     width: 1920,
@@ -239,8 +239,8 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     featured: true,
   },
   {
-    id: 'pho00000-0000-0000-0000-000000000004',
-    collectionId: 'col00000-0000-0000-0000-000000000002',
+    id: 'c3000000-0000-0000-0000-000000000004',
+    collectionId: 'c2000000-0000-0000-0000-000000000002',
     url: '/hero.png',
     filename: 'vintage-loft-2.webp',
     width: 1920,
@@ -253,8 +253,8 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     featured: false,
   },
   {
-    id: 'pho00000-0000-0000-0000-000000000005',
-    collectionId: 'col00000-0000-0000-0000-000000000003',
+    id: 'c3000000-0000-0000-0000-000000000005',
+    collectionId: 'c2000000-0000-0000-0000-000000000003',
     url: '/hero.png',
     filename: 'renaissance-veil-1.webp',
     width: 1920,
@@ -267,8 +267,8 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     featured: true,
   },
   {
-    id: 'pho00000-0000-0000-0000-000000000006',
-    collectionId: 'col00000-0000-0000-0000-000000000004',
+    id: 'c3000000-0000-0000-0000-000000000006',
+    collectionId: 'c2000000-0000-0000-0000-000000000004',
     url: '/studio.png',
     filename: 'family-home-1.webp',
     width: 1920,
@@ -281,8 +281,8 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     featured: true,
   },
   {
-    id: 'pho00000-0000-0000-0000-000000000007',
-    collectionId: 'col00000-0000-0000-0000-000000000005',
+    id: 'c3000000-0000-0000-0000-000000000007',
+    collectionId: 'c2000000-0000-0000-0000-000000000005',
     url: '/hero.png',
     filename: 'l-ange-baby-1.webp',
     width: 1920,

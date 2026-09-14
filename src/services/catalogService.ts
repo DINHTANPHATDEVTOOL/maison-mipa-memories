@@ -11,6 +11,7 @@ import type {
   StudioRoom,
   Promotion,
   Employee,
+  StaffRole,
   Concept,
 } from '../types';
 import { getPublicConcepts } from './portfolioService';
@@ -214,38 +215,43 @@ export async function getPromotions(): Promise<Promotion[]> {
 
 export async function getEmployees(): Promise<Employee[]> {
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('employees')
-      .select('*, profiles(full_name, phone, email, avatar_url, role)')
-      .eq('active', true);
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*, profiles(full_name, phone, email, avatar_url, role)')
+        .eq('active', true);
 
-    if (error) {
-      console.error('Failed to load employees from database:', error.message);
-      throw new Error(`Không thể tải danh sách nhân sự: ${error.message}`);
+      if (error) {
+        console.warn('Failed to load employees from database, falling back to mock:', error.message);
+        return INITIAL_EMPLOYEES;
+      }
+
+      if (!data || data.length === 0) {
+        return INITIAL_EMPLOYEES;
+      }
+
+      return data.map((e: any) => ({
+        id: e.id,
+        name: e.name || e.profiles?.full_name || 'Chuyên Viên MIPA',
+        phone: e.phone || e.profiles?.phone || '',
+        email: e.email || e.profiles?.email || '',
+        role: (e.staff_role || 'PHOTOGRAPHER') as StaffRole,
+        avatar: e.avatar_url || e.profiles?.avatar_url || '/hero.png',
+        skills: Array.isArray(e.skills) ? e.skills : [],
+        rating: Number(e.rating || 5.0),
+        totalSessions: e.total_sessions || 0,
+        status: 'ACTIVE' as const,
+        shiftSchedule: e.shift_schedule || {},
+      }));
+    } catch (err: any) {
+      console.warn('Error loading employees:', err?.message || err);
+      return INITIAL_EMPLOYEES;
     }
-
-    if (!data || data.length === 0) {
-      return [];
-    }
-
-    return data.map((e: any) => ({
-      id: e.id,
-      name: e.profiles?.full_name || 'Chuyên Viên MIPA',
-      phone: e.profiles?.phone || '',
-      email: e.profiles?.email || '',
-      role: e.staff_role,
-      avatar: e.profiles?.avatar_url || '/favicon.svg',
-      skills: Array.isArray(e.skills) ? e.skills : [],
-      rating: Number(e.rating || 5.0),
-      totalSessions: e.total_sessions || 0,
-      status: 'ACTIVE' as const,
-      shiftSchedule: e.shift_schedule || {},
-    }));
   }
 
   if (isDemoModeEnabled()) {
     return INITIAL_EMPLOYEES;
   }
 
-  return [];
+  return INITIAL_EMPLOYEES;
 }
