@@ -170,7 +170,6 @@ export const PUBLIC_NAV_ITEMS = [
   { id: 'services', to: '/dich-vu', label: 'Dịch vụ' },
   { id: 'portfolio', to: '/portfolio', label: 'Portfolio' },
   { id: 'packages', to: '/bang-gia', label: 'Bảng giá' },
-  { id: 'guide', to: '/cam-nang', label: 'Cẩm nang' },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -189,28 +188,50 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showNotifs, setShowNotifs] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Notification state
+  // Notification state - strictly isolated by user ID: mipa_notifications_v2:<USER_ID>
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    if (!currentUser?.id) return [];
     try {
-      const saved = localStorage.getItem('mipa_notifications');
-      return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+      const saved = localStorage.getItem(`mipa_notifications_v2:${currentUser.id}`);
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_NOTIFICATIONS;
+      return [];
     }
   });
 
   useEffect(() => {
     let mounted = true;
+    if (!currentUser?.id) {
+      setNotifications([]);
+      return;
+    }
+
+    // User A login: load only A cache
+    try {
+      const saved = localStorage.getItem(`mipa_notifications_v2:${currentUser.id}`);
+      if (mounted) {
+        setNotifications(saved ? JSON.parse(saved) : []);
+      }
+    } catch {
+      if (mounted) setNotifications([]);
+    }
+
     async function loadNotifications() {
-      if (currentUser?.id) {
-        try {
-          const remoteNotifs = await getUserNotifications(currentUser.id);
-          if (mounted && remoteNotifs.length > 0) {
-            setNotifications(remoteNotifs);
+      if (!currentUser?.id) return;
+      try {
+        const remoteNotifs = await getUserNotifications(currentUser.id);
+        if (mounted) {
+          // If server returns [], set notifications to []. Do NOT keep previous state.
+          const fresh = remoteNotifs || [];
+          setNotifications(fresh);
+          try {
+            localStorage.setItem(`mipa_notifications_v2:${currentUser.id}`, JSON.stringify(fresh));
+          } catch (e) {
+            console.warn('Cannot persist notifications', e);
           }
-        } catch {
-          // ignore
         }
+      } catch {
+        // ignore
       }
     }
     loadNotifications();
@@ -231,10 +252,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const saveNotifications = (items: NotificationItem[]) => {
     setNotifications(items);
-    try {
-      localStorage.setItem('mipa_notifications', JSON.stringify(items));
-    } catch (e) {
-      console.warn('Cannot persist notifications', e);
+    if (currentUser?.id) {
+      try {
+        localStorage.setItem(`mipa_notifications_v2:${currentUser.id}`, JSON.stringify(items));
+      } catch (e) {
+        console.warn('Cannot persist notifications', e);
+      }
     }
   };
 
@@ -357,7 +380,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <NavLink
                 key={link.id}
                 to={link.to}
-                role="button"
                 style={{
                   background: 'transparent',
                   color: isActive ? '#29231F' : '#604634',
@@ -724,6 +746,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div style={{ borderTop: '1px solid rgba(140, 110, 83, 0.2)', marginTop: '0.4rem', paddingTop: '0.4rem' }}>
                       <button
                         onClick={() => {
+                          setNotifications([]);
                           onLogout();
                           setShowRoleDropdown(false);
                         }}
@@ -741,7 +764,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        <LogOut size={14} /> Đăng Xuất
+                        <LogOut size={14} /> Đăng xuất
                       </button>
                     </div>
                   </div>
@@ -793,7 +816,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <NavLink
                   key={item.id}
                   to={item.to}
-                  role="button"
                   onClick={() => handleLinkClick(item.to, item.id)}
                   style={{
                     color: isActive ? '#29231F' : '#604634',
@@ -832,7 +854,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             Đặt lịch chụp
           </button>
 
-          {/* Mobile Account Actions */}
+          {/* Mobile Account Actions with Role Portals Restored */}
           <div style={{ paddingTop: '0.75rem', borderTop: '1px solid rgba(140, 110, 83, 0.2)' }}>
             {currentRole === 'GUEST' ? (
               <button
@@ -856,10 +878,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                <LogIn size={16} /> Đăng Nhập / Đăng Ký
+                <LogIn size={16} /> Đăng nhập / Đăng ký
               </button>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 <Link
                   to="/account?tab=profile"
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -871,12 +893,87 @@ export const Navbar: React.FC<NavbarProps> = ({
                     textDecoration: 'none',
                     fontSize: '0.9rem',
                     minHeight: '44px',
+                    fontWeight: 600,
                   }}
                 >
                   <UserIcon size={16} color="#8C6E53" /> Thông tin: {displayUser.fullName}
                 </Link>
+
+                {currentRole === 'CUSTOMER' && (
+                  <Link
+                    to="/account"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      color: '#29231F',
+                      textDecoration: 'none',
+                      fontSize: '0.88rem',
+                      minHeight: '44px',
+                    }}
+                  >
+                    <Calendar size={16} color="#8C6E53" /> Lịch của tôi & Album
+                  </Link>
+                )}
+
+                {(currentRole === 'STAFF' || currentRole === 'MANAGER' || currentRole === 'ADMIN') && (
+                  <Link
+                    to="/staff"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      color: '#29231F',
+                      textDecoration: 'none',
+                      fontSize: '0.88rem',
+                      minHeight: '44px',
+                    }}
+                  >
+                    <Camera size={16} color="#8C6E53" /> Staff OS Portal
+                  </Link>
+                )}
+
+                {(currentRole === 'MANAGER' || currentRole === 'ADMIN' || displayUser.isRootOwner) && (
+                  <Link
+                    to="/management"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      color: '#29231F',
+                      textDecoration: 'none',
+                      fontSize: '0.88rem',
+                      minHeight: '44px',
+                    }}
+                  >
+                    <LayoutDashboard size={16} color="#8C6E53" /> Studio Manager OS
+                  </Link>
+                )}
+
+                {(currentRole === 'ADMIN' || displayUser.isRootOwner) && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      color: '#29231F',
+                      textDecoration: 'none',
+                      fontSize: '0.88rem',
+                      minHeight: '44px',
+                    }}
+                  >
+                    <Crown size={16} color="#8C6E53" /> Admin Studio Portal
+                  </Link>
+                )}
+
                 <button
                   onClick={() => {
+                    setNotifications([]);
                     onLogout();
                     setIsMobileMenuOpen(false);
                   }}
@@ -892,9 +989,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
+                    marginTop: '0.25rem',
                   }}
                 >
-                  <LogOut size={16} /> Đăng Xuất ({roleLabels[currentRole].label})
+                  <LogOut size={16} /> Đăng xuất ({roleLabels[currentRole].label})
                 </button>
               </div>
             )}

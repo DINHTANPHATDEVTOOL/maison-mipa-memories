@@ -1,7 +1,8 @@
 // ==============================================================================
 // Maison MIPA Memories — Pricing Preview Section (Homepage)
 // Scannable price points grouped by service with actual database prices.
-// Direct action: "Đặt gói này" -> /booking?service=...&package=...
+// Strict data integrity: zero packages from other services shown.
+// Inclusions strictly derived from authoritative DB fields and pkg.features.
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,6 +20,7 @@ export const HomePricingPreview: React.FC = () => {
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -33,7 +35,7 @@ export const HomePricingPreview: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn('Lỗi tải dữ liệu bảng giá:', err);
+        if (mounted) setHasError(true);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -44,14 +46,30 @@ export const HomePricingPreview: React.FC = () => {
     };
   }, []);
 
-  if (isLoading || packages.length === 0) return null;
+  if (isLoading) {
+    return (
+      <section style={{ padding: '5rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Đang tải bảng giá dịch vụ...</div>
+      </section>
+    );
+  }
 
-  // Filter packages for selected service tab, or show top packages
-  const filteredPackages = selectedServiceId
+  if (hasError) {
+    return (
+      <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Không thể tải bảng giá vào lúc này.</div>
+      </section>
+    );
+  }
+
+  if (services.length === 0 || packages.length === 0) {
+    return null;
+  }
+
+  // Filter packages strictly for selected service tab
+  const displayPackages = selectedServiceId
     ? packages.filter((p) => p.serviceId === selectedServiceId)
-    : packages.slice(0, 3);
-
-  const displayPackages = filteredPackages.length > 0 ? filteredPackages : packages.slice(0, 3);
+    : [];
 
   return (
     <section
@@ -105,7 +123,7 @@ export const HomePricingPreview: React.FC = () => {
                 margin: '0 0 0.75rem 0',
               }}
             >
-              Chi phí minh bạch & trọn gói
+              Bảng giá dịch vụ rõ ràng
             </h2>
             <p
               style={{
@@ -116,7 +134,7 @@ export const HomePricingPreview: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Cam kết không phát sinh phụ phí ẩn. Mọi gói chụp đều bao gồm toàn bộ file ảnh gốc chất lượng cao và hậu kỳ chuyên nghiệp.
+              Chi tiết quyền lợi được hiển thị theo từng gói chụp và dịch vụ tương ứng.
             </p>
           </div>
 
@@ -175,109 +193,135 @@ export const HomePricingPreview: React.FC = () => {
           </div>
         )}
 
-        {/* Scannable Package Cards Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1.5rem',
-          }}
-        >
-          {displayPackages.map((pkg) => (
-            <div
-              key={pkg.id}
-              style={{
-                backgroundColor: '#FAF8F3',
-                border: '1px solid rgba(140, 110, 83, 0.25)',
-                borderRadius: '4px',
-                padding: '2rem 1.75rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: '0.72rem',
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                    color: '#8C6E53',
-                    fontWeight: 600,
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  {pkg.durationMinutes} PHÚT / {pkg.conceptsCount} CONCEPT
-                </div>
-
-                <h3
-                  style={{
-                    fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                    fontSize: '1.65rem',
-                    fontWeight: 500,
-                    color: '#29231F',
-                    margin: '0 0 0.75rem 0',
-                  }}
-                >
-                  {pkg.name}
-                </h3>
-
-                <div
-                  style={{
-                    fontSize: '1.6rem',
-                    fontWeight: 600,
-                    color: '#29231F',
-                    marginBottom: '1.5rem',
-                  }}
-                >
-                  {formatVnd(pkg.price)}
-                </div>
-
-                {/* Inclusions summary */}
-                <ul
-                  style={{
-                    listStyle: 'none',
-                    padding: 0,
-                    margin: '0 0 2rem 0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.65rem',
-                  }}
-                >
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                    <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>Hậu kỳ chuyên sâu <strong>{pkg.editedPhotosCount} ảnh</strong></span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                    <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>Bàn giao toàn bộ file ảnh gốc chất lượng cao</span>
-                  </li>
-                  {pkg.features && pkg.features.slice(0, 3).map((feat, idx) => (
-                    <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                      <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Direct Booking Link */}
-              <button
-                onClick={() => navigate(`/booking?service=${pkg.serviceId}&package=${pkg.id}`)}
-                className="public-btn-primary"
+        {/* Truthful Package Cards or Honest Empty State */}
+        {displayPackages.length === 0 ? (
+          <div
+            style={{
+              padding: '3rem 1.5rem',
+              backgroundColor: '#FAF8F3',
+              borderRadius: '4px',
+              border: '1px solid rgba(140, 110, 83, 0.2)',
+              textAlign: 'center',
+              color: '#8C6E53',
+              fontSize: '0.92rem',
+            }}
+          >
+            Hiện chưa có gói chụp được công bố cho dịch vụ này.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {displayPackages.map((pkg) => (
+              <div
+                key={pkg.id}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  textAlign: 'center',
+                  backgroundColor: '#FAF8F3',
+                  border: '1px solid rgba(140, 110, 83, 0.25)',
+                  borderRadius: '4px',
+                  padding: '2rem 1.75rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
                 }}
               >
-                Đặt gói này
-              </button>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: '#8C6E53',
+                      fontWeight: 600,
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    {pkg.durationMinutes} PHÚT / {pkg.conceptsCount} CONCEPT
+                  </div>
+
+                  <h3
+                    style={{
+                      fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                      fontSize: '1.65rem',
+                      fontWeight: 500,
+                      color: '#29231F',
+                      margin: '0 0 0.75rem 0',
+                    }}
+                  >
+                    {pkg.name}
+                  </h3>
+
+                  <div
+                    style={{
+                      fontSize: '1.6rem',
+                      fontWeight: 600,
+                      color: '#29231F',
+                      marginBottom: '1.5rem',
+                    }}
+                  >
+                    {formatVnd(pkg.price)}
+                  </div>
+
+                  {/* Authoritative DB inclusions only */}
+                  <ul
+                    style={{
+                      listStyle: 'none',
+                      padding: 0,
+                      margin: '0 0 2rem 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem',
+                    }}
+                  >
+                    {pkg.editedPhotosCount > 0 && (
+                      <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
+                        <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <span>Hậu kỳ chuyên sâu <strong>{pkg.editedPhotosCount} ảnh</strong></span>
+                      </li>
+                    )}
+                    {pkg.features && pkg.features.length > 0 ? (
+                      pkg.features.map((feat, idx) => (
+                        <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
+                          <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          <span>{feat}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#8C6E53', fontStyle: 'italic' }}>
+                        Chi tiết quyền lợi được hiển thị theo từng gói.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Direct Booking Link - only when authoritative service relation is present */}
+                <button
+                  onClick={() => {
+                    if (pkg.serviceId) {
+                      navigate(`/booking?service=${pkg.serviceId}&package=${pkg.id}`);
+                    } else {
+                      navigate(`/booking?package=${pkg.id}`);
+                    }
+                  }}
+                  className="public-btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                  }}
+                >
+                  Đặt gói này
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -7,27 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublicConcepts } from '../../services/portfolioService';
 import type { Concept } from '../../types';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
 
-interface HomeConceptsSectionProps {
-  onOpenBookingWithConcept?: (slug: string) => void;
-}
-
-// Category fallback helper based on slug/name keywords
-function getConceptCategoryLabel(concept: Concept): string {
-  const text = `${concept.slug} ${concept.name} ${concept.description}`.toLowerCase();
-  if (text.includes('wedding') || text.includes('haute') || text.includes('cưới')) return 'Cưới & Haute Couture';
-  if (text.includes('romance') || text.includes('couple') || text.includes('đôi')) return 'Couple & Tình Yêu';
-  if (text.includes('famille') || text.includes('gia đình')) return 'Gia Đình & Tổ Ấm';
-  if (text.includes('ange') || text.includes('baby') || text.includes('bé')) return 'Em Bé & Chân Dung Đầu Đời';
-  if (text.includes('monochrome') || text.includes('chân dung') || text.includes('portrait')) return 'Chân Dung Nghệ Thuật';
-  if (text.includes('vintage') || text.includes('loft') || text.includes('cinematic')) return 'Điện Ảnh & Cổ Điển';
-  return 'Chân Dung & Nghệ Thuật';
-}
-
-export const HomeConceptsSection: React.FC<HomeConceptsSectionProps> = ({
-  onOpenBookingWithConcept,
-}) => {
+export const HomeConceptsSection: React.FC = () => {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -60,8 +43,20 @@ export const HomeConceptsSection: React.FC<HomeConceptsSectionProps> = ({
     );
   }
 
-  if (hasError || concepts.length === 0) {
-    return null; // transparent fail-closed
+  if (hasError) {
+    return (
+      <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FAF8F3', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Không thể tải danh mục concept vào lúc này.</div>
+      </section>
+    );
+  }
+
+  if (concepts.length === 0) {
+    return (
+      <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FAF8F3', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Hiện chưa có concept nào được công bố.</div>
+      </section>
+    );
   }
 
   return (
@@ -151,40 +146,26 @@ export const HomeConceptsSection: React.FC<HomeConceptsSectionProps> = ({
           </Link>
         </div>
 
-        {/* Asymmetric Editorial Grid (Varied Rhythm: Large / Tall / Wide) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, 1fr)',
-            gap: 'clamp(1.5rem, 3vw, 2.5rem)',
-          }}
-        >
+        {/* Asymmetric Editorial Grid with Responsive Class */}
+        <div className="concept-editorial-grid">
           {concepts.map((concept, index) => {
-            // Asymmetric rhythm mapping
-            // Item 0: 7 cols wide (Featured hero concept)
-            // Item 1: 5 cols portrait
-            // Item 2: 4 cols standard
-            // Item 3: 4 cols standard
-            // Item 4: 4 cols standard
-            let colSpan = 'span 4';
+            let cardClass = 'concept-card-triplet';
             let aspectRatio = '4/3';
             if (index === 0) {
-              colSpan = 'span 7';
+              cardClass = 'concept-card-feature-left';
               aspectRatio = '16/10';
             } else if (index === 1) {
-              colSpan = 'span 5';
+              cardClass = 'concept-card-feature-right';
               aspectRatio = '4/5';
             }
 
-            const category = getConceptCategoryLabel(concept);
-            const coverImage = concept.coverPhotoUrl || (index % 2 === 0 ? '/hero.png' : '/studio.png');
+            const categoryLabel = 'Concept Maison MIPA';
 
             return (
               <article
                 key={concept.id}
-                className="mipa-concept-card"
+                className={`mipa-concept-card ${cardClass}`}
                 style={{
-                  gridColumn: colSpan,
                   display: 'flex',
                   flexDirection: 'column',
                 }}
@@ -201,52 +182,59 @@ export const HomeConceptsSection: React.FC<HomeConceptsSectionProps> = ({
                     borderRadius: '2px',
                     backgroundColor: '#EDE7DC',
                     textDecoration: 'none',
-                    marginBottom: '1rem',
+                    marginBottom: '1.15rem',
                   }}
                 >
-                  <img
-                    src={coverImage}
-                    alt={concept.name}
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.035)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.0)';
-                    }}
-                  />
+                  {concept.coverPhotoUrl ? (
+                    <img
+                      src={concept.coverPhotoUrl}
+                      alt={concept.name}
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.035)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.0)';
+                      }}
+                    />
+                  ) : (
+                    <EditorialImagePlaceholder
+                      aspectRatio={aspectRatio}
+                      caption={concept.name}
+                    />
+                  )}
                 </Link>
 
                 {/* Concept Information */}
                 <div>
                   <div
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.8rem',
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       color: '#8C6E53',
-                      fontWeight: 500,
-                      marginBottom: '0.35rem',
+                      fontWeight: 600,
+                      marginBottom: '0.45rem',
                     }}
                   >
-                    {category}
+                    {categoryLabel}
                   </div>
 
                   <h3
                     style={{
                       fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                      fontSize: index === 0 ? '1.85rem' : '1.45rem',
+                      fontSize: index === 0 ? 'clamp(1.85rem, 2.4vw, 2.25rem)' : 'clamp(1.4rem, 1.8vw, 1.65rem)',
                       fontWeight: 500,
                       color: '#29231F',
-                      margin: '0 0 0.5rem 0',
+                      margin: '0 0 0.65rem 0',
                       lineHeight: 1.2,
                     }}
                   >
@@ -264,10 +252,10 @@ export const HomeConceptsSection: React.FC<HomeConceptsSectionProps> = ({
 
                   <p
                     style={{
-                      fontSize: '0.88rem',
-                      lineHeight: 1.55,
+                      fontSize: '0.96rem',
+                      lineHeight: 1.6,
                       color: '#604634',
-                      margin: '0 0 0.85rem 0',
+                      margin: '0 0 1rem 0',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
@@ -278,27 +266,27 @@ export const HomeConceptsSection: React.FC<HomeConceptsSectionProps> = ({
                     {concept.description}
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
                     <Link
                       to={`/concept/${concept.slug}`}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.35rem',
-                        fontSize: '0.85rem',
+                        gap: '0.4rem',
+                        fontSize: '0.95rem',
                         color: '#29231F',
-                        fontWeight: 500,
+                        fontWeight: 600,
                         textDecoration: 'none',
                       }}
                     >
-                      Xem concept <ArrowRight size={13} />
+                      Xem concept <ArrowRight size={14} />
                     </Link>
 
                     {concept.bookable && (
                       <Link
                         to={`/booking?concept=${concept.slug}`}
                         style={{
-                          fontSize: '0.82rem',
+                          fontSize: '0.92rem',
                           color: '#8C6E53',
                           fontWeight: 500,
                           textDecoration: 'underline',

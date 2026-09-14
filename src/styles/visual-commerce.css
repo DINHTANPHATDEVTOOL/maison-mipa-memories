@@ -1,0 +1,213 @@
+/* ==============================================================================
+   Maison MIPA Memories — Visual Commerce Responsive Architecture
+   Art Direction: Editorial Asymmetry (Desktop) -> 2-Col (Tablet) -> 1-Col (Mobile <=767px)
+   Strict Rule: Zero Horizontal Overflow across 320px–1440px
+   ============================================================================== */
+
+/* --- Concepts Section Grid --- */
+.concept-editorial-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.concept-card-feature-left,
+.concept-card-feature {
+  grid-column: span 7;
+}
+
+.concept-card-feature-right,
+.concept-card-tall {
+  grid-column: span 5;
+}
+
+.concept-card-triplet,
+.concept-card-standard {
+  grid-column: span 4;
+}
+
+/* --- Stories / Portfolio Grid --- */
+.story-editorial-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: clamp(1.75rem, 3.5vw, 3rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.story-card-wide,
+.story-card-feature {
+  grid-column: span 8;
+}
+
+.story-card-tall {
+  grid-column: span 4;
+}
+
+.story-card-balanced,
+.story-card-standard {
+  grid-column: span 6;
+}
+
+/* --- Concept Detail Gallery Sequence Grid --- */
+.concept-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gallery-span-full {
+  grid-column: span 12;
+}
+
+.gallery-span-half {
+  grid-column: span 6;
+}
+
+.gallery-span-portrait {
+  grid-column: span 6;
+}
+
+.gallery-span-landscape {
+  grid-column: span 12;
+}
+
+/* --- Services Editorial Layout --- */
+.services-editorial-layout {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3rem, 6vw, 6rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.service-row-item {
+  display: flex;
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.service-row-item.reverse {
+  flex-direction: row-reverse;
+}
+
+.service-row-media {
+  flex: 1 1 50%;
+  min-width: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.service-row-content {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* --- Responsive Tablet Overrides (<= 1024px) --- */
+@media (max-width: 1024px) {
+  .concept-editorial-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .concept-card-feature-left,
+  .concept-card-feature-right,
+  .concept-card-triplet,
+  .concept-card-feature,
+  .concept-card-tall,
+  .concept-card-standard {
+    grid-column: span 1;
+  }
+
+  .story-editorial-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .story-card-wide,
+  .story-card-tall,
+  .story-card-balanced,
+  .story-card-feature,
+  .story-card-standard {
+    grid-column: span 1;
+  }
+
+  .concept-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .gallery-span-full,
+  .gallery-span-landscape {
+    grid-column: span 2;
+  }
+  .gallery-span-half,
+  .gallery-span-portrait {
+    grid-column: span 1;
+  }
+
+  .service-row-item,
+  .service-row-item.reverse {
+    gap: 2rem;
+  }
+}
+
+/* --- Responsive Mobile Overrides (<= 767px) --- */
+@media (max-width: 767px) {
+  .concept-editorial-grid,
+  .story-editorial-grid,
+  .concept-gallery-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.75rem !important;
+    width: 100% !important;
+  }
+
+  .concept-card-feature-left,
+  .concept-card-feature-right,
+  .concept-card-triplet,
+  .concept-card-feature,
+  .concept-card-tall,
+  .concept-card-standard,
+  .story-card-wide,
+  .story-card-tall,
+  .story-card-balanced,
+  .story-card-feature,
+  .story-card-standard,
+  .gallery-span-full,
+  .gallery-span-half,
+  .gallery-span-portrait,
+  .gallery-span-landscape {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .service-row-item,
+  .service-row-item.reverse {
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+
+  .service-row-media,
+  .service-row-content {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* --- Safe Container & No Horizontal Overflow --- */
+.mipa-responsive-container {
+  width: 100%;
+  max-width: 1350px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 4vw, 2rem);
+  padding-right: clamp(1rem, 4vw, 2rem);
+  box-sizing: border-box;
+  overflow-x: hidden;
+}

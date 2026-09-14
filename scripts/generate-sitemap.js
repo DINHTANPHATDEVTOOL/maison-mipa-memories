@@ -18,7 +18,6 @@ export const PUBLIC_SITEMAP_ROUTES = [
   { path: '/dich-vu/graduation', changefreq: 'weekly', priority: '0.85' },
   { path: '/bang-gia', changefreq: 'weekly', priority: '0.9' },
   { path: '/portfolio', changefreq: 'weekly', priority: '0.85' },
-  { path: '/cam-nang', changefreq: 'weekly', priority: '0.8' },
   { path: '/atelier', changefreq: 'monthly', priority: '0.75' },
   { path: '/booking', changefreq: 'daily', priority: '0.8' },
 ];

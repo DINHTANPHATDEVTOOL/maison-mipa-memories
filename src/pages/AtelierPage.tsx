@@ -14,17 +14,35 @@ interface AtelierPageProps {
 export const AtelierPage: React.FC<AtelierPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
   const [atelierArtworks, setAtelierArtworks] = useState<AtelierArtwork[] | undefined>(undefined);
+  const [isProductionEmpty, setIsProductionEmpty] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
+    const isDemo = typeof window !== 'undefined' && localStorage.getItem('mipa_demo_mode') === 'true';
+
     getPublicConcepts()
       .then((concepts) => {
-        if (!mounted || !concepts || concepts.length === 0) return;
+        if (!mounted) return;
+        if (!concepts || concepts.length === 0) {
+          if (isDemo) {
+            setAtelierArtworks(undefined);
+          } else {
+            setAtelierArtworks([]);
+            setIsProductionEmpty(true);
+          }
+          return;
+        }
         const adapted = concepts.slice(0, 3).map((c, i) => adaptConceptToAtelierArtwork(c, i));
         setAtelierArtworks(adapted);
       })
       .catch(() => {
-        // graceful fallback to default config artworks
+        if (!mounted) return;
+        if (isDemo) {
+          setAtelierArtworks(undefined);
+        } else {
+          setAtelierArtworks([]);
+          setIsProductionEmpty(true);
+        }
       });
     return () => {
       mounted = false;
@@ -109,6 +127,24 @@ export const AtelierPage: React.FC<AtelierPageProps> = ({ onOpenBooking }) => {
           <ArrowLeft size={14} /> Trở về trang chủ
         </Link>
       </nav>
+
+      {isProductionEmpty && (
+        <div
+          style={{
+            maxWidth: '1350px',
+            margin: '0.5rem auto 1rem',
+            padding: '0.85rem 1.5rem',
+            backgroundColor: 'rgba(140, 110, 83, 0.25)',
+            border: '1px solid rgba(198, 164, 95, 0.4)',
+            borderRadius: '4px',
+            textAlign: 'center',
+            color: '#F5E6C8',
+            fontSize: '0.9rem',
+          }}
+        >
+          Nội dung triển lãm đang được cập nhật.
+        </div>
+      )}
 
       {/* Atelier 3D Experience */}
       <Hero3DExhibitionSection

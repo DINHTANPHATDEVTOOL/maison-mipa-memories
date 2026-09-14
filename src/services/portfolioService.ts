@@ -303,13 +303,14 @@ DEMO_COLLECTIONS.forEach((col) => {
 });
 
 // Helper to map DB row to domain Concept
-function mapConceptRow(row: ConceptRow): Concept {
+function mapConceptRow(row: ConceptRow, coverPhotoUrl?: string): Concept {
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
     description: row.description || '',
     coverPhotoId: row.cover_photo_id || undefined,
+    coverPhotoUrl: coverPhotoUrl || undefined,
     serviceId: row.service_id || undefined,
     active: row.active,
     bookable: row.bookable,
@@ -317,6 +318,31 @@ function mapConceptRow(row: ConceptRow): Concept {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+// Helper to resolve collection cover photo priority:
+// 1. cover_photo_id referenced photo
+// 2. explicitly featured photo
+// 3. first collection photo
+// 4. undefined (never unrelated static image)
+function resolveCollectionCoverUrl(
+  coverPhotoId?: string,
+  photos?: PortfolioPhoto[],
+  demoFallbackUrl?: string
+): string | undefined {
+  if (photos && photos.length > 0) {
+    if (coverPhotoId) {
+      const match = photos.find((p) => p.id === coverPhotoId);
+      if (match?.url) return match.url;
+    }
+    const featured = photos.find((p) => p.featured);
+    if (featured?.url) return featured.url;
+    if (photos[0]?.url) return photos[0].url;
+  }
+  if (isDemoModeEnabled() && demoFallbackUrl) {
+    return demoFallbackUrl;
+  }
+  return undefined;
 }
 
 // Helper to map DB row to domain Collection
@@ -393,7 +419,28 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
       return [];
     }
 
-    return data.map(mapConceptRow);
+    // Hydrate coverPhotoUrl without N+1 query
+    const coverPhotoIds = data
+      .map((c) => c.cover_photo_id)
+      .filter((id): id is string => Boolean(id));
+
+    const coverPhotoMap = new Map<string, string>();
+    if (coverPhotoIds.length > 0) {
+      const { data: photosData, error: photosError } = await supabase
+        .from('portfolio_photos')
+        .select('id, url')
+        .in('id', coverPhotoIds);
+
+      if (!photosError && photosData) {
+        photosData.forEach((p) => {
+          if (p.id && p.url) coverPhotoMap.set(p.id, p.url);
+        });
+      }
+    }
+
+    return data.map((row) =>
+      mapConceptRow(row, row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined)
+    );
   }
 
   if (isDemoModeEnabled()) {
@@ -424,7 +471,21 @@ export async function getConceptBySlug(slug: string): Promise<Concept | null> {
       throw new Error(`Lỗi tải concept ${slug}: ${error.message}`);
     }
 
-    return data ? mapConceptRow(data) : null;
+    if (!data) return null;
+
+    let coverPhotoUrl: string | undefined = undefined;
+    if (data.cover_photo_id) {
+      const { data: photoData } = await supabase
+        .from('portfolio_photos')
+        .select('url')
+        .eq('id', data.cover_photo_id)
+        .single();
+      if (photoData?.url) {
+        coverPhotoUrl = photoData.url;
+      }
+    }
+
+    return mapConceptRow(data, coverPhotoUrl);
   }
 
   if (isDemoModeEnabled()) {
@@ -474,7 +535,7 @@ export async function getPublicCollections(
       photos.sort((a, b) => a.sortOrder - b.sortOrder);
       col.photos = photos;
       col.photosCount = photos.length;
-      col.coverPhotoUrl = photos[0]?.url || '/hero.png';
+      col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
       return col;
     });
   }
@@ -493,7 +554,7 @@ export async function getPublicCollections(
         ...c,
         photos,
         photosCount: photos.length,
-        coverPhotoUrl: photos[0]?.url || c.coverPhotoUrl || '/hero.png',
+        coverPhotoUrl: resolveCollectionCoverUrl(c.coverPhotoId, photos, c.coverPhotoUrl),
       };
     });
   }
@@ -527,7 +588,7 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
     photos.sort((a, b) => a.sortOrder - b.sortOrder);
     col.photos = photos;
     col.photosCount = photos.length;
-    col.coverPhotoUrl = photos[0]?.url || '/hero.png';
+    col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
     return col;
   }
 
@@ -539,7 +600,7 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
       ...found,
       photos,
       photosCount: photos.length,
-      coverPhotoUrl: photos[0]?.url || found.coverPhotoUrl || '/hero.png',
+      coverPhotoUrl: resolveCollectionCoverUrl(found.coverPhotoId, photos, found.coverPhotoUrl),
     };
   }
 
@@ -564,7 +625,29 @@ export async function getAllConcepts(): Promise<Concept[]> {
       throw new Error(`Không thể tải toàn bộ concept: ${error.message}`);
     }
 
-    return (data || []).map(mapConceptRow);
+    if (!data || data.length === 0) return [];
+
+    const coverPhotoIds = data
+      .map((c) => c.cover_photo_id)
+      .filter((id): id is string => Boolean(id));
+
+    const coverPhotoMap = new Map<string, string>();
+    if (coverPhotoIds.length > 0) {
+      const { data: photosData, error: photosError } = await supabase
+        .from('portfolio_photos')
+        .select('id, url')
+        .in('id', coverPhotoIds);
+
+      if (!photosError && photosData) {
+        photosData.forEach((p) => {
+          if (p.id && p.url) coverPhotoMap.set(p.id, p.url);
+        });
+      }
+    }
+
+    return data.map((row) =>
+      mapConceptRow(row, row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined)
+    );
   }
 
   if (isDemoModeEnabled()) {
@@ -601,7 +684,7 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
       photos.sort((a, b) => a.sortOrder - b.sortOrder);
       col.photos = photos;
       col.photosCount = photos.length;
-      col.coverPhotoUrl = photos[0]?.url || '/hero.png';
+      col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
       return col;
     });
   }

@@ -1,14 +1,16 @@
 // ==============================================================================
 // Maison MIPA Memories — Pricing Page (/bang-gia)
-// Grouped by service, scannable package specs, actual DB prices, direct booking links.
+// Grouped by authoritative service relations.
+// Strict data integrity: zero unassigned packages exposed as bookable.
+// Inclusions strictly derived from authoritative DB fields and pkg.features.
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getServices, getPackages } from '../services/catalogService';
 import type { ServiceCategory, PackageItem } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
-import { SITE_CONFIG, getCanonicalUrl } from '../config/site';
-import { ChevronRight, Home, Check, ArrowRight, ShieldCheck, Clock, Image as ImageIcon } from 'lucide-react';
+import { getCanonicalUrl } from '../config/site';
+import { ChevronRight, Home, Check, Sparkles, Clock, Camera } from 'lucide-react';
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
@@ -18,7 +20,7 @@ interface PricingPageProps {
   onOpenBooking: () => void;
 }
 
-export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
+export const PricingPage: React.FC<PricingPageProps> = () => {
   const navigate = useNavigate();
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [packages, setPackages] = useState<PackageItem[]>([]);
@@ -50,25 +52,22 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
     { name: 'Bảng giá', url: getCanonicalUrl('/bang-gia') },
   ];
 
-  // Group packages by serviceId
-  const packagesByService = services.map((service) => {
-    const srvPackages = packages.filter((p) => p.serviceId === service.id);
-    return {
-      service,
-      packages: srvPackages,
-    };
-  }).filter((group) => group.packages.length > 0);
-
-  // Fallback if packages have unmatched serviceIds
-  const unassignedPackages = packages.filter(
-    (p) => !services.some((s) => s.id === p.serviceId)
-  );
+  // Group packages by authoritative serviceId
+  const packagesByService = services
+    .map((service) => {
+      const srvPackages = packages.filter((p) => p.serviceId === service.id);
+      return {
+        service,
+        packages: srvPackages,
+      };
+    })
+    .filter((group) => group.packages.length > 0);
 
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title="Bảng Giá Dịch Vụ Chụp Ảnh Trọn Gói | Maison MIPA Memories"
-        description="Bảng giá dịch vụ chụp ảnh nghệ thuật minh bạch tại Maison MIPA Memories. Chi phí trọn gói rõ ràng, cam kết toàn bộ file ảnh gốc chất lượng cao và hậu kỳ tinh tế."
+        title="Bảng Giá Dịch Vụ Chụp Ảnh | Maison MIPA Memories"
+        description="Bảng giá dịch vụ chụp ảnh nghệ thuật minh bạch tại Maison MIPA Memories. Chi phí rõ ràng theo từng gói chụp và dịch vụ."
         canonicalPath="/bang-gia"
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
@@ -137,7 +136,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
             marginBottom: '0.75rem',
           }}
         >
-          MINH BẠCH & TRỌN GÓI
+          CHI PHÍ MINH BẠCH
         </span>
         <h1
           style={{
@@ -161,7 +160,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
             fontWeight: 300,
           }}
         >
-          Mọi gói chụp tại Maison MIPA đều được niêm yết rõ ràng, bao gồm toàn bộ file ảnh gốc chất lượng cao và quy trình hậu kỳ màu sắc tinh tế.
+          Chi tiết quyền lợi được hiển thị theo từng gói chụp và dịch vụ tương ứng.
         </p>
       </header>
 
@@ -182,7 +181,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
           </div>
         )}
 
-        {!isLoading && packagesByService.length === 0 && unassignedPackages.length === 0 && (
+        {!isLoading && packagesByService.length === 0 && (
           <div
             style={{
               padding: '3rem',
@@ -193,7 +192,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
               color: '#604634',
             }}
           >
-            Hiện bảng giá đang được cập nhật. Quý khách vui lòng liên hệ hotline để được tư vấn chi tiết.
+            Hiện bảng giá đang được cập nhật. Quý khách vui lòng liên hệ studio để được tư vấn chi tiết.
           </div>
         )}
 
@@ -323,7 +322,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
                         {formatVnd(pkg.price)}
                       </div>
 
-                      {/* Inclusions List */}
+                      {/* Inclusions List - Authoritative DB features only */}
                       <ul
                         style={{
                           listStyle: 'none',
@@ -334,25 +333,28 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
                           gap: '0.65rem',
                         }}
                       >
-                        <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                          <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                          <span>Hậu kỳ chuyên sâu <strong>{pkg.editedPhotosCount} ảnh</strong></span>
-                        </li>
-                        <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                          <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                          <span>Bàn giao toàn bộ file ảnh gốc chất lượng cao</span>
-                        </li>
-                        {pkg.features &&
-                          pkg.features.slice(0, 4).map((f, i) => (
+                        {pkg.editedPhotosCount > 0 && (
+                          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
+                            <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span>Hậu kỳ chuyên sâu <strong>{pkg.editedPhotosCount} ảnh</strong></span>
+                          </li>
+                        )}
+                        {pkg.features && pkg.features.length > 0 ? (
+                          pkg.features.map((f, i) => (
                             <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
                               <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
                               <span>{f}</span>
                             </li>
-                          ))}
+                          ))
+                        ) : (
+                          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#8C6E53', fontStyle: 'italic' }}>
+                            Chi tiết quyền lợi được hiển thị theo từng gói.
+                          </li>
+                        )}
                       </ul>
                     </div>
 
-                    {/* Direct Preselection Booking Action */}
+                    {/* Authoritative Service-linked booking link */}
                     <button
                       onClick={() => navigate(`/booking?service=${service.id}&package=${pkg.id}`)}
                       className="public-btn-primary"
@@ -372,68 +374,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
             </section>
           ))}
 
-        {/* Unassigned packages fallback (if any) */}
-        {!isLoading && unassignedPackages.length > 0 && (
-          <section
-            style={{
-              backgroundColor: '#FFFDF9',
-              border: '1px solid rgba(140, 110, 83, 0.2)',
-              borderRadius: '6px',
-              padding: 'clamp(2rem, 4vw, 3rem)',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: 'var(--editorial-font-heading)',
-                fontSize: '2rem',
-                color: '#29231F',
-                marginBottom: '1.5rem',
-              }}
-            >
-              Các gói chụp tiêu chuẩn khác
-            </h2>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1.5rem',
-              }}
-            >
-              {unassignedPackages.map((pkg) => (
-                <article
-                  key={pkg.id}
-                  style={{
-                    backgroundColor: '#FAF8F3',
-                    border: '1px solid rgba(140, 110, 83, 0.25)',
-                    borderRadius: '4px',
-                    padding: '2rem 1.75rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <h3 style={{ fontFamily: 'var(--editorial-font-heading)', fontSize: '1.65rem', color: '#29231F', margin: '0 0 0.5rem 0' }}>
-                      {pkg.name}
-                    </h3>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 600, color: '#29231F', marginBottom: '1.5rem' }}>
-                      {formatVnd(pkg.price)}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/booking?package=${pkg.id}`)}
-                    className="public-btn-primary"
-                    style={{ width: '100%', padding: '0.75rem 1rem', fontSize: '0.9rem', fontWeight: 600 }}
-                  >
-                    Đặt gói này
-                  </button>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Studio Service Standards */}
+        {/* Studio Experience Standards */}
         <section
           style={{
             backgroundColor: '#FFFDF9',
@@ -466,7 +407,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
                 margin: 0,
               }}
             >
-              Cam kết chất lượng trọn gói
+              Quy trình & trải nghiệm chụp ảnh
             </h2>
           </div>
 
@@ -479,13 +420,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                <ImageIcon size={18} color="#8C6E53" />
+                <Camera size={18} color="#8C6E53" />
                 <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: 0, fontWeight: 600 }}>
-                  100% File Gốc Độ Phân Giải Cao
+                  Chăm chút trong từng khung hình
                 </h3>
               </div>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#604634', margin: 0 }}>
-                Toàn bộ ảnh chụp buổi làm việc được lưu giữ và bàn giao đầy đủ cho khách hàng qua thư mục Google Drive bảo mật.
+                Nhiếp ảnh gia đồng hành tạo không khí thoải mái, gợi mở cảm xúc tự nhiên để bạn tự tin trước ống kính.
               </p>
             </div>
 
@@ -493,23 +434,23 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
                 <Clock size={18} color="#8C6E53" />
                 <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: 0, fontWeight: 600 }}>
-                  Hậu Kỳ Màu Sắc Tinh Tế
+                  Hậu kỳ màu sắc tỉ mỉ
                 </h3>
               </div>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#604634', margin: 0 }}>
-                Mỗi bức ảnh được cân chỉnh ánh sáng, màu da tự nhiên và thần thái theo tone màu điện ảnh Pháp độc bản.
+                Ảnh được cân chỉnh màu da tự nhiên và ánh sáng hài hòa theo phong cách nhẹ nhàng của Maison MIPA.
               </p>
             </div>
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                <ShieldCheck size={18} color="#8C6E53" />
+                <Sparkles size={18} color="#8C6E53" />
                 <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: 0, fontWeight: 600 }}>
-                  Không Phát Sinh Chi Phí Ẩn
+                  Minh bạch và chu đáo
                 </h3>
               </div>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#604634', margin: 0 }}>
-                Chi phí bao gồm trang thiết bị, phòng chụp, ánh sáng và chuyên viên đồng hành trong suốt thời gian gói chụp.
+                Mọi thông tin chi phí và quyền lợi đều được tư vấn rõ ràng trước khi xác nhận lịch chụp.
               </p>
             </div>
           </div>

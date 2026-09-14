@@ -32,7 +32,7 @@ test.describe('Maison MIPA Cinematic Video Recordings (CI / Review Artifacts)', 
 
     await page.waitForTimeout(1000);
     // Verify reaching final CTA
-    await expect(page.getByRole('heading', { name: /Hẹn một buổi chụp cùng Maison MIPA/i })).toBeVisible();
+    await expect(page.locator('section[aria-label="Tư Vấn & Đặt Lịch"]')).toBeVisible();
   });
 
   test('VIDEO 2: Portfolio Collection Transition & Lightbox (1440x900)', async ({ page }) => {

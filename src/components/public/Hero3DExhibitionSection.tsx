@@ -72,7 +72,10 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
   }, []);
 
   const currentLighting = useMemo(() => LIGHTING_PRESETS[lightingMode], [lightingMode]);
-  const artworks = propArtworks && propArtworks.length > 0 ? propArtworks : DEFAULT_ATELIER_ARTWORKS;
+  const isDemo = typeof window !== 'undefined' && localStorage.getItem('mipa_demo_mode') === 'true';
+  const artworks = propArtworks !== undefined
+    ? propArtworks
+    : (isDemo ? DEFAULT_ATELIER_ARTWORKS : []);
 
   const handleSelectCamera = (mode: AtelierCameraMode) => {
     setCameraMode(mode);
@@ -197,7 +200,7 @@ const HERO_FILMSTRIP_ITEMS = [
                   cameraMode={cameraMode}
                   lightingPreset={currentLighting}
                   artworks={artworks}
-                  activeArtworkId={selectedArtwork?.id || artworks[0]?.id || 'c1000000-0000-0000-0000-000000000002'}
+                  activeArtworkId={selectedArtwork?.id || artworks[0]?.id || ''}
                   onSelectArtwork={handleSelectArtwork}
                   reducedMotion={prefersReduced}
                   onWebGLFailure={() => setWebglAvailable(false)}
@@ -244,18 +247,20 @@ const HERO_FILMSTRIP_ITEMS = [
                 Photography and artistry for life's most beautiful moments.
               </p>
               <div className="hero-card-actions">
-                <button
-                  type="button"
-                  className="hero-btn-discover"
-                  onClick={() => {
-                    const el = document.getElementById('selected-works') || document.querySelector('.featured-concepts-section');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                >
-                  DISCOVER OUR WORK
-                </button>
+                {artworks.length > 0 && (
+                  <button
+                    type="button"
+                    className="hero-btn-discover"
+                    onClick={() => {
+                      const el = document.getElementById('selected-works') || document.querySelector('.featured-concepts-section');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    DISCOVER OUR WORK
+                  </button>
+                )}
                 <button
                   type="button"
                   className="hero-btn-book"
@@ -269,41 +274,43 @@ const HERO_FILMSTRIP_ITEMS = [
         </div>
 
         {/* =====================================================================
-            BOTTOM CURATED FILMSTRIP (Mockup Exact 6 Photo Thumbnails)
+            BOTTOM CURATED FILMSTRIP (Only when artworks exist)
             ===================================================================== */}
-        <div className="hero-filmstrip-wrapper">
-          <div className="hero-filmstrip-grid">
-            {HERO_FILMSTRIP_ITEMS.map((item) => (
-              <div
-                key={item.id}
-                className="hero-filmstrip-card"
-                onClick={() => {
-                  const targetArtwork = artworks[item.artworkIndex] || artworks[0];
-                  if (targetArtwork) handleSelectArtwork(targetArtwork);
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+        {artworks.length > 0 && (
+          <div className="hero-filmstrip-wrapper">
+            <div className="hero-filmstrip-grid">
+              {HERO_FILMSTRIP_ITEMS.map((item) => (
+                <div
+                  key={item.id}
+                  className="hero-filmstrip-card"
+                  onClick={() => {
                     const targetArtwork = artworks[item.artworkIndex] || artworks[0];
                     if (targetArtwork) handleSelectArtwork(targetArtwork);
-                  }
-                }}
-              >
-                <img
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="hero-filmstrip-img"
-                  loading="lazy"
-                />
-                <div className="hero-filmstrip-overlay">
-                  <span className="hero-filmstrip-cat">{item.category}</span>
-                  <span className="hero-filmstrip-title">{item.title}</span>
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      const targetArtwork = artworks[item.artworkIndex] || artworks[0];
+                      if (targetArtwork) handleSelectArtwork(targetArtwork);
+                    }
+                  }}
+                >
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="hero-filmstrip-img"
+                    loading="lazy"
+                  />
+                  <div className="hero-filmstrip-overlay">
+                    <span className="hero-filmstrip-cat">{item.category}</span>
+                    <span className="hero-filmstrip-title">{item.title}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* =====================================================================
             RESTRAINED EDITORIAL CONTROLS (Subtle curatorial typography below scene)

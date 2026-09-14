@@ -9,6 +9,10 @@ import { useReducedMotion } from '../../motion/useReducedMotion';
 import { ArrowRight, Calendar } from 'lucide-react';
 import { gsap } from 'gsap';
 
+// Authoritative static brand hero asset approved for Maison MIPA.
+// Used exclusively as the official default hero photography; never substituted with random concepts.
+export const BRAND_HERO_ASSET = '/hero.png';
+
 interface VisualCommerceHeroProps {
   onOpenBooking: () => void;
   heroImageUrl?: string;
@@ -17,7 +21,7 @@ interface VisualCommerceHeroProps {
 
 export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
   onOpenBooking,
-  heroImageUrl = '/hero.png',
+  heroImageUrl = BRAND_HERO_ASSET,
   conceptSlug,
 }) => {
   const navigate = useNavigate();

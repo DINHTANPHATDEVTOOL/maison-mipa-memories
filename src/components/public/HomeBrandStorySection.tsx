@@ -1,10 +1,13 @@
 // ==============================================================================
 // Maison MIPA Memories — Brand Story & Atelier Space Section
 // Authentic studio craft, human tone, discreet link to /atelier.
+// Observational brand copy without unsupported historical or unverified claims.
 // ==============================================================================
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Compass, Sparkles } from 'lucide-react';
+import { Compass } from 'lucide-react';
+
+const BRAND_STUDIO_STORY_ASSET = '/hero.png';
 
 export const HomeBrandStorySection: React.FC = () => {
   return (
@@ -67,7 +70,7 @@ export const HomeBrandStorySection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Maison MIPA được thành lập với niềm tin rằng bức ảnh đẹp nhất bắt nguồn từ cảm xúc tự nhiên, không gượng gạo. Chúng tôi yêu ánh sáng ban mai xuyên qua khung cửa sổ, những cái nắm tay giản dị và nụ cười không sắp đặt trước.
+              Những bức ảnh giàu cảm xúc thường bắt nguồn từ những khoảnh khắc đời thường giản dị. Tại Maison MIPA, chúng tôi nâng niu ánh sáng tự nhiên qua từng khung cửa sổ, những cử chỉ thân mật và nụ cười không gượng gạo.
             </p>
             <p
               style={{
@@ -78,7 +81,7 @@ export const HomeBrandStorySection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Toàn bộ file ảnh gốc chất lượng cao được bàn giao nguyên vẹn, kết hợp cùng quy trình hậu kỳ màu sắc tinh tế để bạn lưu giữ trọn vẹn theo năm tháng.
+              Mỗi concept và góc ảnh đều hướng tới sự lắng đọng, tạo cảm giác nhẹ nhàng để từng khoảnh khắc được lưu giữ một cách trọn vẹn và tự nhiên nhất.
             </p>
 
             {/* Subtle Invitation to 3D Atelier */}
@@ -95,7 +98,7 @@ export const HomeBrandStorySection: React.FC = () => {
             >
               <Compass size={18} color="#8C6E53" />
               <div style={{ fontSize: '0.88rem', color: '#29231F' }}>
-                Khám phá không gian thực tế ảo:{' '}
+                Khám phá không gian trải nghiệm trực tuyến:{' '}
                 <Link
                   to="/atelier"
                   style={{
@@ -123,7 +126,7 @@ export const HomeBrandStorySection: React.FC = () => {
             }}
           >
             <img
-              src="/hero.png"
+              src={BRAND_STUDIO_STORY_ASSET}
               alt="Không gian ánh sáng tại Maison MIPA"
               loading="lazy"
               decoding="async"

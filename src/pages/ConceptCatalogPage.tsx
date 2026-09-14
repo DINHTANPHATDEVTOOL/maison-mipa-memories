@@ -8,14 +8,15 @@ import { getPublicConcepts } from '../services/portfolioService';
 import { getServices } from '../services/catalogService';
 import type { Concept, ServiceCategory } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
-import { SITE_CONFIG, getCanonicalUrl } from '../config/site';
-import { ArrowRight, Calendar, Home, ChevronRight } from 'lucide-react';
+import { getCanonicalUrl } from '../config/site';
+import { ArrowRight, Home, ChevronRight } from 'lucide-react';
+import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
 
 interface ConceptCatalogPageProps {
   onOpenBooking: () => void;
 }
 
-export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBooking }) => {
+export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBooking: _onOpenBooking }) => {
   const navigate = useNavigate();
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [services, setServices] = useState<ServiceCategory[]>([]);
@@ -304,11 +305,9 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
               gap: 'clamp(1.75rem, 3vw, 2.75rem)',
             }}
           >
-            {filteredConcepts.map((concept, index) => {
+            {filteredConcepts.map((concept) => {
               const service = concept.serviceId ? serviceMap.get(concept.serviceId) : undefined;
-              const categoryLabel = service ? service.name : 'Concept Studio';
-              const coverImg =
-                concept.coverPhotoUrl || (index % 2 === 0 ? '/hero.png' : '/studio.png');
+              const categoryLabel = service ? service.name : 'Concept Maison MIPA';
 
               return (
                 <article
@@ -336,25 +335,32 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
                       textDecoration: 'none',
                     }}
                   >
-                    <img
-                      src={coverImg}
-                      alt={concept.name}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'transform 0.55s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.04)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.0)';
-                      }}
-                    />
+                    {concept.coverPhotoUrl ? (
+                      <img
+                        src={concept.coverPhotoUrl}
+                        alt={concept.name}
+                        loading="lazy"
+                        decoding="async"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.55s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.04)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.0)';
+                        }}
+                      />
+                    ) : (
+                      <EditorialImagePlaceholder
+                        aspectRatio="4/3"
+                        caption={concept.name}
+                      />
+                    )}
 
                     {/* Bookable State Badge */}
                     <div
@@ -373,7 +379,7 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
                         backdropFilter: 'blur(6px)',
                       }}
                     >
-                      {concept.bookable ? 'Có thể đặt lịch' : 'Trưng bày'}
+                      {concept.bookable ? 'Có thể đặt lịch' : 'Hiện chưa mở đặt lịch'}
                     </div>
                   </Link>
 
@@ -480,7 +486,7 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
                         </button>
                       ) : (
                         <span style={{ fontSize: '0.78rem', color: '#8C6E53' }}>
-                          Phiên bản giới hạn
+                          Hiện chưa mở đặt lịch
                         </span>
                       )}
                     </div>

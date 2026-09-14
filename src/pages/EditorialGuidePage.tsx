@@ -29,8 +29,9 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
         title="Cẩm Nang Chụp Ảnh & Phong Cách | Maison MIPA Memories"
-        description="Cẩm nang nhiếp ảnh nghệ thuật tại Maison MIPA: Bí quyết chuẩn bị trang phục, tạo dáng tự nhiên và kinh nghiệm chụp ảnh cùng ánh sáng tự nhiên."
+        description="Cẩm nang nhiếp ảnh nghệ thuật tại Maison MIPA: Gợi ý trang phục và kinh nghiệm chuẩn bị cho buổi chụp."
         canonicalPath="/cam-nang"
+        noIndex={true}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
 

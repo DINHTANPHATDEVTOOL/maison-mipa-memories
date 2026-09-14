@@ -2,16 +2,19 @@
 // Maison MIPA Memories — Core Services Section (Visual Discovery)
 // Answers clearly: "What can I book here?" with photography-dominant categories.
 // No icon-first service cards; authentic data from getServices().
+// Zero unrelated photo fallbacks.
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getServices } from '../../services/catalogService';
 import type { ServiceCategory } from '../../types';
 import { ArrowRight } from 'lucide-react';
+import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
 
 export const HomeServicesSection: React.FC = () => {
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -22,7 +25,7 @@ export const HomeServicesSection: React.FC = () => {
           setServices(data.slice(0, 6)); // 4-6 core services
         }
       } catch (err) {
-        console.warn('Lỗi tải danh mục dịch vụ:', err);
+        if (mounted) setHasError(true);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -33,7 +36,29 @@ export const HomeServicesSection: React.FC = () => {
     };
   }, []);
 
-  if (isLoading || services.length === 0) return null;
+  if (isLoading) {
+    return (
+      <section style={{ padding: '5rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Đang tải danh mục dịch vụ...</div>
+      </section>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Không thể tải danh mục dịch vụ vào lúc này.</div>
+      </section>
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
+        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Hiện chưa có dịch vụ nào được công bố.</div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -98,7 +123,7 @@ export const HomeServicesSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Các trải nghiệm chụp ảnh trọn gói được tinh chỉnh cho từng nhu cầu: từ chân dung cá nhân, khoảnh khắc lứa đôi đến gia đình.
+              Các dịch vụ chụp ảnh được định hình chỉn chu cho từng nhu cầu: từ chân dung cá nhân, khoảnh khắc lứa đôi đến gia đình.
             </p>
           </div>
 
@@ -128,10 +153,8 @@ export const HomeServicesSection: React.FC = () => {
             gap: 'clamp(1.5rem, 2.5vw, 2.5rem)',
           }}
         >
-          {services.map((service, index) => {
+          {services.map((service) => {
             const serviceSlug = service.slug || service.id.replace('srv_', '');
-            const fallbackImage = index % 2 === 0 ? '/hero.png' : '/studio.png';
-            const serviceImage = service.image || fallbackImage;
 
             return (
               <article
@@ -157,25 +180,32 @@ export const HomeServicesSection: React.FC = () => {
                     marginBottom: '1rem',
                   }}
                 >
-                  <img
-                    src={serviceImage}
-                    alt={service.name}
-                    loading="lazy"
-                    decoding="async"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.04)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.0)';
-                    }}
-                  />
+                  {service.image ? (
+                    <img
+                      src={service.image}
+                      alt={service.name}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.04)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.0)';
+                      }}
+                    />
+                  ) : (
+                    <EditorialImagePlaceholder
+                      aspectRatio="16/11"
+                      caption={service.name}
+                    />
+                  )}
                 </Link>
 
                 {/* Service Metadata */}

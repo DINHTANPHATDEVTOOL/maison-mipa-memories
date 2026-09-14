@@ -1,16 +1,19 @@
 // ==============================================================================
 // Maison MIPA Memories — Service Detail Page (/dich-vu/:slug)
-// Hierarchy: Hero -> Session feeling -> Related concepts -> Selected work -> Packages -> Process -> Booking CTA
+// Hierarchy: Hero -> Session feeling -> Related concepts -> Selected work -> Packages -> Booking CTA
+// Strict data integrity: Only concepts, packages, and stories matching this service.
+// Zero unrelated photo fallbacks; zero invented package inclusions.
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Home, Check, Calendar, Camera } from 'lucide-react';
+import { ArrowRight, ChevronRight, Home, Check } from 'lucide-react';
 import { getServices, getPackages } from '../services/catalogService';
 import { getPublicConcepts, getPublicCollections } from '../services/portfolioService';
 import type { ServiceCategory, PackageItem, Concept, PortfolioCollection } from '../types';
-import { SeoHead, generateServiceSchema, generateBreadcrumbSchema } from '../components/seo/SeoHead';
+import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { SITE_CONFIG, getCanonicalUrl } from '../config/site';
 import { NotFoundPage } from './NotFoundPage';
+import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
 
 interface ServiceDetailPageProps {
   onOpenBooking: () => void;
@@ -42,13 +45,17 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
 
           const matchedSrv = srvs.find((s) => s.slug === slug || s.id === slug);
           if (matchedSrv) {
+            // Strict relation filtering: only concepts matching this service
             const relConcepts = concepts.filter((c) => c.serviceId === matchedSrv.id);
             setRelatedConcepts(relConcepts);
-          } else {
-            setRelatedConcepts(concepts.slice(0, 3));
-          }
 
-          setSelectedWorks(collections.slice(0, 2));
+            // Strict relation filtering: only collections matching this service
+            const relCollections = collections.filter((col) => col.serviceId === matchedSrv.id);
+            setSelectedWorks(relCollections.slice(0, 4));
+          } else {
+            setRelatedConcepts([]);
+            setSelectedWorks([]);
+          }
         }
       } catch (err) {
         console.warn('Lỗi tải dữ liệu chi tiết dịch vụ:', err);
@@ -69,17 +76,17 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
     return <NotFoundPage />;
   }
 
-  const title = serviceConfig?.h1 || `${serviceData?.name} — Maison MIPA Memories`;
+  const title = serviceConfig?.h1 || `${serviceData?.name || 'Dịch vụ'} — Maison MIPA Memories`;
   const shortTitle = serviceConfig?.shortTitle || serviceData?.name || 'Dịch vụ';
   const description = serviceConfig?.description || serviceData?.description || '';
   const canonicalPath = `/dich-vu/${slug}`;
   const canonicalUrl = getCanonicalUrl(canonicalPath);
-  const image = serviceConfig?.image || serviceData?.image || '/hero.png';
+  const image = serviceData?.image || serviceConfig?.image;
 
-  const srvPackages = packages.filter(
-    (p) => serviceData?.id ? p.serviceId === serviceData.id : true
-  );
-  const displayPackages = srvPackages.length > 0 ? srvPackages : packages.slice(0, 3);
+  // Strict packages for this service ONLY
+  const srvPackages = serviceData?.id
+    ? packages.filter((p) => p.serviceId === serviceData.id)
+    : [];
 
   const breadcrumbs = [
     { name: 'Trang chủ', url: getCanonicalUrl('/') },
@@ -141,7 +148,7 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
       <header
         style={{
           maxWidth: '1350px',
-          margin: '2rem auto 4rem',
+          margin: '2rem auto 4.5rem',
           padding: '0 1.5rem',
         }}
       >
@@ -149,8 +156,8 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 'clamp(2rem, 5vw, 4.5rem)',
             alignItems: 'center',
-            gap: 'clamp(2.5rem, 5vw, 4.5rem)',
           }}
         >
           <div>
@@ -165,12 +172,12 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
                 marginBottom: '0.75rem',
               }}
             >
-              MAISON MIPA SPECIALTY
+              DỊCH VỤ CHỤP ẢNH
             </span>
             <h1
               style={{
                 fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                fontSize: 'clamp(2.3rem, 5vw, 3.8rem)',
+                fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
                 fontWeight: 500,
                 color: '#29231F',
                 lineHeight: 1.15,
@@ -235,17 +242,24 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
               backgroundColor: '#EDE7DC',
             }}
           >
-            <img
-              src={image}
-              alt={title}
-              fetchPriority="high"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+            {image ? (
+              <img
+                src={image}
+                alt={title}
+                fetchPriority="high"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <EditorialImagePlaceholder
+                aspectRatio="16/11"
+                caption={shortTitle}
+              />
+            )}
           </div>
         </div>
       </header>
 
-      {/* 02. What the Session Feels Like (Atmosphere & Sensory) */}
+      {/* 02. What the Session Feels Like (Atmosphere & Sensory - Observational) */}
       <section
         style={{
           maxWidth: '1350px',
@@ -282,7 +296,7 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
               marginBottom: '1rem',
             }}
           >
-            Không gian riêng tư & nhẹ nhàng
+            Không gian nhẹ nhàng & tự nhiên
           </h2>
           <p
             style={{
@@ -294,12 +308,12 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
               fontWeight: 300,
             }}
           >
-            Tại Maison MIPA, mỗi buổi chụp diễn ra trong không gian studio khép kín, tràn ngập ánh sáng tự nhiên và tiếng nhạc du dương. Nhiếp ảnh gia không đặt bạn vào những tư thế cứng nhắc, mà gợi mở những câu chuyện và khoảnh khắc kết nối tự nhiên nhất.
+            Tại Maison MIPA, chúng tôi chú trọng sự thoải mái và tự nhiên trong từng buổi chụp, giúp bạn lưu giữ những khung hình chân thật và giàu cảm xúc.
           </p>
         </div>
       </section>
 
-      {/* 03. Related Concepts (if available) */}
+      {/* 03. Related Concepts (Strictly matching current service) */}
       {relatedConcepts.length > 0 && (
         <section
           style={{
@@ -352,12 +366,19 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
                 }}
               >
                 <Link to={`/concept/${cnc.slug}`} style={{ display: 'block', aspectRatio: '16/10', overflow: 'hidden' }}>
-                  <img
-                    src={cnc.coverPhotoUrl || '/studio.png'}
-                    alt={cnc.name}
-                    loading="lazy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  {cnc.coverPhotoUrl ? (
+                    <img
+                      src={cnc.coverPhotoUrl}
+                      alt={cnc.name}
+                      loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <EditorialImagePlaceholder
+                      aspectRatio="16/10"
+                      caption={cnc.name}
+                    />
+                  )}
                 </Link>
                 <div style={{ padding: '1.25rem' }}>
                   <h3
@@ -388,7 +409,100 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
         </section>
       )}
 
-      {/* 04. Packages for this Service */}
+      {/* 04. Selected Stories (Strictly matching current service) */}
+      {selectedWorks.length > 0 && (
+        <section
+          style={{
+            maxWidth: '1350px',
+            margin: '0 auto 4.5rem',
+            padding: '0 1.5rem',
+          }}
+        >
+          <div style={{ marginBottom: '2rem' }}>
+            <span
+              style={{
+                display: 'block',
+                fontSize: '0.72rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: '#8C6E53',
+                fontWeight: 600,
+                marginBottom: '0.5rem',
+              }}
+            >
+              CÂU CHUYỆN THỰC TẾ
+            </span>
+            <h2
+              style={{
+                fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                fontSize: '2.2rem',
+                color: '#29231F',
+                margin: 0,
+              }}
+            >
+              Bộ ảnh thực hiện cho {shortTitle}
+            </h2>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {selectedWorks.map((work) => (
+              <div
+                key={work.id}
+                style={{
+                  backgroundColor: '#FFFDF9',
+                  border: '1px solid rgba(140, 110, 83, 0.2)',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                }}
+              >
+                <Link to={`/portfolio/${work.slug}`} style={{ display: 'block', aspectRatio: '16/10', overflow: 'hidden' }}>
+                  {work.coverPhotoUrl ? (
+                    <img
+                      src={work.coverPhotoUrl}
+                      alt={work.title}
+                      loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <EditorialImagePlaceholder
+                      aspectRatio="16/10"
+                      caption={work.title}
+                    />
+                  )}
+                </Link>
+                <div style={{ padding: '1.25rem' }}>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--editorial-font-heading)',
+                      fontSize: '1.35rem',
+                      color: '#29231F',
+                      margin: '0 0 0.4rem 0',
+                    }}
+                  >
+                    <Link to={`/portfolio/${work.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {work.title}
+                    </Link>
+                  </h3>
+                  <Link
+                    to={`/portfolio/${work.slug}`}
+                    style={{ fontSize: '0.82rem', color: '#8C6E53', fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    Xem bộ ảnh →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 05. Packages for this Service (Strictly this service) */}
       <section
         style={{
           maxWidth: '1350px',
@@ -422,67 +536,85 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
           </h2>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1.5rem',
-          }}
-        >
-          {displayPackages.map((pkg) => (
-            <div
-              key={pkg.id}
-              style={{
-                backgroundColor: '#FFFDF9',
-                border: '1px solid rgba(140, 110, 83, 0.25)',
-                borderRadius: '4px',
-                padding: '2rem 1.75rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
-                  {pkg.durationMinutes} PHÚT • {pkg.editedPhotosCount} ẢNH HẬU KỲ
-                </div>
-                <h3 style={{ fontFamily: 'var(--editorial-font-heading)', fontSize: '1.6rem', color: '#29231F', margin: '0 0 0.5rem 0' }}>
-                  {pkg.name}
-                </h3>
-                <div style={{ fontSize: '1.6rem', fontWeight: 600, color: '#29231F', marginBottom: '1.25rem' }}>
-                  {new Intl.NumberFormat('vi-VN').format(pkg.price)} đ
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                    <Check size={15} color="#8C6E53" /> Toàn bộ file ảnh gốc chất lượng cao
-                  </li>
-                  {pkg.features && pkg.features.slice(0, 3).map((f, i) => (
-                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                      <Check size={15} color="#8C6E53" /> {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <button
-                onClick={() =>
-                  navigate(
-                    serviceData?.id
-                      ? `/booking?service=${serviceData.id}&package=${pkg.id}`
-                      : `/booking?package=${pkg.id}`
-                  )
-                }
-                className="public-btn-primary"
-                style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem', fontWeight: 600 }}
+        {srvPackages.length === 0 ? (
+          <div
+            style={{
+              padding: '3rem 1.5rem',
+              backgroundColor: '#FFFDF9',
+              borderRadius: '4px',
+              border: '1px solid rgba(140, 110, 83, 0.2)',
+              textAlign: 'center',
+              color: '#8C6E53',
+              fontSize: '0.92rem',
+            }}
+          >
+            Hiện chưa có gói chụp được công bố cho dịch vụ này.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {srvPackages.map((pkg) => (
+              <div
+                key={pkg.id}
+                style={{
+                  backgroundColor: '#FFFDF9',
+                  border: '1px solid rgba(140, 110, 83, 0.25)',
+                  borderRadius: '4px',
+                  padding: '2rem 1.75rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
               >
-                Đặt gói này
-              </button>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <div style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    {pkg.durationMinutes} PHÚT {pkg.editedPhotosCount > 0 ? `• ${pkg.editedPhotosCount} ẢNH HẬU KỲ` : ''}
+                  </div>
+                  <h3 style={{ fontFamily: 'var(--editorial-font-heading)', fontSize: '1.6rem', color: '#29231F', margin: '0 0 0.5rem 0' }}>
+                    {pkg.name}
+                  </h3>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 600, color: '#29231F', marginBottom: '1.25rem' }}>
+                    {new Intl.NumberFormat('vi-VN').format(pkg.price)} đ
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {pkg.editedPhotosCount > 0 && (
+                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
+                        <Check size={15} color="#8C6E53" /> Hậu kỳ chuyên sâu {pkg.editedPhotosCount} ảnh
+                      </li>
+                    )}
+                    {pkg.features && pkg.features.slice(0, 3).map((f, i) => (
+                      <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
+                        <Check size={15} color="#8C6E53" /> {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() =>
+                    navigate(
+                      serviceData?.id
+                        ? `/booking?service=${serviceData.id}&package=${pkg.id}`
+                        : `/booking?package=${pkg.id}`
+                    )
+                  }
+                  className="public-btn-primary"
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem', fontWeight: 600 }}
+                >
+                  Đặt gói này
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* 05. Bottom Consultation CTA */}
+      {/* 06. Bottom Consultation CTA */}
       <section
         style={{
           maxWidth: '1350px',
@@ -517,7 +649,7 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
               margin: '0 auto 2rem auto',
             }}
           >
-            Chọn ngày chụp yêu thích và đặt lịch trực tuyến ngay để Maison MIPA chuẩn bị bối cảnh hoàn hảo cho bạn.
+            Chọn ngày chụp yêu thích và đặt lịch trực tuyến ngay để Maison MIPA chuẩn bị chu đáo cho bạn.
           </p>
           <button
             onClick={() => {

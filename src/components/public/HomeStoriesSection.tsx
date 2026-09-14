@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { getPublicCollections } from '../../services/portfolioService';
 import type { PortfolioCollection } from '../../types';
 import { ArrowRight } from 'lucide-react';
+import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
 
 export const HomeStoriesSection: React.FC = () => {
   const [collections, setCollections] = useState<PortfolioCollection[]>([]);
@@ -98,7 +99,7 @@ export const HomeStoriesSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Mỗi bộ ảnh là một kỷ niệm độc bản được ghi lại bằng cảm xúc mộc mạc và kỹ thuật xử lý màu phim tinh tế.
+              Mỗi bộ ảnh ghi dấu những khoảnh khắc chân thực, giàu cảm xúc và được chăm chút tỉ mỉ trong từng khung hình.
             </p>
           </div>
 
@@ -120,34 +121,26 @@ export const HomeStoriesSection: React.FC = () => {
           </Link>
         </div>
 
-        {/* Art-Directed Stories Grid with Varied Rhythm */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, 1fr)',
-            gap: 'clamp(1.5rem, 3vw, 2.5rem)',
-          }}
-        >
+        {/* Art-Directed Stories Grid with Responsive CSS Class */}
+        <div className="story-editorial-grid">
           {collections.map((col, index) => {
-            // Rhythm: Item 0 is 8-col wide feature, Item 1 is 4-col portrait; Items 2 & 3 are 6-cols
-            let colSpan = 'span 6';
+            let cardClass = 'story-card-balanced';
             let aspectRatio = '16/10';
             if (index === 0) {
-              colSpan = 'span 8';
+              cardClass = 'story-card-wide';
               aspectRatio = '16/10';
             } else if (index === 1) {
-              colSpan = 'span 4';
+              cardClass = 'story-card-tall';
               aspectRatio = '4/5';
             }
 
-            const coverUrl =
-              col.coverPhotoUrl || (col.photos && col.photos[0]?.url) || (index % 2 === 0 ? '/hero.png' : '/studio.png');
+            const coverUrl = col.coverPhotoUrl || (col.photos && col.photos[0]?.url);
 
             return (
               <article
                 key={col.id}
+                className={`mipa-story-card ${cardClass}`}
                 style={{
-                  gridColumn: colSpan,
                   display: 'flex',
                   flexDirection: 'column',
                 }}
@@ -167,37 +160,44 @@ export const HomeStoriesSection: React.FC = () => {
                     marginBottom: '1rem',
                   }}
                 >
-                  <img
-                    src={coverUrl}
-                    alt={col.title}
-                    loading="lazy"
-                    decoding="async"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.035)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.0)';
-                    }}
-                  />
+                  {coverUrl ? (
+                    <img
+                      src={coverUrl}
+                      alt={col.title}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.035)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.0)';
+                      }}
+                    />
+                  ) : (
+                    <EditorialImagePlaceholder
+                      aspectRatio={aspectRatio}
+                      caption={col.title}
+                    />
+                  )}
                 </Link>
 
                 {/* Metadata */}
                 <div>
                   <div
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.8rem',
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       color: '#8C6E53',
-                      fontWeight: 500,
-                      marginBottom: '0.35rem',
+                      fontWeight: 600,
+                      marginBottom: '0.45rem',
                     }}
                   >
                     {col.conceptName || 'Maison Story'}
@@ -206,10 +206,10 @@ export const HomeStoriesSection: React.FC = () => {
                   <h3
                     style={{
                       fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                      fontSize: index === 0 ? '1.85rem' : '1.45rem',
+                      fontSize: index === 0 ? 'clamp(1.85rem, 2.4vw, 2.25rem)' : 'clamp(1.4rem, 1.8vw, 1.65rem)',
                       fontWeight: 500,
                       color: '#29231F',
-                      margin: '0 0 0.5rem 0',
+                      margin: '0 0 0.65rem 0',
                       lineHeight: 1.2,
                     }}
                   >
@@ -229,14 +229,14 @@ export const HomeStoriesSection: React.FC = () => {
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.35rem',
-                      fontSize: '0.85rem',
+                      gap: '0.4rem',
+                      fontSize: '0.95rem',
                       color: '#29231F',
-                      fontWeight: 500,
+                      fontWeight: 600,
                       textDecoration: 'none',
                     }}
                   >
-                    Xem bộ ảnh <ArrowRight size={13} />
+                    Xem bộ ảnh <ArrowRight size={14} />
                   </Link>
                 </div>
               </article>

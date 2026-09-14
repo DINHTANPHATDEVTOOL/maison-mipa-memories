@@ -7,7 +7,7 @@ test.describe('Flagship WebGL Atelier Visual Capture & Video Recording', () => {
 
   test('Desktop 1440x900 Flagship Atelier Cinematic Walkthrough', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/');
+    await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
 
@@ -58,7 +58,7 @@ test.describe('Flagship WebGL Atelier Visual Capture & Video Recording', () => {
 
   test('Mobile 390x844 Flagship Atelier Walkthrough', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
+    await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
 

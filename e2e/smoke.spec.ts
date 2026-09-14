@@ -12,11 +12,10 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.locator('text=MAISON MIPA').first()).toBeVisible();
 
     // Verify main navigation links
-    await expect(page.getByRole('button', { name: 'Concept', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Dịch vụ', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Portfolio', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bảng giá', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cẩm nang', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Concept', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Dịch vụ', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Portfolio', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bảng giá', exact: true })).toBeVisible();
 
     // Verify Call-to-action buttons
     await expect(page.getByRole('button', { name: /ĐẶT LỊCH/i }).first()).toBeVisible();
@@ -136,7 +135,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.locator('text=MAISON MIPA').first()).toBeVisible();
 
     // 2. Click Dịch vụ in Navbar
-    await page.getByRole('button', { name: 'Dịch vụ', exact: true }).click();
+    await page.getByRole('link', { name: 'Dịch vụ', exact: true }).click();
     await expect(page).toHaveURL(/\/dich-vu/);
     await expect(page.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeVisible();
 
