@@ -64,6 +64,8 @@ interface BookingWizardProps {
   onBookingSuccess: (newBooking: Booking) => void;
   existingBookings?: Booking[];
   initialConceptSlug?: string;
+  initialServiceId?: string;
+  initialPackageId?: string;
   onRequireAuth?: (tab?: 'LOGIN' | 'REGISTER', msg?: string) => void;
 }
 
@@ -73,6 +75,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   onBookingSuccess,
   existingBookings,
   initialConceptSlug,
+  initialServiceId,
+  initialPackageId,
   onRequireAuth,
 }) => {
   const [step, setStep] = useState<number>(1);
@@ -154,6 +158,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             if (srvs.length > 0) {
               setServices(srvs);
               setSelectedService(prev => {
+                if (initialServiceId) {
+                  const match = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId);
+                  if (match) return match;
+                }
                 const match = srvs.find(s => s.id === prev.id || s.slug === prev.slug || s.name === prev.name);
                 return match || srvs[0];
               });
@@ -161,6 +169,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             if (pkgs.length > 0) {
               setPackages(pkgs);
               setSelectedPackage(prev => {
+                if (initialPackageId) {
+                  const match = pkgs.find(p => p.id === initialPackageId || p.name === initialPackageId);
+                  if (match) return match;
+                }
                 const match = pkgs.find(p => p.id === prev.id || p.name === prev.name);
                 return match || pkgs[0];
               });
@@ -201,6 +213,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         const bank = await getActivePaymentSettings();
         if (mounted) {
           setActiveBankConfig(bank);
+          if (initialServiceId) {
+            const match = INITIAL_SERVICES.find(s => s.id === initialServiceId || s.slug === initialServiceId);
+            if (match) setSelectedService(match);
+          }
+          if (initialPackageId) {
+            const match = INITIAL_PACKAGES.find(p => p.id === initialPackageId || p.name === initialPackageId);
+            if (match) setSelectedPackage(match);
+          }
           if (initialConceptSlug) {
             const match = DEMO_CONCEPTS.find(c => c.slug === initialConceptSlug);
             if (match) {
@@ -216,7 +236,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return () => {
       mounted = false;
     };
-  }, [initialConceptSlug]);
+  }, [initialConceptSlug, initialServiceId, initialPackageId]);
 
   // Restore guest booking draft from sessionStorage after authentication
   useEffect(() => {

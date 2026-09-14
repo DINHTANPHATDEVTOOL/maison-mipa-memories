@@ -12,10 +12,11 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.locator('text=MAISON MIPA').first()).toBeVisible();
 
     // Verify main navigation links
-    await expect(page.getByRole('button', { name: 'Trang chủ', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Concept', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Dịch vụ', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bảng giá', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Portfolio', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bảng giá', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cẩm nang', exact: true })).toBeVisible();
 
     // Verify Call-to-action buttons
     await expect(page.getByRole('button', { name: /ĐẶT LỊCH/i }).first()).toBeVisible();
@@ -99,11 +100,12 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.getByPlaceholder(/••••••••/i).fill('Mipa@Secure2026');
     await page.getByRole('button', { name: /ĐĂNG NHẬP VÀO HỆ THỐNG/i }).click();
 
-    // As Customer, user has access to "Lịch của tôi", but NOT to Staff Portal or Management
+    // As Customer, user has access to "Lịch của tôi & Album" inside user menu, but NOT to Staff Portal or Management
     await expect(page.locator('text=Nguyễn Minh Anh').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Lịch của tôi', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Quản Lý Studio OS/i })).not.toBeVisible();
-    await expect(page.getByRole('button', { name: /Ca chụp & Lịch/i })).not.toBeVisible();
+    await page.locator('text=Nguyễn Minh Anh').first().click();
+    await expect(page.getByText(/Lịch của tôi & Album/i)).toBeVisible();
+    await expect(page.getByRole('link', { name: /Studio Manager OS/i })).not.toBeVisible();
+    await expect(page.getByRole('link', { name: /Staff OS Portal/i })).not.toBeVisible();
   });
 
   test('5. Deep link trực tiếp vào /portfolio và refresh không bị 404', async ({ page }) => {
@@ -198,8 +200,9 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     // Assert Manager logged in
     await expect(page.locator('text=Lê Tấn Phát').first()).toBeVisible();
 
-    // Navigate to Management OS
-    await page.getByRole('button', { name: /Quản Lý Studio OS/i }).click();
+    // Navigate to Management OS via user menu
+    await page.locator('text=Lê Tấn Phát').first().click();
+    await page.getByRole('link', { name: /Studio Manager OS/i }).click();
     await expect(page).toHaveURL(/\/management/);
 
     // Switch to Portfolio & Concept CMS tab

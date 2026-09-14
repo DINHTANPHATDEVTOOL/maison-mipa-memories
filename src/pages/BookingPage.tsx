@@ -29,6 +29,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialConceptSlug = searchParams.get('concept') || undefined;
+  const initialServiceId = searchParams.get('service') || undefined;
+  const initialPackageId = searchParams.get('package') || undefined;
 
   const [isWizardOpen, setIsWizardOpen] = useState(true);
 
@@ -153,6 +155,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         onBookingSuccess={onBookingSuccess}
         existingBookings={existingBookings}
         initialConceptSlug={initialConceptSlug}
+        initialServiceId={initialServiceId}
+        initialPackageId={initialPackageId}
         onRequireAuth={onOpenAuthModal}
       />
     </div>

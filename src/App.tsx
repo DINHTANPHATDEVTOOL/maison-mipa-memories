@@ -20,19 +20,23 @@ import { Footer } from './components/Footer';
 import { AuthModal } from './components/auth/AuthModal';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SITE_CONFIG } from './config/site';
-import { Phone } from 'lucide-react';
+import { Phone, MessageSquare, Calendar } from 'lucide-react';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
+import { ConceptCatalogPage } from './pages/ConceptCatalogPage';
+import { ConceptDetailPage } from './pages/ConceptDetailPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { ServiceDetailPage } from './pages/ServiceDetailPage';
 import { PricingPage } from './pages/PricingPage';
 import { PortfolioPage } from './pages/PortfolioPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
+import { EditorialGuidePage } from './pages/EditorialGuidePage';
 import { BookingPage } from './pages/BookingPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-// Lazy-loaded Private Pages to optimize initial public bundle size
+// Lazy-loaded routes to optimize initial public bundle size (Three.js isolated from Homepage)
+const AtelierPage = lazy(() => import('./pages/AtelierPage'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const StaffPage = lazy(() => import('./pages/StaffPage'));
 const ManagementPage = lazy(() => import('./pages/ManagementPage'));
@@ -164,7 +168,18 @@ function AppContent() {
     navigate('/booking');
   };
 
-  const isPublicPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname) || location.pathname.startsWith('/dich-vu/') || location.pathname.startsWith('/portfolio/');
+  const isPublicPage = [
+    '/',
+    '/concept',
+    '/dich-vu',
+    '/bang-gia',
+    '/portfolio',
+    '/cam-nang',
+    '/atelier',
+  ].includes(location.pathname) ||
+    location.pathname.startsWith('/concept/') ||
+    location.pathname.startsWith('/dich-vu/') ||
+    location.pathname.startsWith('/portfolio/');
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mipa-background)' }}>
@@ -202,6 +217,8 @@ function AppContent() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/concept" element={<ConceptCatalogPage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/concept/:slug" element={<ConceptDetailPage onOpenBooking={handleOpenBooking} />} />
             <Route path="/dich-vu" element={<ServicesPage onOpenBooking={handleOpenBooking} />} />
             <Route path="/dich-vu/:slug" element={<ServiceDetailPage onOpenBooking={handleOpenBooking} />} />
             <Route path="/bang-gia" element={<PricingPage onOpenBooking={handleOpenBooking} />} />
@@ -209,6 +226,8 @@ function AppContent() {
             <Route path="/portfolio/:slug" element={
               <CollectionDetailPage onOpenBooking={(conceptSlug) => navigate(conceptSlug ? `/booking?concept=${conceptSlug}` : '/booking')} />
             } />
+            <Route path="/cam-nang" element={<EditorialGuidePage onOpenBooking={handleOpenBooking} />} />
+            <Route path="/atelier" element={<AtelierPage onOpenBooking={handleOpenBooking} />} />
             <Route path="/booking" element={
               <BookingPage
                 onBookingSuccess={handleBookingSuccess}
@@ -284,7 +303,7 @@ function AppContent() {
         initialTab={authInitialTab}
       />
 
-      {/* Floating Sticky Mobile Booking Bar */}
+      {/* Floating Sticky Mobile Booking Bar (3 clear actions: Gọi, Tư vấn, Đặt lịch) */}
       {isPublicPage && (
         <div
           className="mipa-mobile-show"
@@ -293,86 +312,97 @@ function AppContent() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(255, 253, 246, 0.98)',
+            backgroundColor: 'rgba(250, 248, 243, 0.98)',
             backdropFilter: 'blur(12px)',
-            borderTop: '1px solid var(--mipa-beige)',
-            padding: '0.5rem 0.75rem',
+            borderTop: '1px solid rgba(140, 110, 83, 0.22)',
+            padding: '0.45rem 0.75rem calc(0.45rem + env(safe-area-inset-bottom, 0px))',
             zIndex: 9000,
-            boxShadow: '0 -4px 20px rgba(60, 40, 25, 0.12)',
+            boxShadow: '0 -4px 20px rgba(41, 35, 31, 0.08)',
             display: 'flex',
             gap: '0.5rem',
             alignItems: 'center',
             boxSizing: 'border-box',
           }}
         >
-          {/* Call hotline */}
+          {/* Action 1: Gọi */}
           <a
             href={`tel:${SITE_CONFIG.contact.phoneE164 || '0966616546'}`}
             aria-label="Gọi hotline Maison MIPA"
             style={{
-              minWidth: '44px',
+              minWidth: '54px',
               minHeight: '44px',
-              width: '44px',
               height: '44px',
-              borderRadius: '10px',
+              borderRadius: '4px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#EDE4D8',
-              color: '#604634',
+              backgroundColor: '#FFFDF9',
+              border: '1px solid rgba(140, 110, 83, 0.25)',
+              color: '#29231F',
               textDecoration: 'none',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              gap: '2px',
               flexShrink: 0,
             }}
           >
-            <Phone size={20} />
+            <Phone size={14} />
+            <span>Gọi</span>
           </a>
 
-          {/* Real Zalo URL if configured */}
-          {Boolean(SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo)) && (
-            <a
-              href={SITE_CONFIG.social.zalo}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Chat Zalo Maison MIPA"
-              style={{
-                minWidth: '44px',
-                minHeight: '44px',
-                height: '44px',
-                padding: '0 0.6rem',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#0068FF',
-                color: '#FFFFFF',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                flexShrink: 0,
-              }}
-            >
-              Zalo
-            </a>
-          )}
+          {/* Action 2: Tư vấn */}
+          <a
+            href={
+              Boolean(SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo))
+                ? SITE_CONFIG.social.zalo
+                : `tel:${SITE_CONFIG.contact.phoneE164 || '0966616546'}`
+            }
+            target={Boolean(SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo)) ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            aria-label="Tư vấn Maison MIPA"
+            style={{
+              minWidth: '58px',
+              minHeight: '44px',
+              height: '44px',
+              borderRadius: '4px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#FFFDF9',
+              border: '1px solid rgba(140, 110, 83, 0.25)',
+              color: '#29231F',
+              textDecoration: 'none',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              gap: '2px',
+              flexShrink: 0,
+            }}
+          >
+            <MessageSquare size={14} />
+            <span>Tư vấn</span>
+          </a>
 
-          {/* Primary Booking CTA */}
+          {/* Action 3: Đặt lịch */}
           <button
             onClick={handleOpenBooking}
-            className="btn-mipa-primary"
+            className="public-btn-primary"
             style={{
               flex: 1,
               minHeight: '44px',
               height: '44px',
-              padding: '0 1rem',
-              fontSize: '0.92rem',
+              padding: '0 0.85rem',
+              fontSize: '0.9rem',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(96, 70, 52, 0.2)',
+              gap: '0.4rem',
             }}
           >
-            Đặt Lịch
+            <Calendar size={15} />
+            <span>Đặt lịch</span>
           </button>
         </div>
       )}

@@ -17,14 +17,9 @@ import {
   LogIn,
   Menu,
   LayoutDashboard,
-  Home,
-  Layers,
-  Tag,
-  Image as ImageIcon,
   Crown,
   Check,
   CheckCheck,
-  Trash2,
   Clock,
   CheckCircle,
 } from 'lucide-react';
@@ -43,7 +38,7 @@ export interface NavbarProps {
 }
 
 // Bespoke Luxury Studio Monogram Emblem
-export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 36 }) => (
+export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 34 }) => (
   <svg
     width={size}
     height={size}
@@ -84,7 +79,11 @@ export const UserAvatarBadge: React.FC<{
   isRootOwner?: boolean;
 }> = ({ user, size = 30, isRootOwner = false }) => {
   const initial = user.fullName?.charAt(0)?.toUpperCase() || 'M';
-  const hasCustomAvatar = user.avatar && !user.avatar.includes('favicon.svg') && !user.avatar.includes('hero.png') && !user.avatar.includes('studio.png');
+  const hasCustomAvatar =
+    user.avatar &&
+    !user.avatar.includes('favicon.svg') &&
+    !user.avatar.includes('hero.png') &&
+    !user.avatar.includes('studio.png');
 
   if (hasCustomAvatar) {
     return (
@@ -101,19 +100,21 @@ export const UserAvatarBadge: React.FC<{
           }}
         />
         {isRootOwner && (
-          <div style={{
-            position: 'absolute',
-            bottom: -2,
-            right: -2,
-            width: 13,
-            height: 13,
-            borderRadius: '50%',
-            backgroundColor: '#8C6E53',
-            border: '1px solid #FFFDF6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: -2,
+              right: -2,
+              width: 13,
+              height: 13,
+              borderRadius: '50%',
+              backgroundColor: '#8C6E53',
+              border: '1px solid #FFFDF6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <Crown size={8} color="#EFE6C9" />
           </div>
         )}
@@ -122,138 +123,136 @@ export const UserAvatarBadge: React.FC<{
   }
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          background: isRootOwner
-            ? 'linear-gradient(135deg, #8C6E53 0%, #4A3525 100%)'
-            : 'linear-gradient(135deg, #7A5C43 0%, #604634 100%)',
-          color: '#FFFDF6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: size * 0.44,
-          fontFamily: 'var(--mipa-font-heading)',
-          fontWeight: 700,
-          border: isRootOwner ? '2px solid #C6A45F' : '1.5px solid rgba(198, 164, 95, 0.5)',
-          boxShadow: isRootOwner ? '0 2px 6px rgba(198, 164, 95, 0.3)' : '0 2px 5px rgba(96, 70, 52, 0.15)',
-        }}
-      >
-        {initial}
-      </div>
+    <div
+      style={{
+        position: 'relative',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: '#8C6E53',
+        border: isRootOwner ? '2px solid #C6A45F' : '1.5px solid #EDE7DC',
+        color: '#FFFDF6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 700,
+        fontSize: size * 0.42,
+        flexShrink: 0,
+      }}
+    >
+      {initial}
       {isRootOwner && (
-        <div style={{
-          position: 'absolute',
-          bottom: -2,
-          right: -2,
-          width: 13,
-          height: 13,
-          borderRadius: '50%',
-          backgroundColor: '#8C6E53',
-          border: '1px solid #FFFDF6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Crown size={8} color="#EFE6C9" />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: 13,
+            height: 13,
+            borderRadius: '50%',
+            backgroundColor: '#C6A45F',
+            border: '1px solid #FFFDF6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Crown size={8} color="#15110E" />
         </div>
       )}
     </div>
   );
 };
 
+// Canonical Public Navigation Architecture
+export const PUBLIC_NAV_ITEMS = [
+  { id: 'concept', to: '/concept', label: 'Concept' },
+  { id: 'services', to: '/dich-vu', label: 'Dịch vụ' },
+  { id: 'portfolio', to: '/portfolio', label: 'Portfolio' },
+  { id: 'packages', to: '/bang-gia', label: 'Bảng giá' },
+  { id: 'guide', to: '/cam-nang', label: 'Cẩm nang' },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   currentRole,
-  activeTab: _legacyActiveTab,
-  setActiveTab: legacySetActiveTab,
   onOpenBooking,
-  searchQuery: _searchQuery,
-  setSearchQuery: _setSearchQuery,
   onOpenAuthModal,
   onLogout,
+  setActiveTab: legacySetActiveTab,
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [isScrolled, setIsScrolled] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Notification state
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('mipa_notifications');
+      return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    } catch {
+      return INITIAL_NOTIFICATIONS;
+    }
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadNotifications() {
+      if (currentUser?.id) {
+        try {
+          const remoteNotifs = await getUserNotifications(currentUser.id);
+          if (mounted && remoteNotifs.length > 0) {
+            setNotifications(remoteNotifs);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    loadNotifications();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 60);
+      setIsScrolled(window.scrollY > 20);
     };
-    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dynamic interactive notifications with localStorage persistence
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+  const displayUser = currentUser || CURRENT_USER_PROFILES[currentRole];
+
+  const saveNotifications = (items: NotificationItem[]) => {
+    setNotifications(items);
     try {
-      const cached = localStorage.getItem('mipa_user_notifications_v1');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {
-      // fallback
+      localStorage.setItem('mipa_notifications', JSON.stringify(items));
+    } catch (e) {
+      console.warn('Cannot persist notifications', e);
     }
-    return INITIAL_NOTIFICATIONS;
-  });
-
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const displayUser = currentUser || CURRENT_USER_PROFILES.GUEST;
-
-  // Sync server notifications
-  useEffect(() => {
-    let active = true;
-    if (displayUser && displayUser.id && displayUser.role !== 'GUEST') {
-      getUserNotifications(displayUser.id).then(serverNotifs => {
-        if (!active) return;
-        if (serverNotifs && serverNotifs.length > 0) {
-          setNotifications(prev => {
-            const existingIds = new Set(prev.map(n => n.id));
-            const newOnes = serverNotifs.filter(n => !existingIds.has(n.id));
-            if (newOnes.length === 0) return prev;
-            const updated = [...newOnes, ...prev];
-            try {
-              localStorage.setItem('mipa_user_notifications_v1', JSON.stringify(updated));
-            } catch {}
-            return updated;
-          });
-        }
-      }).catch(() => {});
-    }
-    return () => { active = false; };
-  }, [displayUser?.id, displayUser?.role]);
-
-  const saveNotifications = (newNotifs: NotificationItem[]) => {
-    setNotifications(newNotifs);
-    try {
-      localStorage.setItem('mipa_user_notifications_v1', JSON.stringify(newNotifs));
-    } catch {}
   };
 
   const handleMarkAsRead = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
+    const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
     saveNotifications(updated);
   };
 
   const handleDismissNotification = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const updated = notifications.filter(n => n.id !== id);
+    const updated = notifications.filter((n) => n.id !== id);
     saveNotifications(updated);
   };
 
   const handleMarkAllAsRead = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const updated = notifications.map(n => ({ ...n, read: true }));
+    const updated = notifications.map((n) => ({ ...n, read: true }));
     saveNotifications(updated);
   };
 
@@ -262,85 +261,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     saveNotifications([]);
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const roleLabels: Record<UserRole, { label: string; icon: any; color: string }> = {
     GUEST: { label: 'Khách Tham Quan', icon: UserIcon, color: '#6E5F55' },
     CUSTOMER: { label: 'Khách Hàng', icon: UserIcon, color: '#8C6E53' },
-    STAFF: { label: 'Staff', icon: Camera, color: '#C6A45F' },
-    MANAGER: { label: 'Quản Lý', icon: Briefcase, color: '#2C221E' },
+    STAFF: { label: 'Staff Studio', icon: Camera, color: '#C6A45F' },
+    MANAGER: { label: 'Quản Lý Studio', icon: Briefcase, color: '#2C221E' },
     ADMIN: {
-      label: displayUser.isRootOwner ? 'Root Owner' : 'Admin',
+      label: displayUser.isRootOwner ? 'Root Owner' : 'Quản Trị Admin',
       icon: displayUser.isRootOwner ? Crown : Shield,
       color: '#8C6E53',
     },
   };
-
-  // Structured real URL paths per role
-  const getNavLinksForRole = (role: UserRole) => {
-    if (displayUser.isRootOwner || role === 'ADMIN') {
-      return [
-        {
-          id: 'admin_portal',
-          to: '/admin',
-          label: displayUser.isRootOwner ? 'Quản Trị Studio' : 'Quản Trị Admin',
-          icon: displayUser.isRootOwner ? Crown : Shield,
-        },
-        {
-          id: 'manager_dashboard',
-          to: '/management',
-          label: 'Quản Lý Studio OS',
-          icon: LayoutDashboard,
-        },
-        { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
-        { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
-        { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
-        { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
-      ];
-    }
-
-    switch (role) {
-      case 'GUEST':
-        return [
-          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
-          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
-        ];
-      case 'CUSTOMER':
-        return [
-          { id: 'customer_portal', to: '/account', label: 'Lịch của tôi', icon: Calendar },
-          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
-          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
-        ];
-      case 'STAFF':
-        return [
-          { id: 'staff_portal', to: '/staff', label: 'Ca chụp & Lịch', icon: Calendar },
-          { id: 'home', to: '/', label: 'Trang chủ Studio', icon: Home },
-          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
-        ];
-      case 'MANAGER':
-        return [
-          {
-            id: 'manager_dashboard',
-            to: '/management',
-            label: 'Quản Lý Studio OS',
-            icon: LayoutDashboard,
-          },
-          { id: 'home', to: '/', label: 'Trang chủ', icon: Home },
-          { id: 'services', to: '/dich-vu', label: 'Dịch vụ', icon: Layers },
-          { id: 'packages', to: '/bang-gia', label: 'Bảng giá', icon: Tag },
-          { id: 'portfolio', to: '/portfolio', label: 'Portfolio', icon: ImageIcon },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const navLinks = getNavLinksForRole(currentRole);
 
   const isRouteActive = (to: string) => {
     if (to === '/') return location.pathname === '/';
@@ -353,159 +286,117 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsMobileMenuOpen(false);
   };
 
-  const isEditorialPage = ['/', '/dich-vu', '/bang-gia', '/portfolio'].includes(location.pathname);
-
   return (
-    <header style={{
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-      backgroundColor: isEditorialPage
-        ? (isScrolled ? 'rgba(248, 243, 235, 0.96)' : 'rgba(248, 243, 235, 0.92)')
-        : (isScrolled ? 'rgba(21, 17, 14, 0.94)' : 'rgba(21, 17, 14, 0.85)'),
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: isEditorialPage
-        ? (isScrolled ? '1px solid rgba(198, 164, 95, 0.28)' : '1px solid rgba(198, 164, 95, 0.18)')
-        : (isScrolled ? '1px solid rgba(198, 164, 95, 0.22)' : '1px solid rgba(198, 164, 95, 0.12)'),
-      boxShadow: isEditorialPage
-        ? (isScrolled ? '0 4px 20px rgba(60, 42, 30, 0.08)' : 'none')
-        : (isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.45)' : 'none'),
-      transition: 'background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
-    }}>
-      <div className="mipa-container" style={{
-        maxWidth: '1350px',
-        margin: '0 auto',
-        padding: isScrolled ? '0.55rem 1.25rem' : '0.85rem 1.25rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        width: '100%',
-        transition: 'padding 280ms cubic-bezier(0.16, 1, 0.3, 1)',
-      }}>
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        backgroundColor: isScrolled ? '#FAF8F3' : 'rgba(250, 248, 243, 0.94)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderBottom: isScrolled ? '1px solid rgba(140, 110, 83, 0.22)' : '1px solid rgba(140, 110, 83, 0.12)',
+        boxShadow: isScrolled ? '0 4px 16px rgba(41, 35, 31, 0.05)' : 'none',
+        transition: 'background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease',
+      }}
+    >
+      <div
+        className="mipa-container"
+        style={{
+          maxWidth: '1350px',
+          margin: '0 auto',
+          padding: isScrolled ? '0.65rem 1.5rem' : '0.95rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1.25rem',
+          width: '100%',
+          transition: 'padding 240ms ease',
+        }}
+      >
         {/* Brand Logo Link */}
         <Link
           to="/"
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}
         >
-          <MipaStudioEmblem size={34} />
+          <MipaStudioEmblem size={32} />
           <div>
-            <div style={{
-              fontFamily: 'var(--editorial-font-heading)',
-              fontSize: '1.3rem',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              color: isEditorialPage ? '#382417' : '#FBF6EE',
-              lineHeight: 1.1,
-              whiteSpace: 'nowrap',
-            }}>
+            <div
+              style={{
+                fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                fontSize: '1.35rem',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                color: '#29231F',
+                lineHeight: 1.1,
+                whiteSpace: 'nowrap',
+              }}
+            >
               MAISON MIPA
             </div>
-            <div style={{
-              fontSize: '0.62rem',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: isEditorialPage ? '#8C6E53' : '#C6A45F',
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-            }}>
+            <div
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: '#8C6E53',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+              }}
+            >
               Memories Studio
             </div>
           </div>
         </Link>
 
-        {/* Dynamic Navigation Links (Desktop Editorial Style) */}
-        <nav className="mipa-mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '1.6rem' }}>
-          {navLinks.map((link) => {
-            const Icon = link.icon;
+        {/* Public Desktop Navigation Links (Uncluttered, Sohee-inspired visual commerce) */}
+        <nav className="mipa-mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          {PUBLIC_NAV_ITEMS.map((link) => {
             const isActive = isRouteActive(link.to);
-            const isPublicPage = ['home', 'services', 'packages', 'portfolio'].includes(link.id);
-
             return (
               <NavLink
                 key={link.id}
                 to={link.to}
                 role="button"
-                onClick={() => {
-                  if (legacySetActiveTab) legacySetActiveTab(link.id);
-                }}
                 style={{
                   background: 'transparent',
-                  color: isActive
-                    ? (isEditorialPage ? '#382417' : '#E0C287')
-                    : (isEditorialPage ? '#6A564A' : '#D1C4B7'),
+                  color: isActive ? '#29231F' : '#604634',
                   border: 'none',
-                  borderBottom: isActive
-                    ? (isEditorialPage ? '1.5px solid #8C6E53' : '1.5px solid #C6A45F')
-                    : '1.5px solid transparent',
-                  padding: '0.5rem 0.1rem',
+                  borderBottom: isActive ? '1.5px solid #29231F' : '1.5px solid transparent',
+                  padding: '0.4rem 0.1rem',
                   fontSize: '0.92rem',
                   fontWeight: isActive ? 600 : 400,
                   cursor: 'pointer',
-                  transition: 'color 0.2s ease, border-color 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
                   textDecoration: 'none',
-                  borderRadius: 0,
-                  boxShadow: 'none',
+                  transition: 'color 0.2s ease, border-color 0.2s ease',
+                  letterSpacing: '0.02em',
                 }}
               >
-                {!isPublicPage && Icon && (
-                  <Icon size={15} strokeWidth={1.8} style={{ color: isActive ? '#E0C287' : '#C6A45F' }} />
-                )}
                 {link.label}
               </NavLink>
             );
           })}
         </nav>
 
-        {/* Mobile Hamburger Toggle Button */}
-        <button
-          className="mipa-mobile-show"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          style={{
-            display: 'none',
-            border: 'none',
-            background: 'transparent',
-            padding: '0.5rem',
-            color: isEditorialPage ? '#382417' : '#FBF6EE',
-            cursor: 'pointer',
-          }}
-          aria-label="Menu"
-        >
-          {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-
-        {/* Actions & Role Switcher */}
+        {/* Right Action Cluster: Đặt lịch CTA + Notifications + User Menu */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          {/* Primary CTA: [Đặt lịch] */}
           <button
-            onClick={onOpenBooking}
-            className={isEditorialPage ? 'hero-btn-discover' : 'public-btn-primary'}
-            style={isEditorialPage ? {
-              height: '36px',
-              fontSize: '0.82rem',
-              padding: '0 1.25rem',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              borderRadius: '6px',
-              backgroundColor: '#734B36',
-              color: '#FAF5EE',
-              boxShadow: '0 3px 10px rgba(115, 75, 54, 0.25)',
-              border: 'none',
-              cursor: 'pointer',
-            } : {
-              height: '36px',
-              fontSize: '0.85rem',
-              padding: '0 1.25rem',
+            onClick={() => {
+              navigate('/booking');
+              onOpenBooking();
+            }}
+            className="public-btn-primary"
+            style={{
+              padding: '0.55rem 1.35rem',
+              fontSize: '0.88rem',
               fontWeight: 600,
             }}
           >
             Đặt lịch
           </button>
 
-          {/* Interactive Notifications button & dismissible dropdown */}
+          {/* Notifications button (when logged in) */}
           {currentRole !== 'GUEST' && (
             <div style={{ position: 'relative' }}>
               <button
@@ -515,58 +406,78 @@ export const Navbar: React.FC<NavbarProps> = ({
                   width: '36px',
                   height: '36px',
                   borderRadius: '50%',
-                  border: '1px solid var(--mipa-beige)',
-                  background: '#FFFFFF',
+                  border: '1px solid rgba(140, 110, 83, 0.25)',
+                  backgroundColor: '#FFFDF9',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
-                  transition: 'all 0.2s ease',
                 }}
               >
                 <Bell size={16} color="#604634" />
                 {unreadCount > 0 && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
-                    minWidth: '16px',
-                    height: '16px',
-                    padding: '0 4px',
-                    borderRadius: '8px',
-                    backgroundColor: '#8C6E53',
-                    color: '#FFFDF6',
-                    fontSize: '0.65rem',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                  }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-2px',
+                      right: '-2px',
+                      minWidth: '15px',
+                      height: '15px',
+                      padding: '0 3px',
+                      borderRadius: '8px',
+                      backgroundColor: '#8C6E53',
+                      color: '#FFFDF6',
+                      fontSize: '0.62rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
                     {unreadCount}
                   </span>
                 )}
               </button>
 
               {showNotifs && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '44px',
-                  width: '340px',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '16px',
-                  boxShadow: '0 12px 35px rgba(96, 70, 52, 0.18)',
-                  border: '1px solid var(--mipa-beige)',
-                  padding: '1rem',
-                  zIndex: 2000,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '44px',
+                    width: '320px',
+                    backgroundColor: '#FFFDF9',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 30px rgba(41, 35, 31, 0.15)',
+                    border: '1px solid rgba(140, 110, 83, 0.25)',
+                    padding: '1rem',
+                    zIndex: 2000,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '0.75rem',
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#604634', margin: 0 }}>Thông báo hệ thống</h4>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#29231F', margin: 0 }}>
+                        Thông báo
+                      </h4>
                       {unreadCount > 0 && (
-                        <span style={{ fontSize: '0.68rem', backgroundColor: '#F8F3E6', color: '#8C6E53', padding: '0.1rem 0.4rem', borderRadius: '6px', fontWeight: 700 }}>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            backgroundColor: '#FAF8F3',
+                            color: '#8C6E53',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                          }}
+                        >
                           {unreadCount} mới
                         </span>
                       )}
@@ -575,134 +486,61 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllAsRead}
-                          title="Đánh dấu tất cả đã đọc"
                           style={{
                             border: 'none',
                             background: 'transparent',
                             cursor: 'pointer',
                             fontSize: '0.72rem',
                             color: '#8C6E53',
-                            fontWeight: 600,
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.2rem',
-                            padding: '0.2rem 0.4rem',
-                            borderRadius: '4px',
                           }}
                         >
-                          <CheckCheck size={13} /> Đã đọc
+                          <CheckCheck size={12} /> Đã đọc
                         </button>
                       )}
                       <button
                         onClick={() => setShowNotifs(false)}
-                        title="Đóng bảng thông báo"
-                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#8C6E53', padding: '0.2rem' }}
+                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#8C6E53' }}
                       >
-                        <X size={16} />
+                        <X size={15} />
                       </button>
                     </div>
                   </div>
 
                   {notifications.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.8rem 1rem', color: '#8C6E53' }}>
-                      <CheckCircle size={26} color="#C6A45F" style={{ margin: '0 auto 0.4rem', display: 'block' }} />
-                      <div style={{ fontWeight: 600, color: '#604634', fontSize: '0.85rem' }}>Không có thông báo mới</div>
-                      <div style={{ fontSize: '0.75rem', color: '#A39385', marginTop: '0.2rem' }}>Tất cả thông báo đã được xử lý xong</div>
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0.5rem', color: '#8C6E53' }}>
+                      <CheckCircle size={22} color="#8C6E53" style={{ margin: '0 auto 0.4rem', display: 'block' }} />
+                      <div style={{ fontSize: '0.82rem' }}>Không có thông báo mới</div>
                     </div>
                   ) : (
-                    <>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '270px', overflowY: 'auto' }}>
-                        {notifications.map((n) => (
-                          <div
-                            key={n.id}
-                            onClick={() => handleMarkAsRead(n.id)}
-                            style={{
-                              padding: '0.65rem 0.75rem',
-                              borderRadius: '10px',
-                              backgroundColor: n.read ? '#FFFFFF' : '#FFFDF6',
-                              border: '1px solid',
-                              borderColor: n.read ? '#F3EDE2' : '#E6D7B9',
-                              borderLeft: n.read ? '3px solid #E6D7B9' : '3px solid #8C6E53',
-                              fontSize: '0.8rem',
-                              cursor: 'pointer',
-                              position: 'relative',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                              <div style={{ fontWeight: 600, color: n.read ? '#6E5F55' : '#604634', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                {!n.read && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#C6A45F', flexShrink: 0 }} />}
-                                {n.title}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                {!n.read && (
-                                  <button
-                                    onClick={(e) => handleMarkAsRead(n.id, e)}
-                                    title="Đánh dấu đã đọc"
-                                    style={{
-                                      border: 'none',
-                                      background: 'transparent',
-                                      cursor: 'pointer',
-                                      color: '#8C6E53',
-                                      padding: '2px',
-                                      borderRadius: '4px',
-                                      display: 'flex',
-                                    }}
-                                  >
-                                    <Check size={12} />
-                                  </button>
-                                )}
-                                <button
-                                  onClick={(e) => handleDismissNotification(n.id, e)}
-                                  title="Đóng / Xóa thông báo này"
-                                  style={{
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    color: '#A39385',
-                                    padding: '2px',
-                                    borderRadius: '4px',
-                                    display: 'flex',
-                                  }}
-                                >
-                                  <X size={13} />
-                                </button>
-                              </div>
-                            </div>
-                            <div style={{ color: '#6E5F55', marginTop: '0.2rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                              {n.message}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#A39385', marginTop: '0.35rem' }}>
-                              <Clock size={11} />
-                              {n.timestamp}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ borderTop: '1px solid #F3EDE2', marginTop: '0.6rem', paddingTop: '0.4rem', textAlign: 'center' }}>
-                        <button
-                          onClick={handleClearAllNotifications}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleMarkAsRead(n.id)}
                           style={{
-                            border: 'none',
-                            background: 'transparent',
-                            color: '#8C6E53',
-                            fontSize: '0.74rem',
-                            fontWeight: 600,
+                            padding: '0.6rem',
+                            borderRadius: '4px',
+                            backgroundColor: n.read ? '#FAF8F3' : '#FFFDF9',
+                            border: '1px solid rgba(140, 110, 83, 0.2)',
+                            fontSize: '0.8rem',
                             cursor: 'pointer',
-                            padding: '0.2rem 0.5rem',
                           }}
                         >
-                          Xóa tất cả thông báo
-                        </button>
-                      </div>
-                    </>
+                          <div style={{ fontWeight: 600, color: '#29231F', marginBottom: '0.2rem' }}>{n.title}</div>
+                          <div style={{ color: '#604634', fontSize: '0.76rem', lineHeight: 1.4 }}>{n.message}</div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
             </div>
           )}
 
-          {/* User Auth Buttons / Profile Dropdown (Desktop Only) */}
+          {/* User Menu / Role encapsulation */}
           <div className="mipa-desktop-only">
             {currentRole === 'GUEST' ? (
               <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -711,39 +549,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.4rem 0.85rem',
-                    backgroundColor: isEditorialPage ? '#FAF5EE' : 'var(--editorial-gold-accent, #C6A45F)',
-                    color: isEditorialPage ? '#382417' : '#15110E',
-                    border: isEditorialPage ? '1px solid rgba(198, 164, 95, 0.45)' : '1px solid var(--editorial-gold-accent, #C6A45F)',
-                    borderRadius: '20px',
+                    gap: '0.35rem',
+                    padding: '0.45rem 0.95rem',
+                    backgroundColor: 'transparent',
+                    color: '#29231F',
+                    border: '1px solid rgba(140, 110, 83, 0.3)',
+                    borderRadius: '4px',
                     cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '0.82rem',
-                    boxShadow: isEditorialPage ? '0 2px 8px rgba(60, 42, 30, 0.08)' : '0 2px 10px rgba(198, 164, 95, 0.25)',
+                    fontWeight: 500,
+                    fontSize: '0.85rem',
                   }}
                 >
-                  <LogIn size={14} />
-                  Đăng nhập
-                </button>
-                <button
-                  onClick={() => onOpenAuthModal('REGISTER')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.4rem 0.85rem',
-                    backgroundColor: isEditorialPage ? 'transparent' : 'rgba(255, 255, 255, 0.06)',
-                    color: isEditorialPage ? '#5A4333' : '#FBF6EE',
-                    border: isEditorialPage ? '1px solid rgba(198, 164, 95, 0.35)' : '1px solid rgba(198, 164, 95, 0.35)',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '0.82rem',
-                  }}
-                >
-                  <UserPlus size={14} />
-                  Đăng ký
+                  <LogIn size={14} /> Đăng nhập
                 </button>
               </div>
             ) : (
@@ -755,19 +572,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.5rem',
                     padding: '0.35rem 0.75rem',
-                    backgroundColor: '#FFFDF6',
-                    border: '1px solid #C6A45F',
-                    borderRadius: '20px',
+                    backgroundColor: '#FFFDF9',
+                    border: '1px solid rgba(140, 110, 83, 0.3)',
+                    borderRadius: '4px',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(198, 164, 95, 0.15)',
                   }}
                 >
-                  <UserAvatarBadge user={displayUser} size={28} isRootOwner={displayUser.isRootOwner} />
+                  <UserAvatarBadge user={displayUser} size={26} isRootOwner={displayUser.isRootOwner} />
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#604634', lineHeight: 1.1 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#29231F', lineHeight: 1.1 }}>
                       {displayUser.fullName}
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: '#8C6E53', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.68rem', color: '#8C6E53' }}>
                       {roleLabels[currentRole].label}
                     </div>
                   </div>
@@ -775,43 +591,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
 
                 {showRoleDropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: '46px',
-                    width: '270px',
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: '16px',
-                    boxShadow: '0 12px 35px rgba(96, 70, 52, 0.18)',
-                    border: '1px solid var(--mipa-beige)',
-                    padding: '0.6rem',
-                    zIndex: 2000,
-                  }}>
-                    {/* Account Header */}
-                    <div style={{ padding: '0.65rem', backgroundColor: '#FFFDF6', borderRadius: '12px', marginBottom: '0.5rem', border: '1px solid var(--mipa-beige)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <UserAvatarBadge user={displayUser} size={40} isRootOwner={displayUser.isRootOwner} />
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 700, color: '#604634', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {displayUser.fullName}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8C6E53' }}>
-                          {roleLabels[currentRole].label}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: '#6E5F55', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {displayUser.email}
-                        </div>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '44px',
+                      width: '260px',
+                      backgroundColor: '#FFFDF9',
+                      borderRadius: '6px',
+                      boxShadow: '0 10px 30px rgba(41, 35, 31, 0.15)',
+                      border: '1px solid rgba(140, 110, 83, 0.25)',
+                      padding: '0.6rem',
+                      zIndex: 2000,
+                    }}
+                  >
+                    {/* User Profile info */}
+                    <div
+                      style={{
+                        padding: '0.6rem',
+                        backgroundColor: '#FAF8F3',
+                        borderRadius: '4px',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, color: '#29231F', fontSize: '0.85rem' }}>
+                        {displayUser.fullName}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#8C6E53' }}>
+                        {displayUser.email}
                       </div>
                     </div>
 
-                    <div style={{ padding: '0.3rem 0.5rem', fontSize: '0.72rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Tài khoản & Phân quyền:
-                    </div>
-
-                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FFFDF6', borderRadius: '10px', fontSize: '0.82rem', color: '#604634', marginBottom: '0.4rem', border: '1px solid var(--mipa-beige)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span>Quyền truy cập:</span>
-                      <strong style={{ color: '#8C6E53' }}>{roleLabels[currentRole].label}</strong>
-                    </div>
-
+                    {/* Role Specific Portals (Encapsulated) */}
                     <Link
                       to="/account?tab=profile"
                       onClick={() => setShowRoleDropdown(false)}
@@ -819,19 +630,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
-                        padding: '0.55rem 0.85rem',
-                        backgroundColor: '#F8F3E6',
-                        borderRadius: '10px',
-                        color: '#604634',
+                        padding: '0.5rem 0.75rem',
+                        color: '#29231F',
                         textDecoration: 'none',
                         fontSize: '0.82rem',
-                        fontWeight: 600,
-                        marginBottom: '0.4rem',
-                        border: '1px solid #E6D7B9',
+                        borderRadius: '4px',
+                        marginBottom: '0.25rem',
                       }}
                     >
-                      <UserIcon size={14} style={{ color: '#8C6E53' }} />
-                      <span>Thông Tin Cá Nhân</span>
+                      <UserIcon size={14} color="#8C6E53" /> Thông tin cá nhân
                     </Link>
 
                     {currentRole === 'CUSTOMER' && (
@@ -842,19 +649,35 @@ export const Navbar: React.FC<NavbarProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem',
-                          padding: '0.55rem 0.85rem',
-                          backgroundColor: '#F8F3E6',
-                          borderRadius: '10px',
-                          color: '#604634',
+                          padding: '0.5rem 0.75rem',
+                          color: '#29231F',
                           textDecoration: 'none',
                           fontSize: '0.82rem',
-                          fontWeight: 600,
-                          marginBottom: '0.4rem',
-                          border: '1px solid #E6D7B9',
+                          borderRadius: '4px',
+                          marginBottom: '0.25rem',
                         }}
                       >
-                        <Calendar size={14} style={{ color: '#8C6E53' }} />
-                        <span>Quản lý đơn & Album</span>
+                        <Calendar size={14} color="#8C6E53" /> Lịch của tôi & Album
+                      </Link>
+                    )}
+
+                    {(currentRole === 'STAFF' || currentRole === 'MANAGER' || currentRole === 'ADMIN') && (
+                      <Link
+                        to="/staff"
+                        onClick={() => setShowRoleDropdown(false)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.5rem 0.75rem',
+                          color: '#29231F',
+                          textDecoration: 'none',
+                          fontSize: '0.82rem',
+                          borderRadius: '4px',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
+                        <Camera size={14} color="#8C6E53" /> Staff OS Portal
                       </Link>
                     )}
 
@@ -866,19 +689,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem',
-                          padding: '0.55rem 0.85rem',
-                          backgroundColor: '#F8F3E6',
-                          borderRadius: '10px',
-                          color: '#604634',
+                          padding: '0.5rem 0.75rem',
+                          color: '#29231F',
                           textDecoration: 'none',
                           fontSize: '0.82rem',
-                          fontWeight: 600,
-                          marginBottom: '0.4rem',
-                          border: '1px solid #E6D7B9',
+                          borderRadius: '4px',
+                          marginBottom: '0.25rem',
                         }}
                       >
-                        <LayoutDashboard size={14} style={{ color: '#8C6E53' }} />
-                        <span>Đến Studio Manager OS</span>
+                        <LayoutDashboard size={14} color="#8C6E53" /> Studio Manager OS
                       </Link>
                     )}
 
@@ -890,23 +709,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem',
-                          padding: '0.55rem 0.85rem',
-                          background: 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)',
-                          borderRadius: '10px',
-                          color: '#FFFDF6',
+                          padding: '0.5rem 0.75rem',
+                          color: '#29231F',
                           textDecoration: 'none',
                           fontSize: '0.82rem',
-                          fontWeight: 600,
-                          marginBottom: '0.4rem',
-                          boxShadow: '0 2px 6px rgba(96, 70, 52, 0.2)',
+                          borderRadius: '4px',
+                          marginBottom: '0.25rem',
                         }}
                       >
-                        <Crown size={14} color="#EFE6C9" />
-                        <span>{displayUser.isRootOwner ? 'Bảng Quản Trị Root Owner' : 'Bảng Quản Trị (Admin)'}</span>
+                        <Crown size={14} color="#8C6E53" /> Admin Studio Portal
                       </Link>
                     )}
 
-                    <div style={{ borderTop: '1px solid var(--mipa-beige)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                    <div style={{ borderTop: '1px solid rgba(140, 110, 83, 0.2)', marginTop: '0.4rem', paddingTop: '0.4rem' }}>
                       <button
                         onClick={() => {
                           onLogout();
@@ -916,19 +731,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                           width: '100%',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
                           gap: '0.5rem',
-                          padding: '0.5rem',
+                          padding: '0.5rem 0.75rem',
                           border: 'none',
-                          borderRadius: '10px',
-                          backgroundColor: '#FFF5F5',
+                          background: 'transparent',
                           color: '#C53030',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
-                        <LogOut size={15} /> ĐĂNG XUẤT TÀI KHOẢN
+                        <LogOut size={14} /> Đăng Xuất
                       </button>
                     </div>
                   </div>
@@ -936,116 +749,131 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
           </div>
+
+          {/* Mobile Hamburger Toggle Button (min 44x44 target) */}
+          <button
+            className="mipa-mobile-show"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Mở menu điều hướng"
+            style={{
+              width: '44px',
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(140, 110, 83, 0.3)',
+              borderRadius: '4px',
+              color: '#29231F',
+              cursor: 'pointer',
+            }}
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Slide-down Navigation Drawer */}
+      {/* Mobile Navigation Sheet (Order: Concept, Dịch vụ, Portfolio, Bảng giá, Cẩm nang, Đặt lịch) */}
       {isMobileMenuOpen && (
-        <div style={{
-          backgroundColor: '#1A1411',
-          borderBottom: '1px solid rgba(198, 164, 95, 0.22)',
-          padding: '1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.2rem',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-          animation: 'slideUp 0.25s ease-out',
-        }}>
-          {/* Mobile Nav Links */}
+        <div
+          style={{
+            backgroundColor: '#FAF8F3',
+            borderBottom: '1px solid rgba(140, 110, 83, 0.25)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            boxShadow: '0 12px 30px rgba(41, 35, 31, 0.08)',
+          }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = isRouteActive(link.to);
-              const isPublic = ['home', 'services', 'packages', 'portfolio'].includes(link.id);
-
+            {PUBLIC_NAV_ITEMS.map((item) => {
+              const isActive = isRouteActive(item.to);
               return (
                 <NavLink
-                  key={link.id}
-                  to={link.to}
+                  key={item.id}
+                  to={item.to}
                   role="button"
-                  onClick={() => handleLinkClick(link.to, link.id)}
+                  onClick={() => handleLinkClick(item.to, item.id)}
                   style={{
-                    background: 'transparent',
-                    color: isActive ? '#E0C287' : '#FBF6EE',
-                    borderBottom: '1px solid rgba(198, 164, 95, 0.12)',
-                    padding: '0.9rem 0',
-                    fontFamily: isPublic ? 'var(--editorial-font-heading)' : 'var(--editorial-font-body)',
-                    fontSize: isPublic ? '1.3rem' : '0.95rem',
+                    color: isActive ? '#29231F' : '#604634',
+                    textDecoration: 'none',
+                    fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                    fontSize: '1.45rem',
                     fontWeight: isActive ? 600 : 400,
-                    textAlign: 'left',
-                    cursor: 'pointer',
+                    padding: '0.75rem 0',
+                    borderBottom: '1px solid rgba(140, 110, 83, 0.12)',
+                    minHeight: '44px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    textDecoration: 'none',
                   }}
                 >
-                  <span>{link.label}</span>
-                  {!isPublic && Icon && <Icon size={16} style={{ color: '#C6A45F' }} />}
+                  {item.label}
                 </NavLink>
               );
             })}
           </div>
 
-          {/* Mobile Auth & Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.5rem' }}>
-            <button
-              onClick={() => {
-                navigate('/booking');
-                onOpenBooking();
-                setIsMobileMenuOpen(false);
-              }}
-              className="public-btn-primary"
-              style={{ width: '100%', height: '44px', fontSize: '0.95rem', fontWeight: 600 }}
-            >
-              Đặt lịch chụp
-            </button>
+          <button
+            onClick={() => {
+              navigate('/booking');
+              onOpenBooking();
+              setIsMobileMenuOpen(false);
+            }}
+            className="public-btn-primary"
+            style={{
+              width: '100%',
+              minHeight: '44px',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              marginTop: '0.5rem',
+            }}
+          >
+            Đặt lịch chụp
+          </button>
 
+          {/* Mobile Account Actions */}
+          <div style={{ paddingTop: '0.75rem', borderTop: '1px solid rgba(140, 110, 83, 0.2)' }}>
             {currentRole === 'GUEST' ? (
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => {
-                    onOpenAuthModal('LOGIN');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="public-btn-secondary"
-                  style={{ flex: 1, height: '40px', fontSize: '0.88rem' }}
-                >
-                  Đăng Nhập
-                </button>
-                <button
-                  onClick={() => {
-                    onOpenAuthModal('REGISTER');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="public-btn-secondary"
-                  style={{ flex: 1, height: '40px', fontSize: '0.88rem' }}
-                >
-                  Đăng Ký
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  onOpenAuthModal('LOGIN');
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  minHeight: '44px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(140, 110, 83, 0.3)',
+                  borderRadius: '4px',
+                  color: '#29231F',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <LogIn size={16} /> Đăng Nhập / Đăng Ký
+              </button>
             ) : (
-              <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <Link
                   to="/account?tab=profile"
                   onClick={() => setIsMobileMenuOpen(false)}
                   style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '12px',
-                    backgroundColor: '#F8F3E6',
-                    color: '#604634',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    textDecoration: 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
                     gap: '0.5rem',
-                    border: '1px solid #E6D7B9',
+                    color: '#29231F',
+                    textDecoration: 'none',
+                    fontSize: '0.9rem',
+                    minHeight: '44px',
                   }}
                 >
-                  <UserIcon size={16} /> Thông Tin Cá Nhân
+                  <UserIcon size={16} color="#8C6E53" /> Thông tin: {displayUser.fullName}
                 </Link>
                 <button
                   onClick={() => {
@@ -1053,24 +881,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setIsMobileMenuOpen(false);
                   }}
                   style={{
-                    width: '100%',
-                    padding: '0.75rem',
                     border: 'none',
-                    borderRadius: '12px',
-                    backgroundColor: '#FFF5F5',
+                    background: 'transparent',
                     color: '#C53030',
-                    fontWeight: 700,
                     fontSize: '0.85rem',
+                    fontWeight: 600,
+                    textAlign: 'left',
+                    minHeight: '44px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
                     gap: '0.5rem',
                   }}
                 >
-                  <LogOut size={16} /> Đăng Xuất ({displayUser.fullName})
+                  <LogOut size={16} /> Đăng Xuất ({roleLabels[currentRole].label})
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>

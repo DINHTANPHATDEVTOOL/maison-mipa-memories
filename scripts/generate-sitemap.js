@@ -10,13 +10,16 @@ const TODAY = new Date().toISOString().split('T')[0];
 
 export const PUBLIC_SITEMAP_ROUTES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
+  { path: '/concept', changefreq: 'daily', priority: '0.95' },
   { path: '/dich-vu', changefreq: 'weekly', priority: '0.9' },
   { path: '/dich-vu/couple', changefreq: 'weekly', priority: '0.85' },
   { path: '/dich-vu/portrait', changefreq: 'weekly', priority: '0.85' },
   { path: '/dich-vu/family', changefreq: 'weekly', priority: '0.85' },
   { path: '/dich-vu/graduation', changefreq: 'weekly', priority: '0.85' },
   { path: '/bang-gia', changefreq: 'weekly', priority: '0.9' },
-  { path: '/portfolio', changefreq: 'weekly', priority: '0.8' },
+  { path: '/portfolio', changefreq: 'weekly', priority: '0.85' },
+  { path: '/cam-nang', changefreq: 'weekly', priority: '0.8' },
+  { path: '/atelier', changefreq: 'monthly', priority: '0.75' },
   { path: '/booking', changefreq: 'daily', priority: '0.8' },
 ];
 
