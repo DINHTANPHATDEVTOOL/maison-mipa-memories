@@ -1,32 +1,29 @@
 // ==============================================================================
-// Maison MIPA Memories - Collection Detail Page (/portfolio/:slug) (#16 & #6)
-// Requirements:
-// - Cinematic cover
-// - Gallery of collection photos with responsive sizing & focal point framing
-// - Accessible Lightbox (keyboard arrows Left/Right, Escape, focus trap)
-// - Alt text and captions
-// - Bookable CTA: "Đặt Concept này" -> /booking?concept=<slug>
-// - Canonical / SEO meta
+// Maison MIPA Memories - Collection Detail Page (/portfolio/:slug)
+// Photo-first visual commerce structure:
+// Cinematic Header -> Title & authoritative description -> Rhythmic Photo Essay Gallery
+// -> Darkroom Lightbox -> Authoritative related concept/service -> Booking CTA
+// Zero unrelated photo fallbacks; zero invented relations.
 // ==============================================================================
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getCollectionBySlug } from '../services/portfolioService';
-import { getFocalPointStyle } from '../utils/imageOptimizer';
+import { getCollectionBySlug, getPublicConcepts } from '../services/portfolioService';
+import { getServices } from '../services/catalogService';
+import { getPhotoObjectPosition, getPhotoOrientation } from '../utils/photoUtils';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
-import type { PortfolioCollection, PortfolioPhoto } from '../types';
-import {
-  ChevronRight,
-  Home,
-  ArrowLeft,
-  ArrowRight,
-  X,
-  Calendar,
-  Layers,
-} from 'lucide-react';
+import type { PortfolioCollection, PortfolioPhoto, Concept, ServiceCategory } from '../types';
+import { ChevronRight, Home, Layers } from 'lucide-react';
+import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
+import { DarkroomLightbox } from '../components/public/DarkroomLightbox';
 
 interface CollectionDetailPageProps {
   onOpenBooking?: (conceptSlug?: string) => void;
+}
+
+interface PhotoEssayBlock {
+  type: 'hero' | 'pair' | 'centered' | 'asymmetric';
+  photos: { photo: PortfolioPhoto; index: number }[];
 }
 
 export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOpenBooking }) => {
@@ -34,12 +31,13 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
   const navigate = useNavigate();
 
   const [collection, setCollection] = useState<PortfolioCollection | null>(null);
+  const [relatedConcept, setRelatedConcept] = useState<Concept | null>(null);
+  const [relatedService, setRelatedService] = useState<ServiceCategory | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Lightbox State
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
-  const lightboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -48,12 +46,34 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        const data = await getCollectionBySlug(slug);
+        const [data, allConcepts, allServices] = await Promise.all([
+          getCollectionBySlug(slug),
+          getPublicConcepts(),
+          getServices(),
+        ]);
+
         if (mounted) {
           if (!data) {
             setErrorMessage('Không tìm thấy bộ sưu tập được yêu cầu.');
           } else {
             setCollection(data);
+
+            // Find authoritative related concept if relation exists
+            if (data.conceptId || data.conceptSlug) {
+              const matchedCnc = allConcepts.find(
+                (c) => c.id === data.conceptId || c.slug === data.conceptSlug
+              );
+              if (matchedCnc) {
+                setRelatedConcept(matchedCnc);
+                if (matchedCnc.serviceId) {
+                  const matchedSrv = allServices.find((s) => s.id === matchedCnc.serviceId);
+                  if (matchedSrv) setRelatedService(matchedSrv);
+                }
+              }
+            } else if (data.serviceId) {
+              const matchedSrv = allServices.find((s) => s.id === data.serviceId);
+              if (matchedSrv) setRelatedService(matchedSrv);
+            }
           }
         }
       } catch (err: any) {
@@ -69,43 +89,18 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     return () => { mounted = false; };
   }, [slug]);
 
-  // Keyboard navigation for Lightbox
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (activePhotoIndex === null || !collection?.photos || collection.photos.length === 0) return;
-
-      if (e.key === 'Escape') {
-        setActivePhotoIndex(null);
-      } else if (e.key === 'ArrowRight') {
-        setActivePhotoIndex((prev) => (prev! + 1) % collection.photos!.length);
-      } else if (e.key === 'ArrowLeft') {
-        setActivePhotoIndex((prev) => (prev! - 1 + collection.photos!.length) % collection.photos!.length);
-      }
-    },
-    [activePhotoIndex, collection?.photos]
-  );
-
-  useEffect(() => {
-    if (activePhotoIndex !== null) {
-      window.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-      // Focus trap into lightbox
-      lightboxRef.current?.focus();
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [activePhotoIndex, handleKeyDown]);
-
   const handleBookConcept = () => {
-    const targetSlug = collection?.conceptSlug || collection?.slug;
-    if (onOpenBooking) {
-      onOpenBooking(targetSlug);
+    const targetSlug = relatedConcept?.slug || collection?.conceptSlug;
+    if (targetSlug) {
+      if (onOpenBooking) {
+        onOpenBooking(targetSlug);
+      } else {
+        navigate(`/booking?concept=${encodeURIComponent(targetSlug)}`);
+      }
+    } else if (relatedService?.id) {
+      navigate(`/booking?service=${encodeURIComponent(relatedService.id)}`);
     } else {
-      navigate(`/booking?concept=${encodeURIComponent(targetSlug || '')}`);
+      navigate('/booking');
     }
   };
 
@@ -115,12 +110,165 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     { name: collection?.title || 'Chi tiết bộ ảnh', url: getCanonicalUrl(`/portfolio/${slug || ''}`) },
   ];
 
+  const photos = collection?.photos || [];
+
+  const coverPhoto = collection
+    ? (collection.coverPhotoId
+        ? photos.find(p => p.id === collection.coverPhotoId)
+        : photos.find(p => p.url === collection.coverPhotoUrl)
+          ?? photos.find(p => p.featured)
+          ?? photos[0])
+    : undefined;
+
+  const coverUrl = coverPhoto?.url || collection?.coverPhotoUrl;
+
+  // Partition photos into visual essay blocks with varying rhythm
+  const photoBlocks = useMemo(() => {
+    if (!photos || photos.length === 0) return [];
+    const blocks: PhotoEssayBlock[] = [];
+    let i = 0;
+    const pattern: Array<'hero' | 'pair' | 'centered' | 'asymmetric'> = [
+      'hero',
+      'pair',
+      'centered',
+      'asymmetric',
+    ];
+    let patternIdx = 0;
+
+    while (i < photos.length) {
+      const remaining = photos.length - i;
+      const type = pattern[patternIdx % pattern.length];
+      patternIdx++;
+
+      if (type === 'hero') {
+        blocks.push({
+          type: 'hero',
+          photos: [{ photo: photos[i], index: i }],
+        });
+        i += 1;
+      } else if (type === 'pair') {
+        if (remaining >= 2) {
+          blocks.push({
+            type: 'pair',
+            photos: [
+              { photo: photos[i], index: i },
+              { photo: photos[i + 1], index: i + 1 },
+            ],
+          });
+          i += 2;
+        } else {
+          blocks.push({
+            type: 'centered',
+            photos: [{ photo: photos[i], index: i }],
+          });
+          i += 1;
+        }
+      } else if (type === 'centered') {
+        blocks.push({
+          type: 'centered',
+          photos: [{ photo: photos[i], index: i }],
+        });
+        i += 1;
+      } else if (type === 'asymmetric') {
+        if (remaining >= 2) {
+          blocks.push({
+            type: 'asymmetric',
+            photos: [
+              { photo: photos[i], index: i },
+              { photo: photos[i + 1], index: i + 1 },
+            ],
+          });
+          i += 2;
+        } else {
+          blocks.push({
+            type: 'centered',
+            photos: [{ photo: photos[i], index: i }],
+          });
+          i += 1;
+        }
+      }
+    }
+    return blocks;
+  }, [photos]);
+
+  const renderPhotoItem = (photo: PortfolioPhoto, idx: number, customAspect?: string) => {
+    const isPortrait = getPhotoOrientation(photo) === 'PORTRAIT';
+    const aspect = customAspect || (isPortrait ? '4 / 5' : '3 / 2');
+
+    return (
+      <button
+        type="button"
+        key={photo.id || idx}
+        onClick={() => setActivePhotoIndex(idx)}
+        className="editorial-image-frame vc-image-frame"
+        aria-label={`Xem ảnh ${idx + 1} của ${photos.length}: ${photo.altText || collection?.title}`}
+        style={{
+          borderRadius: '4px',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          backgroundColor: '#EDE7DC',
+          position: 'relative',
+          aspectRatio: aspect,
+          border: '1px solid rgba(140, 110, 83, 0.15)',
+          width: '100%',
+          padding: 0,
+          margin: 0,
+          background: 'none',
+          font: 'inherit',
+          textAlign: 'inherit',
+          display: 'block',
+        }}
+      >
+        <img
+          src={photo.url}
+          alt={photo.altText || `${collection?.title} - Ảnh ${idx + 1}`}
+          loading="lazy"
+          decoding="async"
+          width={photo.width}
+          height={photo.height}
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            objectFit: 'cover',
+            objectPosition: getPhotoObjectPosition(photo),
+          }}
+        />
+
+        {/* Hover / focus caption overlay */}
+        <div
+          className="photo-overlay"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(21, 17, 14, 0.88) 0%, transparent 60%)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            padding: '1.2rem',
+            opacity: 0,
+            transition: 'opacity var(--motion-normal) ease',
+          }}
+        >
+          <div>
+            <div style={{ color: '#EFE6C9', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.05em' }}>
+              #{idx + 1} / {photos.length}
+            </div>
+            {photo.caption && (
+              <div style={{ color: '#FFFDF9', fontSize: '0.92rem', fontWeight: 500, marginTop: '0.2rem' }}>
+                {photo.caption}
+              </div>
+            )}
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   if (isLoading) {
     return (
-      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--editorial-bg)' }}>
-        <div style={{ textAlign: 'center', color: 'var(--editorial-brown)' }}>
-          <div className="editorial-loading-spinner" style={{ width: 28, height: 28, border: '2px solid var(--editorial-divider)', borderTopColor: 'var(--editorial-brown)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-          <p style={{ marginTop: '1rem', fontSize: '0.95rem', color: 'var(--editorial-brown-secondary)' }}>Đang tải bộ sưu tập...</p>
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF8F3' }}>
+        <div style={{ textAlign: 'center', color: '#8C6E53' }}>
+          <p style={{ fontSize: '0.95rem' }}>Đang tải bộ sưu tập...</p>
         </div>
       </div>
     );
@@ -128,11 +276,13 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
   if (errorMessage || !collection) {
     return (
-      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--editorial-bg)' }}>
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF8F3' }}>
         <div style={{ textAlign: 'center', maxWidth: '500px', padding: '2rem' }}>
-          <h2 className="editorial-heading" style={{ fontSize: '1.8rem', color: 'var(--editorial-brown)', marginBottom: '0.8rem', fontWeight: 500 }}>Bộ sưu tập không khả dụng</h2>
-          <p className="editorial-copy" style={{ marginBottom: '1.5rem' }}>{errorMessage || 'Bộ sưu tập này có thể đang ở chế độ nháp hoặc đã được cập nhật.'}</p>
-          <Link to="/portfolio" className="public-btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h2 style={{ fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)', fontSize: '1.8rem', color: '#29231F', marginBottom: '0.8rem', fontWeight: 500 }}>
+            Bộ sưu tập không khả dụng
+          </h2>
+          <p style={{ color: '#604634', marginBottom: '1.5rem' }}>{errorMessage || 'Bộ sưu tập này có thể đang ở chế độ nháp hoặc đã được cập nhật.'}</p>
+          <Link to="/portfolio" className="vc-primary-button" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <Layers size={16} /> Quay lại danh mục
           </Link>
         </div>
@@ -140,11 +290,8 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     );
   }
 
-  const photos = collection.photos || [];
-  const activePhoto = activePhotoIndex !== null ? photos[activePhotoIndex] : null;
-
   return (
-    <div style={{ backgroundColor: 'var(--mipa-background)', minHeight: '85vh', paddingBottom: '5rem' }}>
+    <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '5rem' }}>
       <SeoHead
         title={`${collection.title} | Portfolio Maison MIPA`}
         description={collection.description || 'Chiêm ngưỡng trọn vẹn bộ sưu tập ảnh nghệ thuật phong cách Pháp tại Maison MIPA Memories.'}
@@ -160,290 +307,227 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
               <Home size={14} /> Trang chủ
             </Link>
           </li>
-          <li><ChevronRight size={14} color="#C6A45F" /></li>
+          <li><ChevronRight size={14} color="#8C6E53" /></li>
           <li>
             <Link to="/portfolio" style={{ color: '#8C6E53', textDecoration: 'none' }}>
               Portfolio
             </Link>
           </li>
-          <li><ChevronRight size={14} color="#C6A45F" /></li>
-          <li style={{ fontWeight: 500, color: 'var(--editorial-brown)' }} aria-current="page">
+          <li><ChevronRight size={14} color="#8C6E53" /></li>
+          <li style={{ fontWeight: 500, color: '#29231F' }} aria-current="page">
             {collection.title}
           </li>
         </ol>
       </nav>
 
       {/* Cinematic Header / Hero Banner */}
-      <header style={{ maxWidth: '1350px', margin: '1.5rem auto 2.5rem', padding: '0 1.5rem' }}>
+      <header style={{ maxWidth: '1350px', margin: '1.5rem auto 3rem', padding: '0 1.5rem' }}>
         <div
           style={{
             position: 'relative',
             borderRadius: '4px',
             overflow: 'hidden',
-            minHeight: '400px',
+            minHeight: '440px',
             display: 'flex',
             alignItems: 'flex-end',
             backgroundColor: '#2C221E',
-            border: '1px solid var(--editorial-divider)',
           }}
         >
-          <img
-            src={collection.coverPhotoUrl || photos[0]?.url || '/hero.png'}
-            alt={collection.title}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              viewTransitionName: 'collection-hero-image',
-              ...getFocalPointStyle(photos[0]?.focalX || 50, photos[0]?.focalY || 50),
-            }}
-          />
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt={collection.title}
+              fetchPriority="high"
+              decoding="async"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: getPhotoObjectPosition(coverPhoto),
+              }}
+            />
+          ) : (
+            <div style={{ position: 'absolute', inset: 0 }}>
+              <EditorialImagePlaceholder height="100%" caption={collection.title} />
+            </div>
+          )}
+
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to top, rgba(41, 35, 31, 0.95) 0%, rgba(41, 35, 31, 0.4) 50%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(21, 17, 14, 0.94) 0%, rgba(21, 17, 14, 0.45) 55%, transparent 100%)',
             }}
           />
 
           <div style={{ position: 'relative', zIndex: 1, padding: 'clamp(1.5rem, 5vw, 3.5rem)', maxWidth: '850px' }}>
-            <div className="editorial-overline" style={{ color: '#EFE6C9', marginBottom: '0.8rem' }}>
-              CONCEPT: {collection.conceptName || 'MAISON MIPA'}
-            </div>
+            {collection.conceptName && (
+              <div className="vc-overline" style={{ color: '#EFE6C9', marginBottom: '0.6rem' }}>
+                CONCEPT • {collection.conceptName}
+              </div>
+            )}
 
-            <h1 className="editorial-heading" style={{ fontSize: 'clamp(2rem, 5vw, 3.4rem)', color: '#FFFDF9', margin: '0 0 1rem 0', lineHeight: 1.15, fontWeight: 500 }}>
+            <h1
+              className="vc-display"
+              style={{
+                color: '#FFFDF9',
+                margin: '0 0 1rem 0',
+                lineHeight: 1.15,
+                fontWeight: 500,
+              }}
+            >
               {collection.title}
             </h1>
 
-            <p style={{ color: '#EFE6C9', fontSize: '1rem', lineHeight: 1.6, margin: '0 0 1.8rem 0', maxWidth: '650px' }}>
-              {collection.description}
-            </p>
+            {collection.description && (
+              <p className="vc-copy" style={{ color: '#EFE6C9', margin: '0 0 1.8rem 0', maxWidth: '650px', fontWeight: 300 }}>
+                {collection.description}
+              </p>
+            )}
 
-            {/* Direct CTA: Đặt Concept Này */}
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Direct Booking CTA */}
+            <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={handleBookConcept}
-                className="public-btn-primary"
-                style={{ padding: '0.85rem 1.8rem', fontSize: '0.95rem' }}
+                className="vc-primary-button"
+                style={{ backgroundColor: '#EFE6C9', color: '#29231F' }}
               >
                 Đặt concept này
               </button>
 
               <span style={{ color: 'rgba(239, 230, 201, 0.8)', fontSize: '0.88rem' }}>
-                {photos.length} hình ảnh
+                {photos.length} tác phẩm tuyển chọn
               </span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Gallery Section */}
+      {/* Rhythmic Photo Essay Gallery */}
       <main style={{ maxWidth: '1350px', margin: '0 auto', padding: '0 1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <h2 className="editorial-heading" style={{ fontSize: '1.5rem', color: 'var(--editorial-brown)', margin: 0, fontWeight: 500 }}>
-            Khung hình chi tiết
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h2 className="vc-section-title" style={{ margin: 0 }}>
+            Bộ ảnh chi tiết
           </h2>
-          <span style={{ fontSize: '0.85rem', color: 'var(--editorial-brown-secondary)' }}>
-            Nhấp vào từng ảnh để phóng to (← / → / Esc)
+          <span style={{ fontSize: '0.85rem', color: '#8C6E53' }}>
+            Nhấp để mở Darkroom Lightbox (← / → / Esc)
           </span>
         </div>
 
-        {/* Dynamic Responsive Image Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '1.5rem',
-          }}
-        >
-          {photos.map((photo, idx) => (
-            <div
-              key={photo.id}
-              onClick={() => setActivePhotoIndex(idx)}
-              className="editorial-image-frame"
-              role="button"
-              aria-label={`Xem ảnh ${idx + 1}: ${photo.altText || collection.title}`}
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') setActivePhotoIndex(idx); }}
-              style={{
-                borderRadius: '4px',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                backgroundColor: '#2C221E',
-                position: 'relative',
-                aspectRatio: '3 / 2',
-                border: '1px solid var(--editorial-divider)',
-                transition: 'transform 0.2s ease',
-              }}
-            >
-              <img
-                src={photo.url}
-                alt={photo.altText || `${collection.title} - Ảnh ${idx + 1}`}
-                loading="lazy"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'block',
-                  transition: 'transform 0.4s ease',
-                  ...getFocalPointStyle(photo.focalX, photo.focalY),
-                }}
-              />
+        {/* Photo Essay Blocks */}
+        <div className="photo-essay-container">
+          {photoBlocks.map((block, bIdx) => {
+            if (block.type === 'hero') {
+              const { photo, index } = block.photos[0];
+              return (
+                <div key={`block-${bIdx}`} className="photo-essay-hero-block">
+                  {renderPhotoItem(photo, index, '16 / 10')}
+                </div>
+              );
+            }
 
-              {/* Hover Overlay with caption */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(to top, rgba(41, 35, 31, 0.85) 0%, transparent 60%)',
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  padding: '1.2rem',
-                }}
-              >
-                <div>
-                  <div style={{ color: '#EFE6C9', fontSize: '0.75rem', fontWeight: 500 }}>
-                    #{idx + 1} / {photos.length}
-                  </div>
-                  {photo.caption && (
-                    <div style={{ color: '#FFFDF9', fontSize: '0.9rem', fontWeight: 500, marginTop: '0.2rem' }}>
-                      {photo.caption}
-                    </div>
+            if (block.type === 'pair') {
+              return (
+                <div key={`block-${bIdx}`} className="photo-essay-pair-block">
+                  {block.photos.map(({ photo, index }) => renderPhotoItem(photo, index, '4 / 5'))}
+                </div>
+              );
+            }
+
+            if (block.type === 'centered') {
+              const { photo, index } = block.photos[0];
+              return (
+                <div key={`block-${bIdx}`} className="photo-essay-centered-block">
+                  {renderPhotoItem(photo, index, '4 / 5')}
+                </div>
+              );
+            }
+
+            if (block.type === 'asymmetric') {
+              return (
+                <div key={`block-${bIdx}`} className="photo-essay-asymmetric-block">
+                  {block.photos.map(({ photo, index }, idx) =>
+                    renderPhotoItem(photo, index, idx === 0 ? '16 / 10' : '4 / 5')
                   )}
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            }
+
+            return null;
+          })}
         </div>
 
+        {/* Authoritative Related Concept or Service */}
+        {(relatedConcept || relatedService) && (
+          <section style={{ marginTop: '4.5rem', padding: '2.5rem', backgroundColor: '#FFFDF9', borderRadius: '4px', border: '1px solid rgba(140, 110, 83, 0.2)' }}>
+            <span className="vc-overline" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              THÔNG TIN LIÊN QUAN
+            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+              <div>
+                {relatedConcept && (
+                  <h3 style={{ fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)', fontSize: '1.8rem', color: '#29231F', margin: '0 0 0.4rem 0', fontWeight: 500 }}>
+                    Concept: {relatedConcept.name}
+                  </h3>
+                )}
+                {relatedService && (
+                  <p style={{ fontSize: '0.95rem', color: '#604634', margin: 0 }}>
+                    Dịch vụ: <strong>{relatedService.name}</strong>
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                {relatedConcept && (
+                  <Link
+                    to={`/concept/${relatedConcept.slug}`}
+                    className="vc-primary-button"
+                  >
+                    Xem concept này
+                  </Link>
+                )}
+                {relatedService && (
+                  <Link
+                    to={`/dich-vu/${relatedService.slug || relatedService.id}`}
+                    className="vc-secondary-button"
+                  >
+                    Xem dịch vụ
+                  </Link>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Bottom Booking Prompt */}
-        <div style={{ marginTop: '4rem', textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: 'var(--editorial-paper)', borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}>
-          <h3 className="editorial-heading" style={{ fontSize: '1.8rem', color: 'var(--editorial-brown)', marginBottom: '0.8rem', fontWeight: 500 }}>
-            Yêu thích phong cách của bộ ảnh này?
+        <div style={{ marginTop: '4rem', textAlign: 'center', padding: '3.5rem 1.5rem', backgroundColor: '#FFFDF9', borderRadius: '4px', border: '1px solid rgba(140, 110, 83, 0.2)' }}>
+          <h3 style={{ fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)', fontSize: '2.2rem', color: '#29231F', marginBottom: '0.8rem', fontWeight: 500 }}>
+            Lưu giữ khoảnh khắc theo phong cách này
           </h3>
-          <p className="editorial-copy" style={{ maxWidth: '600px', margin: '0 auto 1.8rem' }}>
-            Đặt lịch chụp để Maison MIPA cùng bạn lưu lại những khoảnh khắc tự nhiên nhất.
+          <p className="vc-copy" style={{ maxWidth: '580px', margin: '0 auto 1.8rem' }}>
+            Đặt lịch trực tiếp để Maison MIPA chuẩn bị không gian, ánh sáng và bối cảnh chuẩn xác cho buổi chụp của bạn.
           </p>
           <button
             onClick={handleBookConcept}
-            className="public-btn-primary"
-            style={{ padding: '0.85rem 2rem' }}
+            className="vc-primary-button"
+            style={{ padding: '0.85rem 2.4rem' }}
           >
-            Đặt lịch chụp concept này
+            Đặt lịch chụp ngay
           </button>
         </div>
       </main>
 
-      {/* Accessible Fullscreen Lightbox */}
-      {activePhoto && (
-        <div
-          ref={lightboxRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Chi tiết ảnh ${activePhotoIndex! + 1} của ${photos.length}`}
-          tabIndex={-1}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(28, 20, 16, 0.98)',
-            zIndex: 10000,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '1.5rem',
-            outline: 'none',
-          }}
-        >
-          {/* Lightbox Top Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#FFFDF6' }}>
-            <div style={{ fontSize: '0.9rem', color: '#EFE6C9', letterSpacing: '0.05em' }}>
-              <strong>{collection.title}</strong> • {activePhotoIndex! + 1} / {photos.length}
-            </div>
-
-            <button
-              onClick={() => setActivePhotoIndex(null)}
-              aria-label="Đóng xem ảnh"
-              style={{
-                border: 'none',
-                background: 'rgba(255, 255, 255, 0.15)',
-                color: '#FFF',
-                padding: '0.5rem',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          {/* Lightbox Main Stage */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-            {/* Prev Button */}
-            <button
-              onClick={() => setActivePhotoIndex((activePhotoIndex! - 1 + photos.length) % photos.length)}
-              aria-label="Ảnh trước đó"
-              style={{
-                position: 'absolute',
-                left: '10px',
-                border: 'none',
-                background: 'rgba(0, 0, 0, 0.6)',
-                color: '#FFF',
-                padding: '0.8rem',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                zIndex: 2,
-              }}
-            >
-              <ArrowLeft size={24} />
-            </button>
-
-            {/* Displayed Image */}
-            <img
-              src={activePhoto.url}
-              alt={activePhoto.altText || `${collection.title} - Ảnh ${activePhotoIndex! + 1}`}
-              style={{
-                maxWidth: '90vw',
-                maxHeight: '75vh',
-                objectFit: 'contain',
-                borderRadius: '4px',
-              }}
-            />
-
-            {/* Next Button */}
-            <button
-              onClick={() => setActivePhotoIndex((activePhotoIndex! + 1) % photos.length)}
-              aria-label="Ảnh kế tiếp"
-              style={{
-                position: 'absolute',
-                right: '10px',
-                border: 'none',
-                background: 'rgba(0, 0, 0, 0.6)',
-                color: '#FFF',
-                padding: '0.8rem',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                zIndex: 2,
-              }}
-            >
-              <ArrowRight size={24} />
-            </button>
-          </div>
-
-          {/* Lightbox Bottom Caption */}
-          <div style={{ textAlign: 'center', color: '#EFE6C9', padding: '0.5rem' }}>
-            {activePhoto.caption ? (
-              <div style={{ fontSize: '1.05rem', fontWeight: 500, color: '#FFFDF6' }}>{activePhoto.caption}</div>
-            ) : (
-              <div style={{ fontSize: '0.85rem', color: '#EFE6C9' }}>Maison MIPA / Saigon</div>
-            )}
-            <div style={{ fontSize: '0.8rem', color: 'rgba(239, 230, 201, 0.6)', marginTop: '0.2rem' }}>
-              Dùng phím mũi tên ← → trên bàn phím để chuyển ảnh, Esc để đóng.
-            </div>
-          </div>
-        </div>
+      {/* Accessible Darkroom Lightbox (#15110E presentation) */}
+      {activePhotoIndex !== null && photos.length > 0 && (
+        <DarkroomLightbox
+          photos={photos}
+          currentIndex={activePhotoIndex}
+          collectionTitle={collection.title}
+          onClose={() => setActivePhotoIndex(null)}
+          onSelectIndex={(index) => setActivePhotoIndex(index)}
+        />
       )}
     </div>
   );

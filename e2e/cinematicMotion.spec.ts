@@ -36,7 +36,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
   test('2. Prefers-reduced-motion disables 3D tilts and animations immediately', async ({ page }) => {
     // Emulate reduced motion
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
+    await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
 
     // Verify 3D atelier viewport is visible without transform delay
@@ -69,22 +69,22 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Navigate to Portfolio
-    await page.getByRole('button', { name: 'Portfolio', exact: true }).click();
+    await page.getByRole('link', { name: 'Portfolio', exact: true }).click();
     await expect(page).toHaveURL(/\/portfolio/);
     await expect(page.locator('h1')).toContainText('Bộ sưu tập hình ảnh');
 
     // Navigate to Services
-    await page.getByRole('button', { name: 'Dịch vụ', exact: true }).click();
+    await page.getByRole('link', { name: 'Dịch vụ', exact: true }).click();
     await expect(page).toHaveURL(/\/dich-vu/);
     await expect(page.locator('h1')).toContainText('Dịch vụ chụp ảnh');
 
     // Navigate to Pricing
-    await page.getByRole('button', { name: 'Bảng giá', exact: true }).click();
+    await page.getByRole('link', { name: 'Bảng giá', exact: true }).click();
     await expect(page).toHaveURL(/\/bang-gia/);
     await expect(page.locator('h1')).toContainText('Bảng giá dịch vụ');
 
     // Back to Home
-    await page.getByRole('button', { name: 'Trang chủ', exact: true }).click();
+    await page.locator('header a[href="/"]').first().click();
     await expect(page).toHaveURL('/');
   });
 
@@ -114,36 +114,34 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await expect(page.locator('text=Bước 3/6')).toBeVisible();
   });
 
-  test('7. All 7 Signature Moments are present and rendered on Homepage', async ({ page }) => {
+  test('7. All Signature Commerce Sections are present and rendered on Homepage', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Moment 1: Flagship Atelier Diorama
-    await expect(page.locator('#atelier-3d')).toBeVisible();
-    await expect(page.getByTestId('virtual-exhibition-viewport')).toBeVisible();
+    // Section 1: Hero
+    await expect(page.locator('h1')).toBeVisible();
 
-    // Moment 2: Selected Works Perspective
-    await expect(page.getByRole('heading', { name: /Bộ sưu tập concept chọn lọc/i })).toBeVisible({ timeout: 10000 });
+    // Section 2: Concepts
+    await expect(page.getByRole('heading', { name: /Ý tưởng & phong cách ánh sáng|Ý tưởng & Concept/i })).toBeVisible({ timeout: 10000 });
 
-    // Moment 3: Photo Stack Scene
-    await expect(page.getByRole('heading', { name: /Những bản in trải rộng trên bàn làm việc/i })).toBeVisible();
+    // Section 3: Services
+    await expect(page.getByRole('heading', { name: /Danh mục chụp tại Maison/i })).toBeVisible();
 
-    // Moment 4: Film Gate & Moving Matte Transition
-    await expect(page.getByText(/02 \/ LE TEMPS SUSPENDU — SAIGON ATELIER/i)).toBeVisible();
+    // Section 4: Stories
+    await expect(page.getByRole('heading', { name: /Những câu chuyện được kể lại/i })).toBeVisible();
 
-    // Moment 5: Services Choreography
-    await expect(page.getByRole('heading', { name: /Bạn muốn lưu lại điều gì/i })).toBeVisible();
+    // Section 5: Brand Story
+    await expect(page.getByRole('heading', { name: /Ánh sáng tự nhiên/i })).toBeVisible();
 
-    // Moment 6: Darkroom Exhibition Depth
-    await expect(page.getByRole('heading', { name: /Tĩnh lặng trong từng khuôn hình/i })).toBeVisible();
-    await expect(page.getByText(/KHOẢNH KHẮC NGUYÊN BẢN/i)).toBeVisible();
+    // Section 6: Pricing
+    await expect(page.getByRole('heading', { name: /Bảng giá dịch vụ/i })).toBeVisible();
 
-    // Moment 7: Final CTA Enter the Frame
-    await expect(page.getByRole('heading', { name: /Hẹn một buổi chụp cùng Maison MIPA/i })).toBeVisible();
+    // Section 7: Final Consultation CTA
+    await expect(page.locator('section[aria-label="Tư Vấn & Đặt Lịch"]')).toBeVisible();
   });
 
   test('8. Flagship WebGL Living French Atelier renders diorama scene, camera & lighting controls, and booking flow', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
 
     // Verify Flagship Atelier Section and Heading
@@ -208,7 +206,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
 
   test('9. Mobile 390x844 responsive layout has zero horizontal overflow in Flagship Atelier', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
+    await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
 
     const section = page.locator('#atelier-3d');

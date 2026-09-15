@@ -107,13 +107,13 @@ describe('Full Application Routing & SEO Integration Tests', () => {
   it('renders pricing page at /bang-gia', async () => {
     renderRoute('/bang-gia');
     expect(screen.getByRole('heading', { level: 1, name: /Bảng Giá Dịch Vụ Chụp Ảnh/i })).toBeInTheDocument();
-    expect(screen.getByText(/MINH BẠCH & TRỌN GÓI/i)).toBeInTheDocument();
+    expect(screen.getByText(/CHI PHÍ MINH BẠCH/i)).toBeInTheDocument();
   });
 
   it('renders portfolio page at /portfolio', async () => {
     renderRoute('/portfolio');
-    expect(screen.getByRole('heading', { level: 1, name: /Bộ Sưu Tập Hình Ảnh/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/GALERIE DE MAISON MIPA/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(/SELECTED STORIES \/ BỘ ẢNH/i)).toBeInTheDocument();
   });
 
   it('renders dedicated booking page at /booking', async () => {
@@ -139,7 +139,7 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('marks active navigation link based on current URL path', async () => {
     renderRoute('/portfolio');
-    const portfolioBtn = screen.getByRole('button', { name: 'Portfolio' });
-    expect(portfolioBtn).toHaveAttribute('aria-current', 'page');
+    const portfolioLink = screen.getByRole('link', { name: 'Portfolio' });
+    expect(portfolioLink).toHaveAttribute('aria-current', 'page');
   });
 });

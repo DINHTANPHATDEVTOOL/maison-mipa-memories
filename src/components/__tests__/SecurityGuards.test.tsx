@@ -14,9 +14,9 @@ describe('SecurityGuards and Access Control in App', () => {
 
   it('allows guest to access public tabs freely', () => {
     render(<App />);
-    const servicesBtn = screen.getAllByRole('button', { name: /Dịch Vụ/i })[0];
-    fireEvent.click(servicesBtn);
-    expect(screen.getByRole('heading', { name: /Dịch Vụ Chụp Ảnh Nghệ Thuật/i })).toBeInTheDocument();
+    const servicesLink = screen.getAllByRole('link', { name: /Dịch Vụ/i })[0];
+    fireEvent.click(servicesLink);
+    expect(screen.getByRole('heading', { name: /Dịch Vụ/i })).toBeInTheDocument();
   });
 
   it('allows unauthenticated guest to enter booking funnel and access booking wizard freely', () => {

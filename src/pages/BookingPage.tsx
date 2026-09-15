@@ -29,6 +29,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialConceptSlug = searchParams.get('concept') || undefined;
+  const initialServiceId = searchParams.get('service') || undefined;
+  const initialPackageId = searchParams.get('package') || undefined;
 
   const [isWizardOpen, setIsWizardOpen] = useState(true);
 
@@ -43,6 +45,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         title="Đặt lịch chụp ảnh trực tuyến 24/7 | Maison MIPA Memories"
         description="Đặt lịch chụp ảnh trực tuyến nhanh chóng tại Maison MIPA Memories. Lựa chọn concept, gói chụp, dịch vụ bổ sung và thanh toán cọc an toàn."
         canonicalPath="/booking"
+        noIndex={true}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
 
@@ -153,6 +156,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         onBookingSuccess={onBookingSuccess}
         existingBookings={existingBookings}
         initialConceptSlug={initialConceptSlug}
+        initialServiceId={initialServiceId}
+        initialPackageId={initialPackageId}
         onRequireAuth={onOpenAuthModal}
       />
     </div>
