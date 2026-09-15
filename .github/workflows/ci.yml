@@ -51,3 +51,13 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      - name: Upload Visual Commerce Review Screenshots
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: visual-commerce-review
+          path: |
+            test-results/**/*.png
+            test-results/screenshots/*.png
+          retention-days: 14

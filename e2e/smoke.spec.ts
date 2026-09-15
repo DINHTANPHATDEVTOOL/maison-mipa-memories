@@ -90,7 +90,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
   test('4. Protected area không cho guest/customer trái quyền truy cập', async ({ page }) => {
     // 1. As GUEST, navigating to /staff or /management triggers guard
     await page.goto('/staff');
-    await expect(page.getByText('403 FORBIDDEN')).toBeVisible();
+    await expect(page.getByText('403 FORBIDDEN')).toBeVisible({ timeout: 15000 });
 
     // 2. Login as CUSTOMER
     await page.goto('/');

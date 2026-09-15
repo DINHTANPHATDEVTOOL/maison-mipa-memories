@@ -9,8 +9,7 @@ import { useReducedMotion } from '../../motion/useReducedMotion';
 import { ArrowRight, Calendar } from 'lucide-react';
 import { gsap } from 'gsap';
 
-// Authoritative static brand hero asset approved for Maison MIPA.
-// Used exclusively as the official default hero photography; never substituted with random concepts.
+// Default Maison MIPA brand hero asset.
 export const BRAND_HERO_ASSET = '/hero.png';
 
 interface VisualCommerceHeroProps {
@@ -78,8 +77,27 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
   useEffect(() => {
     if (prefersReduced || typeof window === 'undefined') return;
 
-    const handleScroll = () => {
-      if (window.innerWidth <= 768) return;
+    let ticking = false;
+
+    const resetMobileStyles = () => {
+      if (contentRef.current) {
+        contentRef.current.style.opacity = '';
+        contentRef.current.style.transform = '';
+      }
+      if (heroRef.current) {
+        heroRef.current.style.transform = '';
+        heroRef.current.style.borderRadius = '';
+        heroRef.current.style.maxWidth = '';
+        heroRef.current.style.margin = '';
+      }
+    };
+
+    const updateScroll = () => {
+      if (window.innerWidth <= 768) {
+        resetMobileStyles();
+        ticking = false;
+        return;
+      }
 
       const scrollY = window.scrollY;
       const vh = window.innerHeight;
@@ -102,11 +120,32 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
         heroRef.current.style.maxWidth = `${widthVw}vw`;
         heroRef.current.style.margin = '0 auto';
       }
+
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateScroll);
+        ticking = true;
+      }
+    };
+
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        resetMobileStyles();
+      } else {
+        handleScroll();
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+      resetMobileStyles();
     };
   }, [prefersReduced]);
 

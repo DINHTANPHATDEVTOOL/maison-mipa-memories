@@ -111,7 +111,16 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
   ];
 
   const photos = collection?.photos || [];
-  const coverUrl = collection?.coverPhotoUrl || (photos.length > 0 ? photos[0].url : undefined);
+
+  const coverPhoto = collection
+    ? (collection.coverPhotoId
+        ? photos.find(p => p.id === collection.coverPhotoId)
+        : photos.find(p => p.url === collection.coverPhotoUrl)
+          ?? photos.find(p => p.featured)
+          ?? photos[0])
+    : undefined;
+
+  const coverUrl = coverPhoto?.url || collection?.coverPhotoUrl;
 
   // Partition photos into visual essay blocks with varying rhythm
   const photoBlocks = useMemo(() => {
@@ -187,19 +196,12 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     const aspect = customAspect || (isPortrait ? '4 / 5' : '3 / 2');
 
     return (
-      <div
+      <button
+        type="button"
         key={photo.id || idx}
         onClick={() => setActivePhotoIndex(idx)}
         className="editorial-image-frame vc-image-frame"
-        role="button"
         aria-label={`Xem ảnh ${idx + 1} của ${photos.length}: ${photo.altText || collection?.title}`}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setActivePhotoIndex(idx);
-          }
-        }}
         style={{
           borderRadius: '4px',
           overflow: 'hidden',
@@ -209,6 +211,12 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           aspectRatio: aspect,
           border: '1px solid rgba(140, 110, 83, 0.15)',
           width: '100%',
+          padding: 0,
+          margin: 0,
+          background: 'none',
+          font: 'inherit',
+          textAlign: 'inherit',
+          display: 'block',
         }}
       >
         <img
@@ -252,7 +260,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
             )}
           </div>
         </div>
-      </div>
+      </button>
     );
   };
 
@@ -337,7 +345,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                objectPosition: getPhotoObjectPosition(photos[0]),
+                objectPosition: getPhotoObjectPosition(coverPhoto),
               }}
             />
           ) : (

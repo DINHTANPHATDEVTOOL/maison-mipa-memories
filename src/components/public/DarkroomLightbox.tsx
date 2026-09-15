@@ -23,6 +23,7 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
   onSelectIndex,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
   const activePhoto = photos[currentIndex] || photos[0];
@@ -38,37 +39,89 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
     onSelectIndex((currentIndex + 1) % total);
   }, [currentIndex, total, onSelectIndex]);
 
-  // Keyboard navigation & body scroll lock
+  const prevRef = useRef(handlePrev);
+  prevRef.current = handlePrev;
+  const nextRef = useRef(handleNext);
+  nextRef.current = handleNext;
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  // Real accessible focus trap & body scroll lock lifecycle (runs once on mount/unmount)
   useEffect(() => {
     previouslyFocusedElement.current = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    // Initial focus on Close button or dialog
+    if (closeButtonRef.current) {
+      closeButtonRef.current.focus();
+    } else {
+      dialogRef.current?.focus();
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
-      } else if (e.key === 'ArrowLeft') {
+        closeRef.current();
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        handlePrev();
-      } else if (e.key === 'ArrowRight') {
+        prevRef.current();
+        return;
+      }
+
+      if (e.key === 'ArrowRight') {
         e.preventDefault();
-        handleNext();
+        nextRef.current();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+
+        const focusable = Array.from(
+          dialog.querySelectorAll<HTMLElement>(
+            'button:not([disabled]):not([aria-hidden="true"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter(el => {
+          return el.style.display !== 'none' && el.style.visibility !== 'hidden' && el.getAttribute('aria-hidden') !== 'true';
+        });
+
+        if (focusable.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first || !dialog.contains(document.activeElement)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last || !dialog.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-
-    // Focus dialog
-    dialogRef.current?.focus();
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-      if (previouslyFocusedElement.current?.focus) {
+      document.body.style.overflow = previousOverflow;
+      if (previouslyFocusedElement.current && typeof previouslyFocusedElement.current.focus === 'function') {
         previouslyFocusedElement.current.focus();
       }
     };
-  }, [onClose, handlePrev, handleNext]);
+  }, []);
 
   if (!activePhoto) return null;
 
@@ -128,6 +181,7 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
         </div>
 
         <button
+          ref={closeButtonRef}
           onClick={onClose}
           aria-label="Đóng xem ảnh"
           style={{
