@@ -216,13 +216,13 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                 >
                   {/* Media Column */}
                   <div
-                    className="service-editorial-media"
+                    className="service-editorial-media editorial-image-frame vc-image-frame"
                     style={{
                       order: isReverse ? 2 : 1,
                       position: 'relative',
                       width: '100%',
                       aspectRatio: '16/11',
-                      borderRadius: '2px',
+                      borderRadius: '4px',
                       overflow: 'hidden',
                       backgroundColor: '#EDE7DC',
                     }}
@@ -239,13 +239,6 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                             height: '100%',
                             objectFit: 'cover',
                             display: 'block',
-                            transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.035)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.0)';
                           }}
                         />
                       ) : (
@@ -288,19 +281,22 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                       justifyContent: 'center',
                     }}
                   >
-                    <span
-                      style={{
-                        display: 'block',
-                        fontSize: '0.72rem',
-                        letterSpacing: '0.16em',
-                        textTransform: 'uppercase',
-                        color: '#8C6E53',
-                        fontWeight: 600,
-                        marginBottom: '0.5rem',
-                      }}
-                    >
-                      DỊCH VỤ 0{index + 1}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                      <span
+                        style={{
+                          fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                          fontSize: '2.4rem',
+                          fontWeight: 400,
+                          color: 'rgba(140, 110, 83, 0.45)',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className="vc-overline">
+                        DỊCH VỤ CHỤP ẢNH
+                      </span>
+                    </div>
 
                     <h2
                       style={{
@@ -321,12 +317,9 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                     </h2>
 
                     <p
+                      className="vc-copy"
                       style={{
-                        fontSize: '1rem',
-                        lineHeight: 1.65,
-                        color: '#604634',
                         margin: '0 0 2rem 0',
-                        fontWeight: 300,
                       }}
                     >
                       {srv.description}
@@ -335,16 +328,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <Link
                         to={`/dich-vu/${serviceSlug}`}
-                        className="public-btn-primary"
-                        style={{
-                          padding: '0.8rem 1.85rem',
-                          fontSize: '0.9rem',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.45rem',
-                        }}
+                        className="vc-primary-button"
                       >
                         Xem dịch vụ <ArrowRight size={14} />
                       </Link>
@@ -357,20 +341,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                             onOpenBooking();
                           }
                         }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          padding: '0.8rem 1.6rem',
-                          fontSize: '0.9rem',
-                          color: '#29231F',
-                          backgroundColor: '#FFFDF9',
-                          border: '1px solid rgba(140, 110, 83, 0.35)',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontWeight: 500,
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="vc-secondary-button"
                       >
                         Đặt lịch
                       </button>
@@ -419,26 +390,13 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
               to="/concept"
-              className="public-btn-primary"
-              style={{ textDecoration: 'none', padding: '0.8rem 1.85rem', fontSize: '0.9rem' }}
+              className="vc-primary-button"
             >
               Khám phá concept
             </Link>
             <Link
               to="/bang-gia"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.8rem 1.85rem',
-                fontSize: '0.9rem',
-                color: '#29231F',
-                backgroundColor: '#FAF8F3',
-                border: '1px solid rgba(140, 110, 83, 0.35)',
-                borderRadius: '4px',
-                textDecoration: 'none',
-                fontWeight: 500,
-              }}
+              className="vc-secondary-button"
             >
               Xem bảng giá dịch vụ
             </Link>

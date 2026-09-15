@@ -60,9 +60,10 @@ export const AtelierPage: React.FC<AtelierPageProps> = ({ onOpenBooking }) => {
   return (
     <div style={{ backgroundColor: '#1A1412', minHeight: '100vh', color: '#FAF8F3', position: 'relative' }}>
       <SeoHead
-        title="Không Gian Nghệ Thuật 3D Atelier | Maison MIPA Memories"
-        description="Khám phá không gian thực tế ảo 3D Atelier của Maison MIPA Memories. Trải nghiệm ánh sáng tự nhiên và chiêm ngưỡng các tác phẩm nhiếp ảnh trong phòng tranh nghệ thuật."
+        title="Atelier 3D Không Gian Nghệ Thuật | Maison MIPA Memories"
+        description="Khám phá không gian trưng bày Atelier 3D của Maison MIPA Memories. Trải nghiệm bối cảnh ánh sáng và chiêm ngưỡng các tác phẩm nhiếp ảnh trong phòng tranh nghệ thuật."
         canonicalPath="/atelier"
+        noIndex={true}
       />
 
       {/* Breadcrumbs & Navigation Bar */}

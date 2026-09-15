@@ -5,7 +5,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SITE_CONFIG } from '../../config/site';
-import { Calendar, PhoneCall, MessageCircle } from 'lucide-react';
+import { Calendar, PhoneCall } from 'lucide-react';
 
 interface HomeConsultationCtaSectionProps {
   onOpenBooking: () => void;

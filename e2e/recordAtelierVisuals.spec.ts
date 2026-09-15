@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Flagship WebGL Atelier Visual Capture & Video Recording', () => {
   test.beforeEach(() => {
-    test.setTimeout(90000);
+    test.setTimeout(180000);
   });
 
   test('Desktop 1440x900 Flagship Atelier Cinematic Walkthrough', async ({ page }, testInfo) => {

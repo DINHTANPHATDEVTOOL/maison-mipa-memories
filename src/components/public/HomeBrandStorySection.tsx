@@ -5,7 +5,6 @@
 // ==============================================================================
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Compass } from 'lucide-react';
 
 const BRAND_STUDIO_STORY_ASSET = '/hero.png';
 
@@ -39,8 +38,8 @@ export const HomeBrandStorySection: React.FC = () => {
             <span
               style={{
                 display: 'block',
-                fontSize: '0.72rem',
-                letterSpacing: '0.22em',
+                fontSize: '0.76rem',
+                letterSpacing: '0.2em',
                 textTransform: 'uppercase',
                 color: '#8C6E53',
                 fontWeight: 600,
@@ -70,47 +69,29 @@ export const HomeBrandStorySection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Những bức ảnh giàu cảm xúc thường bắt nguồn từ những khoảnh khắc đời thường giản dị. Tại Maison MIPA, chúng tôi nâng niu ánh sáng tự nhiên qua từng khung cửa sổ, những cử chỉ thân mật và nụ cười không gượng gạo.
+              Ánh sáng tự nhiên qua từng khung cửa sổ, những cử chỉ thân mật và nụ cười không gượng gạo là những gì chúng tôi trân trọng nhất.
             </p>
             <p
               style={{
-                fontSize: '0.95rem',
+                fontSize: '0.96rem',
                 lineHeight: 1.7,
                 color: '#604634',
-                margin: '0 0 2rem 0',
+                margin: '0 0 1.5rem 0',
                 fontWeight: 300,
               }}
             >
-              Mỗi concept và góc ảnh đều hướng tới sự lắng đọng, tạo cảm giác nhẹ nhàng để từng khoảnh khắc được lưu giữ một cách trọn vẹn và tự nhiên nhất.
+              Không gian studio được thiết kế mộc mạc và tĩnh lặng, giúp bạn cảm thấy thư thái như đang ở trong chính căn phòng của mình.
             </p>
 
             {/* Subtle Invitation to 3D Atelier */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.75rem 1.25rem',
-                borderRadius: '4px',
-                backgroundColor: '#FFFDF9',
-                border: '1px solid rgba(140, 110, 83, 0.25)',
-              }}
-            >
-              <Compass size={18} color="#8C6E53" />
-              <div style={{ fontSize: '0.88rem', color: '#29231F' }}>
-                Khám phá không gian trải nghiệm trực tuyến:{' '}
-                <Link
-                  to="/atelier"
-                  style={{
-                    color: '#8C6E53',
-                    fontWeight: 600,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '3px',
-                  }}
-                >
-                  3D Atelier Maison →
-                </Link>
-              </div>
+            <div style={{ marginTop: '1.25rem' }}>
+              <Link
+                to="/atelier"
+                className="vc-text-link"
+                style={{ fontSize: '0.92rem' }}
+              >
+                Khám phá Atelier 3D →
+              </Link>
             </div>
           </div>
 

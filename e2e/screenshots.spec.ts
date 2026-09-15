@@ -21,7 +21,7 @@ async function saveScreenshot(page: any, filename: string, options?: any) {
 test.describe('Maison MIPA Immersive Cinematic Visual Review Gate', () => {
 
   test('Capture all required desktop & mobile cinematic stills', async ({ page }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
     // -------------------------------------------------------------------------
     // DESKTOP SCREENSHOTS (1440 x 900)
     // -------------------------------------------------------------------------

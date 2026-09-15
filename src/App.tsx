@@ -195,7 +195,7 @@ function AppContent() {
       />
 
       {/* Main Presentation Body */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main className="mipa-public-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <PageTransition>
           {/* Real URL Router Routes */}
           <Suspense fallback={
@@ -354,15 +354,15 @@ function AppContent() {
           {/* Action 2: Tư vấn */}
           <a
             href={
-              Boolean(SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo))
+              SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo)
                 ? SITE_CONFIG.social.zalo
                 : `tel:${SITE_CONFIG.contact.phoneE164 || '0966616546'}`
             }
-            target={Boolean(SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo)) ? '_blank' : undefined}
+            target={SITE_CONFIG.social?.zalo && /^https?:\/\//i.test(SITE_CONFIG.social.zalo) ? '_blank' : undefined}
             rel="noopener noreferrer"
             aria-label="Tư vấn Maison MIPA"
             style={{
-              minWidth: '58px',
+              minWidth: '54px',
               minHeight: '44px',
               height: '44px',
               borderRadius: '4px',
@@ -387,7 +387,7 @@ function AppContent() {
           {/* Action 3: Đặt lịch */}
           <button
             onClick={handleOpenBooking}
-            className="public-btn-primary"
+            className="vc-primary-button"
             style={{
               flex: 1,
               minHeight: '44px',

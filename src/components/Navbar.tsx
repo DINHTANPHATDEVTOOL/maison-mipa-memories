@@ -309,6 +309,25 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsMobileMenuOpen(false);
   };
 
+  // Viewport-safe mobile navigation: lock body scroll and escape key handling
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isMobileMenuOpen]);
+
   return (
     <header
       style={{
@@ -777,7 +796,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             className="mipa-mobile-show"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Mở menu điều hướng"
+            aria-label={isMobileMenuOpen ? "Đóng menu điều hướng" : "Mở menu điều hướng"}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mipa-mobile-navigation-menu"
             style={{
               width: '44px',
               height: '44px',
@@ -799,6 +820,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Navigation Sheet (Order: Concept, Dịch vụ, Portfolio, Bảng giá, Cẩm nang, Đặt lịch) */}
       {isMobileMenuOpen && (
         <div
+          id="mipa-mobile-navigation-menu"
           style={{
             backgroundColor: '#FAF8F3',
             borderBottom: '1px solid rgba(140, 110, 83, 0.25)',
@@ -807,6 +829,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             flexDirection: 'column',
             gap: '1rem',
             boxShadow: '0 12px 30px rgba(41, 35, 31, 0.08)',
+            maxHeight: 'calc(100dvh - 68px)',
+            overflowY: 'auto',
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column' }}>

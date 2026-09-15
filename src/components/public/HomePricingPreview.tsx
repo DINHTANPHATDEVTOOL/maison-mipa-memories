@@ -193,7 +193,7 @@ export const HomePricingPreview: React.FC = () => {
           </div>
         )}
 
-        {/* Truthful Package Cards or Honest Empty State */}
+        {/* Editorial Pricing Rows Table */}
         {displayPackages.length === 0 ? (
           <div
             style={{
@@ -209,115 +209,75 @@ export const HomePricingPreview: React.FC = () => {
             Hiện chưa có gói chụp được công bố cho dịch vụ này.
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '1.5rem',
-            }}
-          >
+          <div className="pricing-editorial-table">
             {displayPackages.map((pkg) => (
-              <div
-                key={pkg.id}
-                style={{
-                  backgroundColor: '#FAF8F3',
-                  border: '1px solid rgba(140, 110, 83, 0.25)',
-                  borderRadius: '4px',
-                  padding: '2rem 1.75rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
+              <div key={pkg.id} className="pricing-editorial-row">
+                {/* Column 1: Package Title & Inclusions */}
                 <div>
-                  <div
-                    style={{
-                      fontSize: '0.72rem',
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: '#8C6E53',
-                      fontWeight: 600,
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    {pkg.durationMinutes} PHÚT / {pkg.conceptsCount} CONCEPT
-                  </div>
-
                   <h3
                     style={{
                       fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                      fontSize: '1.65rem',
+                      fontSize: '1.45rem',
                       fontWeight: 500,
                       color: '#29231F',
-                      margin: '0 0 0.75rem 0',
+                      margin: '0 0 0.25rem 0',
                     }}
                   >
                     {pkg.name}
                   </h3>
-
-                  <div
-                    style={{
-                      fontSize: '1.6rem',
-                      fontWeight: 600,
-                      color: '#29231F',
-                      marginBottom: '1.5rem',
-                    }}
-                  >
-                    {formatVnd(pkg.price)}
+                  <div style={{ fontSize: '0.85rem', color: '#8C6E53' }}>
+                    {pkg.features && pkg.features.length > 0
+                      ? pkg.features.slice(0, 2).join(' • ')
+                      : 'Chi tiết quyền lợi hiển thị theo gói'}
                   </div>
-
-                  {/* Authoritative DB inclusions only */}
-                  <ul
-                    style={{
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: '0 0 2rem 0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.65rem',
-                    }}
-                  >
-                    {pkg.editedPhotosCount > 0 && (
-                      <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                        <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <span>Hậu kỳ chuyên sâu <strong>{pkg.editedPhotosCount} ảnh</strong></span>
-                      </li>
-                    )}
-                    {pkg.features && pkg.features.length > 0 ? (
-                      pkg.features.map((feat, idx) => (
-                        <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                          <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                          <span>{feat}</span>
-                        </li>
-                      ))
-                    ) : (
-                      <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#8C6E53', fontStyle: 'italic' }}>
-                        Chi tiết quyền lợi được hiển thị theo từng gói.
-                      </li>
-                    )}
-                  </ul>
                 </div>
 
-                {/* Direct Booking Link - only when authoritative service relation is present */}
-                <button
-                  onClick={() => {
-                    if (pkg.serviceId) {
-                      navigate(`/booking?service=${pkg.serviceId}&package=${pkg.id}`);
-                    } else {
-                      navigate(`/booking?package=${pkg.id}`);
-                    }
-                  }}
-                  className="public-btn-primary"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    textAlign: 'center',
-                  }}
-                >
-                  Đặt gói này
-                </button>
+                {/* Column 2: Duration & Concepts */}
+                <div>
+                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600 }}>
+                    THỜI LƯỢNG
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#29231F', fontWeight: 500 }}>
+                    {pkg.durationMinutes} phút • {pkg.conceptsCount} concept
+                  </div>
+                </div>
+
+                {/* Column 3: Retouched Photos */}
+                <div>
+                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600 }}>
+                    HẬU KỲ CHUYÊN SÂU
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#29231F', fontWeight: 500 }}>
+                    {pkg.editedPhotosCount > 0 ? `${pkg.editedPhotosCount} ảnh hoàn thiện` : 'Tùy chọn bổ sung'}
+                  </div>
+                </div>
+
+                {/* Column 4: Price */}
+                <div>
+                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600 }}>
+                    GIÁ TRỌN GÓI
+                  </div>
+                  <div style={{ fontSize: '1.35rem', color: '#29231F', fontWeight: 600 }}>
+                    {formatVnd(pkg.price)}
+                  </div>
+                </div>
+
+                {/* Column 5: Action Button */}
+                <div>
+                  <button
+                    onClick={() => {
+                      if (pkg.serviceId) {
+                        navigate(`/booking?service=${pkg.serviceId}&package=${pkg.id}`);
+                      } else {
+                        navigate(`/booking?package=${pkg.id}`);
+                      }
+                    }}
+                    className="vc-primary-button"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Đặt gói này
+                  </button>
+                </div>
               </div>
             ))}
           </div>

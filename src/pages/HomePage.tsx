@@ -7,12 +7,11 @@ import React from 'react';
 import { SeoHead, generateStudioLocalBusinessSchema } from '../components/seo/SeoHead';
 import { SITE_CONFIG } from '../config/site';
 
-// 8–10 Meaningful Visual Commerce Sections
+// 7 Curated Visual Commerce Sections
 import { VisualCommerceHero } from '../components/public/VisualCommerceHero';
 import { HomeConceptsSection } from '../components/public/HomeConceptsSection';
 import { HomeServicesSection } from '../components/public/HomeServicesSection';
 import { HomeStoriesSection } from '../components/public/HomeStoriesSection';
-import { HomeConceptCatalogPreview } from '../components/public/HomeConceptCatalogPreview';
 import { HomeBrandStorySection } from '../components/public/HomeBrandStorySection';
 import { HomePricingPreview } from '../components/public/HomePricingPreview';
 import { HomeConsultationCtaSection } from '../components/public/HomeConsultationCtaSection';
@@ -43,19 +42,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
       {/* 04. Selected Stories / Bộ ảnh */}
       <HomeStoriesSection />
 
-      {/* 05. Concept catalog preview */}
-      <HomeConceptCatalogPreview />
-
-      {/* 06. Maison MIPA experience / brand story */}
+      {/* 05. Maison MIPA experience / brand story */}
       <HomeBrandStorySection />
 
-      {/* 07. Pricing preview */}
+      {/* 06. Pricing preview */}
       <HomePricingPreview />
 
-      {/* 08. Reviews omitted (no real authoritative reviews in DB) */}
-      {/* 09. Cẩm nang preview omitted from homepage (no real blog posts in DB) */}
-
-      {/* 10. Consultation CTA / Booking CTA */}
+      {/* 07. Consultation CTA / Booking CTA */}
       <HomeConsultationCtaSection onOpenBooking={onOpenBooking} />
     </>
   );

@@ -74,6 +74,42 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
     return () => ctx.revert();
   }, [prefersReduced]);
 
+  // Desktop signature scroll transition: Cinema -> Editorial Print Frame
+  useEffect(() => {
+    if (prefersReduced || typeof window === 'undefined') return;
+
+    const handleScroll = () => {
+      if (window.innerWidth <= 768) return;
+
+      const scrollY = window.scrollY;
+      const vh = window.innerHeight;
+
+      // 0–25vh: hero copy fades and slides slightly upward
+      const copyProgress = Math.min(1, Math.max(0, scrollY / (vh * 0.25)));
+      if (contentRef.current) {
+        contentRef.current.style.opacity = `${1 - copyProgress * 0.85}`;
+        contentRef.current.style.transform = `translateY(-${copyProgress * 28}px)`;
+      }
+
+      // 0–45vh: hero image scale 1.00 -> 0.96, border-radius 0 -> 4px, width 100vw -> 92vw
+      const frameProgress = Math.min(1, Math.max(0, scrollY / (vh * 0.45)));
+      if (heroRef.current) {
+        const scale = 1.0 - frameProgress * 0.04;
+        const radius = frameProgress * 4;
+        const widthVw = 100 - frameProgress * 8;
+        heroRef.current.style.transform = `scale(${scale})`;
+        heroRef.current.style.borderRadius = `${radius}px`;
+        heroRef.current.style.maxWidth = `${widthVw}vw`;
+        heroRef.current.style.margin = '0 auto';
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [prefersReduced]);
+
   const handleBooking = () => {
     if (conceptSlug) {
       navigate(`/booking?concept=${conceptSlug}`);

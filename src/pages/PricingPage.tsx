@@ -1,16 +1,10 @@
-// ==============================================================================
-// Maison MIPA Memories — Pricing Page (/bang-gia)
-// Grouped by authoritative service relations.
-// Strict data integrity: zero unassigned packages exposed as bookable.
-// Inclusions strictly derived from authoritative DB fields and pkg.features.
-// ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getServices, getPackages } from '../services/catalogService';
 import type { ServiceCategory, PackageItem } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
-import { ChevronRight, Home, Check, Sparkles, Clock, Camera } from 'lucide-react';
+import { ChevronRight, Home, Check } from 'lucide-react';
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
@@ -125,39 +119,23 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
           textAlign: 'center',
         }}
       >
-        <span
-          style={{
-            display: 'block',
-            fontSize: '0.72rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: '#8C6E53',
-            fontWeight: 600,
-            marginBottom: '0.75rem',
-          }}
-        >
+        <span className="vc-overline" style={{ display: 'block', marginBottom: '0.75rem' }}>
           CHI PHÍ MINH BẠCH
         </span>
         <h1
+          className="vc-display"
           style={{
-            fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-            fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
-            fontWeight: 500,
             color: '#29231F',
-            lineHeight: 1.15,
             margin: '0 0 1rem 0',
           }}
         >
           Bảng giá dịch vụ chụp ảnh
         </h1>
         <p
+          className="vc-copy"
           style={{
-            fontSize: '1.05rem',
-            lineHeight: 1.6,
-            color: '#604634',
             maxWidth: '680px',
             margin: '0 auto',
-            fontWeight: 300,
           }}
         >
           Chi tiết quyền lợi được hiển thị theo từng gói chụp và dịch vụ tương ứng.
@@ -222,28 +200,13 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
                 }}
               >
                 <div>
-                  <span
-                    style={{
-                      fontSize: '0.72rem',
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: '#8C6E53',
-                      fontWeight: 600,
-                      display: 'block',
-                      marginBottom: '0.25rem',
-                    }}
-                  >
+                  <span className="vc-overline" style={{ display: 'block', marginBottom: '0.25rem' }}>
                     DANH MỤC GÓI CHỤP
                   </span>
                   <h2
                     id={`service-title-${service.id}`}
-                    style={{
-                      fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                      fontSize: 'clamp(1.75rem, 3vw, 2.3rem)',
-                      fontWeight: 500,
-                      color: '#29231F',
-                      margin: 0,
-                    }}
+                    className="vc-section-title"
+                    style={{ margin: 0 }}
                   >
                     {service.name}
                   </h2>
@@ -251,130 +214,120 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
 
                 <Link
                   to={`/dich-vu/${service.slug || service.id.replace('srv_', '')}`}
-                  style={{
-                    fontSize: '0.88rem',
-                    color: '#8C6E53',
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                  }}
+                  className="vc-text-link"
                 >
                   Xem chi tiết dịch vụ này →
                 </Link>
               </div>
 
-              {/* Scannable Packages Grid */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '1.5rem',
-                }}
-              >
+              {/* Editorial Pricing Table (Desktop Rows / Mobile Stack) */}
+              <div className="pricing-editorial-table">
                 {srvPkgs.map((pkg) => (
-                  <article
-                    key={pkg.id}
-                    style={{
-                      backgroundColor: '#FAF8F3',
-                      border: '1px solid rgba(140, 110, 83, 0.25)',
-                      borderRadius: '4px',
-                      padding: '2rem 1.75rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                    }}
-                  >
+                  <article key={pkg.id} className="pricing-editorial-row">
                     <div>
-                      {/* Package Meta Header */}
-                      <div
-                        style={{
-                          fontSize: '0.72rem',
-                          letterSpacing: '0.12em',
-                          textTransform: 'uppercase',
-                          color: '#8C6E53',
-                          fontWeight: 600,
-                          marginBottom: '0.4rem',
-                        }}
-                      >
-                        {pkg.durationMinutes} PHÚT / {pkg.conceptsCount} CONCEPT
-                      </div>
-
+                      {pkg.popularTag && (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '0.68rem',
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            color: '#8C6E53',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          {pkg.popularTag}
+                        </span>
+                      )}
                       <h3
                         style={{
                           fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                          fontSize: '1.65rem',
+                          fontSize: '1.45rem',
                           fontWeight: 500,
                           color: '#29231F',
-                          margin: '0 0 0.5rem 0',
+                          margin: '0 0 0.4rem 0',
                         }}
                       >
                         {pkg.name}
                       </h3>
-
-                      <div
-                        style={{
-                          fontSize: '1.75rem',
-                          fontWeight: 600,
-                          color: '#29231F',
-                          marginBottom: '1.5rem',
-                        }}
-                      >
-                        {formatVnd(pkg.price)}
-                      </div>
-
-                      {/* Inclusions List - Authoritative DB features only */}
                       <ul
                         style={{
                           listStyle: 'none',
                           padding: 0,
-                          margin: '0 0 2rem 0',
+                          margin: 0,
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0.65rem',
+                          gap: '0.35rem',
                         }}
                       >
-                        {pkg.editedPhotosCount > 0 && (
-                          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                            <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <span>Hậu kỳ chuyên sâu <strong>{pkg.editedPhotosCount} ảnh</strong></span>
+                        {pkg.features && pkg.features.slice(0, 3).map((f, i) => (
+                          <li
+                            key={i}
+                            style={{
+                              fontSize: '0.82rem',
+                              color: '#604634',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '0.4rem',
+                            }}
+                          >
+                            <Check size={13} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span>{f}</span>
                           </li>
-                        )}
-                        {pkg.features && pkg.features.length > 0 ? (
-                          pkg.features.map((f, i) => (
-                            <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: '#604634' }}>
-                              <Check size={16} color="#8C6E53" style={{ flexShrink: 0, marginTop: '2px' }} />
-                              <span>{f}</span>
-                            </li>
-                          ))
-                        ) : (
-                          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#8C6E53', fontStyle: 'italic' }}>
-                            Chi tiết quyền lợi được hiển thị theo từng gói.
-                          </li>
-                        )}
+                        ))}
                       </ul>
                     </div>
 
-                    {/* Authoritative Service-linked booking link */}
-                    <button
-                      onClick={() => navigate(`/booking?service=${service.id}&package=${pkg.id}`)}
-                      className="public-btn-primary"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        textAlign: 'center',
-                      }}
-                    >
-                      Đặt gói này
-                    </button>
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block' }}>
+                        THỜI LƯỢNG
+                      </span>
+                      <strong style={{ fontSize: '0.95rem', color: '#29231F' }}>
+                        {pkg.durationMinutes} phút
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block' }}>
+                        QUYỀN LỢI
+                      </span>
+                      <strong style={{ fontSize: '0.95rem', color: '#29231F' }}>
+                        {pkg.editedPhotosCount > 0 ? `${pkg.editedPhotosCount} ảnh chỉnh` : 'Ảnh gốc full'} • {pkg.conceptsCount} concept
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block' }}>
+                        CHI PHÍ
+                      </span>
+                      <strong
+                        style={{
+                          fontSize: '1.35rem',
+                          color: '#29231F',
+                          fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                        }}
+                      >
+                        {formatVnd(pkg.price)}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <button
+                        onClick={() => navigate(`/booking?service=${service.id}&package=${pkg.id}`)}
+                        className="vc-primary-button"
+                        style={{ padding: '0.65rem 1.4rem', fontSize: '0.88rem' }}
+                      >
+                        Đặt gói
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
             </section>
           ))}
 
-        {/* Studio Experience Standards */}
+        {/* Studio Experience Standards (Restrained Editorial 01, 02, 03) */}
         <section
           style={{
             backgroundColor: '#FFFDF9',
@@ -385,29 +338,11 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
           }}
         >
           <div style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto 3rem auto' }}>
-            <span
-              style={{
-                fontSize: '0.72rem',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: '#8C6E53',
-                fontWeight: 600,
-                display: 'block',
-                marginBottom: '0.5rem',
-              }}
-            >
+            <span className="vc-overline" style={{ display: 'block', marginBottom: '0.5rem' }}>
               TIÊU CHUẨN MAISON MIPA
             </span>
-            <h2
-              style={{
-                fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                fontSize: '2.2rem',
-                color: '#29231F',
-                fontWeight: 500,
-                margin: 0,
-              }}
-            >
-              Quy trình & trải nghiệm chụp ảnh
+            <h2 className="vc-section-title" style={{ margin: 0 }}>
+              Quy trình & cam kết chất lượng
             </h2>
           </div>
 
@@ -419,37 +354,64 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                <Camera size={18} color="#8C6E53" />
-                <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: 0, fontWeight: 600 }}>
-                  Chăm chút trong từng khung hình
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#604634', margin: 0 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                  fontSize: '2rem',
+                  color: 'rgba(140, 110, 83, 0.6)',
+                  display: 'block',
+                  lineHeight: 1,
+                  marginBottom: '0.5rem',
+                }}
+              >
+                01
+              </span>
+              <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: '0 0 0.4rem 0', fontWeight: 600 }}>
+                Chăm chút trong từng khung hình
+              </h3>
+              <p className="vc-copy" style={{ margin: 0 }}>
                 Nhiếp ảnh gia đồng hành tạo không khí thoải mái, gợi mở cảm xúc tự nhiên để bạn tự tin trước ống kính.
               </p>
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                <Clock size={18} color="#8C6E53" />
-                <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: 0, fontWeight: 600 }}>
-                  Hậu kỳ màu sắc tỉ mỉ
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#604634', margin: 0 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                  fontSize: '2rem',
+                  color: 'rgba(140, 110, 83, 0.6)',
+                  display: 'block',
+                  lineHeight: 1,
+                  marginBottom: '0.5rem',
+                }}
+              >
+                02
+              </span>
+              <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: '0 0 0.4rem 0', fontWeight: 600 }}>
+                Hậu kỳ màu sắc tỉ mỉ
+              </h3>
+              <p className="vc-copy" style={{ margin: 0 }}>
                 Ảnh được cân chỉnh màu da tự nhiên và ánh sáng hài hòa theo phong cách nhẹ nhàng của Maison MIPA.
               </p>
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                <Sparkles size={18} color="#8C6E53" />
-                <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: 0, fontWeight: 600 }}>
-                  Minh bạch và chu đáo
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#604634', margin: 0 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                  fontSize: '2rem',
+                  color: 'rgba(140, 110, 83, 0.6)',
+                  display: 'block',
+                  lineHeight: 1,
+                  marginBottom: '0.5rem',
+                }}
+              >
+                03
+              </span>
+              <h3 style={{ fontSize: '1.05rem', color: '#29231F', margin: '0 0 0.4rem 0', fontWeight: 600 }}>
+                Minh bạch và chu đáo
+              </h3>
+              <p className="vc-copy" style={{ margin: 0 }}>
                 Mọi thông tin chi phí và quyền lợi đều được tư vấn rõ ràng trước khi xác nhận lịch chụp.
               </p>
             </div>

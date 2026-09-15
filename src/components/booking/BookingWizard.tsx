@@ -138,6 +138,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [isCopiedAmount, setIsCopiedAmount] = useState<boolean>(false);
   const [isTransferSubmitted, setIsTransferSubmitted] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [packageMismatchError, setPackageMismatchError] = useState<string | null>(null);
 
   // Load catalog, concepts, and payment settings on mount
   useEffect(() => {
@@ -155,28 +156,44 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             getPublicConcepts(),
           ]);
           if (mounted) {
+            let targetService: ServiceCategory | undefined;
             if (srvs.length > 0) {
               setServices(srvs);
-              setSelectedService(prev => {
-                if (initialServiceId) {
-                  const match = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId);
-                  if (match) return match;
-                }
-                const match = srvs.find(s => s.id === prev.id || s.slug === prev.slug || s.name === prev.name);
-                return match || srvs[0];
-              });
+              if (initialServiceId) {
+                targetService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId);
+              }
+              if (!targetService) {
+                targetService = srvs[0];
+              }
+              setSelectedService(targetService);
             }
+
             if (pkgs.length > 0) {
               setPackages(pkgs);
-              setSelectedPackage(prev => {
-                if (initialPackageId) {
-                  const match = pkgs.find(p => p.id === initialPackageId || p.name === initialPackageId);
-                  if (match) return match;
+              if (initialPackageId) {
+                const requestedPkg = pkgs.find(p => p.id === initialPackageId || p.name === initialPackageId);
+                if (requestedPkg && targetService) {
+                  const belongs = !requestedPkg.serviceId || requestedPkg.serviceId === targetService.id;
+                  if (belongs) {
+                    setSelectedPackage(requestedPkg);
+                    setPackageMismatchError(null);
+                  } else {
+                    // FAIL CLOSED: Package does not belong to service!
+                    setPackageMismatchError('Gói chụp không thuộc dịch vụ đã chọn. Vui lòng chọn lại gói chụp phù hợp.');
+                    setSelectedPackage(null as any);
+                    setStep(2);
+                  }
+                } else if (!requestedPkg) {
+                  setPackageMismatchError('Gói chụp không tồn tại hoặc đã ngừng cung cấp. Vui lòng chọn gói chụp phù hợp.');
+                  setSelectedPackage(null as any);
+                  setStep(2);
                 }
-                const match = pkgs.find(p => p.id === prev.id || p.name === prev.name);
-                return match || pkgs[0];
-              });
+              } else if (targetService) {
+                const matching = pkgs.filter(p => !p.serviceId || p.serviceId === targetService.id);
+                setSelectedPackage(matching.find(p => p.recommended) || matching[0] || pkgs[0]);
+              }
             }
+
             if (adds.length > 0) {
               setAddons(adds);
               setSelectedAddons(prev => {
@@ -213,14 +230,36 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         const bank = await getActivePaymentSettings();
         if (mounted) {
           setActiveBankConfig(bank);
+          let targetService = INITIAL_SERVICES[0];
           if (initialServiceId) {
             const match = INITIAL_SERVICES.find(s => s.id === initialServiceId || s.slug === initialServiceId);
-            if (match) setSelectedService(match);
+            if (match) targetService = match;
           }
+          setSelectedService(targetService);
+
           if (initialPackageId) {
-            const match = INITIAL_PACKAGES.find(p => p.id === initialPackageId || p.name === initialPackageId);
-            if (match) setSelectedPackage(match);
+            const requestedPkg = INITIAL_PACKAGES.find(p => p.id === initialPackageId || p.name === initialPackageId);
+            if (requestedPkg && targetService) {
+              const belongs = !requestedPkg.serviceId || requestedPkg.serviceId === targetService.id;
+              if (belongs) {
+                setSelectedPackage(requestedPkg);
+                setPackageMismatchError(null);
+              } else {
+                // FAIL CLOSED: Package does not belong to service!
+                setPackageMismatchError('Gói chụp không thuộc dịch vụ đã chọn. Vui lòng chọn lại gói chụp phù hợp.');
+                setSelectedPackage(null as any);
+                setStep(2);
+              }
+            } else if (!requestedPkg) {
+              setPackageMismatchError('Gói chụp không tồn tại hoặc đã ngừng cung cấp. Vui lòng chọn gói chụp phù hợp.');
+              setSelectedPackage(null as any);
+              setStep(2);
+            }
+          } else {
+            const matching = INITIAL_PACKAGES.filter(p => !p.serviceId || p.serviceId === targetService.id);
+            setSelectedPackage(matching.find(p => p.recommended) || matching[0] || INITIAL_PACKAGES[0]);
           }
+
           if (initialConceptSlug) {
             const match = DEMO_CONCEPTS.find(c => c.slug === initialConceptSlug);
             if (match) {
@@ -282,15 +321,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Auto-synchronize selectedPackage whenever selectedService or packages list changes
   useEffect(() => {
-    if (!selectedService) return;
+    if (!selectedService || packageMismatchError) return;
     const matching = packages.filter(p => !p.serviceId || p.serviceId === selectedService.id);
     if (matching.length > 0) {
-      if (!matching.some(p => p.id === selectedPackage.id)) {
+      if (!selectedPackage || !matching.some(p => p.id === selectedPackage.id)) {
         const preferred = matching.find(p => p.recommended) || matching[0];
         setSelectedPackage(preferred);
       }
     }
-  }, [selectedService.id, packages]);
+  }, [selectedService?.id, packages, packageMismatchError]);
 
   // Filter concepts by selected service (or universal concepts)
   const availableConcepts = useMemo(() => {
@@ -321,7 +360,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   } : null;
 
   const pricing = calculatePricing({
-    packageItem: selectedPackage,
+    packageItem: selectedPackage || { price: 0, durationMinutes: 60 },
     addons: selectedAddons,
     promotion: promo,
   });
@@ -420,21 +459,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   };
 
-  const maxConcepts = selectedPackage.conceptsCount || 1;
+  const maxConcepts = selectedPackage?.conceptsCount || 1;
 
-  const handleToggleConcept = (concept: Concept) => {
-    if (selectedConcepts.some(c => c.id === concept.id)) {
+  const handleToggleConcept = (cnc: Concept) => {
+    setErrorMessage(null);
+    if (selectedConcepts.some(c => c.id === cnc.id)) {
       if (selectedConcepts.length > 1) {
-        setSelectedConcepts(selectedConcepts.filter(c => c.id !== concept.id));
+        setSelectedConcepts(selectedConcepts.filter(c => c.id !== cnc.id));
+      } else {
+        setErrorMessage('Vui lòng giữ lại ít nhất 1 concept nghệ thuật.');
       }
     } else {
       if (selectedConcepts.length < maxConcepts) {
-        setSelectedConcepts([...selectedConcepts, concept]);
+        setSelectedConcepts([...selectedConcepts, cnc]);
       } else if (maxConcepts === 1) {
-        // Quick 1-click replacement when single concept allowed
-        setSelectedConcepts([concept]);
+        setSelectedConcepts([cnc]);
       } else {
-        setErrorMessage(`Gói ${selectedPackage.name} cho phép chọn tối đa ${maxConcepts} concept. Vui lòng bỏ chọn bớt một concept để đổi.`);
+        setErrorMessage(`Gói ${selectedPackage ? selectedPackage.name : 'đã chọn'} cho phép chọn tối đa ${maxConcepts} concept. Vui lòng bỏ chọn bớt một concept để đổi.`);
       }
     }
   };
@@ -677,6 +718,70 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           </div>
         )}
 
+        {/* Selection Continuity Summary Header (Only real selections, no dev IDs) */}
+        <div
+          className="booking-continuity-summary"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '0.85rem',
+            padding: '0.75rem 1.8rem',
+            backgroundColor: '#FAF8F3',
+            borderBottom: '1px solid rgba(140, 110, 83, 0.16)',
+            fontSize: '0.82rem',
+          }}
+        >
+          {selectedService && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase' }}>
+                DỊCH VỤ:
+              </span>
+              <strong style={{ color: '#29231F' }}>{selectedService.name}</strong>
+            </div>
+          )}
+
+          {selectedConcepts.length > 0 && selectedConcepts[0] && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ color: 'rgba(140, 110, 83, 0.35)' }}>•</span>
+              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase' }}>
+                CONCEPT:
+              </span>
+              <strong style={{ color: '#29231F' }}>{selectedConcepts[0].name}</strong>
+            </div>
+          )}
+
+          {selectedPackage && !packageMismatchError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ color: 'rgba(140, 110, 83, 0.35)' }}>•</span>
+              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase' }}>
+                GÓI CHỤP:
+              </span>
+              <strong style={{ color: '#29231F' }}>{selectedPackage.name}</strong>
+              <span style={{ color: '#8C6E53' }}>({selectedPackage.price.toLocaleString('vi-VN')} đ)</span>
+            </div>
+          )}
+        </div>
+
+        {/* Package Mismatch Fail-Closed Alert Banner */}
+        {packageMismatchError && (
+          <div
+            style={{
+              backgroundColor: '#FFF1F2',
+              borderBottom: '1px solid #FECDD3',
+              padding: '0.75rem 1.8rem',
+              color: '#9F1239',
+              fontSize: '0.86rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+            }}
+          >
+            <AlertCircle size={18} color="#9F1239" style={{ flexShrink: 0 }} />
+            <span>{packageMismatchError}</span>
+          </div>
+        )}
+
         {/* Global Error Banner */}
         {errorMessage && (
           <div style={{
@@ -731,6 +836,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       key={srv.id}
                       onClick={() => {
                         setSelectedService(srv);
+                        setPackageMismatchError(null);
+                        setErrorMessage(null);
                         const matching = packages.filter(p => !p.serviceId || p.serviceId === srv.id);
                         if (matching.length > 0) {
                           const preferred = matching.find(p => p.recommended) || matching[0];
@@ -786,6 +893,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {/* STEP 2: PACKAGE SELECTION */}
           {step === 2 && (
             <div>
+              {packageMismatchError && (
+                <div style={{
+                  padding: '0.85rem 1.2rem',
+                  backgroundColor: '#FFF1F2',
+                  border: '1px solid #FECDD3',
+                  borderRadius: '4px',
+                  color: '#9F1239',
+                  fontSize: '0.88rem',
+                  marginBottom: '1.2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}>
+                  <AlertCircle size={18} color="#9F1239" style={{ flexShrink: 0 }} />
+                  <span>{packageMismatchError}</span>
+                </div>
+              )}
               <p style={{ color: 'var(--editorial-text-secondary)', marginBottom: '1.2rem', fontSize: '0.95rem' }}>
                 Gói dịch vụ chọn cho loại hình <strong>{selectedService.name}</strong>:
               </p>
@@ -796,11 +920,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   </div>
                 ) : (
                   displayedPackages.map((pkg) => {
-                    const isSelected = selectedPackage.id === pkg.id;
+                    const isSelected = selectedPackage?.id === pkg.id;
                     return (
                       <div
                         key={pkg.id}
-                        onClick={() => setSelectedPackage(pkg)}
+                        onClick={() => {
+                          setSelectedPackage(pkg);
+                          setPackageMismatchError(null);
+                          setErrorMessage(null);
+                        }}
                         className={`booking-card-option ${isSelected ? 'selected' : ''}`}
                         style={{
                           padding: '1.4rem',
@@ -881,7 +1009,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       Chọn Concept Nghệ Thuật ({selectedConcepts.length}/{maxConcepts})
                     </h4>
                     <p style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', margin: '0.2rem 0 0 0' }}>
-                      Gói <strong>{selectedPackage.name}</strong> hỗ trợ tối đa <strong>{maxConcepts}</strong> concept phong cách
+                      Gói <strong>{selectedPackage?.name || 'Đang chọn'}</strong> hỗ trợ tối đa <strong>{maxConcepts}</strong> concept phong cách
                     </p>
                   </div>
                   {selectedConcepts.length > 0 && (
@@ -1718,6 +1846,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 type="button"
                 onClick={() => {
                   setErrorMessage(null);
+                  if (step === 2) {
+                    if (packageMismatchError || !selectedPackage) {
+                      setErrorMessage('Vui lòng chọn một gói chụp hợp lệ cho dịch vụ này để tiếp tục.');
+                      return;
+                    }
+                  }
                   if (step === 3) {
                     if (isLoadingSlots) {
                       setErrorMessage('Đang kiểm tra lịch khả dụng. Vui lòng đợi trong giây lát...');
