@@ -9,10 +9,11 @@ import type {
   BookingStatus,
   BookingAssignment,
   Addon,
+  Promotion,
 } from '../types';
-import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS, INITIAL_EMPLOYEES } from '../mockData';
+import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS, INITIAL_EMPLOYEES, INITIAL_PROMOTIONS } from '../mockData';
 import { DEMO_CONCEPTS } from './portfolioService';
-import { calculatePricing } from './pricingService';
+import { calculatePricing, validatePromotion } from './pricingService';
 import { isIntervalOverlapping, timeToMinutes, minutesToTime } from './availabilityService';
 
 export class BookingConflictError extends Error {
@@ -297,16 +298,25 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     );
   }
 
-  const promo = request.voucherCode ? {
-    discountPercent: request.voucherCode.toUpperCase() === 'MIPA20' ? 20 : request.voucherCode.toUpperCase() === 'SUMMERMEMORY' ? 10 : 0,
-    minOrder: 500000,
-    isActive: true,
-  } : null;
+  let matchedPromo: Promotion | undefined;
+  if (request.voucherCode) {
+    const rawCode = request.voucherCode.trim().toUpperCase();
+    matchedPromo = INITIAL_PROMOTIONS.find(p => p.code.toUpperCase() === rawCode);
+    if (!matchedPromo) {
+      throw new BookingValidationError(`Mã ưu đãi "${request.voucherCode}" không tồn tại hoặc không hợp lệ.`);
+    }
+
+    const currentSubtotal = pkg.price + selectedAddons.reduce((sum, a) => sum + (a.price || 0), 0);
+    const valResult = validatePromotion(matchedPromo, currentSubtotal, service.id);
+    if (!valResult.valid) {
+      throw new BookingValidationError(valResult.error || `Mã ưu đãi "${request.voucherCode}" không thể áp dụng.`);
+    }
+  }
 
   const pricing = calculatePricing({
     packageItem: pkg,
     addons: selectedAddons,
-    promotion: promo,
+    promotion: matchedPromo,
   });
 
   const dateCompact = request.date.replace(/-/g, '').slice(2);

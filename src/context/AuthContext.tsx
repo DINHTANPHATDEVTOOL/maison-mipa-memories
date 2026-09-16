@@ -61,18 +61,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Ensures user === null, session === null, and isRootOwner === false are always set atomically.
    */
   const clearAuthoritativeAuthState = useCallback(async (errorMessage?: string, shouldSignOut: boolean = true) => {
-    if (shouldSignOut && isSupabaseConfigured() && !isDemoMode) {
-      try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.warn('Supabase signOut warning during clearAuthoritativeAuthState:', err);
-      }
-    }
+    // 1. Immediately clear all in-memory privileged auth state synchronously
     setUser(null);
     setSession(null);
     setIsRootOwner(false);
     if (errorMessage !== undefined) {
       setAuthError(errorMessage);
+    }
+
+    // 2. Clear server-side session asynchronously if requested
+    if (shouldSignOut && !isDemoMode && isSupabaseConfigured()) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn('signOut during auth clearing warning:', e);
+      }
     }
   }, [isDemoMode]);
 

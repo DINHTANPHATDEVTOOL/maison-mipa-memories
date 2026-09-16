@@ -133,7 +133,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>(getInitialBookingDate);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedStudio, setSelectedStudio] = useState<StudioRoom | null>(demoMode ? INITIAL_STUDIO_ROOMS[0] : null);
-  const [selectedAddons, setSelectedAddons] = useState<Addon[]>(demoMode ? [INITIAL_ADDONS[0]] : []);
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
 
   // Availability State
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>(() =>
@@ -786,6 +786,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     loadSlots();
   }, [isOpen, loadSlots]);
 
+  // Revalidate applied voucher whenever package, addons, or service changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isVoucherApplied && appliedPromotion) {
+      const currentSubtotal = (selectedPackage?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+      const valResult = validatePromotion(appliedPromotion, currentSubtotal, selectedService?.id);
+      if (!valResult.valid) {
+        setIsVoucherApplied(false);
+        setAppliedPromotion(null);
+        setErrorMessage(`Mã ưu đãi "${appliedPromotion.code}" không còn thỏa điều kiện cho lựa chọn mới: ${valResult.error}`);
+      }
+    }
+  }, [isOpen, selectedPackage, selectedAddons, selectedService, isVoucherApplied, appliedPromotion]);
+
   if (!isOpen) return null;
 
   const handleApplyVoucher = () => {
@@ -953,7 +967,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         timeSlot: selectedTimeSlot,
         addonIds: selectedAddons.map(a => a.id),
         conceptIds: selectedConcepts.map(c => c.id),
-        voucherCode: isVoucherApplied ? voucherCode.trim().toUpperCase() : undefined,
+        voucherCode: isVoucherApplied && appliedPromotion ? appliedPromotion.code : undefined,
         customerName,
         customerPhone,
         customerEmail,
@@ -1983,7 +1997,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   <input
                     type="text"
                     value={voucherCode}
-                    onChange={(e) => setVoucherCode(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setVoucherCode(val);
+                      if (isVoucherApplied && appliedPromotion && val.trim().toUpperCase() !== appliedPromotion.code.toUpperCase()) {
+                        setIsVoucherApplied(false);
+                        setAppliedPromotion(null);
+                      }
+                    }}
                     placeholder="Nhập mã ưu đãi..."
                     className="mipa-input"
                     style={{ textTransform: 'uppercase', borderRadius: '4px', border: '1px solid var(--editorial-divider)', maxWidth: '280px' }}
@@ -1993,8 +2014,29 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   </button>
                 </div>
                 {isVoucherApplied && (
-                  <div style={{ marginTop: '0.5rem', color: '#047857', fontSize: '0.82rem', fontWeight: 500 }}>
-                    ✓ Đã áp dụng mã giảm giá (-{discountTotal.toLocaleString('vi-VN')}đ)
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <span style={{ color: '#047857', fontSize: '0.82rem', fontWeight: 500 }}>
+                      ✓ Đã áp dụng mã {appliedPromotion?.code} (-{discountTotal.toLocaleString('vi-VN')}đ)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsVoucherApplied(false);
+                        setAppliedPromotion(null);
+                        setVoucherCode('');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#991B1B',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: '0.2rem 0.4rem',
+                      }}
+                    >
+                      Gỡ bỏ
+                    </button>
                   </div>
                 )}
               </div>
@@ -2049,7 +2091,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--editorial-text-secondary)' }}>Concept:</span>
-                      <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Mặc định'}</strong>
+                      <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Tùy chọn (Không yêu cầu)'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--editorial-text-secondary)' }}>Dịch vụ kèm theo:</span>
