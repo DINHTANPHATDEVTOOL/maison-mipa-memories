@@ -30,7 +30,7 @@ describe('Guest Booking Funnel & Selection Preservation', () => {
 
     // Step 2: Package & Concept
     expect(screen.getByText(/Bước 2\/6/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chọn Concept Nghệ Thuật/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chọn concept \(không bắt buộc\)/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Tiếp Theo/i }));
 
     // Step 3: Date & Studio Slot
@@ -101,7 +101,16 @@ describe('Guest Booking Funnel & Selection Preservation', () => {
       expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    // Verify draft was consumed from sessionStorage
+    // Verify draft is retained on Step 5 before booking creation
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
+
+    // Advance to Step 6 (creates booking)
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+    });
+
+    // Verify draft was consumed from sessionStorage after booking creation
     expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
   });
 });

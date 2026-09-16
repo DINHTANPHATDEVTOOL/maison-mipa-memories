@@ -184,7 +184,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     // Proceed to Step 2 to verify concept selector
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
     await expect(page.locator('text=Bước 2/6')).toBeVisible();
-    await expect(page.getByText(/Chọn Concept Nghệ Thuật/i)).toBeVisible();
+    await expect(page.getByText(/Chọn concept \(không bắt buộc\)/i)).toBeVisible();
   });
 
   test('10. Studio Manager có thể truy cập Portfolio CMS', async ({ page }) => {

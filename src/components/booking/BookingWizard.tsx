@@ -3,13 +3,13 @@
 // Connected to Catalog, Pricing, Availability, and Booking Services.
 // ==============================================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { ServiceCategory, PackageItem, Addon, StudioRoom, Booking, Concept } from '../../types';
+import type { ServiceCategory, PackageItem, Addon, StudioRoom, Booking, Concept, Promotion } from '../../types';
 import { INITIAL_SERVICES, INITIAL_PACKAGES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS } from '../../mockData';
-import { getServices, getPackages, getAddons, getStudioRooms } from '../../services/catalogService';
+import { getServices, getPackages, getAddons, getStudioRooms, getPromotions } from '../../services/catalogService';
 import { getPublicConcepts, DEMO_CONCEPTS } from '../../services/portfolioService';
 import { getAvailableSlots, getAvailableSlotsSync, type TimeSlot } from '../../services/availabilityService';
 import { isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
-import { calculatePricing } from '../../services/pricingService';
+import { calculatePricing, validatePromotion } from '../../services/pricingService';
 import { createBooking, createBookingInMemory, BookingConflictError } from '../../services/bookingService';
 import {
   createDepositPayment,
@@ -79,12 +79,6 @@ export type PendingBookingDraft = {
   voucherCode?: string;
 };
 
-function isValidVoucherCode(rawCode?: string | null): boolean {
-  if (!rawCode) return false;
-  const code = rawCode.trim().toUpperCase();
-  return code === 'MIPA20' || code === 'SUMMERMEMORY';
-}
-
 interface BookingWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -113,6 +107,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [step, setStep] = useState<number>(1);
   const draftSlotRejectedRef = useRef<boolean>(false);
   const userSlotChoiceClearedRef = useRef<boolean>(false);
+  const availabilityRequestIdRef = useRef<number>(0);
+  const draftRestoredRef = useRef<boolean>(false);
 
   // Catalog State (Dynamic from Catalog Service with initial fallback)
   const demoMode = !isSupabaseConfigured() && isDemoModeEnabled();
@@ -122,7 +118,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [addons, setAddons] = useState<Addon[]>(demoMode ? INITIAL_ADDONS : []);
   const [studios, setStudios] = useState<StudioRoom[]>(demoMode ? INITIAL_STUDIO_ROOMS : []);
   const [concepts, setConcepts] = useState<Concept[]>(demoMode ? DEMO_CONCEPTS : []);
-  const [selectedConcepts, setSelectedConcepts] = useState<Concept[]>(demoMode ? [DEMO_CONCEPTS[0]] : []);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [promotionsLoadError, setPromotionsLoadError] = useState<string | null>(null);
+  const [appliedPromotion, setAppliedPromotion] = useState<Promotion | null>(null);
+  const [selectedConcepts, setSelectedConcepts] = useState<Concept[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState<boolean>(!demoMode);
   const [catalogReady, setCatalogReady] = useState<boolean>(false);
   const [draftRestoreStatus, setDraftRestoreStatus] = useState<DraftRestoreStatus>('IDLE');
@@ -134,7 +133,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>(getInitialBookingDate);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedStudio, setSelectedStudio] = useState<StudioRoom | null>(demoMode ? INITIAL_STUDIO_ROOMS[0] : null);
-  const [selectedAddons, setSelectedAddons] = useState<Addon[]>(demoMode ? [INITIAL_ADDONS[0]] : []);
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
 
   // Availability State
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>(() =>
@@ -147,6 +146,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       : []
   );
   const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const { user } = useAuth();
   const [activeBankConfig, setActiveBankConfig] = useState<BusinessBankConfig | null>(null);
 
@@ -192,6 +192,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       let stds: StudioRoom[] = [];
       let bank: BusinessBankConfig | null = null;
       let cncs: Concept[] = [];
+      let prms: Promotion[] = [];
 
       if (!demoMode) {
         const [loadedSrvs, loadedPkgs, loadedAdds, loadedStds, loadedBank, loadedCncs] = await Promise.all([
@@ -217,6 +218,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         bank = await getActivePaymentSettings();
       }
 
+      // Load promotions authoritatively (non-blocking for core catalog)
+      try {
+        prms = await getPromotions();
+        setPromotions(prms);
+        setPromotionsLoadError(null);
+      } catch (promoErr: any) {
+        console.warn('Failed to load promotions:', promoErr);
+        setPromotions([]);
+        setPromotionsLoadError('Không thể xác minh mã ưu đãi lúc này.');
+      }
+
       setServices(srvs);
       setPackages(pkgs);
       setAddons(adds);
@@ -234,11 +246,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       })();
 
       if (!hasDraft) {
-        if (adds.length > 0) {
-          setSelectedAddons([adds[0]]);
-        } else {
-          setSelectedAddons([]);
-        }
+        setSelectedAddons([]);
       }
 
       if (stds.length > 0) {
@@ -286,14 +294,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         }
       }
 
-      // 4. Service vs Concept conflict validation
-      if (initialServiceId && targetService && targetConcept && targetConcept.serviceId) {
-        if (targetConcept.serviceId !== targetService.id) {
-          setErrorMessage('Concept đã chọn không thuộc dịch vụ yêu cầu. Vui lòng chọn lại concept phù hợp.');
-          targetConcept = null;
-          setSelectedConcepts([]);
-        }
-      }
+      // 4. Flexible cross-service concepts:
+      // Authoritative DB contract allows concept selection across services as long as active and bookable.
+      // Do not reject targetConcept if targetConcept.serviceId != targetService.id.
 
       // If no explicit service param and no concept derived service, default to first available
       if (!initialServiceId && !targetService && srvs.length > 0) {
@@ -329,16 +332,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedPackage(null);
       }
 
-      // 6. Concept selection
+      // 6. Concept selection (strictly empty unless explicit initialConceptSlug is provided)
       if (initialConceptSlug) {
         if (targetConcept) {
           setSelectedConcepts([targetConcept]);
         } else {
           setSelectedConcepts([]);
         }
-      } else if (targetService) {
-        const matchingConcepts = cncs.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === targetService.id));
-        setSelectedConcepts(matchingConcepts.length > 0 ? [matchingConcepts[0]] : []);
       } else {
         setSelectedConcepts([]);
       }
@@ -352,6 +352,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       setAddons([]);
       setStudios([]);
       setConcepts([]);
+      setPromotions([]);
       setSelectedService(null);
       setSelectedPackage(null);
       setSelectedStudio(null);
@@ -369,6 +370,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   // Restore guest booking draft from sessionStorage after authentication
   // STRICT: Waits for catalogReady && !isLoadingCatalog. Validates all IDs and availability authoritatively.
   useEffect(() => {
+    if (draftRestoredRef.current) {
+      return;
+    }
+
     if (!catalogReady || isLoadingCatalog) {
       if (typeof window !== 'undefined' && sessionStorage.getItem('mipa_pending_booking')) {
         setDraftRestoreStatus('WAITING_CATALOG');
@@ -433,23 +438,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         }
         setSelectedPackage(p);
 
-        // 3. Validate concepts against active, bookable concepts matching service
-        const availableConcepts = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === s.id));
+        // 3. Validate concepts against active, bookable concepts (cross-service allowed by authoritative contract)
         const validConcepts = Array.isArray(draft.conceptIds)
-          ? availableConcepts.filter(c => draft.conceptIds.includes(c.id) || draft.conceptIds.includes(c.slug))
+          ? concepts.filter(c => c.active && c.bookable && (draft.conceptIds.includes(c.id) || draft.conceptIds.includes(c.slug)))
           : [];
-
-        if (validConcepts.length === 0) {
-          setSelectedConcepts([]);
-          setStep(2);
-          if (availableConcepts.length === 0) {
-            setErrorMessage('Hiện chưa có concept khả dụng cho dịch vụ này.');
-          } else {
-            setErrorMessage('Concept trước đó không còn khả dụng. Vui lòng chọn concept phù hợp.');
-          }
-          setDraftRestoreStatus('INVALID');
-          return;
-        }
         const maxC = p.conceptsCount || 1;
         setSelectedConcepts(validConcepts.slice(0, maxC));
 
@@ -488,16 +480,25 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         if (draft.occasion) setOccasion(draft.occasion);
         if (draft.customerNote) setCustomerNote(draft.customerNote);
 
-        // Voucher revalidation: do NOT blindly trust discount state
+        // Voucher revalidation: authoritatively validate against loaded promotions
         if (draft.voucherCode) {
           setVoucherCode(draft.voucherCode);
           setIsVoucherApplied(false);
-          if (isValidVoucherCode(draft.voucherCode)) {
-            setIsVoucherApplied(true);
+          setAppliedPromotion(null);
+          const rawCode = draft.voucherCode.trim().toUpperCase();
+          const matchedPromo = promotions.find(pr => pr.code.toUpperCase() === rawCode);
+          if (matchedPromo) {
+            const draftSubtotal = (p.price || 0) + validAddons.reduce((sum, a) => sum + (a.price || 0), 0);
+            const val = validatePromotion(matchedPromo, draftSubtotal, s.id);
+            if (val.valid) {
+              setIsVoucherApplied(true);
+              setAppliedPromotion(matchedPromo);
+            }
           }
         } else {
           setVoucherCode('');
           setIsVoucherApplied(false);
+          setAppliedPromotion(null);
         }
 
         // 7. Authoritatively validate Date (untrusted input)
@@ -523,24 +524,40 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           return;
         }
 
-        // Calculate authoritative duration from selected package + valid addons
-        const durationMinutes = (p.durationMinutes || 60) + validAddons.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
+        // Calculate authoritative duration from single source of truth (pricingService)
+        const draftPricing = calculatePricing({
+          packageItem: p,
+          addons: validAddons,
+        });
+        const durationMinutes = draftPricing.totalDurationMinutes;
 
         let slots: TimeSlot[] = [];
-        if (isSupabaseConfigured()) {
-          slots = await getAvailableSlots({
-            date: draft.date,
-            studioId: std.id,
-            durationMinutes,
-            existingBookings,
-          });
-        } else {
-          slots = getAvailableSlotsSync({
-            date: draft.date,
-            studioId: std.id,
-            durationMinutes,
-            existingBookings,
-          });
+        try {
+          if (isSupabaseConfigured()) {
+            slots = await getAvailableSlots({
+              date: draft.date,
+              studioId: std.id,
+              durationMinutes,
+              existingBookings,
+            });
+          } else {
+            slots = getAvailableSlotsSync({
+              date: draft.date,
+              studioId: std.id,
+              durationMinutes,
+              existingBookings,
+            });
+          }
+        } catch (availErr: any) {
+          if (isCancelled) return;
+          console.warn('Draft restoration availability check failed:', availErr);
+          setStep(3);
+          setAvailableSlots([]);
+          setSelectedTimeSlot('');
+          setAvailabilityError('Không thể kiểm tra lịch trống lúc này. Vui lòng thử lại.');
+          setErrorMessage('Không thể xác minh lịch trống lúc này. Lựa chọn của bạn vẫn được giữ lại. Vui lòng thử lại.');
+          // Do NOT remove draft from sessionStorage!
+          return;
         }
 
         if (isCancelled) return;
@@ -561,10 +578,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         draftSlotRejectedRef.current = false;
         userSlotChoiceClearedRef.current = false;
 
-        // 9. Full successful restoration: advance to Step 5, mark RESTORED, and consume draft
+        // 9. Full successful restoration: advance to Step 5 and mark RESTORED
+        draftRestoredRef.current = true;
         setStep(5);
         setDraftRestoreStatus('RESTORED');
-        sessionStorage.removeItem('mipa_pending_booking');
       } catch (e) {
         console.warn('Could not restore pending booking draft:', e);
         if (!isCancelled) {
@@ -578,7 +595,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [catalogReady, isLoadingCatalog, services, packages, concepts, studios, addons, existingBookings]);
+  }, [catalogReady, isLoadingCatalog, services, packages, concepts, studios, addons, promotions, existingBookings]);
 
   // Filter packages by selected service when service changes (or universal packages)
   const availablePackages = selectedService
@@ -601,52 +618,63 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [selectedService, packages, packageMismatchError]);
 
-  // Filter concepts by selected service (or universal concepts)
+  // Available concepts: all active && bookable concepts.
+  // Order for UX:
+  // 1. Same-service concepts
+  // 2. Universal concepts
+  // 3. Other service concepts
   const availableConcepts = useMemo(() => {
-    if (!selectedService) return [];
-    return concepts.filter(c =>
-      c.active &&
-      c.bookable &&
-      (!c.serviceId || c.serviceId === selectedService.id)
-    );
+    const activeBookable = concepts.filter(c => c.active && c.bookable);
+    if (!selectedService) return activeBookable;
+    const sameService: Concept[] = [];
+    const universal: Concept[] = [];
+    const otherService: Concept[] = [];
+    for (const c of activeBookable) {
+      if (c.serviceId === selectedService.id) {
+        sameService.push(c);
+      } else if (!c.serviceId) {
+        universal.push(c);
+      } else {
+        otherService.push(c);
+      }
+    }
+    return [...sameService, ...universal, ...otherService];
   }, [selectedService, concepts]);
 
-  // Auto-synchronize selectedConcepts whenever selectedService or concepts list changes
+  // Keep selectedConcepts synchronized with active & bookable concepts
   useEffect(() => {
-    if (!selectedService || concepts.length === 0) {
+    if (concepts.length === 0) {
       setSelectedConcepts([]);
       return;
     }
-    const serviceId = selectedService.id;
-    const pool = concepts.filter(c =>
-      c.active &&
-      c.bookable &&
-      (!c.serviceId || c.serviceId === serviceId)
-    );
-
-    setSelectedConcepts(prev => {
-      return prev.filter(sc => pool.some(p => p.id === sc.id));
-    });
-  }, [selectedService, concepts]);
+    setSelectedConcepts(prev => prev.filter(sc => concepts.some(c => c.id === sc.id && c.active && c.bookable)));
+  }, [concepts]);
 
   // Realtime Price & Duration Calculation (Single Source of Truth calculation)
-  const promo = isVoucherApplied ? {
-    discountPercent: voucherCode.trim().toUpperCase() === 'MIPA20' ? 20 : voucherCode.trim().toUpperCase() === 'SUMMERMEMORY' ? 10 : 0,
-    minOrder: 500000,
-    isActive: true,
-  } : null;
-
-  const pricing = calculatePricing({
-    packageItem: selectedPackage || { price: 0, durationMinutes: 60 },
-    addons: selectedAddons,
-    promotion: promo,
-  });
+  const pricing = useMemo(() => {
+    let activePromo: Promotion | null = null;
+    if (isVoucherApplied && appliedPromotion) {
+      const currentSubtotal = (selectedPackage?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+      const val = validatePromotion(appliedPromotion, currentSubtotal, selectedService?.id);
+      if (val.valid) {
+        activePromo = appliedPromotion;
+      }
+    }
+    return calculatePricing({
+      packageItem: selectedPackage || { price: 0, durationMinutes: 60 },
+      addons: selectedAddons,
+      promotion: activePromo,
+    });
+  }, [selectedPackage, selectedAddons, isVoucherApplied, appliedPromotion, selectedService]);
 
   const { subtotal, addonTotal, discountTotal, totalAmount, depositAmount, totalDurationMinutes } = pricing;
 
   // Load availability slots whenever Date, Studio or Duration changes
   const loadSlots = useCallback(async () => {
     if (!selectedStudio || !selectedDate) return;
+    const currentRequestId = ++availabilityRequestIdRef.current;
+    setAvailabilityError(null);
+
     if (!isSupabaseConfigured()) {
       const slots = getAvailableSlotsSync({
         date: selectedDate,
@@ -654,6 +682,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         durationMinutes: totalDurationMinutes,
         existingBookings,
       });
+      if (currentRequestId !== availabilityRequestIdRef.current) return;
       setAvailableSlots(slots);
       const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
       if (selectedTimeSlot && (!currentSlotObj || currentSlotObj.status === 'BOOKED')) {
@@ -675,7 +704,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         durationMinutes: totalDurationMinutes,
         existingBookings,
       });
+      if (currentRequestId !== availabilityRequestIdRef.current) return;
       setAvailableSlots(slots);
+      setAvailabilityError(null);
 
       const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
       if (selectedTimeSlot && (!currentSlotObj || currentSlotObj.status === 'BOOKED')) {
@@ -686,10 +717,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         const firstAvail = slots.find(s => s.status === 'AVAILABLE');
         setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (currentRequestId !== availabilityRequestIdRef.current) return;
       console.warn('Availability loading error:', err);
+      setAvailableSlots([]);
+      setSelectedTimeSlot('');
+      setAvailabilityError('Không thể kiểm tra lịch trống lúc này. Vui lòng thử lại.');
     } finally {
-      setIsLoadingSlots(false);
+      if (currentRequestId === availabilityRequestIdRef.current) {
+        setIsLoadingSlots(false);
+      }
     }
   }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot]);
 
@@ -725,21 +762,108 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     };
   }, [isOpen, currentPayment?.id, createdBooking, onBookingSuccess]);
 
+  const consumePendingBookingDraft = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('mipa_pending_booking');
+      }
+    } catch (err) {
+      console.warn('Could not remove pending booking draft from sessionStorage:', err);
+    }
+    draftRestoredRef.current = true;
+    setDraftRestoreStatus('RESTORED');
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     loadSlots();
   }, [isOpen, loadSlots]);
 
+  // Revalidate applied voucher whenever package, addons, or service changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isVoucherApplied && appliedPromotion) {
+      const currentSubtotal = (selectedPackage?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+      const valResult = validatePromotion(appliedPromotion, currentSubtotal, selectedService?.id);
+      if (!valResult.valid) {
+        setIsVoucherApplied(false);
+        setAppliedPromotion(null);
+        setErrorMessage(`Mã ưu đãi "${appliedPromotion.code}" không còn thỏa điều kiện cho lựa chọn mới: ${valResult.error}`);
+      }
+    }
+  }, [isOpen, selectedPackage, selectedAddons, selectedService, isVoucherApplied, appliedPromotion]);
+
   if (!isOpen) return null;
 
   const handleApplyVoucher = () => {
-    if (isValidVoucherCode(voucherCode)) {
-      setIsVoucherApplied(true);
-      setErrorMessage(null);
-    } else {
+    if (promotionsLoadError) {
       setIsVoucherApplied(false);
-      setErrorMessage('Mã voucher không hợp lệ. Vui lòng thử mã MIPA20 hoặc SUMMERMEMORY.');
+      setAppliedPromotion(null);
+      setErrorMessage('Không thể xác minh mã ưu đãi lúc này.');
+      return;
     }
+    const raw = voucherCode.trim().toUpperCase();
+    if (!raw) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage('Vui lòng nhập mã ưu đãi.');
+      return;
+    }
+    const matched = promotions.find(p => p.code.toUpperCase() === raw);
+    if (!matched) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage('Mã ưu đãi không hợp lệ.');
+      return;
+    }
+    const currentSubtotal = (selectedPackage?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+    const valResult = validatePromotion(matched, currentSubtotal, selectedService?.id);
+    if (!valResult.valid) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage(valResult.error || 'Mã ưu đãi không hợp lệ.');
+      return;
+    }
+    setIsVoucherApplied(true);
+    setAppliedPromotion(matched);
+    setErrorMessage(null);
+  };
+
+  const refreshAndValidateAppliedPromotion = async (): Promise<{ success: boolean; refreshedPromo?: Promotion }> => {
+    if (!isVoucherApplied || !appliedPromotion) {
+      return { success: true };
+    }
+
+    let latestPromotions: Promotion[];
+    try {
+      latestPromotions = await getPromotions();
+      setPromotions(latestPromotions);
+    } catch (err) {
+      console.warn('Pre-submit promotion refresh failed:', err);
+      setErrorMessage('Không thể xác minh mã ưu đãi lúc này. Vui lòng thử lại hoặc gỡ mã để tiếp tục.');
+      return { success: false };
+    }
+
+    const rawCode = appliedPromotion.code.trim().toUpperCase();
+    const refreshed = latestPromotions.find(p => p.code.trim().toUpperCase() === rawCode);
+    if (!refreshed) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage('Mã ưu đãi không còn khả dụng.');
+      return { success: false };
+    }
+
+    const currentSubtotal = (selectedPackage?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+    const valResult = validatePromotion(refreshed, currentSubtotal, selectedService?.id);
+    if (!valResult.valid) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage(valResult.error || 'Mã ưu đãi không còn hợp lệ.');
+      return { success: false };
+    }
+
+    setAppliedPromotion(refreshed);
+    return { success: true, refreshedPromo: refreshed };
   };
 
   const maxConcepts = selectedPackage?.conceptsCount || 1;
@@ -747,11 +871,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const handleToggleConcept = (cnc: Concept) => {
     setErrorMessage(null);
     if (selectedConcepts.some(c => c.id === cnc.id)) {
-      if (selectedConcepts.length > 1) {
-        setSelectedConcepts(selectedConcepts.filter(c => c.id !== cnc.id));
-      } else {
-        setErrorMessage('Vui lòng giữ lại ít nhất 1 concept nghệ thuật.');
-      }
+      setSelectedConcepts(selectedConcepts.filter(c => c.id !== cnc.id));
     } else {
       if (selectedConcepts.length < maxConcepts) {
         setSelectedConcepts([...selectedConcepts, cnc]);
@@ -833,20 +953,29 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     try {
       // Authoritatively re-fetch availability immediately before createBooking
       let freshSlots: TimeSlot[] = [];
-      if (isSupabaseConfigured()) {
-        freshSlots = await getAvailableSlots({
-          date: selectedDate,
-          studioId: selectedStudio.id,
-          durationMinutes: totalDurationMinutes,
-          existingBookings,
-        });
-      } else {
-        freshSlots = getAvailableSlotsSync({
-          date: selectedDate,
-          studioId: selectedStudio.id,
-          durationMinutes: totalDurationMinutes,
-          existingBookings,
-        });
+      try {
+        if (isSupabaseConfigured()) {
+          freshSlots = await getAvailableSlots({
+            date: selectedDate,
+            studioId: selectedStudio.id,
+            durationMinutes: totalDurationMinutes,
+            existingBookings,
+          });
+        } else {
+          freshSlots = getAvailableSlotsSync({
+            date: selectedDate,
+            studioId: selectedStudio.id,
+            durationMinutes: totalDurationMinutes,
+            existingBookings,
+          });
+        }
+      } catch (availErr: any) {
+        console.warn('Pre-submit availability check failed:', availErr);
+        setStep(3);
+        setAvailabilityError('Không thể kiểm tra lịch trống lúc này. Vui lòng thử lại.');
+        setErrorMessage(availErr.message || 'Không thể kiểm tra lịch trống lúc này. Vui lòng thử lại.');
+        setIsSubmitting(false);
+        return;
       }
       setAvailableSlots(freshSlots);
 
@@ -860,6 +989,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         return;
       }
 
+      // Pre-submit promotion refresh and authoritative verification
+      let refreshedVoucherCode: string | undefined;
+      if (isVoucherApplied && appliedPromotion) {
+        const promoCheck = await refreshAndValidateAppliedPromotion();
+        if (!promoCheck.success) {
+          setIsSubmitting(false);
+          return;
+        }
+        refreshedVoucherCode = promoCheck.refreshedPromo?.code;
+      }
+
       const payload = {
         serviceId: selectedService.id,
         packageId: selectedPackage.id,
@@ -868,7 +1008,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         timeSlot: selectedTimeSlot,
         addonIds: selectedAddons.map(a => a.id),
         conceptIds: selectedConcepts.map(c => c.id),
-        voucherCode: isVoucherApplied ? voucherCode.trim().toUpperCase() : undefined,
+        voucherCode: refreshedVoucherCode,
         customerName,
         customerPhone,
         customerEmail,
@@ -879,6 +1019,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       if (!isSupabaseConfigured()) {
         const newBooking = createBookingInMemory(payload);
         setCreatedBooking(newBooking);
+        consumePendingBookingDraft();
         const payment = createDepositPaymentSync(newBooking.id, 'BANK_TRANSFER');
         setCurrentPayment(payment);
         setStep(6);
@@ -887,6 +1028,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       const newBooking = await createBooking(payload);
       setCreatedBooking(newBooking);
+      consumePendingBookingDraft();
 
       // Trigger asynchronous confirmation email dispatch in background
       dispatchBookingEmail(newBooking.id).catch((dispatchErr) => {
@@ -1403,10 +1545,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       margin: 0,
                       fontWeight: 600,
                     }}>
-                      Chọn concept nghệ thuật ({selectedConcepts.length}/{maxConcepts})
+                      Chọn concept (không bắt buộc) ({selectedConcepts.length}/{maxConcepts})
                     </h4>
                     <p style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', margin: '0.2rem 0 0 0' }}>
-                      Gói <strong>{selectedPackage?.name || 'Đang chọn'}</strong> hỗ trợ tối đa <strong>{maxConcepts}</strong> concept phong cách
+                      Bạn có thể chọn tối đa {maxConcepts} concept.
                     </p>
                   </div>
                   {selectedConcepts.length > 0 && (
@@ -1579,7 +1721,30 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '340px', overflowY: 'auto' }}>
-                    {availableSlots.length === 0 ? (
+                    {availabilityError ? (
+                      <div style={{
+                        padding: '1.5rem',
+                        textAlign: 'center',
+                        backgroundColor: '#FFF1F2',
+                        border: '1px solid #FECDD3',
+                        borderRadius: '4px',
+                        color: '#9F1239',
+                      }}>
+                        <AlertCircle size={20} color="#9F1239" style={{ margin: '0 auto 0.5rem', display: 'block' }} />
+                        <p style={{ margin: '0 0 0.8rem', fontSize: '0.88rem', fontWeight: 500 }}>
+                          {availabilityError}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => loadSlots()}
+                          className="public-btn-secondary"
+                          style={{ fontSize: '0.82rem', padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <RefreshCw size={13} />
+                          Thử lại
+                        </button>
+                      </div>
+                    ) : availableSlots.length === 0 ? (
                       <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--editorial-text-secondary)', fontSize: '0.88rem', background: '#FAF6EE', borderRadius: '4px', border: '1px dashed var(--editorial-divider)' }}>
                         Không có khung giờ khả dụng cho ngày này. Vui lòng chọn ngày khác.
                       </div>
@@ -1873,7 +2038,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   <input
                     type="text"
                     value={voucherCode}
-                    onChange={(e) => setVoucherCode(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setVoucherCode(val);
+                      if (isVoucherApplied && appliedPromotion && val.trim().toUpperCase() !== appliedPromotion.code.toUpperCase()) {
+                        setIsVoucherApplied(false);
+                        setAppliedPromotion(null);
+                      }
+                    }}
                     placeholder="Nhập mã ưu đãi..."
                     className="mipa-input"
                     style={{ textTransform: 'uppercase', borderRadius: '4px', border: '1px solid var(--editorial-divider)', maxWidth: '280px' }}
@@ -1883,8 +2055,29 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   </button>
                 </div>
                 {isVoucherApplied && (
-                  <div style={{ marginTop: '0.5rem', color: '#047857', fontSize: '0.82rem', fontWeight: 500 }}>
-                    ✓ Đã áp dụng mã giảm giá (-{discountTotal.toLocaleString('vi-VN')}đ)
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <span style={{ color: '#047857', fontSize: '0.82rem', fontWeight: 500 }}>
+                      ✓ Đã áp dụng mã {appliedPromotion?.code} (-{discountTotal.toLocaleString('vi-VN')}đ)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsVoucherApplied(false);
+                        setAppliedPromotion(null);
+                        setVoucherCode('');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#991B1B',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: '0.2rem 0.4rem',
+                      }}
+                    >
+                      Gỡ bỏ
+                    </button>
                   </div>
                 )}
               </div>
@@ -1939,7 +2132,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--editorial-text-secondary)' }}>Concept:</span>
-                      <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Mặc định'}</strong>
+                      <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Không chọn'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--editorial-text-secondary)' }}>Dịch vụ kèm theo:</span>
@@ -2310,15 +2503,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       setErrorMessage('Vui lòng chọn một gói chụp hợp lệ cho dịch vụ này để tiếp tục.');
                       return;
                     }
-                    const serviceConcepts = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === selectedService?.id));
-                    if (serviceConcepts.length === 0) {
-                      setErrorMessage('Hiện chưa có concept khả dụng cho dịch vụ này.');
-                      return;
-                    }
-                    if (selectedConcepts.length === 0) {
-                      setErrorMessage('Vui lòng chọn ít nhất một concept nghệ thuật để tiếp tục.');
-                      return;
-                    }
                     const maxConcepts = selectedPackage.conceptsCount || 1;
                     if (selectedConcepts.length > maxConcepts) {
                       setErrorMessage(`Gói ${selectedPackage.name} cho phép chọn tối đa ${maxConcepts} concept.`);
@@ -2326,6 +2510,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     }
                   }
                   if (step === 3) {
+                    if (availabilityError) {
+                      setErrorMessage(availabilityError);
+                      return;
+                    }
                     if (!selectedStudio) {
                       setErrorMessage('Vui lòng chọn không gian studio để tiếp tục.');
                       return;
@@ -2352,7 +2540,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     setStep(step + 1);
                   }
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (step === 3 && (isLoadingSlots || Boolean(availabilityError)))}
                 className="public-btn-primary"
                 style={{ fontSize: '0.85rem', padding: '0.6rem 1.4rem' }}
               >

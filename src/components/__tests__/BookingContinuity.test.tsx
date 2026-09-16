@@ -47,7 +47,7 @@ describe('Booking Continuity and Fail-Closed Validation', () => {
       // Summary displays authoritative matching data
       expect(screen.getAllByText(/Couple Photography/i).length).toBeGreaterThan(0);
       expect(screen.getByText(/MIPA BASIC/i)).toBeInTheDocument();
-      expect(screen.getByText(/1.290.000\s*đ/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/1.290.000\s*đ/i).length).toBeGreaterThan(0);
     });
   });
 
