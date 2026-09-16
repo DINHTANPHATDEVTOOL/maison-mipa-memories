@@ -2,7 +2,7 @@
 // Maison MIPA Memories - Booking Wizard with Real Availability & Persistence
 // Connected to Catalog, Pricing, Availability, and Booking Services.
 // ==============================================================================
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ServiceCategory, PackageItem, Addon, StudioRoom, Booking, Concept } from '../../types';
 import { INITIAL_SERVICES, INITIAL_PACKAGES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS } from '../../mockData';
 import { getServices, getPackages, getAddons, getStudioRooms } from '../../services/catalogService';
@@ -62,6 +62,29 @@ function getInitialBookingDate(): string {
 export type BookingPresentationMode = 'MODAL' | 'PAGE';
 export type DraftRestoreStatus = 'IDLE' | 'WAITING_CATALOG' | 'RESTORING' | 'RESTORED' | 'INVALID';
 
+export type PendingBookingDraft = {
+  version?: 1;
+  serviceId?: string;
+  packageId?: string;
+  studioId?: string;
+  conceptIds: string[];
+  addonIds: string[];
+  date?: string;
+  timeSlot?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  occasion?: string;
+  customerNote?: string;
+  voucherCode?: string;
+};
+
+function isValidVoucherCode(rawCode?: string | null): boolean {
+  if (!rawCode) return false;
+  const code = rawCode.trim().toUpperCase();
+  return code === 'MIPA20' || code === 'SUMMERMEMORY';
+}
+
 interface BookingWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -72,6 +95,7 @@ interface BookingWizardProps {
   initialPackageId?: string;
   onRequireAuth?: (tab?: 'LOGIN' | 'REGISTER', msg?: string) => void;
   presentation?: BookingPresentationMode;
+  onFinish?: () => void;
 }
 
 export const BookingWizard: React.FC<BookingWizardProps> = ({
@@ -84,8 +108,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   initialPackageId,
   onRequireAuth,
   presentation = 'MODAL',
+  onFinish,
 }) => {
   const [step, setStep] = useState<number>(1);
+  const draftSlotRejectedRef = useRef<boolean>(false);
+  const userSlotChoiceClearedRef = useRef<boolean>(false);
 
   // Catalog State (Dynamic from Catalog Service with initial fallback)
   const demoMode = !isSupabaseConfigured() && isDemoModeEnabled();
@@ -224,7 +251,22 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       let targetPackage: PackageItem | null = null;
       let targetConcept: Concept | null = null;
 
-      // 1. Concept param validation
+      // 1. Explicit Service param validation - HIGHEST PRIORITY
+      if (initialServiceId) {
+        const foundService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId) || null;
+        if (!foundService) {
+          setErrorMessage('Dịch vụ được chọn không còn khả dụng.');
+          setSelectedService(null);
+          setSelectedPackage(null);
+          setSelectedConcepts([]);
+          setStep(1);
+          setCatalogReady(true);
+          return;
+        }
+        targetService = foundService;
+      }
+
+      // 2. Concept param validation
       if (initialConceptSlug) {
         const foundConcept = cncs.find(c => (c.slug === initialConceptSlug || c.id === initialConceptSlug) && c.active && c.bookable) || null;
         if (!foundConcept) {
@@ -236,25 +278,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         }
       }
 
-      // 2. Service param validation
-      if (initialServiceId) {
-        const foundService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId) || null;
-        if (!foundService) {
-          setErrorMessage('Dịch vụ được chọn không còn khả dụng.');
-          targetService = null;
-          setStep(1);
-        } else {
-          targetService = foundService;
-        }
-      } else if (targetConcept && targetConcept.serviceId) {
-        // Service param absent: derive service from authoritative concept relation
+      // 3. Service derivation from concept if no explicit service was specified
+      if (!targetService && targetConcept && targetConcept.serviceId) {
         const conceptService = srvs.find(s => s.id === targetConcept?.serviceId);
         if (conceptService) {
           targetService = conceptService;
         }
       }
 
-      // 3. Service vs Concept conflict validation
+      // 4. Service vs Concept conflict validation
       if (initialServiceId && targetService && targetConcept && targetConcept.serviceId) {
         if (targetConcept.serviceId !== targetService.id) {
           setErrorMessage('Concept đã chọn không thuộc dịch vụ yêu cầu. Vui lòng chọn lại concept phù hợp.');
@@ -269,7 +301,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       }
       setSelectedService(targetService);
 
-      // 4. Package param validation
+      // 5. Package param validation
       if (initialPackageId) {
         const foundPackage = pkgs.find(p => p.id === initialPackageId || p.name === initialPackageId) || null;
         if (foundPackage && targetService) {
@@ -297,7 +329,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedPackage(null);
       }
 
-      // 5. Concept selection
+      // 6. Concept selection
       if (initialConceptSlug) {
         if (targetConcept) {
           setSelectedConcepts([targetConcept]);
@@ -335,7 +367,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   }, [loadInitialData]);
 
   // Restore guest booking draft from sessionStorage after authentication
-  // STRICT: Waits for catalogReady && !isLoadingCatalog. Validates all IDs authoritatively.
+  // STRICT: Waits for catalogReady && !isLoadingCatalog. Validates all IDs and availability authoritatively.
   useEffect(() => {
     if (!catalogReady || isLoadingCatalog) {
       if (typeof window !== 'undefined' && sessionStorage.getItem('mipa_pending_booking')) {
@@ -344,128 +376,209 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       return;
     }
 
-    try {
-      const saved = sessionStorage.getItem('mipa_pending_booking');
-      if (!saved) {
-        setDraftRestoreStatus('IDLE');
-        return;
-      }
+    let isCancelled = false;
 
-      setDraftRestoreStatus('RESTORING');
-      const draft = JSON.parse(saved);
-      if (!draft || typeof draft !== 'object') {
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-
-      // 1. Validate service
-      if (!draft.serviceId) {
-        setDraftRestoreStatus('INVALID');
-        setStep(1);
-        setErrorMessage('Một số lựa chọn trước đó không còn khả dụng. Vui lòng chọn lại dịch vụ.');
-        return;
-      }
-      const s = services.find(x => x.id === draft.serviceId || x.slug === draft.serviceId);
-      if (!s) {
-        setSelectedService(null);
-        setSelectedPackage(null);
-        setSelectedConcepts([]);
-        setSelectedStudio(null);
-        setStep(1);
-        setErrorMessage('Một số lựa chọn trước đó không còn khả dụng. Vui lòng chọn lại dịch vụ.');
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-      setSelectedService(s);
-
-      // 2. Validate package & relationship to service
-      if (!draft.packageId) {
-        setSelectedPackage(null);
-        setSelectedConcepts([]);
-        setStep(2);
-        setErrorMessage('Gói chụp trước đó không còn phù hợp với dịch vụ đã chọn.');
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-      const p = packages.find(x => x.id === draft.packageId || x.name === draft.packageId);
-      if (!p || (p.serviceId && p.serviceId !== s.id)) {
-        setSelectedPackage(null);
-        setSelectedConcepts([]);
-        setStep(2);
-        setErrorMessage('Gói chụp trước đó không còn phù hợp với dịch vụ đã chọn.');
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-      setSelectedPackage(p);
-
-      // 3. Validate concepts against active, bookable concepts matching service
-      const availableConcepts = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === s.id));
-      const validConcepts = Array.isArray(draft.conceptIds)
-        ? availableConcepts.filter(c => draft.conceptIds.includes(c.id) || draft.conceptIds.includes(c.slug))
-        : [];
-
-      if (validConcepts.length === 0) {
-        setSelectedConcepts([]);
-        setStep(2);
-        if (availableConcepts.length === 0) {
-          setErrorMessage('Hiện chưa có concept khả dụng cho dịch vụ này.');
-        } else {
-          setErrorMessage('Concept trước đó không còn khả dụng. Vui lòng chọn concept phù hợp.');
+    const restoreDraft = async () => {
+      try {
+        const saved = sessionStorage.getItem('mipa_pending_booking');
+        if (!saved) {
+          setDraftRestoreStatus('IDLE');
+          return;
         }
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-      const maxC = p.conceptsCount || 1;
-      setSelectedConcepts(validConcepts.slice(0, maxC));
 
-      // 4. Validate studio
-      if (!draft.studioId) {
-        setSelectedStudio(null);
-        setStep(3);
-        setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-      const std = studios.find(x => x.id === draft.studioId && (x.status ? x.status === 'ACTIVE' : true));
-      if (!std) {
-        setSelectedStudio(null);
-        setStep(3);
-        setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
-        setDraftRestoreStatus('INVALID');
-        return;
-      }
-      setSelectedStudio(std);
+        setDraftRestoreStatus('RESTORING');
+        const draft: PendingBookingDraft = JSON.parse(saved);
+        if (!draft || typeof draft !== 'object') {
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
 
-      // 5. Restore addons (only valid existing ones; do NOT auto-add default addon)
-      if (Array.isArray(draft.addonIds)) {
-        const matchedAddons = addons.filter(a => draft.addonIds.includes(a.id));
-        setSelectedAddons(matchedAddons);
-      } else {
-        setSelectedAddons([]);
-      }
+        // 1. Validate service
+        if (!draft.serviceId) {
+          setDraftRestoreStatus('INVALID');
+          setStep(1);
+          setErrorMessage('Một số lựa chọn trước đó không còn khả dụng. Vui lòng chọn lại dịch vụ.');
+          return;
+        }
+        const s = services.find(x => x.id === draft.serviceId || x.slug === draft.serviceId);
+        if (!s) {
+          setSelectedService(null);
+          setSelectedPackage(null);
+          setSelectedConcepts([]);
+          setSelectedStudio(null);
+          setStep(1);
+          setErrorMessage('Một số lựa chọn trước đó không còn khả dụng. Vui lòng chọn lại dịch vụ.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        setSelectedService(s);
 
-      // 6. Restore booking metadata (dates, timeslot, notes, voucher, contact info)
-      if (draft.customerName) setCustomerName(draft.customerName);
-      if (draft.customerPhone) setCustomerPhone(draft.customerPhone);
-      if (draft.customerEmail) setCustomerEmail(draft.customerEmail);
-      if (draft.date) setSelectedDate(draft.date);
-      if (draft.timeSlot) setSelectedTimeSlot(draft.timeSlot);
-      if (draft.occasion) setOccasion(draft.occasion);
-      if (draft.customerNote) setCustomerNote(draft.customerNote);
-      if (draft.voucherCode) {
-        setVoucherCode(draft.voucherCode);
-        setIsVoucherApplied(true);
-      }
+        // 2. Validate package & relationship to service
+        if (!draft.packageId) {
+          setSelectedPackage(null);
+          setSelectedConcepts([]);
+          setStep(2);
+          setErrorMessage('Gói chụp trước đó không còn phù hợp với dịch vụ đã chọn.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        const p = packages.find(x => x.id === draft.packageId || x.name === draft.packageId);
+        if (!p || (p.serviceId && p.serviceId !== s.id)) {
+          setSelectedPackage(null);
+          setSelectedConcepts([]);
+          setStep(2);
+          setErrorMessage('Gói chụp trước đó không còn phù hợp với dịch vụ đã chọn.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        setSelectedPackage(p);
 
-      // 7. Successful restoration
-      setStep(5);
-      setDraftRestoreStatus('RESTORED');
-      sessionStorage.removeItem('mipa_pending_booking');
-    } catch (e) {
-      console.warn('Could not restore pending booking draft:', e);
-      setDraftRestoreStatus('INVALID');
-    }
-  }, [catalogReady, isLoadingCatalog, services, packages, concepts, studios, addons]);
+        // 3. Validate concepts against active, bookable concepts matching service
+        const availableConcepts = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === s.id));
+        const validConcepts = Array.isArray(draft.conceptIds)
+          ? availableConcepts.filter(c => draft.conceptIds.includes(c.id) || draft.conceptIds.includes(c.slug))
+          : [];
+
+        if (validConcepts.length === 0) {
+          setSelectedConcepts([]);
+          setStep(2);
+          if (availableConcepts.length === 0) {
+            setErrorMessage('Hiện chưa có concept khả dụng cho dịch vụ này.');
+          } else {
+            setErrorMessage('Concept trước đó không còn khả dụng. Vui lòng chọn concept phù hợp.');
+          }
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        const maxC = p.conceptsCount || 1;
+        setSelectedConcepts(validConcepts.slice(0, maxC));
+
+        // 4. Validate studio
+        if (!draft.studioId) {
+          setSelectedStudio(null);
+          setStep(3);
+          setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        const std = studios.find(x => x.id === draft.studioId && (x.status ? x.status === 'ACTIVE' : true));
+        if (!std) {
+          setSelectedStudio(null);
+          setStep(3);
+          setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        setSelectedStudio(std);
+
+        // 5. Restore addons (only valid existing ones; do NOT auto-add default addon)
+        const validAddons: Addon[] = [];
+        if (Array.isArray(draft.addonIds)) {
+          const matchedAddons = addons.filter(a => draft.addonIds.includes(a.id));
+          validAddons.push(...matchedAddons);
+          setSelectedAddons(matchedAddons);
+        } else {
+          setSelectedAddons([]);
+        }
+
+        // 6. Restore customer contact info & metadata
+        if (draft.customerName) setCustomerName(draft.customerName);
+        if (draft.customerPhone) setCustomerPhone(draft.customerPhone);
+        if (draft.customerEmail) setCustomerEmail(draft.customerEmail);
+        if (draft.occasion) setOccasion(draft.occasion);
+        if (draft.customerNote) setCustomerNote(draft.customerNote);
+
+        // Voucher revalidation: do NOT blindly trust discount state
+        if (draft.voucherCode) {
+          setVoucherCode(draft.voucherCode);
+          setIsVoucherApplied(false);
+          if (isValidVoucherCode(draft.voucherCode)) {
+            setIsVoucherApplied(true);
+          }
+        } else {
+          setVoucherCode('');
+          setIsVoucherApplied(false);
+        }
+
+        // 7. Authoritatively validate Date (untrusted input)
+        // Must be present, valid format YYYY-MM-DD, and >= today in Asia/Ho_Chi_Minh
+        const todayVn = getTodayVn();
+        if (!draft.date || typeof draft.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(draft.date) || draft.date < todayVn) {
+          draftSlotRejectedRef.current = true;
+          setSelectedTimeSlot('');
+          setStep(3);
+          setErrorMessage('Ngày chụp trước đó không còn hợp lệ. Vui lòng chọn lại ngày và khung giờ.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+        setSelectedDate(draft.date);
+
+        // 8. Authoritatively validate TimeSlot (untrusted input)
+        if (!draft.timeSlot || typeof draft.timeSlot !== 'string') {
+          draftSlotRejectedRef.current = true;
+          setSelectedTimeSlot('');
+          setStep(3);
+          setErrorMessage('Khung giờ trước đó không còn khả dụng. Vui lòng chọn khung giờ khác.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+
+        // Calculate authoritative duration from selected package + valid addons
+        const durationMinutes = (p.durationMinutes || 60) + validAddons.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
+
+        let slots: TimeSlot[] = [];
+        if (isSupabaseConfigured()) {
+          slots = await getAvailableSlots({
+            date: draft.date,
+            studioId: std.id,
+            durationMinutes,
+            existingBookings,
+          });
+        } else {
+          slots = getAvailableSlotsSync({
+            date: draft.date,
+            studioId: std.id,
+            durationMinutes,
+            existingBookings,
+          });
+        }
+
+        if (isCancelled) return;
+        setAvailableSlots(slots);
+
+        const matchedSlot = slots.find(s => s.time === draft.timeSlot);
+        if (!matchedSlot || matchedSlot.status !== 'AVAILABLE') {
+          draftSlotRejectedRef.current = true;
+          setSelectedTimeSlot('');
+          setStep(3);
+          setErrorMessage('Khung giờ trước đó không còn khả dụng. Vui lòng chọn khung giờ khác.');
+          setDraftRestoreStatus('INVALID');
+          return;
+        }
+
+        // Slot is authoritatively verified and AVAILABLE
+        setSelectedTimeSlot(draft.timeSlot);
+        draftSlotRejectedRef.current = false;
+        userSlotChoiceClearedRef.current = false;
+
+        // 9. Full successful restoration: advance to Step 5, mark RESTORED, and consume draft
+        setStep(5);
+        setDraftRestoreStatus('RESTORED');
+        sessionStorage.removeItem('mipa_pending_booking');
+      } catch (e) {
+        console.warn('Could not restore pending booking draft:', e);
+        if (!isCancelled) {
+          setDraftRestoreStatus('INVALID');
+        }
+      }
+    };
+
+    restoreDraft();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [catalogReady, isLoadingCatalog, services, packages, concepts, studios, addons, existingBookings]);
 
   // Filter packages by selected service when service changes (or universal packages)
   const availablePackages = selectedService
@@ -543,7 +656,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       });
       setAvailableSlots(slots);
       const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
-      if (!currentSlotObj || currentSlotObj.status === 'BOOKED') {
+      if (selectedTimeSlot && (!currentSlotObj || currentSlotObj.status === 'BOOKED')) {
+        // The slot previously selected is no longer available. Never silently auto-switch slot.
+        setSelectedTimeSlot('');
+        userSlotChoiceClearedRef.current = true;
+      } else if (!selectedTimeSlot && !draftSlotRejectedRef.current && !userSlotChoiceClearedRef.current) {
         const firstAvail = slots.find(s => s.status === 'AVAILABLE');
         setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
       }
@@ -560,9 +677,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       });
       setAvailableSlots(slots);
 
-      // Auto-select first available slot if current slot is booked or absent
       const currentSlotObj = slots.find(s => s.time === selectedTimeSlot);
-      if (!currentSlotObj || currentSlotObj.status === 'BOOKED') {
+      if (selectedTimeSlot && (!currentSlotObj || currentSlotObj.status === 'BOOKED')) {
+        // The slot previously selected is no longer available. Never silently auto-switch slot.
+        setSelectedTimeSlot('');
+        userSlotChoiceClearedRef.current = true;
+      } else if (!selectedTimeSlot && !draftSlotRejectedRef.current && !userSlotChoiceClearedRef.current) {
         const firstAvail = slots.find(s => s.status === 'AVAILABLE');
         setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
       }
@@ -613,8 +733,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   if (!isOpen) return null;
 
   const handleApplyVoucher = () => {
-    const code = voucherCode.trim().toUpperCase();
-    if (code === 'MIPA20' || code === 'SUMMERMEMORY') {
+    if (isValidVoucherCode(voucherCode)) {
       setIsVoucherApplied(true);
       setErrorMessage(null);
     } else {
@@ -646,17 +765,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   const handleGuestAuthRedirect = (tab: 'LOGIN' | 'REGISTER' = 'LOGIN') => {
     try {
-      const pendingData = {
+      const pendingData: PendingBookingDraft = {
+        version: 1,
         serviceId: selectedService?.id,
         packageId: selectedPackage?.id,
         studioId: selectedStudio?.id,
+        conceptIds: selectedConcepts.map(c => c.id),
+        addonIds: selectedAddons.map(a => a.id),
         date: selectedDate,
         timeSlot: selectedTimeSlot,
-        addonIds: selectedAddons.map(a => a.id),
-        conceptIds: selectedConcepts.map(c => c.id),
+        customerName,
+        customerPhone,
+        customerEmail,
         occasion,
         customerNote,
-        voucherCode: isVoucherApplied ? voucherCode : '',
+        voucherCode: voucherCode || '',
       };
       sessionStorage.setItem('mipa_pending_booking', JSON.stringify(pendingData));
     } catch {}
@@ -683,10 +806,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       return;
     }
 
-    // Check slot availability again before booking
-    const currentSlot = availableSlots.find(s => s.time === selectedTimeSlot);
-    if (currentSlot && currentSlot.status === 'BOOKED') {
-      setErrorMessage('⚠️ TRÙNG LỊCH: Khung giờ bạn chọn đã có khách đặt trước đó. Vui lòng quay lại Bước 3 để chọn khung giờ khác.');
+    if (!selectedTimeSlot) {
+      setErrorMessage('Khung giờ đã thay đổi hoặc không còn khả dụng. Vui lòng chọn lại.');
+      setStep(3);
+      return;
+    }
+
+    // Check slot availability locally before advancing
+    const initialSlot = availableSlots.find(s => s.time === selectedTimeSlot);
+    if (!initialSlot || initialSlot.status !== 'AVAILABLE') {
+      setSelectedTimeSlot('');
+      userSlotChoiceClearedRef.current = true;
+      setErrorMessage('Khung giờ đã thay đổi hoặc không còn khả dụng. Vui lòng chọn lại.');
       setStep(3);
       return;
     }
@@ -700,6 +831,35 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
+      // Authoritatively re-fetch availability immediately before createBooking
+      let freshSlots: TimeSlot[] = [];
+      if (isSupabaseConfigured()) {
+        freshSlots = await getAvailableSlots({
+          date: selectedDate,
+          studioId: selectedStudio.id,
+          durationMinutes: totalDurationMinutes,
+          existingBookings,
+        });
+      } else {
+        freshSlots = getAvailableSlotsSync({
+          date: selectedDate,
+          studioId: selectedStudio.id,
+          durationMinutes: totalDurationMinutes,
+          existingBookings,
+        });
+      }
+      setAvailableSlots(freshSlots);
+
+      const authoritativeSlot = freshSlots.find(s => s.time === selectedTimeSlot);
+      if (!authoritativeSlot || authoritativeSlot.status !== 'AVAILABLE') {
+        setSelectedTimeSlot('');
+        userSlotChoiceClearedRef.current = true;
+        setErrorMessage('Khung giờ đã thay đổi hoặc không còn khả dụng. Vui lòng chọn lại.');
+        setStep(3);
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         serviceId: selectedService.id,
         packageId: selectedPackage.id,
@@ -740,6 +900,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     } catch (err: any) {
       if (err instanceof BookingConflictError || err.name === 'BookingConflictError') {
         setErrorMessage(`⚠️ TRÙNG LỊCH: ${err.message || 'Phòng studio đã có người đặt trong khung giờ này.'} Vui lòng quay lại Bước 3 để chọn khung giờ khác.`);
+        setStep(3);
       } else {
         setErrorMessage(err.message || 'Không thể tạo đơn đặt lịch. Vui lòng kiểm tra lại thông tin.');
       }
@@ -853,7 +1014,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             }}>
               {step === 7 ? 'Đặt lịch thành công' : `Bước ${step}/6 — ${
                 step === 1 ? 'Chọn loại hình dịch vụ' :
-                step === 2 ? 'Chọn gói package phù hợp' :
+                step === 2 ? 'Chọn gói chụp' :
                 step === 3 ? 'Chọn ngày & giờ chụp' :
                 step === 4 ? 'Dịch vụ bổ sung' :
                 step === 5 ? 'Thông tin khách hàng' :
@@ -1435,6 +1596,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             onClick={() => {
                               if (isBooked) return;
                               setSelectedTimeSlot(slot.time);
+                              draftSlotRejectedRef.current = false;
+                              userSlotChoiceClearedRef.current = false;
                             }}
                             style={{
                               display: 'flex',
@@ -1775,7 +1938,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <strong>{customerName} ({customerPhone})</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Concept nghệ thuật:</span>
+                      <span style={{ color: 'var(--editorial-text-secondary)' }}>Concept:</span>
                       <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Mặc định'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -2081,10 +2244,26 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
               </div>
 
-              <div style={{ marginTop: '2rem' }}>
-                <button onClick={onClose} className="public-btn-primary">
-                  Đóng & Về trang chủ
+              <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+                <button
+                  onClick={presentation === 'PAGE' ? (onFinish || onClose) : onClose}
+                  className="public-btn-primary"
+                >
+                  {presentation === 'PAGE' ? 'Về trang chủ' : 'Đóng'}
                 </button>
+                {user && (
+                  <a
+                    href="/account"
+                    style={{
+                      fontSize: '0.88rem',
+                      color: 'var(--editorial-brown-accent)',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Xem lịch của tôi
+                  </a>
+                )}
               </div>
             </div>
           )}

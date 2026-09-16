@@ -8,6 +8,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BookingWizard } from '../booking/BookingWizard';
 import { AuthProvider } from '../../context/AuthContext';
 import { App } from '../../App';
+import type { Booking } from '../../types';
+import { resetInMemoryBookings } from '../../services/bookingService';
 
 const VALID_SERVICE_ID = 'c0000000-0000-0000-0000-000000000001'; // Couple
 const VALID_PACKAGE_ID = 'd0000000-0000-0000-0000-000000000001'; // MIPA BASIC (belongs to Couple)
@@ -245,6 +247,138 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
     // Unknown addon was safely ignored, valid addon was restored
     expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
   });
+
+  it('rejects draft when restored date is in the past and returns to Step 3 without consuming draft', async () => {
+    const pastDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2020-01-01',
+      timeSlot: '15:30',
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(pastDraft));
+
+    renderWithAuth(<BookingWizard {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Ngày chụp trước đó không còn hợp lệ/i).length).toBeGreaterThan(0);
+    });
+
+    // Draft is NOT consumed from sessionStorage
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
+    expect(screen.queryByText(/Bước 5\/6/i)).not.toBeInTheDocument();
+  });
+
+  it('rejects draft when restored slot is BOOKED and returns to Step 3 without consuming draft', async () => {
+    const bookedBooking = {
+      id: 'b-booked-1',
+      bookingCode: 'MIPA-BK1',
+      studioId: VALID_STUDIO_ID,
+      bookingDate: '2026-11-20',
+      startTime: '10:00',
+      endTime: '12:00',
+      bookingStatus: 'CONFIRMED',
+      paymentStatus: 'DEPOSIT_PAID',
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      customerName: 'Existing Customer',
+      customerEmail: 'exist@mipa.vn',
+      customerPhone: '0900000000',
+      createdAt: '2026-09-01T00:00:00Z',
+    } as unknown as Booking;
+
+    const bookedDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-20',
+      timeSlot: '10:00', // Matches bookedBooking
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(bookedDraft));
+
+    renderWithAuth(<BookingWizard {...defaultProps} existingBookings={[bookedBooking]} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Khung giờ trước đó không còn khả dụng/i).length).toBeGreaterThan(0);
+    });
+
+    // Draft is NOT consumed from sessionStorage
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
+    expect(screen.queryByText(/Bước 5\/6/i)).not.toBeInTheDocument();
+  });
+
+  it('rejects draft when restored slot does not exist in operating hours', async () => {
+    const invalidSlotDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-20',
+      timeSlot: '23:30', // outside operating hours
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(invalidSlotDraft));
+
+    renderWithAuth(<BookingWizard {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Khung giờ trước đó không còn khả dụng/i).length).toBeGreaterThan(0);
+    });
+
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
+    expect(screen.queryByText(/Bước 5\/6/i)).not.toBeInTheDocument();
+  });
+
+  it('revalidates voucherCode on restore and does not trust invalid code', async () => {
+    const invalidVoucherDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-20',
+      timeSlot: '15:30',
+      voucherCode: 'FAKE_DISCOUNT_99',
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(invalidVoucherDraft));
+
+    renderWithAuth(<BookingWizard {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
+    });
+
+    // Input has the code restored
+    expect(screen.getByDisplayValue('FAKE_DISCOUNT_99')).toBeInTheDocument();
+    // But discount is NOT applied (0% discount)
+    expect(screen.queryByText(/-20%/i)).not.toBeInTheDocument();
+  });
+
+  it('revalidates valid voucherCode (MIPA20) on restore and applies discount', async () => {
+    const validVoucherDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-20',
+      timeSlot: '15:30',
+      voucherCode: 'MIPA20',
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(validVoucherDraft));
+
+    renderWithAuth(<BookingWizard {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByDisplayValue('MIPA20')).toBeInTheDocument();
+    // Discount is applied
+    expect(screen.getAllByText(/Ưu đãi/i).length).toBeGreaterThan(0);
+  });
 });
 
 describe('Strict Deep-Link Query Parameter Validations', () => {
@@ -349,6 +483,24 @@ describe('Strict Deep-Link Query Parameter Validations', () => {
       expect(screen.getAllByText(/French Haute Couture/i).length).toBeGreaterThan(0);
     });
   });
+
+  it('?service=invalid&package=valid keeps Step 1 error and does not advance to Step 2', async () => {
+    renderWithAuth(
+      <BookingWizard
+        {...defaultProps}
+        initialServiceId="non-existent-service-slug"
+        initialPackageId={VALID_PACKAGE_ID}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Dịch vụ được chọn không còn khả dụng/i).length).toBeGreaterThan(0);
+    });
+
+    // Must remain strictly at Step 1, package check must not override to Step 2
+    expect(screen.getByText(/Bước 1\/6/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Bước 2\/6/i)).toBeNull();
+  });
 });
 
 describe('Concept Requirement Policy & Presentation Mode', () => {
@@ -415,5 +567,243 @@ describe('Concept Requirement Policy & Presentation Mode', () => {
     expect(document.querySelector('.booking-wizard-page-wrapper')).toBeInTheDocument();
     // .modal-overlay should NOT be present
     expect(document.querySelector('.modal-overlay')).toBeNull();
+  });
+});
+
+describe('Pre-Submit Slot Race Protection & Guest Draft Contract', () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onBookingSuccess: vi.fn(),
+  };
+
+  const renderWithAuth = (ui: React.ReactElement) => {
+    return render(<AuthProvider>{ui}</AuthProvider>);
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    resetInMemoryBookings();
+  });
+
+  it('handleGuestAuthRedirect saves complete customer form fields and version 1 without computed totals', async () => {
+    const onRequireAuthMock = vi.fn();
+    renderWithAuth(<BookingWizard {...defaultProps} onRequireAuth={onRequireAuthMock} />);
+
+    // Step 1 -> Step 2
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+    // Step 2 -> Step 3
+    await waitFor(() => screen.getByText(/Bước 2\/6/i));
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+    // Step 3 -> Step 4
+    await waitFor(() => screen.getByText(/Bước 3\/6/i));
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+    // Step 4 -> Step 5
+    await waitFor(() => screen.getByText(/Bước 4\/6/i));
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+
+    await waitFor(() => screen.getByText(/Bước 5\/6/i));
+
+    // Fill customer fields
+    const nameInput = screen.getByPlaceholderText(/Họ và tên/i);
+    const phoneInput = screen.getByPlaceholderText(/Số điện thoại/i);
+    const emailInput = screen.getByPlaceholderText(/^Email$/i);
+
+    fireEvent.change(nameInput, { target: { value: 'Trần Thị Thảo' } });
+    fireEvent.change(phoneInput, { target: { value: '0912 345 678' } });
+    fireEvent.change(emailInput, { target: { value: 'thao.tran@example.com' } });
+
+    // Click "Đăng Nhập" in guest banner
+    const loginBtn = screen.getByRole('button', { name: /Đăng Nhập/i });
+    fireEvent.click(loginBtn);
+
+    const saved = sessionStorage.getItem('mipa_pending_booking');
+    expect(saved).not.toBeNull();
+    const draft = JSON.parse(saved!);
+
+    expect(draft.version).toBe(1);
+    expect(draft.customerName).toBe('Trần Thị Thảo');
+    expect(draft.customerPhone).toBe('0912 345 678');
+    expect(draft.customerEmail).toBe('thao.tran@example.com');
+    expect(draft.serviceId).toBeDefined();
+    expect(draft.packageId).toBeDefined();
+    expect(draft.studioId).toBeDefined();
+    expect(draft.date).toBeDefined();
+    expect(draft.timeSlot).toBeDefined();
+
+    // Ensure NO computed totals or pricing leaked into draft
+    expect(draft.totalAmount).toBeUndefined();
+    expect(draft.depositAmount).toBeUndefined();
+    expect(draft.price).toBeUndefined();
+    expect(draft.packageName).toBeUndefined();
+    expect(draft.serviceName).toBeUndefined();
+  });
+
+  it('blocks createBooking and returns to Step 3 if authoritative availability detects slot is BOOKED right before payment', async () => {
+    // Restored valid draft to Step 5
+    const validDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-20',
+      timeSlot: '15:30',
+      customerName: 'Hoàng Lan',
+      customerPhone: '0988 777 666',
+      customerEmail: 'hoanglan@example.com',
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(validDraft));
+
+    // Initially no conflicting bookings
+    const existingBookings: Booking[] = [];
+    const { rerender } = renderWithAuth(
+      <BookingWizard {...defaultProps} existingBookings={existingBookings} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
+    });
+
+    const conflictingBooking = {
+      id: 'conflict-1',
+      bookingCode: 'MIPA-CONF',
+      studioId: VALID_STUDIO_ID,
+      bookingDate: '2026-11-20',
+      startTime: '15:30',
+      endTime: '17:30',
+      bookingStatus: 'CONFIRMED',
+      paymentStatus: 'DEPOSIT_PAID',
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      customerName: 'Concurrent User',
+      customerEmail: 'concurrent@mipa.vn',
+      customerPhone: '0900000001',
+      createdAt: '2026-09-01T00:00:00Z',
+    } as unknown as Booking;
+
+    rerender(
+      <AuthProvider>
+        <BookingWizard {...defaultProps} existingBookings={[conflictingBooking]} />
+      </AuthProvider>
+    );
+
+    // User attempts to proceed to payment from Step 5
+    const proceedBtn = screen.getByRole('button', { name: /Tiếp theo/i });
+    fireEvent.click(proceedBtn);
+
+    // Pre-submit slot re-fetch should detect conflict, return to Step 3, and display error
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Khung giờ đã thay đổi hoặc không còn khả dụng/i).length).toBeGreaterThan(0);
+    });
+
+    // Did NOT advance to Step 6
+    expect(screen.queryByText(/Bước 6\/6/i)).toBeNull();
+  });
+
+  it('calls onFinish in PAGE mode when clicking confirmation button', async () => {
+    const onFinishMock = vi.fn();
+    const onCloseMock = vi.fn();
+
+    // Step 5 draft to immediately reach payment
+    const validDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-25',
+      timeSlot: '15:30',
+      customerName: 'Hoàng Lan',
+      customerPhone: '0988 777 666',
+      customerEmail: 'hoanglan@example.com',
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(validDraft));
+
+    renderWithAuth(
+      <BookingWizard
+        {...defaultProps}
+        presentation="PAGE"
+        onClose={onCloseMock}
+        onFinish={onFinishMock}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
+    });
+
+    // Step 5 -> Step 6
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+    });
+
+    // Step 6 -> Step 7 (in offline/demo mode, clicking confirm transfer confirms instantly)
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đặt lịch/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Booking của bạn đã được xác nhận/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // Button in PAGE mode must say "Về trang chủ"
+    const homeBtn = screen.getByRole('button', { name: /Về trang chủ/i });
+    expect(homeBtn).toBeInTheDocument();
+    fireEvent.click(homeBtn);
+
+    expect(onFinishMock).toHaveBeenCalledTimes(1);
+    expect(onCloseMock).not.toHaveBeenCalled();
+  });
+
+  it('calls onClose in MODAL mode when clicking confirmation button', async () => {
+    const onCloseMock = vi.fn();
+
+    const validDraft = {
+      serviceId: VALID_SERVICE_ID,
+      packageId: VALID_PACKAGE_ID,
+      conceptIds: [VALID_CONCEPT_ID],
+      studioId: VALID_STUDIO_ID,
+      date: '2026-11-26',
+      timeSlot: '15:30',
+      customerName: 'Hoàng Lan',
+      customerPhone: '0988 777 666',
+      customerEmail: 'hoanglan@example.com',
+    };
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(validDraft));
+
+    renderWithAuth(
+      <BookingWizard
+        {...defaultProps}
+        presentation="MODAL"
+        onClose={onCloseMock}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
+    });
+
+    // Step 5 -> Step 6
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+    });
+
+    // Step 6 -> Step 7
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đặt lịch/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Booking của bạn đã được xác nhận/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // Button in MODAL mode must say "Đóng"
+    const closeButtons = screen.getAllByRole('button', { name: /Đóng/i });
+    const modalConfirmBtn = closeButtons.find(b => b.classList.contains('public-btn-primary')) || closeButtons[0];
+    expect(modalConfirmBtn).toHaveTextContent('Đóng');
+    fireEvent.click(modalConfirmBtn);
+
+    expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
 });

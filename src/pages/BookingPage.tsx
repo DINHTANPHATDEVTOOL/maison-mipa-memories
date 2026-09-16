@@ -7,7 +7,7 @@
 // - No duplicate booking wizard modals
 // ==============================================================================
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Home, ShieldCheck, UserCheck } from 'lucide-react';
 import { BookingWizard } from '../components/booking/BookingWizard';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
@@ -26,6 +26,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   existingBookings,
   onOpenAuthModal,
 }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialConceptSlug = searchParams.get('concept') || undefined;
@@ -140,6 +141,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         isOpen={true}
         presentation="PAGE"
         onClose={() => {}}
+        onFinish={() => navigate('/')}
         onBookingSuccess={onBookingSuccess}
         existingBookings={existingBookings}
         initialConceptSlug={initialConceptSlug}

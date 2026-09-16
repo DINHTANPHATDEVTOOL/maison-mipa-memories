@@ -81,9 +81,20 @@ test.describe('Visual Commerce Review Screenshot Suite', () => {
       path: path.join(REVIEW_DIR, 'desktop_pricing.png'),
     });
 
-    // 6. Desktop: Collection detail
-    await page.goto('/portfolio/parisian-romance');
+    // 6. Desktop: Collection detail (valid published demo collection)
+    await page.goto('/portfolio/parisian-romance-autumn');
     await page.waitForLoadState('domcontentloaded');
+
+    const collectionHeading = page.locator('h1');
+    await expect(collectionHeading).toBeVisible();
+    await expect(collectionHeading).toContainText('Parisian Romance');
+    await expect(page.getByText(/Bộ sưu tập không khả dụng/i)).toHaveCount(0);
+
+    const galleryItems = page.locator('.photo-essay-container button.photo-essay-item, .photo-essay-container img');
+    await expect(galleryItems.first()).toBeVisible();
+    const galleryCount = await galleryItems.count();
+    expect(galleryCount).toBeGreaterThan(0);
+
     await page.waitForTimeout(600);
     await page.screenshot({
       path: path.join(REVIEW_DIR, 'desktop_collection_detail.png'),
