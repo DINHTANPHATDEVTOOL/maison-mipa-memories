@@ -8,6 +8,7 @@ import React from 'react';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { createBookingInMemory, BookingValidationError, resetInMemoryBookings } from '../bookingService';
+import { validatePromotion } from '../pricingService';
 import { INITIAL_SERVICES, INITIAL_PACKAGES, INITIAL_STUDIO_ROOMS, INITIAL_ADDONS } from '../../mockData';
 
 vi.mock('../../lib/supabase', async (importOriginal) => {
@@ -207,4 +208,72 @@ describe('PR #24 Semantic Parity Pass: Promotion State Parity', () => {
       });
     }).toThrow(/không tồn tại hoặc không hợp lệ/i);
   });
+
+  it('9. Rejects promotion with usageLimit=0 and usageCount=0 (exhausted parity)', () => {
+    const promo = {
+      id: 'p-zero',
+      code: 'ZERO_LIMIT',
+      discountPercent: 10,
+      minOrder: 0,
+      startDate: '',
+      endDate: '',
+      usageLimit: 0,
+      usageCount: 0,
+      isActive: true,
+    };
+    const result = validatePromotion(promo, 2000000);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/hết lượt sử dụng/i);
+  });
+
+  it('10. Accepts promotion with usageLimit=1 and usageCount=0 (unused valid)', () => {
+    const promo = {
+      id: 'p-one',
+      code: 'ONE_LIMIT',
+      discountPercent: 10,
+      minOrder: 0,
+      startDate: '',
+      endDate: '',
+      usageLimit: 1,
+      usageCount: 0,
+      isActive: true,
+    };
+    const result = validatePromotion(promo, 2000000);
+    expect(result.valid).toBe(true);
+  });
+
+  it('11. Rejects promotion with usageLimit=1 and usageCount=1 (exhausted valid)', () => {
+    const promo = {
+      id: 'p-one-used',
+      code: 'ONE_USED',
+      discountPercent: 10,
+      minOrder: 0,
+      startDate: '',
+      endDate: '',
+      usageLimit: 1,
+      usageCount: 1,
+      isActive: true,
+    };
+    const result = validatePromotion(promo, 2000000);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/hết lượt sử dụng/i);
+  });
+
+  it('12. Rejects promotion with negative usageLimit=-1 (invalid configuration)', () => {
+    const promo = {
+      id: 'p-neg',
+      code: 'NEG_LIMIT',
+      discountPercent: 10,
+      minOrder: 0,
+      startDate: '',
+      endDate: '',
+      usageLimit: -1,
+      usageCount: 0,
+      isActive: true,
+    };
+    const result = validatePromotion(promo, 2000000);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/không hợp lệ/i);
+  });
 });
+

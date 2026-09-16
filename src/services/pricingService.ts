@@ -111,10 +111,20 @@ export function validatePromotion(
     }
   }
 
-  if (typeof promo.usageLimit === 'number' && promo.usageLimit > 0) {
+  if (typeof promo.usageLimit === 'number') {
+    if (promo.usageLimit < 0) {
+      return {
+        valid: false,
+        error: 'Mã ưu đãi có giới hạn sử dụng không hợp lệ.',
+      };
+    }
+
     const count = typeof promo.usageCount === 'number' ? promo.usageCount : 0;
     if (count >= promo.usageLimit) {
-      return { valid: false, error: 'Mã ưu đãi đã hết lượt sử dụng.' };
+      return {
+        valid: false,
+        error: 'Mã ưu đãi đã hết lượt sử dụng.',
+      };
     }
   }
 

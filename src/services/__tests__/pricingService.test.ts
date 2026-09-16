@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculatePricing } from '../pricingService';
+import { calculatePricing, validatePromotion } from '../pricingService';
 
 describe('Pricing Engine (Single Source of Truth)', () => {
   const basePackage = {
@@ -135,3 +135,59 @@ describe('Pricing Engine (Single Source of Truth)', () => {
     expect(result.depositAmount).toBe(0);
   });
 });
+
+describe('Promotion Validation Usage Limit Parity', () => {
+  const basePromo = {
+    id: 'p1',
+    code: 'TESTPROMO',
+    discountPercent: 10,
+    minOrder: 0,
+    startDate: '',
+    endDate: '',
+    isActive: true,
+  };
+
+  it('usageLimit=0, usageCount=0 -> INVALID', () => {
+    const result = validatePromotion({
+      ...basePromo,
+      usageLimit: 0,
+      usageCount: 0,
+    }, 1000000);
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/hết lượt sử dụng/i);
+  });
+
+  it('usageLimit=1, usageCount=0 -> VALID', () => {
+    const result = validatePromotion({
+      ...basePromo,
+      usageLimit: 1,
+      usageCount: 0,
+    }, 1000000);
+
+    expect(result.valid).toBe(true);
+  });
+
+  it('usageLimit=1, usageCount=1 -> INVALID', () => {
+    const result = validatePromotion({
+      ...basePromo,
+      usageLimit: 1,
+      usageCount: 1,
+    }, 1000000);
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/hết lượt sử dụng/i);
+  });
+
+  it('usageLimit=-1 -> INVALID', () => {
+    const result = validatePromotion({
+      ...basePromo,
+      usageLimit: -1,
+      usageCount: 0,
+    }, 1000000);
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/không hợp lệ/i);
+  });
+});
+

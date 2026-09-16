@@ -121,7 +121,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [promotionsLoadError, setPromotionsLoadError] = useState<string | null>(null);
   const [appliedPromotion, setAppliedPromotion] = useState<Promotion | null>(null);
-  const [selectedConcepts, setSelectedConcepts] = useState<Concept[]>(demoMode ? [DEMO_CONCEPTS[0]] : []);
+  const [selectedConcepts, setSelectedConcepts] = useState<Concept[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState<boolean>(!demoMode);
   const [catalogReady, setCatalogReady] = useState<boolean>(false);
   const [draftRestoreStatus, setDraftRestoreStatus] = useState<DraftRestoreStatus>('IDLE');
@@ -246,11 +246,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       })();
 
       if (!hasDraft) {
-        if (adds.length > 0) {
-          setSelectedAddons([adds[0]]);
-        } else {
-          setSelectedAddons([]);
-        }
+        setSelectedAddons([]);
       }
 
       if (stds.length > 0) {
@@ -336,16 +332,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedPackage(null);
       }
 
-      // 6. Concept selection
+      // 6. Concept selection (strictly empty unless explicit initialConceptSlug is provided)
       if (initialConceptSlug) {
         if (targetConcept) {
           setSelectedConcepts([targetConcept]);
         } else {
           setSelectedConcepts([]);
         }
-      } else if (targetService) {
-        const matchingConcepts = cncs.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === targetService.id));
-        setSelectedConcepts(matchingConcepts.length > 0 ? [matchingConcepts[0]] : []);
       } else {
         setSelectedConcepts([]);
       }
@@ -836,6 +829,43 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setErrorMessage(null);
   };
 
+  const refreshAndValidateAppliedPromotion = async (): Promise<{ success: boolean; refreshedPromo?: Promotion }> => {
+    if (!isVoucherApplied || !appliedPromotion) {
+      return { success: true };
+    }
+
+    let latestPromotions: Promotion[];
+    try {
+      latestPromotions = await getPromotions();
+      setPromotions(latestPromotions);
+    } catch (err) {
+      console.warn('Pre-submit promotion refresh failed:', err);
+      setErrorMessage('Không thể xác minh mã ưu đãi lúc này. Vui lòng thử lại hoặc gỡ mã để tiếp tục.');
+      return { success: false };
+    }
+
+    const rawCode = appliedPromotion.code.trim().toUpperCase();
+    const refreshed = latestPromotions.find(p => p.code.trim().toUpperCase() === rawCode);
+    if (!refreshed) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage('Mã ưu đãi không còn khả dụng.');
+      return { success: false };
+    }
+
+    const currentSubtotal = (selectedPackage?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+    const valResult = validatePromotion(refreshed, currentSubtotal, selectedService?.id);
+    if (!valResult.valid) {
+      setIsVoucherApplied(false);
+      setAppliedPromotion(null);
+      setErrorMessage(valResult.error || 'Mã ưu đãi không còn hợp lệ.');
+      return { success: false };
+    }
+
+    setAppliedPromotion(refreshed);
+    return { success: true, refreshedPromo: refreshed };
+  };
+
   const maxConcepts = selectedPackage?.conceptsCount || 1;
 
   const handleToggleConcept = (cnc: Concept) => {
@@ -959,6 +989,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         return;
       }
 
+      // Pre-submit promotion refresh and authoritative verification
+      let refreshedVoucherCode: string | undefined;
+      if (isVoucherApplied && appliedPromotion) {
+        const promoCheck = await refreshAndValidateAppliedPromotion();
+        if (!promoCheck.success) {
+          setIsSubmitting(false);
+          return;
+        }
+        refreshedVoucherCode = promoCheck.refreshedPromo?.code;
+      }
+
       const payload = {
         serviceId: selectedService.id,
         packageId: selectedPackage.id,
@@ -967,7 +1008,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         timeSlot: selectedTimeSlot,
         addonIds: selectedAddons.map(a => a.id),
         conceptIds: selectedConcepts.map(c => c.id),
-        voucherCode: isVoucherApplied && appliedPromotion ? appliedPromotion.code : undefined,
+        voucherCode: refreshedVoucherCode,
         customerName,
         customerPhone,
         customerEmail,
@@ -2091,7 +2132,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--editorial-text-secondary)' }}>Concept:</span>
-                      <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Tùy chọn (Không yêu cầu)'}</strong>
+                      <strong>{selectedConcepts.length > 0 ? selectedConcepts.map(c => c.name).join(', ') : 'Không chọn'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--editorial-text-secondary)' }}>Dịch vụ kèm theo:</span>
