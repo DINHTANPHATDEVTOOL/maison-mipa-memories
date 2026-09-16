@@ -57,13 +57,12 @@ describe('CORE PRODUCTION HARDENING — NON-PAYMENT TEST SUITE', () => {
       ).rejects.toThrow(AvailabilityUnavailableError);
     });
 
-    it('2. RPC null / malformed result throws AvailabilityUnavailableError', async () => {
+    it('2a. RPC non-array result throws AvailabilityUnavailableError', async () => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
       vi.mocked(isDemoModeEnabled).mockReturnValue(false);
 
-      // Malformed result (not an array)
       vi.mocked(supabase.rpc).mockResolvedValue({
-        data: 'malformed_result' as any,
+        data: 'not-array' as any,
         error: null,
       } as any);
 
@@ -73,7 +72,102 @@ describe('CORE PRODUCTION HARDENING — NON-PAYMENT TEST SUITE', () => {
           studioId: validStudioUuid,
           durationMinutes: 60,
         })
-      ).rejects.toThrow(AvailabilityUnavailableError);
+      ).rejects.toThrow('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    });
+
+    it('2b. RPC data containing null row throws AvailabilityUnavailableError', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(isDemoModeEnabled).mockReturnValue(false);
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [null] as any,
+        error: null,
+      } as any);
+
+      await expect(
+        getAvailableSlots({
+          date: '2026-12-01',
+          studioId: validStudioUuid,
+          durationMinutes: 60,
+        })
+      ).rejects.toThrow('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    });
+
+    it('2c. RPC data containing null start_at or end_at throws AvailabilityUnavailableError', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(isDemoModeEnabled).mockReturnValue(false);
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [{ start_at: null, end_at: null }] as any,
+        error: null,
+      } as any);
+
+      await expect(
+        getAvailableSlots({
+          date: '2026-12-01',
+          studioId: validStudioUuid,
+          durationMinutes: 60,
+        })
+      ).rejects.toThrow('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    });
+
+    it('2d. RPC data containing invalid non-date timestamps throws AvailabilityUnavailableError', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(isDemoModeEnabled).mockReturnValue(false);
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [{ start_at: 'bad', end_at: 'bad' }] as any,
+        error: null,
+      } as any);
+
+      await expect(
+        getAvailableSlots({
+          date: '2026-12-01',
+          studioId: validStudioUuid,
+          durationMinutes: 60,
+        })
+      ).rejects.toThrow('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    });
+
+    it('2e. RPC data where end_at <= start_at throws AvailabilityUnavailableError', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(isDemoModeEnabled).mockReturnValue(false);
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [{ start_at: '2026-12-01T14:00:00Z', end_at: '2026-12-01T13:00:00Z' }] as any,
+        error: null,
+      } as any);
+
+      await expect(
+        getAvailableSlots({
+          date: '2026-12-01',
+          studioId: validStudioUuid,
+          durationMinutes: 60,
+        })
+      ).rejects.toThrow('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    });
+
+    it('2f. RPC data with valid booked row marks overlapping slots BOOKED correctly', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(isDemoModeEnabled).mockReturnValue(false);
+
+      // Booked from 10:00 to 12:00 VN time (03:00 to 05:00 UTC)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [{ start_at: '2026-12-01T03:00:00Z', end_at: '2026-12-01T05:00:00Z' }] as any,
+        error: null,
+      } as any);
+
+      const slots = await getAvailableSlots({
+        date: '2026-12-01',
+        studioId: validStudioUuid,
+        durationMinutes: 60,
+      });
+
+      expect(slots.length).toBeGreaterThan(0);
+      const slot1000 = slots.find(s => s.time === '10:00');
+      expect(slot1000?.status).toBe('BOOKED');
+      const slot1400 = slots.find(s => s.time === '14:00');
+      expect(slot1400?.status).toBe('AVAILABLE');
     });
 
     it('3. Studio slug lookup error throws and fails closed', async () => {

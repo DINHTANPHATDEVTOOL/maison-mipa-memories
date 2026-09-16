@@ -119,6 +119,7 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    resetInMemoryBookings();
   });
 
   it('restores valid service, package, concept, addons, studio, date, time and clears sessionStorage', async () => {
@@ -154,7 +155,16 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
     expect(screen.getByDisplayValue('hoanglan@example.com')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Nến và hoa')).toBeInTheDocument();
 
-    // Session draft consumed only after successful authoritative restoration
+    // Draft is retained on Step 5 before booking creation
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
+
+    // Advance to Step 6 (creates booking)
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+    });
+
+    // Session draft consumed only after successful booking creation
     expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
   });
 
@@ -201,7 +211,8 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
       expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
+    // Draft is retained on Step 5
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
   });
 
   it('rejects draft when studio does not exist and returns to Step 3', async () => {
@@ -244,8 +255,8 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
       expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    // Unknown addon was safely ignored, valid addon was restored
-    expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
+    // Unknown addon was safely ignored, valid addon was restored, draft retained on Step 5
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
   });
 
   it('rejects draft when restored date is in the past and returns to Step 3 without consuming draft', async () => {

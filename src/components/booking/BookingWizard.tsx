@@ -7,7 +7,7 @@ import type { ServiceCategory, PackageItem, Addon, StudioRoom, Booking, Concept,
 import { INITIAL_SERVICES, INITIAL_PACKAGES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS } from '../../mockData';
 import { getServices, getPackages, getAddons, getStudioRooms, getPromotions } from '../../services/catalogService';
 import { getPublicConcepts, DEMO_CONCEPTS } from '../../services/portfolioService';
-import { getAvailableSlots, getAvailableSlotsSync, AvailabilityUnavailableError, type TimeSlot } from '../../services/availabilityService';
+import { getAvailableSlots, getAvailableSlotsSync, type TimeSlot } from '../../services/availabilityService';
 import { isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
 import { calculatePricing, validatePromotion } from '../../services/pricingService';
 import { createBooking, createBookingInMemory, BookingConflictError } from '../../services/bookingService';
@@ -108,6 +108,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const draftSlotRejectedRef = useRef<boolean>(false);
   const userSlotChoiceClearedRef = useRef<boolean>(false);
   const availabilityRequestIdRef = useRef<number>(0);
+  const draftRestoredRef = useRef<boolean>(false);
 
   // Catalog State (Dynamic from Catalog Service with initial fallback)
   const demoMode = !isSupabaseConfigured() && isDemoModeEnabled();
@@ -376,6 +377,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   // Restore guest booking draft from sessionStorage after authentication
   // STRICT: Waits for catalogReady && !isLoadingCatalog. Validates all IDs and availability authoritatively.
   useEffect(() => {
+    if (draftRestoredRef.current) {
+      return;
+    }
+
     if (!catalogReady || isLoadingCatalog) {
       if (typeof window !== 'undefined' && sessionStorage.getItem('mipa_pending_booking')) {
         setDraftRestoreStatus('WAITING_CATALOG');
@@ -580,10 +585,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         draftSlotRejectedRef.current = false;
         userSlotChoiceClearedRef.current = false;
 
-        // 9. Full successful restoration: advance to Step 5, mark RESTORED, and consume draft
+        // 9. Full successful restoration: advance to Step 5 and mark RESTORED
+        draftRestoredRef.current = true;
         setStep(5);
         setDraftRestoreStatus('RESTORED');
-        sessionStorage.removeItem('mipa_pending_booking');
       } catch (e) {
         console.warn('Could not restore pending booking draft:', e);
         if (!isCancelled) {
@@ -763,6 +768,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       unsubscribe();
     };
   }, [isOpen, currentPayment?.id, createdBooking, onBookingSuccess]);
+
+  const consumePendingBookingDraft = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('mipa_pending_booking');
+      }
+    } catch (err) {
+      console.warn('Could not remove pending booking draft from sessionStorage:', err);
+    }
+    draftRestoredRef.current = true;
+    setDraftRestoreStatus('RESTORED');
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -947,6 +964,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       if (!isSupabaseConfigured()) {
         const newBooking = createBookingInMemory(payload);
         setCreatedBooking(newBooking);
+        consumePendingBookingDraft();
         const payment = createDepositPaymentSync(newBooking.id, 'BANK_TRANSFER');
         setCurrentPayment(payment);
         setStep(6);
@@ -955,6 +973,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       const newBooking = await createBooking(payload);
       setCreatedBooking(newBooking);
+      consumePendingBookingDraft();
 
       // Trigger asynchronous confirmation email dispatch in background
       dispatchBookingEmail(newBooking.id).catch((dispatchErr) => {

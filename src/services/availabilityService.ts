@@ -286,15 +286,23 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
   }
 
   if (!Array.isArray(data)) {
-    throw new AvailabilityUnavailableError('Phản hồi lịch trống từ máy chủ không hợp lệ.');
+    throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
   }
 
-  bookedRanges = data
-    .map((b: { start_at: string; end_at: string }) => ({
-      startMs: new Date(b.start_at).getTime(),
-      endMs: new Date(b.end_at).getTime(),
-    }))
-    .filter(r => !isNaN(r.startMs) && !isNaN(r.endMs));
+  for (const row of data) {
+    if (!row || typeof row !== 'object') {
+      throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    }
+    if (!row.start_at || !row.end_at) {
+      throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    }
+    const startMs = new Date(row.start_at).getTime();
+    const endMs = new Date(row.end_at).getTime();
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+      throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    }
+    bookedRanges.push({ startMs, endMs });
+  }
 
   // 2. Also incorporate any local in-memory bookings passed in params
   if (existingBookings && existingBookings.length > 0) {

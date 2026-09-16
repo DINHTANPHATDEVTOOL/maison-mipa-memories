@@ -23,6 +23,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260911000009_sync_staff_profiles_to_employees.sql',
     '20260911000010_seed_and_enhance_employees_table.sql',
     '20260916000001_fix_create_booking_promotion_contract.sql',
+    '20260916000002_atomic_promotion_and_pricing_parity.sql',
   ];
 
   const EXPECTED_TABLES = [

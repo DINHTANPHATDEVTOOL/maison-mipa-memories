@@ -101,7 +101,16 @@ describe('Guest Booking Funnel & Selection Preservation', () => {
       expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    // Verify draft was consumed from sessionStorage
+    // Verify draft is retained on Step 5 before booking creation
+    expect(sessionStorage.getItem('mipa_pending_booking')).not.toBeNull();
+
+    // Advance to Step 6 (creates booking)
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+    });
+
+    // Verify draft was consumed from sessionStorage after booking creation
     expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
   });
 });

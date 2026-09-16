@@ -5,7 +5,7 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthProvider, useAuth } from '../AuthContext';
-import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
+import { supabase, isDemoModeEnabled } from '../../lib/supabase';
 import type { DatabaseRole } from '../../types/database';
 
 // Mock Supabase Client methods
@@ -24,6 +24,7 @@ vi.mock('../../lib/supabase', async (importOriginal) => {
         onAuthStateChange: vi.fn(),
       },
       from: vi.fn(),
+      rpc: vi.fn(),
     },
   };
 });
@@ -507,8 +508,8 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
     expect(supabase.auth.signOut).toHaveBeenCalled();
   });
 
-  it('13. ADMIN user refreshProfile error clears stale ADMIN role state', async () => {
-    const adminUser = { id: 'admin_123', email: 'admin@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+  it('13. ADMIN and root owner user refreshProfile error clears all privilege state fail-closed', async () => {
+    const adminUser = { id: 'admin_owner_123', email: 'owner@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     const adminSession = { user: adminUser, access_token: 'admin-jwt' };
 
     (supabase.auth.getSession as any).mockResolvedValue({
@@ -516,12 +517,18 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
       error: null,
     });
 
-    // 1st call: profile succeeds as ADMIN
+    // Root owner RPC mock returns true initially
+    (supabase.rpc as any).mockResolvedValue({
+      data: true,
+      error: null,
+    });
+
+    // 1st call: profile succeeds as ADMIN with root owner
     const singleMock = vi.fn().mockResolvedValueOnce({
       data: {
-        id: 'admin_123',
-        email: 'admin@maisonmipa.vn',
-        full_name: 'Quản Trị Viên',
+        id: 'admin_owner_123',
+        email: 'owner@maisonmipa.vn',
+        full_name: 'Studio Root Owner',
         role: 'ADMIN' as DatabaseRole,
         status: 'ACTIVE',
       },
@@ -538,8 +545,10 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.role).toBe('ADMIN'));
+    expect(result.current.isRootOwner).toBe(true);
+    expect(result.current.session).not.toBeNull();
 
-    // 2nd call (refreshProfile): profile fetch fails
+    // 2nd call (refreshProfile): profile fetch fails with DB error
     singleMock.mockResolvedValueOnce({
       data: null,
       error: { message: 'DB connection lost during refresh', code: 'PGRST500' },
@@ -549,13 +558,120 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
       await result.current.refreshProfile();
     });
 
-    // Stale ADMIN state MUST NOT be retained
+    // Fail closed: ALL privilege and session state MUST be cleared
     expect(result.current.user).toBeNull();
+    expect(result.current.session).toBeNull();
+    expect(result.current.isRootOwner).toBe(false);
     expect(result.current.role).toBe('GUEST');
     expect(result.current.authError).toContain('Không thể tải hồ sơ tài khoản');
+
+    // Hard invariant: user === null && isRootOwner === true must NEVER be true
+    expect(result.current.user === null && result.current.isRootOwner === true).toBe(false);
   });
 
-  it('14. Demo mode allows demo login successfully', async () => {
+  it('14. Root owner refreshProfile with missing profile (PGRST116) fails closed and clears privileges', async () => {
+    const ownerUser = { id: 'owner_missing_123', email: 'owner.missing@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+    const ownerSession = { user: ownerUser, access_token: 'owner-jwt' };
+
+    (supabase.auth.getSession as any).mockResolvedValue({
+      data: { session: ownerSession },
+      error: null,
+    });
+
+    (supabase.rpc as any).mockResolvedValue({
+      data: true,
+      error: null,
+    });
+
+    const singleMock = vi.fn().mockResolvedValueOnce({
+      data: {
+        id: 'owner_missing_123',
+        email: 'owner.missing@maisonmipa.vn',
+        full_name: 'Owner Initial',
+        role: 'ADMIN' as DatabaseRole,
+        status: 'ACTIVE',
+      },
+      error: null,
+    });
+
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: singleMock,
+        }),
+      }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isRootOwner).toBe(true));
+
+    // Profile missing on refresh
+    singleMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Row not found', code: 'PGRST116' },
+    });
+
+    await act(async () => {
+      await result.current.refreshProfile();
+    });
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.session).toBeNull();
+    expect(result.current.isRootOwner).toBe(false);
+    expect(result.current.role).toBe('GUEST');
+    expect(supabase.auth.signOut).toHaveBeenCalled();
+  });
+
+  it('15. Normal READY profile refresh preserves correct role and root owner status', async () => {
+    const activeUser = { id: 'active_owner_999', email: 'active.owner@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+    const activeSession = { user: activeUser, access_token: 'active-jwt' };
+
+    (supabase.auth.getSession as any).mockResolvedValue({
+      data: { session: activeSession },
+      error: null,
+    });
+
+    (supabase.rpc as any).mockResolvedValue({
+      data: true,
+      error: null,
+    });
+
+    const singleMock = vi.fn().mockResolvedValue({
+      data: {
+        id: 'active_owner_999',
+        email: 'active.owner@maisonmipa.vn',
+        full_name: 'Active Owner',
+        role: 'ADMIN' as DatabaseRole,
+        status: 'ACTIVE',
+      },
+      error: null,
+    });
+
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: singleMock,
+        }),
+      }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.role).toBe('ADMIN'));
+    expect(result.current.isRootOwner).toBe(true);
+
+    // Refresh profile with valid data
+    await act(async () => {
+      await result.current.refreshProfile();
+    });
+
+    expect(result.current.user).not.toBeNull();
+    expect(result.current.user?.fullName).toBe('Active Owner');
+    expect(result.current.role).toBe('ADMIN');
+    expect(result.current.isRootOwner).toBe(true);
+    expect(result.current.session).toBe(activeSession);
+  });
+
+  it('16. Demo mode continues working successfully', async () => {
     vi.mocked(isDemoModeEnabled).mockReturnValue(true);
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
