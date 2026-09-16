@@ -82,8 +82,8 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.getByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i }).click();
 
     // Step 7: Confirmation receipt
-    await expect(page.locator('text=Booking Của Bạn Đã Xác Nhận!')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=MÃ BOOKING NỘI BỘ')).toBeVisible();
+    await expect(page.locator('text=Booking của bạn đã được xác nhận!')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Mã booking')).toBeVisible();
     await expect(page.locator('text=MIPA-26').first()).toBeVisible();
   });
 

@@ -120,10 +120,32 @@ function AppContent() {
 
   const handleAuthSuccess = (user: User) => {
     setIsAuthModalOpen(false);
-    if (user.role === 'CUSTOMER') navigate('/account');
-    else if (user.role === 'STAFF') navigate('/staff');
-    else if (user.role === 'MANAGER') navigate('/management');
-    else if (user.role === 'ADMIN') navigate('/admin');
+    if (user.role === 'CUSTOMER') {
+      let hasPendingBooking = false;
+      try {
+        const raw = sessionStorage.getItem('mipa_pending_booking');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            hasPendingBooking = true;
+          }
+        }
+      } catch {
+        hasPendingBooking = false;
+      }
+
+      if (hasPendingBooking) {
+        navigate('/booking?resume=1');
+      } else {
+        navigate('/account');
+      }
+    } else if (user.role === 'STAFF') {
+      navigate('/staff');
+    } else if (user.role === 'MANAGER') {
+      navigate('/management');
+    } else if (user.role === 'ADMIN') {
+      navigate('/admin');
+    }
   };
 
   const handleLogout = async () => {

@@ -76,10 +76,10 @@ describe('Guest Booking Funnel & Selection Preservation', () => {
 
   it('restores preserved draft from sessionStorage when component mounts', async () => {
     const draftData = {
-      serviceId: 'srv-couple',
-      packageId: 'pkg-couple-lumiere',
-      conceptIds: ['concept-parisian-romance'],
-      studioId: 'std-haussmann',
+      serviceId: 'c0000000-0000-0000-0000-000000000001',
+      packageId: 'd0000000-0000-0000-0000-000000000001',
+      conceptIds: ['c1000000-0000-0000-0000-000000000001'],
+      studioId: 'f0000000-0000-0000-0000-000000000001',
       date: '2026-11-20',
       timeSlot: '15:30',
       customerName: 'Hoàng Lan',

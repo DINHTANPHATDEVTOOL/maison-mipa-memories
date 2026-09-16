@@ -36,7 +36,12 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
 
   // Subtle restrained entrance: image scale 1.03 -> 1.0, text reveal
   useEffect(() => {
-    if (prefersReduced || !heroRef.current) return;
+    if (!heroRef.current) return;
+
+    if (prefersReduced) {
+      heroRef.current.setAttribute('data-hero-ready', 'true');
+      return;
+    }
 
     const ctx = gsap.context(() => {
       if (imageRef.current) {
@@ -65,8 +70,17 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
             stagger: 0.12,
             ease: 'power3.out',
             delay: 0.2,
+            onComplete: () => {
+              if (heroRef.current) {
+                heroRef.current.setAttribute('data-hero-ready', 'true');
+              }
+            },
           }
         );
+      } else {
+        if (heroRef.current) {
+          heroRef.current.setAttribute('data-hero-ready', 'true');
+        }
       }
     }, heroRef);
 

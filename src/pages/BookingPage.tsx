@@ -32,8 +32,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   const initialServiceId = searchParams.get('service') || undefined;
   const initialPackageId = searchParams.get('package') || undefined;
 
-  const [isWizardOpen, setIsWizardOpen] = useState(true);
-
   const breadcrumbs = [
     { name: 'Trang chủ', url: getCanonicalUrl('/') },
     { name: 'Đặt lịch', url: getCanonicalUrl('/booking') },
@@ -135,24 +133,13 @@ export const BookingPage: React.FC<BookingPageProps> = ({
             </div>
           )}
         </div>
-
-        {!isWizardOpen && (
-          <div style={{ marginTop: '1.5rem' }}>
-            <button
-              onClick={() => setIsWizardOpen(true)}
-              className="public-btn-primary"
-              style={{ padding: '0.8rem 2rem' }}
-            >
-              Mở lại bảng đặt lịch
-            </button>
-          </div>
-        )}
       </header>
 
-      {/* Booking Wizard Component is ALWAYS accessible to both Guests and Authenticated Users */}
+      {/* Booking Wizard Component rendered in standalone PAGE presentation mode */}
       <BookingWizard
-        isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
+        isOpen={true}
+        presentation="PAGE"
+        onClose={() => {}}
         onBookingSuccess={onBookingSuccess}
         existingBookings={existingBookings}
         initialConceptSlug={initialConceptSlug}

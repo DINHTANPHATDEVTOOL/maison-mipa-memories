@@ -30,6 +30,7 @@ import type { PaymentRow } from '../../types/database';
 import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw, Copy, QrCode, LogIn } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dispatchBookingEmail } from '../../services/notificationService';
+import { EditorialImagePlaceholder } from '../public/EditorialImagePlaceholder';
 
 function getTodayVn(): string {
   try {
@@ -58,6 +59,9 @@ function getInitialBookingDate(): string {
   }
 }
 
+export type BookingPresentationMode = 'MODAL' | 'PAGE';
+export type DraftRestoreStatus = 'IDLE' | 'WAITING_CATALOG' | 'RESTORING' | 'RESTORED' | 'INVALID';
+
 interface BookingWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,6 +71,7 @@ interface BookingWizardProps {
   initialServiceId?: string;
   initialPackageId?: string;
   onRequireAuth?: (tab?: 'LOGIN' | 'REGISTER', msg?: string) => void;
+  presentation?: BookingPresentationMode;
 }
 
 export const BookingWizard: React.FC<BookingWizardProps> = ({
@@ -78,6 +83,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   initialServiceId,
   initialPackageId,
   onRequireAuth,
+  presentation = 'MODAL',
 }) => {
   const [step, setStep] = useState<number>(1);
 
@@ -91,6 +97,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [concepts, setConcepts] = useState<Concept[]>(demoMode ? DEMO_CONCEPTS : []);
   const [selectedConcepts, setSelectedConcepts] = useState<Concept[]>(demoMode ? [DEMO_CONCEPTS[0]] : []);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState<boolean>(!demoMode);
+  const [catalogReady, setCatalogReady] = useState<boolean>(false);
+  const [draftRestoreStatus, setDraftRestoreStatus] = useState<DraftRestoreStatus>('IDLE');
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   // Form State
@@ -147,11 +155,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Load catalog, concepts, and payment settings on mount
   const loadInitialData = useCallback(async () => {
-    if (!demoMode) {
-      setIsLoadingCatalog(true);
-      setCatalogError(null);
-      try {
-        const [srvs, pkgs, adds, stds, bank, cncs] = await Promise.all([
+    setIsLoadingCatalog(true);
+    setCatalogError(null);
+    setCatalogReady(false);
+    try {
+      let srvs: ServiceCategory[] = [];
+      let pkgs: PackageItem[] = [];
+      let adds: Addon[] = [];
+      let stds: StudioRoom[] = [];
+      let bank: BusinessBankConfig | null = null;
+      let cncs: Concept[] = [];
+
+      if (!demoMode) {
+        const [loadedSrvs, loadedPkgs, loadedAdds, loadedStds, loadedBank, loadedCncs] = await Promise.all([
           getServices(),
           getPackages(),
           getAddons(),
@@ -159,155 +175,158 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           getActivePaymentSettings(),
           getPublicConcepts(),
         ]);
+        srvs = loadedSrvs;
+        pkgs = loadedPkgs;
+        adds = loadedAdds;
+        stds = loadedStds;
+        bank = loadedBank;
+        cncs = loadedCncs;
+      } else {
+        srvs = INITIAL_SERVICES;
+        pkgs = INITIAL_PACKAGES;
+        adds = INITIAL_ADDONS;
+        stds = INITIAL_STUDIO_ROOMS;
+        cncs = DEMO_CONCEPTS;
+        bank = await getActivePaymentSettings();
+      }
 
-        setServices(srvs);
-        setPackages(pkgs);
-        setAddons(adds);
-        setStudios(stds);
-        setConcepts(cncs);
-        setActiveBankConfig(bank);
+      setServices(srvs);
+      setPackages(pkgs);
+      setAddons(adds);
+      setStudios(stds);
+      setConcepts(cncs);
+      setActiveBankConfig(bank);
 
+      // Default addons & studio (only if no pending draft in storage)
+      const hasDraft = (() => {
+        try {
+          return Boolean(sessionStorage.getItem('mipa_pending_booking'));
+        } catch {
+          return false;
+        }
+      })();
+
+      if (!hasDraft) {
         if (adds.length > 0) {
           setSelectedAddons([adds[0]]);
         } else {
           setSelectedAddons([]);
         }
+      }
 
-        if (stds.length > 0) {
-          setSelectedStudio(stds[0]);
+      if (stds.length > 0) {
+        setSelectedStudio(stds[0]);
+      } else {
+        setSelectedStudio(null);
+      }
+
+      let targetService: ServiceCategory | null = null;
+      let targetPackage: PackageItem | null = null;
+      let targetConcept: Concept | null = null;
+
+      // 1. Concept param validation
+      if (initialConceptSlug) {
+        const foundConcept = cncs.find(c => (c.slug === initialConceptSlug || c.id === initialConceptSlug) && c.active && c.bookable) || null;
+        if (!foundConcept) {
+          setErrorMessage('Concept được chọn không tồn tại hoặc đã ngừng cung cấp.');
+          targetConcept = null;
+          setSelectedConcepts([]);
         } else {
-          setSelectedStudio(null);
+          targetConcept = foundConcept;
         }
+      }
 
-        let targetService: ServiceCategory | null = null;
-        let targetPackage: PackageItem | null = null;
-        let targetConcept: Concept | null = null;
-
-        if (initialConceptSlug) {
-          targetConcept = cncs.find(c => c.slug === initialConceptSlug || c.id === initialConceptSlug) || null;
-        }
-
-        if (initialServiceId) {
-          targetService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId) || null;
-        }
-
-        if (initialPackageId) {
-          targetPackage = pkgs.find(p => p.id === initialPackageId || p.name === initialPackageId) || null;
-        }
-
-        // If concept was supplied and has a serviceId, validate or resolve service
-        if (targetConcept && targetConcept.serviceId) {
-          const conceptServiceId = targetConcept.serviceId;
-          const conceptService = srvs.find(s => s.id === conceptServiceId);
-          if (targetService) {
-            // Both service and concept provided - validate match
-            if (conceptServiceId !== targetService.id) {
-              setErrorMessage('Concept đã chọn không thuộc dịch vụ yêu cầu. Vui lòng chọn lại concept phù hợp.');
-              targetConcept = null;
-            }
-          } else if (conceptService) {
-            targetService = conceptService;
-          }
-        }
-
-        // If no service specified yet, default to first available
-        if (!targetService && srvs.length > 0) {
-          targetService = srvs[0];
-        }
-        setSelectedService(targetService);
-
-        // Validate Package
-        if (initialPackageId) {
-          if (targetPackage && targetService) {
-            const belongs = !targetPackage.serviceId || targetPackage.serviceId === targetService.id;
-            if (belongs) {
-              setSelectedPackage(targetPackage);
-              setPackageMismatchError(null);
-            } else {
-              // FAIL CLOSED: Mismatch! Do NOT switch service.
-              setPackageMismatchError('Gói chụp không thuộc dịch vụ đã chọn. Vui lòng chọn lại gói chụp phù hợp.');
-              setSelectedPackage(null);
-              setStep(2);
-            }
-          } else {
-            setPackageMismatchError('Gói chụp không tồn tại hoặc đã ngừng cung cấp. Vui lòng chọn gói chụp phù hợp.');
-            setSelectedPackage(null);
-            setStep(2);
-          }
-        } else if (targetService) {
-          const matching = pkgs.filter(p => !p.serviceId || p.serviceId === targetService.id);
-          setSelectedPackage(matching.find(p => p.recommended) || matching[0] || null);
-          setPackageMismatchError(null);
+      // 2. Service param validation
+      if (initialServiceId) {
+        const foundService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId) || null;
+        if (!foundService) {
+          setErrorMessage('Dịch vụ được chọn không còn khả dụng.');
+          targetService = null;
+          setStep(1);
         } else {
-          setSelectedPackage(null);
+          targetService = foundService;
         }
+      } else if (targetConcept && targetConcept.serviceId) {
+        // Service param absent: derive service from authoritative concept relation
+        const conceptService = srvs.find(s => s.id === targetConcept?.serviceId);
+        if (conceptService) {
+          targetService = conceptService;
+        }
+      }
 
-        // Validate Concept
-        if (targetConcept) {
-          setSelectedConcepts([targetConcept]);
-        } else if (targetService) {
-          const matchingConcepts = cncs.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === targetService.id));
-          setSelectedConcepts(matchingConcepts.length > 0 ? [matchingConcepts[0]] : []);
-        } else {
+      // 3. Service vs Concept conflict validation
+      if (initialServiceId && targetService && targetConcept && targetConcept.serviceId) {
+        if (targetConcept.serviceId !== targetService.id) {
+          setErrorMessage('Concept đã chọn không thuộc dịch vụ yêu cầu. Vui lòng chọn lại concept phù hợp.');
+          targetConcept = null;
           setSelectedConcepts([]);
         }
-
-      } catch (err) {
-        console.error('Failed to load booking catalog:', err);
-        setCatalogError('Không thể tải dữ liệu đặt lịch. Vui lòng thử lại.');
-        setServices([]);
-        setPackages([]);
-        setAddons([]);
-        setStudios([]);
-        setConcepts([]);
-        setSelectedService(null);
-        setSelectedPackage(null);
-        setSelectedStudio(null);
-        setSelectedConcepts([]);
-      } finally {
-        setIsLoadingCatalog(false);
       }
-    } else {
-      // Demo mode
-      const bank = await getActivePaymentSettings();
-      setActiveBankConfig(bank);
-      let targetService: ServiceCategory | null = INITIAL_SERVICES[0];
-      if (initialServiceId) {
-        const match = INITIAL_SERVICES.find(s => s.id === initialServiceId || s.slug === initialServiceId);
-        if (match) targetService = match;
+
+      // If no explicit service param and no concept derived service, default to first available
+      if (!initialServiceId && !targetService && srvs.length > 0) {
+        targetService = srvs[0];
       }
       setSelectedService(targetService);
 
+      // 4. Package param validation
       if (initialPackageId) {
-        const requestedPkg = INITIAL_PACKAGES.find(p => p.id === initialPackageId || p.name === initialPackageId);
-        if (requestedPkg && targetService) {
-          const belongs = !requestedPkg.serviceId || requestedPkg.serviceId === targetService.id;
+        const foundPackage = pkgs.find(p => p.id === initialPackageId || p.name === initialPackageId) || null;
+        if (foundPackage && targetService) {
+          const belongs = !foundPackage.serviceId || foundPackage.serviceId === targetService.id;
           if (belongs) {
-            setSelectedPackage(requestedPkg);
+            targetPackage = foundPackage;
+            setSelectedPackage(targetPackage);
             setPackageMismatchError(null);
           } else {
+            // FAIL CLOSED: Mismatch! Do NOT switch service.
             setPackageMismatchError('Gói chụp không thuộc dịch vụ đã chọn. Vui lòng chọn lại gói chụp phù hợp.');
             setSelectedPackage(null);
             setStep(2);
           }
-        } else if (!requestedPkg) {
+        } else {
           setPackageMismatchError('Gói chụp không tồn tại hoặc đã ngừng cung cấp. Vui lòng chọn gói chụp phù hợp.');
           setSelectedPackage(null);
           setStep(2);
         }
       } else if (targetService) {
-        const matching = INITIAL_PACKAGES.filter(p => !p.serviceId || p.serviceId === targetService.id);
-        setSelectedPackage(matching.find(p => p.recommended) || matching[0] || INITIAL_PACKAGES[0]);
+        const matching = pkgs.filter(p => !p.serviceId || p.serviceId === targetService.id);
+        setSelectedPackage(matching.find(p => p.recommended) || matching[0] || null);
+        setPackageMismatchError(null);
+      } else {
+        setSelectedPackage(null);
       }
 
+      // 5. Concept selection
       if (initialConceptSlug) {
-        const match = DEMO_CONCEPTS.find(c => c.slug === initialConceptSlug);
-        if (match) {
-          setSelectedConcepts([match]);
-          const matchedSrv = INITIAL_SERVICES.find(s => s.id === match.serviceId);
-          if (matchedSrv) setSelectedService(matchedSrv);
+        if (targetConcept) {
+          setSelectedConcepts([targetConcept]);
+        } else {
+          setSelectedConcepts([]);
         }
+      } else if (targetService) {
+        const matchingConcepts = cncs.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === targetService.id));
+        setSelectedConcepts(matchingConcepts.length > 0 ? [matchingConcepts[0]] : []);
+      } else {
+        setSelectedConcepts([]);
       }
+
+      setCatalogReady(true);
+    } catch (err) {
+      console.error('Failed to load booking catalog:', err);
+      setCatalogError('Không thể tải dữ liệu đặt lịch. Vui lòng thử lại.');
+      setServices([]);
+      setPackages([]);
+      setAddons([]);
+      setStudios([]);
+      setConcepts([]);
+      setSelectedService(null);
+      setSelectedPackage(null);
+      setSelectedStudio(null);
+      setSelectedConcepts([]);
+      setCatalogReady(false);
+    } finally {
+      setIsLoadingCatalog(false);
     }
   }, [demoMode, initialConceptSlug, initialServiceId, initialPackageId]);
 
@@ -316,42 +335,137 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   }, [loadInitialData]);
 
   // Restore guest booking draft from sessionStorage after authentication
+  // STRICT: Waits for catalogReady && !isLoadingCatalog. Validates all IDs authoritatively.
   useEffect(() => {
+    if (!catalogReady || isLoadingCatalog) {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('mipa_pending_booking')) {
+        setDraftRestoreStatus('WAITING_CATALOG');
+      }
+      return;
+    }
+
     try {
       const saved = sessionStorage.getItem('mipa_pending_booking');
-      if (saved) {
-        const draft = JSON.parse(saved);
-        if (draft.serviceId) {
-          const s = services.find(x => x.id === draft.serviceId);
-          if (s) setSelectedService(s);
-        }
-        if (draft.packageId) {
-          const p = packages.find(x => x.id === draft.packageId);
-          if (p) setSelectedPackage(p);
-        }
-        if (draft.conceptIds && Array.isArray(draft.conceptIds)) {
-          const matched = concepts.filter(c => draft.conceptIds.includes(c.id));
-          if (matched.length > 0) setSelectedConcepts(matched);
-        }
-        if (draft.studioId) {
-          const std = studios.find(x => x.id === draft.studioId);
-          if (std) setSelectedStudio(std);
-        }
-        if (draft.date) setSelectedDate(draft.date);
-        if (draft.timeSlot) setSelectedTimeSlot(draft.timeSlot);
-        if (draft.occasion) setOccasion(draft.occasion);
-        if (draft.customerNote) setCustomerNote(draft.customerNote);
-        if (draft.voucherCode) {
-          setVoucherCode(draft.voucherCode);
-          setIsVoucherApplied(true);
-        }
-        setStep(5);
-        sessionStorage.removeItem('mipa_pending_booking');
+      if (!saved) {
+        setDraftRestoreStatus('IDLE');
+        return;
       }
+
+      setDraftRestoreStatus('RESTORING');
+      const draft = JSON.parse(saved);
+      if (!draft || typeof draft !== 'object') {
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+
+      // 1. Validate service
+      if (!draft.serviceId) {
+        setDraftRestoreStatus('INVALID');
+        setStep(1);
+        setErrorMessage('Một số lựa chọn trước đó không còn khả dụng. Vui lòng chọn lại dịch vụ.');
+        return;
+      }
+      const s = services.find(x => x.id === draft.serviceId || x.slug === draft.serviceId);
+      if (!s) {
+        setSelectedService(null);
+        setSelectedPackage(null);
+        setSelectedConcepts([]);
+        setSelectedStudio(null);
+        setStep(1);
+        setErrorMessage('Một số lựa chọn trước đó không còn khả dụng. Vui lòng chọn lại dịch vụ.');
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+      setSelectedService(s);
+
+      // 2. Validate package & relationship to service
+      if (!draft.packageId) {
+        setSelectedPackage(null);
+        setSelectedConcepts([]);
+        setStep(2);
+        setErrorMessage('Gói chụp trước đó không còn phù hợp với dịch vụ đã chọn.');
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+      const p = packages.find(x => x.id === draft.packageId || x.name === draft.packageId);
+      if (!p || (p.serviceId && p.serviceId !== s.id)) {
+        setSelectedPackage(null);
+        setSelectedConcepts([]);
+        setStep(2);
+        setErrorMessage('Gói chụp trước đó không còn phù hợp với dịch vụ đã chọn.');
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+      setSelectedPackage(p);
+
+      // 3. Validate concepts against active, bookable concepts matching service
+      const availableConcepts = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === s.id));
+      const validConcepts = Array.isArray(draft.conceptIds)
+        ? availableConcepts.filter(c => draft.conceptIds.includes(c.id) || draft.conceptIds.includes(c.slug))
+        : [];
+
+      if (validConcepts.length === 0) {
+        setSelectedConcepts([]);
+        setStep(2);
+        if (availableConcepts.length === 0) {
+          setErrorMessage('Hiện chưa có concept khả dụng cho dịch vụ này.');
+        } else {
+          setErrorMessage('Concept trước đó không còn khả dụng. Vui lòng chọn concept phù hợp.');
+        }
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+      const maxC = p.conceptsCount || 1;
+      setSelectedConcepts(validConcepts.slice(0, maxC));
+
+      // 4. Validate studio
+      if (!draft.studioId) {
+        setSelectedStudio(null);
+        setStep(3);
+        setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+      const std = studios.find(x => x.id === draft.studioId && (x.status ? x.status === 'ACTIVE' : true));
+      if (!std) {
+        setSelectedStudio(null);
+        setStep(3);
+        setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
+        setDraftRestoreStatus('INVALID');
+        return;
+      }
+      setSelectedStudio(std);
+
+      // 5. Restore addons (only valid existing ones; do NOT auto-add default addon)
+      if (Array.isArray(draft.addonIds)) {
+        const matchedAddons = addons.filter(a => draft.addonIds.includes(a.id));
+        setSelectedAddons(matchedAddons);
+      } else {
+        setSelectedAddons([]);
+      }
+
+      // 6. Restore booking metadata (dates, timeslot, notes, voucher, contact info)
+      if (draft.customerName) setCustomerName(draft.customerName);
+      if (draft.customerPhone) setCustomerPhone(draft.customerPhone);
+      if (draft.customerEmail) setCustomerEmail(draft.customerEmail);
+      if (draft.date) setSelectedDate(draft.date);
+      if (draft.timeSlot) setSelectedTimeSlot(draft.timeSlot);
+      if (draft.occasion) setOccasion(draft.occasion);
+      if (draft.customerNote) setCustomerNote(draft.customerNote);
+      if (draft.voucherCode) {
+        setVoucherCode(draft.voucherCode);
+        setIsVoucherApplied(true);
+      }
+
+      // 7. Successful restoration
+      setStep(5);
+      setDraftRestoreStatus('RESTORED');
+      sessionStorage.removeItem('mipa_pending_booking');
     } catch (e) {
       console.warn('Could not restore pending booking draft:', e);
+      setDraftRestoreStatus('INVALID');
     }
-  }, [services, packages, concepts, studios]);
+  }, [catalogReady, isLoadingCatalog, services, packages, concepts, studios, addons]);
 
   // Filter packages by selected service when service changes (or universal packages)
   const availablePackages = selectedService
@@ -398,9 +512,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     );
 
     setSelectedConcepts(prev => {
-      const valid = prev.filter(sc => pool.some(p => p.id === sc.id));
-      if (valid.length > 0) return valid;
-      return pool.length > 0 ? [pool[0]] : [];
+      return prev.filter(sc => pool.some(p => p.id === sc.id));
     });
   }, [selectedService, concepts]);
 
@@ -717,9 +829,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   };
 
+  if (!isOpen && presentation !== 'PAGE') return null;
+
   return (
-    <div className="modal-overlay">
-      <div className="modal-content booking-wizard-container">
+    <div className={presentation === 'PAGE' ? 'booking-wizard-page-wrapper' : 'modal-overlay'}>
+      <div
+        className={`booking-wizard-container ${presentation === 'PAGE' ? 'presentation-page' : 'modal-content'}`}
+        data-catalog-ready={catalogReady ? 'true' : 'false'}
+        data-draft-restore-status={draftRestoreStatus}
+      >
         {/* Header Bar */}
         <div className="booking-wizard-header">
           <div>
@@ -743,24 +861,27 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               }`}
             </h3>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Đóng"
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              border: '1px solid var(--editorial-divider)',
-              background: '#FFFFFF',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--editorial-brown)',
-            }}
-          >
-            <X size={18} />
-          </button>
+          {presentation !== 'PAGE' && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Đóng"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: '1px solid var(--editorial-divider)',
+                background: '#FFFFFF',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--editorial-brown)',
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {/* Progress Bar */}
@@ -925,7 +1046,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     {services.map((srv) => {
                       const isSelected = selectedService?.id === srv.id;
                       return (
-                        <div
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
                           key={srv.id}
                           onClick={() => {
                             setSelectedService(srv);
@@ -945,6 +1069,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             padding: '1.1rem',
                             display: 'flex',
                             flexDirection: 'column',
+                            textAlign: 'left',
+                            fontFamily: 'inherit',
+                            width: '100%',
+                            border: isSelected ? '2px solid var(--editorial-brown)' : '1px solid var(--editorial-divider)',
+                            backgroundColor: isSelected ? '#FAF6EE' : '#FFFFFF',
+                            borderRadius: '4px',
                           }}
                         >
                           <div style={{ position: 'relative', height: '140px', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.85rem' }}>
@@ -978,7 +1108,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           <p style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', lineHeight: 1.5, margin: 0 }}>
                             {srv.description}
                           </p>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -1019,7 +1149,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   displayedPackages.map((pkg) => {
                     const isSelected = selectedPackage?.id === pkg.id;
                     return (
-                      <div
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
                         key={pkg.id}
                         onClick={() => {
                           setSelectedPackage(pkg);
@@ -1033,6 +1166,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           flexDirection: 'column',
                           justifyContent: 'space-between',
                           boxShadow: 'none',
+                          textAlign: 'left',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          border: isSelected ? '2px solid var(--editorial-brown)' : '1px solid var(--editorial-divider)',
+                          backgroundColor: isSelected ? '#FAF6EE' : '#FFFFFF',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
                         }}
                       >
                         <div>
@@ -1078,15 +1218,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         </div>
 
                         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                          <button
-                            type="button"
+                          <span
                             className={isSelected ? 'public-btn-primary' : 'public-btn-secondary'}
-                            style={{ width: '100%', fontSize: '0.85rem', padding: '0.65rem 1rem' }}
+                            style={{ width: '100%', fontSize: '0.85rem', padding: '0.65rem 1rem', display: 'inline-block', boxSizing: 'border-box' }}
                           >
                             {isSelected ? 'Đã chọn gói này' : 'Chọn gói này'}
-                          </button>
+                          </span>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 )}
@@ -1103,7 +1242,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       margin: 0,
                       fontWeight: 600,
                     }}>
-                      Chọn Concept Nghệ Thuật ({selectedConcepts.length}/{maxConcepts})
+                      Chọn concept nghệ thuật ({selectedConcepts.length}/{maxConcepts})
                     </h4>
                     <p style={{ fontSize: '0.84rem', color: 'var(--editorial-text-secondary)', margin: '0.2rem 0 0 0' }}>
                       Gói <strong>{selectedPackage?.name || 'Đang chọn'}</strong> hỗ trợ tối đa <strong>{maxConcepts}</strong> concept phong cách
@@ -1127,7 +1266,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     availableConcepts.map((cnc) => {
                       const isSelected = selectedConcepts.some(c => c.id === cnc.id);
                       return (
-                        <div
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={isSelected}
                           key={cnc.id}
                           onClick={() => handleToggleConcept(cnc)}
                           style={{
@@ -1138,14 +1280,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             overflow: 'hidden',
                             transition: 'border-color 0.2s ease, background-color 0.2s ease',
                             boxShadow: 'none',
+                            textAlign: 'left',
+                            fontFamily: 'inherit',
+                            padding: 0,
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                           }}
                         >
-                          <div style={{ position: 'relative', height: '130px', backgroundColor: '#EDE4D8' }}>
-                            <img
-                              src={cnc.coverPhotoUrl || '/hero.png'}
-                              alt={cnc.name}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
+                          <div style={{ position: 'relative', height: '130px', width: '100%', backgroundColor: '#EDE4D8', overflow: 'hidden' }}>
+                            {cnc.coverPhotoUrl ? (
+                              <img
+                                src={cnc.coverPhotoUrl}
+                                alt={cnc.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <EditorialImagePlaceholder label={cnc.name} height="130px" minHeight="130px" />
+                            )}
                             {isSelected && (
                               <div style={{
                                 position: 'absolute',
@@ -1164,15 +1316,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                               </div>
                             )}
                           </div>
-                          <div style={{ padding: '0.85rem' }}>
+                          <div style={{ padding: '0.85rem', width: '100%', boxSizing: 'border-box' }}>
                             <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--editorial-brown)', marginBottom: '0.2rem' }}>
                               {cnc.name}
                             </div>
-                            <p style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', margin: 0, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {cnc.description || 'Phong cách nghệ thuật tinh tế'}
-                            </p>
+                            {cnc.description ? (
+                              <p style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', margin: 0, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {cnc.description}
+                              </p>
+                            ) : null}
                           </div>
-                        </div>
+                        </button>
                       );
                     })
                   )}
@@ -1213,7 +1367,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       {studios.map((std) => {
                         const isSel = selectedStudio?.id === std.id;
                         return (
-                          <div
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={isSel}
                             key={std.id}
                             onClick={() => setSelectedStudio(std)}
                             style={{
@@ -1226,6 +1383,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                              textAlign: 'left',
+                              fontFamily: 'inherit',
+                              width: '100%',
                             }}
                           >
                             <div>
@@ -1235,7 +1395,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                               </div>
                             </div>
                             {isSel && <Check size={16} color="var(--editorial-brown)" />}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -1349,7 +1509,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 {addons.map((addon) => {
                   const isChecked = selectedAddons.some(a => a.id === addon.id);
                   return (
-                    <div
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isChecked}
                       key={addon.id}
                       onClick={() => handleToggleAddon(addon)}
                       style={{
@@ -1362,13 +1525,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         alignItems: 'flex-start',
                         gap: '0.75rem',
                         transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
+                        width: '100%',
                       }}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => {}} // handled by div
-                        style={{ width: '16px', height: '16px', marginTop: '3px', accentColor: 'var(--editorial-brown)' }}
+                        readOnly
+                        tabIndex={-1}
+                        style={{ width: '16px', height: '16px', marginTop: '3px', accentColor: 'var(--editorial-brown)', pointerEvents: 'none' }}
                       />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1381,7 +1548,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           {addon.description}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1455,7 +1622,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       className="public-btn-secondary"
                       style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                     >
-                      Đăng Nhập
+                      Đăng nhập
                     </button>
                     <button
                       type="button"
@@ -1463,7 +1630,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       className="public-btn-primary"
                       style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                     >
-                      Đăng Ký
+                      Đăng ký
                     </button>
                   </div>
                 </div>
@@ -1879,7 +2046,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 marginBottom: '0.4rem',
                 fontWeight: 600,
               }}>
-                Booking Của Bạn Đã Xác Nhận!
+                Booking của bạn đã được xác nhận!
               </h2>
               <p style={{ color: 'var(--editorial-text-secondary)', fontSize: '0.95rem', marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem' }}>
                 Maison MIPA trân trọng cảm ơn bạn. Thông tin xác nhận chi tiết đã được gửi tới email <strong>{confirmedBooking.customerEmail}</strong>.
@@ -1894,9 +2061,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 border: '1px solid var(--editorial-divider)',
                 padding: '1.5rem',
                 textAlign: 'left',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--editorial-divider)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
-                  <span style={{ color: 'var(--editorial-text-muted)', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>MÃ BOOKING NỘI BỘ</span>
+                  <span style={{ color: 'var(--editorial-text-muted)', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Mã booking</span>
                   <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--editorial-brown)' }}>{confirmedBooking.bookingCode}</span>
                 </div>
 
@@ -1904,6 +2072,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   <div>Gói chụp: <strong>{confirmedBooking.packageName}</strong> ({confirmedBooking.serviceName})</div>
                   <div>Thời gian: <strong>{confirmedBooking.bookingDate} lúc {confirmedBooking.startTime}</strong></div>
                   <div>Studio: <strong>{confirmedBooking.studioName}</strong></div>
+                  <div>Tổng tiền: <strong>{confirmedBooking.totalAmount?.toLocaleString('vi-VN')}đ</strong></div>
                   <div>Trạng thái: <strong style={{ color: '#047857' }}>Đã xác nhận & nhận cọc 30%</strong></div>
                 </div>
 
@@ -1912,7 +2081,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
               </div>
 
-              <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ marginTop: '2rem' }}>
                 <button onClick={onClose} className="public-btn-primary">
                   Đóng & Về trang chủ
                 </button>
@@ -1924,7 +2093,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
         {/* Footer Wizard Controls */}
         {step <= 6 && (
-          <div style={{
+          <div className="booking-wizard-footer" style={{
             padding: '1rem 1.8rem',
             borderTop: '1px solid var(--editorial-divider)',
             backgroundColor: 'var(--editorial-paper)',
@@ -1962,6 +2131,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       setErrorMessage('Vui lòng chọn một gói chụp hợp lệ cho dịch vụ này để tiếp tục.');
                       return;
                     }
+                    const serviceConcepts = concepts.filter(c => c.active && c.bookable && (!c.serviceId || c.serviceId === selectedService?.id));
+                    if (serviceConcepts.length === 0) {
+                      setErrorMessage('Hiện chưa có concept khả dụng cho dịch vụ này.');
+                      return;
+                    }
+                    if (selectedConcepts.length === 0) {
+                      setErrorMessage('Vui lòng chọn ít nhất một concept nghệ thuật để tiếp tục.');
+                      return;
+                    }
+                    const maxConcepts = selectedPackage.conceptsCount || 1;
+                    if (selectedConcepts.length > maxConcepts) {
+                      setErrorMessage(`Gói ${selectedPackage.name} cho phép chọn tối đa ${maxConcepts} concept.`);
+                      return;
+                    }
                   }
                   if (step === 3) {
                     if (!selectedStudio) {
@@ -1994,7 +2177,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 className="public-btn-primary"
                 style={{ fontSize: '0.85rem', padding: '0.6rem 1.4rem' }}
               >
-                {step === 6 ? 'Xác Nhận Đặt Lịch' : 'Tiếp Theo'} <ChevronRight size={16} />
+                {step === 6 ? 'Xác nhận đặt lịch' : 'Tiếp theo'} <ChevronRight size={16} />
               </button>
             </div>
           </div>

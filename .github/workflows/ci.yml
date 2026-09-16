@@ -57,7 +57,5 @@ jobs:
         if: success()
         with:
           name: visual-commerce-review
-          path: |
-            test-results/**/*.png
-            test-results/screenshots/*.png
+          path: test-results/visual-commerce-review/**/*.png
           retention-days: 14
