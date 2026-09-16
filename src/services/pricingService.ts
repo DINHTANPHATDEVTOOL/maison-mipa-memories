@@ -76,3 +76,67 @@ export function calculatePricing(input: PricingInput): PricingBreakdown {
     totalDurationMinutes,
   };
 }
+
+export interface PromotionValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Validates promotion eligibility against order subtotal, service, and schedule constraints.
+ * Authoritatively matches create_booking PostgreSQL migration verification.
+ */
+export function validatePromotion(
+  promo: Promotion,
+  subtotal: number,
+  selectedServiceId?: string,
+  now: Date = new Date()
+): PromotionValidationResult {
+  if (!promo.isActive) {
+    return { valid: false, error: 'Mã ưu đãi không còn hoạt động.' };
+  }
+
+  if (promo.startDate) {
+    const start = new Date(promo.startDate).getTime();
+    if (!isNaN(start) && now.getTime() < start) {
+      return { valid: false, error: 'Mã ưu đãi chưa đến thời gian áp dụng.' };
+    }
+  }
+
+  if (promo.endDate) {
+    const endStr = promo.endDate.length === 10 ? `${promo.endDate}T23:59:59.999Z` : promo.endDate;
+    const end = new Date(endStr).getTime();
+    if (!isNaN(end) && now.getTime() > end) {
+      return { valid: false, error: 'Mã ưu đãi đã hết hạn sử dụng.' };
+    }
+  }
+
+  if (typeof promo.usageLimit === 'number') {
+    if (promo.usageLimit < 0) {
+      return {
+        valid: false,
+        error: 'Mã ưu đãi có giới hạn sử dụng không hợp lệ.',
+      };
+    }
+
+    const count = typeof promo.usageCount === 'number' ? promo.usageCount : 0;
+    if (count >= promo.usageLimit) {
+      return {
+        valid: false,
+        error: 'Mã ưu đãi đã hết lượt sử dụng.',
+      };
+    }
+  }
+
+  if (promo.applicableServiceId && selectedServiceId && promo.applicableServiceId !== selectedServiceId) {
+    return { valid: false, error: 'Mã ưu đãi không áp dụng cho dịch vụ đã chọn.' };
+  }
+
+  const minOrder = promo.minOrder || 0;
+  if (minOrder > 0 && subtotal < minOrder) {
+    return { valid: false, error: `Mã ưu đãi yêu cầu đơn hàng tối thiểu ${minOrder.toLocaleString('vi-VN')}đ.` };
+  }
+
+  return { valid: true };
+}
+

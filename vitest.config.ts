@@ -11,7 +11,7 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     testTimeout: 20000,
     hookTimeout: 20000,
-    maxWorkers: 4,
+    maxWorkers: 2,
     env: {
       VITE_SUPABASE_URL: '',
       VITE_SUPABASE_ANON_KEY: '',

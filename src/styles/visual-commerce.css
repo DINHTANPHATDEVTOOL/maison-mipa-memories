@@ -1,0 +1,462 @@
+/* ==============================================================================
+   Maison MIPA Memories — Visual Commerce Responsive Architecture
+   Art Direction: Editorial Asymmetry (Desktop) -> 2-Col (Tablet) -> 1-Col (Mobile <=767px)
+   Strict Rule: Zero Horizontal Overflow across 320px–1440px
+   ============================================================================== */
+
+/* --- Concepts Section Grid --- */
+.concept-editorial-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.concept-card-feature-left,
+.concept-card-feature {
+  grid-column: span 7;
+}
+
+.concept-card-feature-right,
+.concept-card-tall {
+  grid-column: span 5;
+}
+
+.concept-card-triplet,
+.concept-card-standard {
+  grid-column: span 4;
+}
+
+/* --- Stories / Portfolio Grid --- */
+.story-editorial-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: clamp(1.75rem, 3.5vw, 3rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.story-card-wide,
+.story-card-feature {
+  grid-column: span 8;
+}
+
+.story-card-tall {
+  grid-column: span 4;
+}
+
+.story-card-balanced,
+.story-card-standard {
+  grid-column: span 6;
+}
+
+/* --- Concept Detail Gallery Sequence Grid --- */
+.concept-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gallery-span-full {
+  grid-column: span 12;
+}
+
+.gallery-span-half {
+  grid-column: span 6;
+}
+
+.gallery-span-portrait {
+  grid-column: span 6;
+}
+
+.gallery-span-landscape {
+  grid-column: span 12;
+}
+
+/* --- Services Editorial Layout --- */
+.services-editorial-layout {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3rem, 6vw, 6rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.service-row-item {
+  display: flex;
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.service-row-item.reverse {
+  flex-direction: row-reverse;
+}
+
+.service-row-media {
+  flex: 1 1 50%;
+  min-width: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.service-row-content {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* --- Responsive Tablet Overrides (<= 1024px) --- */
+@media (max-width: 1024px) {
+  .concept-editorial-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .concept-card-feature-left,
+  .concept-card-feature-right,
+  .concept-card-triplet,
+  .concept-card-feature,
+  .concept-card-tall,
+  .concept-card-standard {
+    grid-column: span 1;
+  }
+
+  .story-editorial-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .story-card-wide,
+  .story-card-tall,
+  .story-card-balanced,
+  .story-card-feature,
+  .story-card-standard {
+    grid-column: span 1;
+  }
+
+  .concept-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .gallery-span-full,
+  .gallery-span-landscape {
+    grid-column: span 2;
+  }
+  .gallery-span-half,
+  .gallery-span-portrait {
+    grid-column: span 1;
+  }
+
+  .service-row-item,
+  .service-row-item.reverse {
+    gap: 2rem;
+  }
+}
+
+/* --- Responsive Mobile Overrides (<= 767px) --- */
+@media (max-width: 767px) {
+  .concept-editorial-grid,
+  .story-editorial-grid,
+  .concept-gallery-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.75rem !important;
+    width: 100% !important;
+  }
+
+  .concept-card-feature-left,
+  .concept-card-feature-right,
+  .concept-card-triplet,
+  .concept-card-feature,
+  .concept-card-tall,
+  .concept-card-standard,
+  .story-card-wide,
+  .story-card-tall,
+  .story-card-balanced,
+  .story-card-feature,
+  .story-card-standard,
+  .gallery-span-full,
+  .gallery-span-half,
+  .gallery-span-portrait,
+  .gallery-span-landscape {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .service-row-item,
+  .service-row-item.reverse {
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+
+  .service-row-media,
+  .service-row-content {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* --- Safe Container & No Horizontal Overflow --- */
+.mipa-responsive-container {
+  width: 100%;
+  max-width: 1350px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 4vw, 2rem);
+  padding-right: clamp(1rem, 4vw, 2rem);
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* ==============================================================================
+   Maison MIPA Design Tokens & Typography Hierarchy
+   ============================================================================== */
+:root {
+  --motion-fast: 180ms;
+  --motion-normal: 320ms;
+  --motion-slow: 700ms;
+}
+
+.vc-page {
+  background-color: #FAF8F3;
+  min-height: 85vh;
+  box-sizing: border-box;
+}
+
+.vc-container {
+  max-width: 1350px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+.vc-overline {
+  display: block;
+  font-size: 0.76rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8C6E53;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.vc-display {
+  font-family: var(--editorial-font-heading, 'Cormorant Garamond', serif);
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-weight: 500;
+  color: #29231F;
+  line-height: 1.15;
+  margin: 0 0 1rem 0;
+}
+
+.vc-section-title {
+  font-family: var(--editorial-font-heading, 'Cormorant Garamond', serif);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 500;
+  color: #29231F;
+  line-height: 1.2;
+  margin: 0 0 0.75rem 0;
+}
+
+.vc-copy {
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: #604634;
+  font-weight: 300;
+  margin: 0;
+}
+
+.vc-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: #29231F;
+  color: #FFFDF9;
+  border: 1px solid #29231F;
+  border-radius: 4px;
+  min-height: 44px;
+  padding: 0.7rem 1.6rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color var(--motion-normal) ease, color var(--motion-normal) ease;
+}
+
+.vc-primary-button:hover {
+  background-color: #42352E;
+  border-color: #42352E;
+}
+
+.vc-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: transparent;
+  color: #29231F;
+  border: 1px solid rgba(140, 110, 83, 0.32);
+  border-radius: 4px;
+  min-height: 44px;
+  padding: 0.7rem 1.6rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--motion-normal) ease, background-color var(--motion-normal) ease;
+}
+
+.vc-secondary-button:hover {
+  border-color: #29231F;
+  background-color: rgba(140, 110, 83, 0.05);
+}
+
+.vc-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  color: #29231F;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid #8C6E53;
+  padding-bottom: 2px;
+  transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+}
+
+.vc-text-link:hover {
+  color: #8C6E53;
+  border-color: #29231F;
+}
+
+/* ==============================================================================
+   Editorial Pricing Table (Desktop Rows / Mobile Stack)
+   ============================================================================== */
+.pricing-editorial-table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(140, 110, 83, 0.22);
+}
+
+.pricing-editorial-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.4fr 1.4fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.6rem 0.5rem;
+  border-bottom: 1px solid rgba(140, 110, 83, 0.16);
+  transition: background-color var(--motion-fast) ease;
+}
+
+.pricing-editorial-row:hover {
+  background-color: rgba(250, 248, 243, 0.6);
+}
+
+@media (max-width: 900px) {
+  .pricing-editorial-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.5rem;
+    background-color: #FAF8F3;
+    border: 1px solid rgba(140, 110, 83, 0.2);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+}
+
+/* ==============================================================================
+   Photo Essay Rhythm Layout (/portfolio/:slug)
+   ============================================================================== */
+.photo-essay-container {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3rem, 6vw, 6rem);
+  width: 100%;
+}
+
+.photo-essay-hero-block {
+  width: 100%;
+  max-width: 1350px;
+  margin: 0 auto;
+}
+
+.photo-essay-pair-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.photo-essay-centered-block {
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.photo-essay-asymmetric-block {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 1350px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .photo-essay-pair-block,
+  .photo-essay-asymmetric-block {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+}
+
+/* ==============================================================================
+   Mobile Sticky Action Bar Bottom Padding
+   ============================================================================== */
+@media (max-width: 767px) {
+  .mipa-public-content {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ==============================================================================
+   Editorial Image Frames
+   ============================================================================== */
+.editorial-image-frame,
+.vc-image-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: #EDE7DC;
+}
+
+.editorial-image-frame img,
+.vc-image-frame img {
+  transition: transform var(--motion-slow) ease;
+}
+
+.editorial-image-frame:hover img,
+.vc-image-frame:hover img {
+  transform: scale(1.025);
+}
+
+.editorial-image-frame:hover .photo-overlay,
+.editorial-image-frame:focus-visible .photo-overlay,
+.vc-image-frame:hover .photo-overlay,
+.vc-image-frame:focus-visible .photo-overlay {
+  opacity: 1 !important;
+}
+

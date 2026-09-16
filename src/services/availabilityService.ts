@@ -3,8 +3,15 @@
 // Evaluates studio room availability, duration, opening hours, and active bookings
 // Supports adjacent slots (e.g. 10:00-11:00 and 11:00-12:00) and frees cancelled slots.
 // ==============================================================================
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
 import type { Booking } from '../types';
+
+export class AvailabilityUnavailableError extends Error {
+  constructor(message: string = 'Không thể xác minh lịch trống lúc này từ hệ thống.') {
+    super(message);
+    this.name = 'AvailabilityUnavailableError';
+  }
+}
 
 export interface TimeSlot {
   time: string; // 'HH:mm'
@@ -63,6 +70,41 @@ export function minutesToTime(minutes: number): string {
 }
 
 /**
+ * Helper to get current date and time in Asia/Ho_Chi_Minh
+ */
+export function getNowVn(): { dateStr: string; minutesNow: number } {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(now);
+    const y = parts.find(p => p.type === 'year')?.value;
+    const m = parts.find(p => p.type === 'month')?.value;
+    const d = parts.find(p => p.type === 'day')?.value;
+    const hour = Number(parts.find(p => p.type === 'hour')?.value || 0);
+    const minute = Number(parts.find(p => p.type === 'minute')?.value || 0);
+    return {
+      dateStr: `${y}-${m}-${d}`,
+      minutesNow: hour * 60 + minute,
+    };
+  } catch {
+    const now = new Date();
+    return {
+      dateStr: now.toISOString().split('T')[0],
+      minutesNow: now.getHours() * 60 + now.getMinutes(),
+    };
+  }
+}
+
+/**
  * Extracts minutes from ISO timestamp or time string
  */
 export function parseBookingRangeMinutes(
@@ -112,6 +154,7 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
 
   const openingMinutes = STUDIO_CONFIG.OPENING_HOUR * 60 + STUDIO_CONFIG.OPENING_MINUTE;
   const closingMinutes = STUDIO_CONFIG.CLOSING_HOUR * 60 + STUDIO_CONFIG.CLOSING_MINUTE;
+  const nowVn = getNowVn();
 
   const slots: TimeSlot[] = [];
 
@@ -129,13 +172,17 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
       isIntervalOverlapping(candidateStart, candidateEnd, existing.start, existing.end)
     );
 
-    if (hasConflict) {
+    const isPastToday = (date === nowVn.dateStr) && (candidateStart <= nowVn.minutesNow);
+
+    if (hasConflict || isPastToday) {
       slots.push({
         time: startStr,
         endTime: endStr,
         label: `${startStr} - ${endStr}`,
         status: 'BOOKED',
-        reason: 'Phòng đã có lịch đặt trong khung giờ này',
+        reason: isPastToday
+          ? 'Khung giờ này đã qua trong ngày'
+          : 'Phòng đã có lịch đặt trong khung giờ này',
       });
     } else {
       let tag: string | undefined;
@@ -161,93 +208,100 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function resolveStudioRoomUuid(studioIdOrSlug: string): Promise<string> {
-  if (!studioIdOrSlug) return studioIdOrSlug;
-  if (UUID_REGEX.test(studioIdOrSlug)) return studioIdOrSlug;
+  if (!studioIdOrSlug) {
+    throw new AvailabilityUnavailableError('Chưa chọn phòng studio.');
+  }
+  if (UUID_REGEX.test(studioIdOrSlug)) {
+    return studioIdOrSlug;
+  }
 
-  try {
-    if (isSupabaseConfigured()) {
-      const { data } = await supabase
-        .from('studio_rooms')
-        .select('id')
-        .or(`slug.eq.${studioIdOrSlug},code.eq.${studioIdOrSlug}`)
-        .limit(1)
-        .maybeSingle();
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('studio_rooms')
+      .select('id')
+      .or(`slug.eq.${studioIdOrSlug},code.eq.${studioIdOrSlug}`)
+      .limit(1)
+      .maybeSingle();
 
-      if (data?.id && UUID_REGEX.test(data.id)) {
-        return data.id;
-      }
+    if (error) {
+      console.error('Error resolving studio room UUID:', error.message);
+      throw new AvailabilityUnavailableError(`Không thể tra cứu phòng studio: ${error.message}`);
     }
-  } catch {
-    // fallback
+
+    if (data?.id && UUID_REGEX.test(data.id)) {
+      return data.id;
+    }
+
+    throw new AvailabilityUnavailableError(`Phòng studio "${studioIdOrSlug}" không tồn tại trên hệ thống.`);
   }
 
-  if (studioIdOrSlug === 'room_01' || studioIdOrSlug === 'ROOM_01' || studioIdOrSlug === 'std_room_01') {
-    return 'f0000000-0000-0000-0000-000000000001';
-  }
-  if (studioIdOrSlug === 'room_02' || studioIdOrSlug === 'ROOM_02' || studioIdOrSlug === 'std_room_02') {
-    return 'f0000000-0000-0000-0000-000000000002';
-  }
-  if (studioIdOrSlug === 'garden' || studioIdOrSlug === 'GARDEN' || studioIdOrSlug === 'std_garden') {
-    return 'f0000000-0000-0000-0000-000000000003';
+  // Demo mode seed aliases allowed only in explicit demo mode
+  if (isDemoModeEnabled()) {
+    if (studioIdOrSlug === 'room_01' || studioIdOrSlug === 'ROOM_01' || studioIdOrSlug === 'std_room_01') {
+      return 'f0000000-0000-0000-0000-000000000001';
+    }
+    if (studioIdOrSlug === 'room_02' || studioIdOrSlug === 'ROOM_02' || studioIdOrSlug === 'std_room_02') {
+      return 'f0000000-0000-0000-0000-000000000002';
+    }
+    if (studioIdOrSlug === 'garden' || studioIdOrSlug === 'GARDEN' || studioIdOrSlug === 'std_garden') {
+      return 'f0000000-0000-0000-0000-000000000003';
+    }
   }
 
-  return studioIdOrSlug;
+  throw new AvailabilityUnavailableError(`Phòng studio "${studioIdOrSlug}" không hợp lệ.`);
 }
 
 /**
  * Generates available slots for a given date, studio room, and session duration.
  * Calls the backend-authoritative get_studio_booked_slots RPC to detect active bookings
  * across all users without privacy leaks, and dims out booked slots.
+ *
+ * Strictly fail-closed in production:
+ * If Supabase is configured, authoritative backend check is mandatory.
+ * RPC errors, network errors, or malformed data will throw AvailabilityUnavailableError.
  */
 export async function getAvailableSlots(params: AvailabilityParams): Promise<TimeSlot[]> {
   if (!isSupabaseConfigured()) {
-    return getAvailableSlotsSync(params);
+    if (isDemoModeEnabled()) {
+      return getAvailableSlotsSync(params);
+    }
+    throw new AvailabilityUnavailableError('Hệ thống cơ sở dữ liệu chưa được kích hoạt.');
   }
 
   const { date, studioId, durationMinutes, existingBookings } = params;
   const safeDuration = Math.max(30, durationMinutes || 60);
   let bookedRanges: Array<{ startMs: number; endMs: number }> = [];
 
-  try {
-    const resolvedStudioId = await resolveStudioRoomUuid(studioId);
+  const resolvedStudioId = await resolveStudioRoomUuid(studioId);
 
-    // 1. Fetch authoritative booked intervals from PostgreSQL RPC (SECURITY DEFINER)
-    const { data, error } = await supabase.rpc('get_studio_booked_slots', {
-      p_studio_room_id: resolvedStudioId,
-      p_date: date,
-    });
+  // 1. Fetch authoritative booked intervals from PostgreSQL RPC (SECURITY DEFINER)
+  const { data, error } = await supabase.rpc('get_studio_booked_slots', {
+    p_studio_room_id: resolvedStudioId,
+    p_date: date,
+  });
 
-    if (!error && Array.isArray(data)) {
-      bookedRanges = data
-        .map((b: { start_at: string; end_at: string }) => ({
-          startMs: new Date(b.start_at).getTime(),
-          endMs: new Date(b.end_at).getTime(),
-        }))
-        .filter(r => !isNaN(r.startMs) && !isNaN(r.endMs));
-    } else if (error) {
-      console.warn('get_studio_booked_slots RPC error:', error.message);
-      // Fallback to direct query if RPC is temporarily unavailable
-      const startOfDay = `${date}T00:00:00+07:00`;
-      const endOfDay = `${date}T23:59:59+07:00`;
+  if (error) {
+    console.error('get_studio_booked_slots RPC error:', error.message);
+    throw new AvailabilityUnavailableError(`Không thể kiểm tra lịch trống: ${error.message}`);
+  }
 
-      const { data: bData } = await supabase
-        .from('bookings')
-        .select('start_at, end_at, booking_status')
-        .eq('studio_room_id', resolvedStudioId)
-        .neq('booking_status', 'CANCELLED')
-        .gte('start_at', startOfDay)
-        .lte('start_at', endOfDay);
+  if (!Array.isArray(data)) {
+    throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+  }
 
-      if (bData && Array.isArray(bData)) {
-        bookedRanges = bData.map(b => ({
-          startMs: new Date(b.start_at).getTime(),
-          endMs: new Date(b.end_at).getTime(),
-        }));
-      }
+  for (const row of data) {
+    if (!row || typeof row !== 'object') {
+      throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
     }
-  } catch (err) {
-    console.warn('Availability loading error, using local fallback:', err);
-    return getAvailableSlotsSync(params);
+    if (!row.start_at || !row.end_at) {
+      throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    }
+    const startMs = new Date(row.start_at).getTime();
+    const endMs = new Date(row.end_at).getTime();
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+      throw new AvailabilityUnavailableError('Dữ liệu lịch trống từ máy chủ không hợp lệ.');
+    }
+    bookedRanges.push({ startMs, endMs });
   }
 
   // 2. Also incorporate any local in-memory bookings passed in params
@@ -281,6 +335,7 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
 
   const openingMinutes = STUDIO_CONFIG.OPENING_HOUR * 60 + STUDIO_CONFIG.OPENING_MINUTE;
   const closingMinutes = STUDIO_CONFIG.CLOSING_HOUR * 60 + STUDIO_CONFIG.CLOSING_MINUTE;
+  const nowVn = getNowVn();
 
   const slots: TimeSlot[] = [];
 
@@ -301,13 +356,17 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
       candidateStartMs < existing.endMs && candidateEndMs > existing.startMs
     );
 
-    if (hasConflict) {
+    const isPastToday = (date === nowVn.dateStr) && (candidateStart <= nowVn.minutesNow);
+
+    if (hasConflict || isPastToday) {
       slots.push({
         time: startStr,
         endTime: endStr,
         label: `${startStr} - ${endStr}`,
         status: 'BOOKED',
-        reason: 'Khung giờ này đã có khách đặt lịch',
+        reason: isPastToday
+          ? 'Khung giờ này đã qua trong ngày'
+          : 'Khung giờ này đã có khách đặt lịch',
       });
     } else {
       let tag: string | undefined;
