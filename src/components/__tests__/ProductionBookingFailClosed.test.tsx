@@ -23,6 +23,7 @@ vi.mock('../../services/catalogService', () => ({
   getPackages: vi.fn(),
   getAddons: vi.fn(),
   getStudioRooms: vi.fn(),
+  getPromotions: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../../services/portfolioService', async (importOriginal) => {
@@ -191,13 +192,13 @@ describe('Production Booking Wizard Fail-Closed Policy', () => {
     expect(screen.queryByText(/Saigon Golden Hour/i)).not.toBeInTheDocument();
   });
 
-  it('4. service A has zero concepts -> concept from service B is never displayed or selected', async () => {
-    // Service A has NO concepts; only Service B has mockConceptB
+  it('4. service A + concept from service B is allowed under flexible concept contract', async () => {
+    // Service A has NO concepts; only Service B has mockConceptB (active and bookable)
     vi.mocked(catalogService.getServices).mockResolvedValue([mockServiceA, mockServiceB]);
     vi.mocked(catalogService.getPackages).mockResolvedValue([mockPackageA, mockPackageB]);
     vi.mocked(catalogService.getAddons).mockResolvedValue([mockAddon]);
     vi.mocked(catalogService.getStudioRooms).mockResolvedValue([mockStudio]);
-    vi.mocked(portfolioService.getPublicConcepts).mockResolvedValue([mockConceptB]); // Concept belongs to Service B only!
+    vi.mocked(portfolioService.getPublicConcepts).mockResolvedValue([mockConceptB]); // Active & bookable concept
 
     renderWithAuth(
       <BookingWizard
@@ -213,11 +214,10 @@ describe('Production Booking Wizard Fail-Closed Policy', () => {
     const nextBtn = screen.getByRole('button', { name: /Tiếp Theo/i });
     fireEvent.click(nextBtn);
 
-    // On Step 2, Service A concepts must be empty; Concept B must NOT be shown
+    // On Step 2, Concept B from Service B IS available and displayed
     await waitFor(() => {
-      expect(screen.getByText('Hiện chưa có concept khả dụng cho dịch vụ này.')).toBeInTheDocument();
+      expect(screen.getByText('Concept Gia Đình Sum Vầy')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Concept Gia Đình Sum Vầy')).not.toBeInTheDocument();
   });
 
   it('5. service A + package B mismatch -> fail closed with mismatch error banner and blocked advance', async () => {

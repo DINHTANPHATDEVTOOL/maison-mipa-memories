@@ -5,7 +5,7 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthProvider, useAuth } from '../AuthContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
 import type { DatabaseRole } from '../../types/database';
 
 // Mock Supabase Client methods
@@ -14,6 +14,7 @@ vi.mock('../../lib/supabase', async (importOriginal) => {
   return {
     ...actual,
     isSupabaseConfigured: vi.fn(() => true),
+    isDemoModeEnabled: vi.fn(() => false),
     supabase: {
       auth: {
         getSession: vi.fn(),
@@ -69,7 +70,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('2. Successfully logs in and maps CUSTOMER role from profiles table', async () => {
-    const mockUser = { id: 'cust_123', email: 'customer@maisonmipa.vn' };
+    const mockUser = { id: 'cust_123', email: 'customer@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     const mockSession = { user: mockUser, access_token: 'fake-jwt-token' };
 
     (supabase.auth.signInWithPassword as any).mockResolvedValue({
@@ -117,7 +118,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('3. Successfully maps STAFF role and staffRole from database profile', async () => {
-    const mockUser = { id: 'staff_123', email: 'photographer@maisonmipa.vn' };
+    const mockUser = { id: 'staff_123', email: 'photographer@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     const mockSession = { user: mockUser, access_token: 'fake-jwt-staff' };
 
     (supabase.auth.signInWithPassword as any).mockResolvedValue({
@@ -157,7 +158,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('4. Successfully maps MANAGER role from database profile', async () => {
-    const mockUser = { id: 'mgr_123', email: 'manager@maisonmipa.vn' };
+    const mockUser = { id: 'mgr_123', email: 'manager@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     const mockSession = { user: mockUser, access_token: 'fake-jwt-mgr' };
 
     (supabase.auth.signInWithPassword as any).mockResolvedValue({
@@ -194,7 +195,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('5. Successfully maps ADMIN role from database profile', async () => {
-    const mockUser = { id: 'admin_123', email: 'admin@maisonmipa.vn' };
+    const mockUser = { id: 'admin_123', email: 'admin@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     const mockSession = { user: mockUser, access_token: 'fake-jwt-admin' };
 
     (supabase.auth.signInWithPassword as any).mockResolvedValue({
@@ -231,7 +232,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('6. Logout clears session and restores GUEST role', async () => {
-    const mockUser = { id: 'cust_123', email: 'customer@maisonmipa.vn' };
+    const mockUser = { id: 'cust_123', email: 'customer@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     (supabase.auth.getSession as any).mockResolvedValue({
       data: { session: { user: mockUser } },
       error: null,
@@ -269,7 +270,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('7. Restores session automatically upon mount and fetches profile', async () => {
-    const existingSessionUser = { id: 'restore_user_1', email: 'restored@maisonmipa.vn' };
+    const existingSessionUser = { id: 'restore_user_1', email: 'restored@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     const existingSession = { user: existingSessionUser, access_token: 'persisted-jwt' };
 
     (supabase.auth.getSession as any).mockResolvedValue({
@@ -307,7 +308,7 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
   });
 
   it('8. Handles session expiration gracefully via onAuthStateChange SIGNED_OUT', async () => {
-    const activeUser = { id: 'expire_user', email: 'expire@maisonmipa.vn' };
+    const activeUser = { id: 'expire_user', email: 'expire@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
     (supabase.auth.getSession as any).mockResolvedValue({
       data: { session: { user: activeUser } },
       error: null,
@@ -380,9 +381,8 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
       });
     });
 
-    // Role MUST strictly be CUSTOMER, never elevated
-    expect(result.current.role).toBe('CUSTOMER');
-    expect(result.current.role).not.toBe('ADMIN');
+    // In production, registration succeeds and awaits email verification (role remains GUEST until verified and logged in)
+    expect(result.current.role).toBe('GUEST');
 
     // Verify that signUp was called without role in options.data
     expect(supabase.auth.signUp).toHaveBeenCalledWith({
@@ -395,5 +395,176 @@ describe('AuthContext - RBAC & Production Auth Foundation', () => {
         },
       },
     });
+
+    // When attacker logs in afterwards, database profile authoritative role is CUSTOMER, never ADMIN
+    (supabase.auth.signInWithPassword as any).mockResolvedValue({
+      data: {
+        user: { id: 'new_user_1', email: 'malicious@test.com', email_confirmed_at: '2026-09-08T00:00:00Z' },
+        session: { user: { id: 'new_user_1', email: 'malicious@test.com' }, access_token: 'cust-token' },
+      },
+      error: null,
+    });
+
+    await act(async () => {
+      await result.current.login('malicious@test.com', 'securePassword123');
+    });
+
+    expect(result.current.role).toBe('CUSTOMER');
+    expect(result.current.role).not.toBe('ADMIN');
+  });
+
+  // ============================================================================
+  // AUTH FAIL-CLOSED HARDENING MATRIX
+  // ============================================================================
+  it('10. Session + profile DB error fails closed without synthesizing CUSTOMER', async () => {
+    const mockUser = { id: 'err_user', email: 'err@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+    const mockSession = { user: mockUser, access_token: 'fake-err-jwt' };
+
+    (supabase.auth.getSession as any).mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Database connection failed', code: 'PGRST500' },
+          }),
+        }),
+      }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.role).toBe('GUEST');
+    expect(result.current.authError).toContain('Không thể tải hồ sơ tài khoản');
+  });
+
+  it('11. Session + profile missing (PGRST116) fails closed without synthesizing CUSTOMER', async () => {
+    const mockUser = { id: 'missing_user', email: 'missing@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+    const mockSession = { user: mockUser, access_token: 'fake-missing-jwt' };
+
+    (supabase.auth.getSession as any).mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Row not found', code: 'PGRST116' },
+          }),
+        }),
+      }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.role).toBe('GUEST');
+    expect(result.current.authError).toContain('Không thể tải hồ sơ tài khoản');
+  });
+
+  it('12. Login with profile failure fails closed and returns error', async () => {
+    const mockUser = { id: 'login_fail_user', email: 'fail@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+    const mockSession = { user: mockUser, access_token: 'fake-jwt' };
+
+    (supabase.auth.signInWithPassword as any).mockResolvedValue({
+      data: { user: mockUser, session: mockSession },
+      error: null,
+    });
+
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Internal profile lookup error', code: 'PGRST500' },
+          }),
+        }),
+      }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let loginRes: any;
+    await act(async () => {
+      loginRes = await result.current.login('fail@maisonmipa.vn', 'password123');
+    });
+
+    expect(loginRes.success).toBe(false);
+    expect(loginRes.error).toContain('Không thể tải hồ sơ tài khoản');
+    expect(result.current.user).toBeNull();
+    expect(result.current.role).toBe('GUEST');
+    expect(supabase.auth.signOut).toHaveBeenCalled();
+  });
+
+  it('13. ADMIN user refreshProfile error clears stale ADMIN role state', async () => {
+    const adminUser = { id: 'admin_123', email: 'admin@maisonmipa.vn', email_confirmed_at: '2026-09-08T00:00:00Z' };
+    const adminSession = { user: adminUser, access_token: 'admin-jwt' };
+
+    (supabase.auth.getSession as any).mockResolvedValue({
+      data: { session: adminSession },
+      error: null,
+    });
+
+    // 1st call: profile succeeds as ADMIN
+    const singleMock = vi.fn().mockResolvedValueOnce({
+      data: {
+        id: 'admin_123',
+        email: 'admin@maisonmipa.vn',
+        full_name: 'Quản Trị Viên',
+        role: 'ADMIN' as DatabaseRole,
+        status: 'ACTIVE',
+      },
+      error: null,
+    });
+
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: singleMock,
+        }),
+      }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.role).toBe('ADMIN'));
+
+    // 2nd call (refreshProfile): profile fetch fails
+    singleMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'DB connection lost during refresh', code: 'PGRST500' },
+    });
+
+    await act(async () => {
+      await result.current.refreshProfile();
+    });
+
+    // Stale ADMIN state MUST NOT be retained
+    expect(result.current.user).toBeNull();
+    expect(result.current.role).toBe('GUEST');
+    expect(result.current.authError).toContain('Không thể tải hồ sơ tài khoản');
+  });
+
+  it('14. Demo mode allows demo login successfully', async () => {
+    vi.mocked(isDemoModeEnabled).mockReturnValue(true);
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.loginAsDemoRole?.('ADMIN');
+    });
+
+    expect(result.current.role).toBe('ADMIN');
+    expect(result.current.user?.role).toBe('ADMIN');
   });
 });

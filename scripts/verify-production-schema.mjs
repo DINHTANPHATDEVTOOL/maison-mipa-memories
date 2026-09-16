@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ==============================================================================
 // Maison MIPA Memories - Automated Production Schema & RPC Verifier
-// Verifies that all 20 required tables, RLS, and RPC endpoints are reachable.
+// Verifies required tables, schema column contracts, RPC endpoints, and migration status.
 // ==============================================================================
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,7 +38,7 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 console.log('================================================================');
-console.log('🔍 MAISON MIPA MEMORIES - SUPABASE SCHEMA VERIFICATION');
+console.log('🔍 MAISON MIPA MEMORIES - SUPABASE SCHEMA & RPC VERIFIER');
 console.log(`Endpoint: ${supabaseUrl}`);
 console.log('================================================================\n');
 
@@ -60,8 +60,6 @@ const REQUIRED_TABLES = [
   'bookings',
   'booking_addons',
   'booking_assignments',
-  'audit_logs',
-  'otp_challenges',
   'payments',
   'payment_settings',
   'notification_outbox',
@@ -70,22 +68,44 @@ const REQUIRED_TABLES = [
   'portfolio_collections',
   'portfolio_photos',
   'booking_concepts',
+  'audit_logs',
+  'otp_challenges',
+  'root_owner_config',
 ];
 
-async function verifyTables() {
+const CONTRACT_CHECKS = [
+  { table: 'addons', columns: 'duration_minutes', label: 'addons.duration_minutes' },
+  {
+    table: 'promotions',
+    columns: 'discount_percent, discount_amount, min_order, max_discount, usage_count, usage_limit, start_at, end_at, applicable_service_id',
+    label: 'promotions (discount_percent, discount_amount, min_order, max_discount, usage_count, usage_limit, start_at, end_at, applicable_service_id)',
+  },
+  { table: 'packages', columns: 'concepts_count', label: 'packages.concepts_count' },
+  { table: 'studio_rooms', columns: 'active', label: 'studio_rooms.active' },
+];
+
+// Documented production verified migrations set
+const DOCUMENTED_PRODUCTION_VERIFIED = [
+  '20260908000001_auth_rbac_schema.sql',
+  '20260908000002_booking_persistence_schema.sql',
+  '20260908000003_otp_payment_schema.sql',
+  '20260909000001_production_core_hardening.sql',
+  '20260909000002_portfolio_cms_and_booking_concepts.sql',
+  '20260910000001_production_payos_and_email_hardening.sql',
+];
+
+async function verifyAll() {
+  let totalFails = 0;
+
+  // 1. Check Tables
   console.log('1. Checking Application Tables:');
   console.log('----------------------------------------------------------------');
-  let passCount = 0;
-  let failCount = 0;
+  let tablePass = 0;
+  let tableFail = 0;
 
   for (const tableName of REQUIRED_TABLES) {
     try {
-      // Query with limit 0 to check table presence and RLS without fetching data
       const { error } = await supabase.from(tableName).select('*').limit(0);
-
-      // In PostgREST:
-      // error code 42P01: undefined_table -> table does not exist
-      // error code PGRST204 / PGRST205: relation does not exist / not found in schema cache
       if (
         error &&
         (error.code === '42P01' ||
@@ -96,32 +116,159 @@ async function verifyTables() {
           error.message?.includes('does not exist'))
       ) {
         console.log(`  ❌ [FAIL] ${tableName.padEnd(25)} -> Table not found in database!`);
-        failCount++;
+        tableFail++;
+      } else if (error && error.code === '42501') {
+        console.log(`  ✅ [PASS] ${tableName.padEnd(25)} -> Verified (RLS active, permission restricted)`);
+        tablePass++;
       } else {
         console.log(`  ✅ [PASS] ${tableName.padEnd(25)} -> Verified`);
-        passCount++;
+        tablePass++;
       }
     } catch (err) {
       console.log(`  ❌ [FAIL] ${tableName.padEnd(25)} -> ${err.message}`);
-      failCount++;
+      tableFail++;
+    }
+  }
+  totalFails += tableFail;
+  console.log(`Tables Summary: ${tablePass} Passed, ${tableFail} Failed.\n`);
+
+  // 2. Check Column Contracts
+  console.log('2. Checking Schema Contract Columns:');
+  console.log('----------------------------------------------------------------');
+  let colPass = 0;
+  let colFail = 0;
+
+  for (const check of CONTRACT_CHECKS) {
+    try {
+      const { error } = await supabase.from(check.table).select(check.columns).limit(0);
+      if (error && (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist'))) {
+        console.log(`  ❌ [FAIL] ${check.label} -> Column missing: ${error.message}`);
+        colFail++;
+      } else {
+        console.log(`  ✅ [PASS] ${check.label}`);
+        colPass++;
+      }
+    } catch (err) {
+      console.log(`  ❌ [FAIL] ${check.label} -> ${err.message}`);
+      colFail++;
+    }
+  }
+  totalFails += colFail;
+  console.log(`Contract Columns Summary: ${colPass} Passed, ${colFail} Failed.\n`);
+
+  // 3. Check RPC Endpoints
+  console.log('3. Checking RPC Endpoints:');
+  console.log('----------------------------------------------------------------');
+  let rpcPass = 0;
+  let rpcFail = 0;
+
+  // 3a. Core Non-Payment RPCs
+  const coreRpcs = [
+    { name: 'get_auth_role', params: {} },
+    { name: 'get_auth_user_status', params: {} },
+    { name: 'get_auth_staff_role', params: {} },
+    { name: 'is_root_owner', params: {} },
+    {
+      name: 'create_booking',
+      params: {
+        p_service_id: '00000000-0000-0000-0000-000000000000',
+        p_package_id: '00000000-0000-0000-0000-000000000000',
+        p_studio_room_id: '00000000-0000-0000-0000-000000000000',
+        p_start_at: '2026-09-16T10:00:00Z',
+      },
+    },
+    {
+      name: 'get_studio_booked_slots',
+      params: {
+        p_studio_room_id: '00000000-0000-0000-0000-000000000000',
+        p_date: '2026-09-16',
+      },
+    },
+  ];
+
+  for (const rpc of coreRpcs) {
+    try {
+      const { error } = await supabase.rpc(rpc.name, rpc.params);
+      if (
+        error &&
+        (error.code === 'PGRST202' ||
+          error.code === '42883' ||
+          error.message?.includes('Could not find the function') ||
+          error.message?.includes('schema cache'))
+      ) {
+        console.log(`  ❌ [FAIL] ${rpc.name.padEnd(25)} -> RPC not found in schema cache: ${error.message}`);
+        rpcFail++;
+      } else {
+        console.log(`  ✅ [PASS] ${rpc.name.padEnd(25)} -> Reachable`);
+        rpcPass++;
+      }
+    } catch (err) {
+      console.log(`  ❌ [FAIL] ${rpc.name.padEnd(25)} -> ${err.message}`);
+      rpcFail++;
     }
   }
 
-  console.log('\n----------------------------------------------------------------');
-  console.log(`Tables Check Summary: ${passCount} Passed, ${failCount} Failed.`);
+  // 3b. Payment RPCs (Existence check only)
+  console.log('Payment RPCs (Existence verification):');
+  const paymentRpcs = [
+    { name: 'create_deposit_payment', params: {} },
+    { name: 'confirm_manual_payment', params: {} },
+  ];
+  for (const rpc of paymentRpcs) {
+    try {
+      const { error } = await supabase.rpc(rpc.name, rpc.params);
+      if (
+        error &&
+        (error.code === 'PGRST202' ||
+          error.code === '42883' ||
+          error.message?.includes('Could not find the function'))
+      ) {
+        console.log(`  ⚠️ [INFO] ${rpc.name.padEnd(25)} -> Not found or parameter mismatch (Payment deferred)`);
+      } else {
+        console.log(`  ✅ [PASS] ${rpc.name.padEnd(25)} -> Reachable`);
+      }
+    } catch {
+      console.log(`  ⚠️ [INFO] ${rpc.name.padEnd(25)} -> Checked`);
+    }
+  }
+  totalFails += rpcFail;
+  console.log(`RPC Summary: ${rpcPass} Passed, ${rpcFail} Failed.\n`);
 
-  if (failCount > 0) {
-    console.log('\n⚠️ ATTENTION OWNER: Database schema is missing tables.');
-    console.log('Please run migrations in Supabase SQL Editor or execute:');
-    console.log('  npx supabase db push --project-ref dkvkhysnabhtbbuvommu\n');
+  // 4. Migration Audit
+  console.log('4. Migration Audit:');
+  console.log('----------------------------------------------------------------');
+  const migrationsDir = path.join(rootDir, 'supabase', 'migrations');
+  const localMigrations = fs.existsSync(migrationsDir)
+    ? fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort()
+    : [];
+
+  const verifiedSet = new Set(DOCUMENTED_PRODUCTION_VERIFIED);
+  const pendingVerification = localMigrations.filter(m => !verifiedSet.has(m));
+
+  console.log(`LOCAL_MIGRATIONS (${localMigrations.length}):`);
+  for (const m of localMigrations) {
+    const isVerified = verifiedSet.has(m);
+    console.log(`  ${isVerified ? '✅' : '⏳'} ${m} [${isVerified ? 'PRODUCTION_VERIFIED' : 'PENDING_VERIFICATION'}]`);
+  }
+
+  console.log(`\nPRODUCTION_VERIFIED: ${DOCUMENTED_PRODUCTION_VERIFIED.length} migrations`);
+  console.log(`PENDING_VERIFICATION: ${pendingVerification.length} migrations`);
+
+  console.log('================================================================');
+  if (totalFails > 0) {
+    console.log(`\n❌ VERIFICATION FAILED: ${totalFails} check(s) failed.`);
+    if (pendingVerification.length > 0) {
+      console.log(`\nNote: ${pendingVerification.length} local migration(s) are pending application on production.`);
+      console.log('Run `npx supabase db push` or apply pending migrations in Supabase SQL Editor to resolve.\n');
+    }
     process.exit(1);
   } else {
-    console.log('\n🎉 ALL APPLICATION TABLES VERIFIED SUCCESSFULLY!\n');
+    console.log('\n🎉 ALL PRODUCTION SCHEMA AND RPC CHECKS PASSED!\n');
     process.exit(0);
   }
 }
 
-verifyTables().catch((err) => {
+verifyAll().catch((err) => {
   console.error('Fatal verification error:', err);
   process.exit(1);
 });

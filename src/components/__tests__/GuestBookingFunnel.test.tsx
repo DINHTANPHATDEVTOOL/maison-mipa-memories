@@ -30,7 +30,7 @@ describe('Guest Booking Funnel & Selection Preservation', () => {
 
     // Step 2: Package & Concept
     expect(screen.getByText(/Bước 2\/6/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chọn Concept Nghệ Thuật/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chọn concept \(không bắt buộc\)/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Tiếp Theo/i }));
 
     // Step 3: Date & Studio Slot

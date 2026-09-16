@@ -36,6 +36,11 @@ export interface AuthContextType {
   loginAsDemoRole?: (role: UserRole) => void;
 }
 
+export type ProfileFetchResult =
+  | { status: 'READY'; user: User }
+  | { status: 'MISSING' }
+  | { status: 'ERROR'; error: string };
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -87,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * Fetch authenticated user's profile from Supabase profiles table
    */
-  const fetchProfile = useCallback(async (userId: string): Promise<User | null> => {
+  const fetchProfile = useCallback(async (userId: string): Promise<ProfileFetchResult> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -97,16 +102,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.warn('Error fetching profile from database:', error.message);
-        return null;
+        if (error.code === 'PGRST116') {
+          return { status: 'MISSING' };
+        }
+        return { status: 'ERROR', error: error.message };
       }
 
       if (data) {
-        return mapProfileToUser(data as ProfileRow);
+        return { status: 'READY', user: mapProfileToUser(data as ProfileRow) };
       }
-      return null;
+      return { status: 'MISSING' };
     } catch (err: any) {
       console.error('Unexpected error fetching profile:', err);
-      return null;
+      return { status: 'ERROR', error: err?.message || 'Lỗi không xác định khi tải hồ sơ.' };
     }
   }, []);
 
@@ -126,22 +134,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    const profileRes = await fetchProfile(session.user.id);
+    if (profileRes.status !== 'READY') {
+      // Fail closed: clear authoritative user state so stale privileged UI cannot be retained
+      setUser(null);
+      setAuthError('Không thể tải hồ sơ tài khoản. Vui lòng thử lại.');
+      return;
+    }
+
+    const freshUser = profileRes.user;
+    if (freshUser.status === 'SUSPENDED' || freshUser.status === 'DISABLED') {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setIsRootOwner(false);
+      setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng hoạt động.');
+      return;
+    }
+
     const isOwner = await checkRootOwner(session.user.id);
     setIsRootOwner(isOwner);
-
-    const freshUser = await fetchProfile(session.user.id);
-    if (freshUser) {
-      if (freshUser.status === 'SUSPENDED' || freshUser.status === 'DISABLED') {
-        await supabase.auth.signOut();
-        setUser(null);
-        setSession(null);
-        setIsRootOwner(false);
-        setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng hoạt động.');
-        return;
-      }
-      setUser({ ...freshUser, isRootOwner: isOwner });
-    }
+    setUser({ ...freshUser, isRootOwner: isOwner });
   }, [session, fetchProfile, isDemoMode, checkRootOwner]);
+
+  /**
+   * Shared helper for strict fail-closed session & profile resolution
+   */
+  const resolveSessionAndProfile = useCallback(async (
+    targetSession: Session | null
+  ): Promise<{ user: User | null; session: Session | null; isRootOwner: boolean; error?: string }> => {
+    if (!targetSession?.user) {
+      return { user: null, session: null, isRootOwner: false };
+    }
+
+    if (!isDemoMode && !targetSession.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      return {
+        user: null,
+        session: null,
+        isRootOwner: false,
+        error: 'Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.',
+      };
+    }
+
+    const profileRes = await fetchProfile(targetSession.user.id);
+    if (profileRes.status !== 'READY') {
+      // Fail closed: do NOT synthesize customer role
+      await supabase.auth.signOut();
+      return {
+        user: null,
+        session: null,
+        isRootOwner: false,
+        error: 'Không thể tải hồ sơ tài khoản. Vui lòng thử lại.',
+      };
+    }
+
+    const profileUser = profileRes.user;
+    if (profileUser.status === 'SUSPENDED' || profileUser.status === 'DISABLED') {
+      await supabase.auth.signOut();
+      return {
+        user: null,
+        session: null,
+        isRootOwner: false,
+        error: 'Tài khoản của bạn đã bị khóa hoặc tạm ngưng.',
+      };
+    }
+
+    const isOwner = await checkRootOwner(targetSession.user.id);
+    return {
+      user: { ...profileUser, isRootOwner: isOwner },
+      session: targetSession,
+      isRootOwner: isOwner,
+    };
+  }, [fetchProfile, isDemoMode, checkRootOwner]);
 
   /**
    * Initialize Session on Mount & Listen to Supabase Auth State Changes
@@ -165,46 +230,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (initialSession?.user && isMounted) {
-          // Security gate: Email verification is mandatory in production
-          if (!isDemoMode && !initialSession.user.email_confirmed_at) {
-            await supabase.auth.signOut();
-            if (isMounted) {
+          const { user: resolvedUser, session: resolvedSession, isRootOwner: resolvedOwner, error: resolvedError } =
+            await resolveSessionAndProfile(initialSession);
+
+          if (isMounted) {
+            if (resolvedError) {
               setSession(null);
               setUser(null);
               setIsRootOwner(false);
-              setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
-            }
-            return;
-          }
-
-          const userProfile = await fetchProfile(initialSession.user.id);
-          const isOwner = await checkRootOwner(initialSession.user.id);
-
-          // Security check: Deny suspended/disabled accounts
-          if (userProfile && (userProfile.status === 'SUSPENDED' || userProfile.status === 'DISABLED')) {
-            await supabase.auth.signOut();
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setIsRootOwner(false);
-              setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
-            }
-            return;
-          } else if (isMounted) {
-            setSession(initialSession);
-            setIsRootOwner(isOwner);
-            if (userProfile) {
-              setUser({ ...userProfile, isRootOwner: isOwner });
+              setAuthError(resolvedError);
             } else {
-              setUser({
-                id: initialSession.user.id,
-                fullName: initialSession.user.user_metadata?.full_name || initialSession.user.email?.split('@')[0] || 'Khách Hàng',
-                email: initialSession.user.email || '',
-                phone: initialSession.user.user_metadata?.phone || '',
-                role: 'CUSTOMER',
-                status: 'ACTIVE',
-                isRootOwner: isOwner,
-              });
+              setSession(resolvedSession);
+              setUser(resolvedUser);
+              setIsRootOwner(resolvedOwner);
             }
           }
         }
@@ -223,49 +261,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!isMounted) return;
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
-        if (currentSession?.user) {
-          // Security gate: Email verification is mandatory in production
-          if (!isDemoMode && !currentSession.user.email_confirmed_at) {
-            await supabase.auth.signOut();
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setIsRootOwner(false);
-              setAuthError('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.');
-            }
-            return;
-          }
+        const { user: resolvedUser, session: resolvedSession, isRootOwner: resolvedOwner, error: resolvedError } =
+          await resolveSessionAndProfile(currentSession);
 
-          const profile = await fetchProfile(currentSession.user.id);
-          const isOwner = await checkRootOwner(currentSession.user.id);
-
-          if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
-            await supabase.auth.signOut();
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setIsRootOwner(false);
-              setAuthError('Tài khoản của bạn đã bị khóa hoặc tạm ngưng.');
-            }
-            return;
-          }
-
-          setSession(currentSession);
-          if (isMounted) {
-            setIsRootOwner(isOwner);
-            if (profile) {
-              setUser({ ...profile, isRootOwner: isOwner });
-            } else {
-              setUser({
-                id: currentSession.user.id,
-                fullName: currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Khách Hàng',
-                email: currentSession.user.email || '',
-                phone: currentSession.user.user_metadata?.phone || '',
-                role: 'CUSTOMER',
-                status: 'ACTIVE',
-                isRootOwner: isOwner,
-              });
-            }
+        if (isMounted) {
+          if (resolvedError) {
+            setSession(null);
+            setUser(null);
+            setIsRootOwner(false);
+            setAuthError(resolvedError);
+          } else {
+            setSession(resolvedSession);
+            setUser(resolvedUser);
+            setIsRootOwner(resolvedOwner);
           }
         }
       } else if (event === 'SIGNED_OUT') {
@@ -281,7 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile, isDemoMode, checkRootOwner]);
+  }, [resolveSessionAndProfile]);
 
   /**
    * Production Login with Email & Password
@@ -355,14 +363,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: unconfirmedMsg };
       }
 
-      let resolvedUser: User | undefined;
       if (data.session && data.user) {
-        const profile = await fetchProfile(data.user.id);
+        const profileRes = await fetchProfile(data.user.id);
+        if (profileRes.status !== 'READY') {
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setIsRootOwner(false);
+          const failMsg = 'Không thể tải hồ sơ tài khoản. Vui lòng thử lại.';
+          setAuthError(failMsg);
+          setIsLoading(false);
+          return { success: false, error: failMsg };
+        }
+
+        const profile = profileRes.user;
         const isOwner = await checkRootOwner(data.user.id);
         setIsRootOwner(isOwner);
 
         // Security gate: Deny suspended/disabled
-        if (profile && (profile.status === 'SUSPENDED' || profile.status === 'DISABLED')) {
+        if (profile.status === 'SUSPENDED' || profile.status === 'DISABLED') {
           await supabase.auth.signOut();
           setSession(null);
           setUser(null);
@@ -374,20 +393,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setSession(data.session);
-        resolvedUser = profile ? { ...profile, isRootOwner: isOwner } : {
-          id: data.user.id,
-          fullName: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Khách Hàng',
-          email: data.user.email || '',
-          phone: data.user.user_metadata?.phone || '',
-          role: 'CUSTOMER',
-          status: 'ACTIVE',
-          isRootOwner: isOwner,
-        };
+        const resolvedUser = { ...profile, isRootOwner: isOwner };
         setUser(resolvedUser);
+        setIsLoading(false);
+        return { success: true, user: resolvedUser };
       }
 
       setIsLoading(false);
-      return { success: true, user: resolvedUser };
+      return { success: false, error: 'Không thể khởi tạo phiên đăng nhập.' };
     } catch (err: any) {
       const msg = err?.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
       setAuthError(msg);
@@ -481,8 +494,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let resolvedUser: User | undefined;
       if (data.session && data.user) {
         setSession(data.session);
-        const profile = await fetchProfile(data.user.id);
-        resolvedUser = profile || {
+        const profileRes = await fetchProfile(data.user.id);
+        resolvedUser = (profileRes.status === 'READY' ? profileRes.user : undefined) || {
           id: data.user.id,
           fullName: fullName.trim(),
           email: data.user.email || email.trim(),
@@ -490,7 +503,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'CUSTOMER',
           status: 'ACTIVE',
         };
-        setUser(resolvedUser);
+        setUser(resolvedUser ?? null);
       }
 
       setIsLoading(false);

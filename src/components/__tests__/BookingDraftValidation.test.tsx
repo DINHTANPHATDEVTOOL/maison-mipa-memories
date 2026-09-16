@@ -182,9 +182,9 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
     expect(screen.queryByText(/Bước 5\/6/i)).not.toBeInTheDocument();
   });
 
-  it('rejects draft when concept belongs to another service and returns to Step 2', async () => {
-    // Couple service with Wedding concept (mismatch!)
-    const invalidDraft = {
+  it('allows draft when concept belongs to another service (cross-service permitted by contract)', async () => {
+    // Couple service with Wedding concept (cross-service permitted by authoritative contract)
+    const validDraft = {
       serviceId: VALID_SERVICE_ID,
       packageId: VALID_PACKAGE_ID,
       conceptIds: [WEDDING_CONCEPT_ID],
@@ -192,16 +192,16 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
       date: '2026-11-20',
       timeSlot: '15:30',
     };
-    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(invalidDraft));
+    sessionStorage.setItem('mipa_pending_booking', JSON.stringify(validDraft));
 
     renderWithAuth(<BookingWizard {...defaultProps} />);
 
+    // Successfully restores to Step 5
     await waitFor(() => {
-      expect(screen.getByText(/Bước 2\/6/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/Concept trước đó không còn khả dụng/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    expect(screen.queryByText(/Bước 5\/6/i)).not.toBeInTheDocument();
+    expect(sessionStorage.getItem('mipa_pending_booking')).toBeNull();
   });
 
   it('rejects draft when studio does not exist and returns to Step 3', async () => {
@@ -455,7 +455,7 @@ describe('Strict Deep-Link Query Parameter Validations', () => {
     });
   });
 
-  it('?service=A&concept=B (mismatch) -> shows explicit conflict error', async () => {
+  it('?service=A&concept=B (cross-service) -> keeps service A and concept B selected', async () => {
     renderWithAuth(
       <BookingWizard
         {...defaultProps}
@@ -465,7 +465,10 @@ describe('Strict Deep-Link Query Parameter Validations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Concept đã chọn không thuộc dịch vụ yêu cầu/i).length).toBeGreaterThan(0);
+      // Must not show conflict error, must keep both selected
+      expect(screen.queryByText(/Concept đã chọn không thuộc dịch vụ yêu cầu/i)).toBeNull();
+      expect(screen.getAllByText(/Pre-Wedding & Studio Wedding/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Parisian Romance/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -519,7 +522,7 @@ describe('Concept Requirement Policy & Presentation Mode', () => {
     sessionStorage.clear();
   });
 
-  it('blocks advancing from Step 2 to Step 3 if 0 concepts are selected', async () => {
+  it('allows advancing from Step 2 to Step 3 when 0 concepts are selected (optional concepts)', async () => {
     renderWithAuth(
       <BookingWizard
         {...defaultProps}
@@ -542,17 +545,14 @@ describe('Concept Requirement Policy & Presentation Mode', () => {
       expect(screen.getByText(/Bước 2\/6/i)).toBeInTheDocument();
     });
 
-    // Attempt to advance to Step 3 without selecting a concept
+    // Advance to Step 3 without selecting a concept (optional)
     const nextBtnStep2 = screen.getByRole('button', { name: /Tiếp theo/i });
     fireEvent.click(nextBtnStep2);
 
-    // Validation prevents advancing and displays requirement error
+    // Advances to Step 3
     await waitFor(() => {
-      expect(screen.getAllByText(/Vui lòng chọn ít nhất một concept nghệ thuật để tiếp tục/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
     });
-
-    // Still at Step 2
-    expect(screen.getByText(/Bước 2\/6/i)).toBeInTheDocument();
   });
 
   it('renders in standalone PAGE presentation mode without modal overlay', () => {

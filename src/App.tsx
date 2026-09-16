@@ -82,19 +82,30 @@ function AppContent() {
     let active = true;
 
     async function initData() {
-      try {
-        const [bks, stds, emps] = await Promise.all([
-          getBookings(),
-          getStudioRooms(),
-          getEmployees(),
-        ]);
-        if (active) {
-          setBookings(bks);
-          setStudios(stds);
-          setEmployees(emps);
-        }
-      } catch (e) {
-        console.warn('Initial data fetch warning:', e);
+      const [bksResult, stdsResult, empsResult] = await Promise.allSettled([
+        getBookings(),
+        getStudioRooms(),
+        getEmployees(),
+      ]);
+
+      if (!active) return;
+
+      if (bksResult.status === 'fulfilled') {
+        setBookings(bksResult.value);
+      } else {
+        console.warn('Failed to load bookings:', bksResult.reason);
+      }
+
+      if (stdsResult.status === 'fulfilled') {
+        setStudios(stdsResult.value);
+      } else {
+        console.warn('Failed to load studio rooms:', stdsResult.reason);
+      }
+
+      if (empsResult.status === 'fulfilled') {
+        setEmployees(empsResult.value);
+      } else {
+        console.warn('Failed to load employees:', empsResult.reason);
       }
     }
     initData();
