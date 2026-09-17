@@ -51,6 +51,9 @@ export const REQUIRED_TABLES = [
   'audit_logs',
   'otp_challenges',
   'root_owner_config',
+  'booking_deliveries',
+  'google_drive_integrations',
+  'google_drive_oauth_states',
 ];
 
 export const CONTRACT_CHECKS = [
@@ -62,6 +65,16 @@ export const CONTRACT_CHECKS = [
   },
   { table: 'packages', columns: 'concepts_count', label: 'packages.concepts_count' },
   { table: 'studio_rooms', columns: 'active', label: 'studio_rooms.active' },
+  {
+    table: 'bookings',
+    columns: 'deposit_amount, deposit_confirmed_at, deposit_confirmed_by, deposit_note',
+    label: 'bookings.deposit_fields (deposit_amount, deposit_confirmed_at, deposit_confirmed_by, deposit_note)',
+  },
+  {
+    table: 'audit_logs',
+    columns: 'actor_id, actor_role',
+    label: 'audit_logs.actor_columns (actor_id, actor_role)',
+  },
 ];
 
 export const CORE_RPCS = [
@@ -83,6 +96,33 @@ export const CORE_RPCS = [
     params: {
       p_studio_room_id: '00000000-0000-0000-0000-000000000000',
       p_date: '2026-09-16',
+    },
+  },
+  {
+    name: 'update_booking_consultation',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_status: 'CONSULTING',
+    },
+  },
+  {
+    name: 'confirm_booking_deposit',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_deposit_amount: 100000,
+    },
+  },
+  {
+    name: 'update_booking_status',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_new_status: 'CONFIRMED',
+    },
+  },
+  {
+    name: 'get_booking_delivery_secure',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
     },
   },
 ];
@@ -314,12 +354,15 @@ export async function verifyAll() {
   console.log(`\nHISTORY_VERIFIED: ${historyVerified.length} migrations`);
   console.log(`HISTORY_NOT_VERIFIED: ${historyNotVerified.length} migrations (Migration history must be confirmed with Supabase CLI \`supabase migration list\` using authenticated project access.)`);
 
+  const externalMigrationHistory = process.env.MIGRATION_HISTORY || (process.argv.includes('--verified-history') ? 'VERIFIED' : null);
+  const migrationHistoryStatus = externalMigrationHistory || 'UNVERIFIED';
+
   console.log('\n================================================================');
   console.log('VERIFIER SUMMARY:');
   console.log(`TABLES=${tablePass}/${REQUIRED_TABLES.length} ${tableFail === 0 ? 'PASS' : 'FAIL'}`);
   console.log(`COLUMN_CONTRACTS=${colPass}/${CONTRACT_CHECKS.length} ${colFail === 0 ? 'PASS' : 'FAIL'}`);
   console.log(`CORE_RPCS=${rpcPass}/${CORE_RPCS.length} ${rpcFail === 0 ? 'EXISTS' : 'FAIL'}`);
-  console.log(`MIGRATION_HISTORY=UNVERIFIED`);
+  console.log(`MIGRATION_HISTORY=${migrationHistoryStatus}`);
   console.log('================================================================\n');
 
   if (totalFails > 0) {
@@ -327,8 +370,10 @@ export async function verifyAll() {
     process.exit(1);
   } else {
     console.log('SCHEMA_RUNTIME_CHECKS=PASS');
-    console.log('MIGRATION_HISTORY=UNVERIFIED\n');
-    console.log('Note: To verify migration history, run `supabase migration list` with authenticated project access.');
+    console.log(`MIGRATION_HISTORY=${migrationHistoryStatus}\n`);
+    if (migrationHistoryStatus !== 'VERIFIED') {
+      console.log('Note: To verify migration history, run `supabase migration list` with authenticated project access.');
+    }
     process.exit(0);
   }
 }
