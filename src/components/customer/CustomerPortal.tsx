@@ -351,16 +351,42 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
 
                   <div style={{ textAlign: 'right' }}>
                     <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                      ● {b.bookingStatus.replace('_', ' ')}
+                      ● {b.bookingStatus === 'CONSULTATION_REQUESTED'
+                        ? 'Chờ Maison MIPA tư vấn'
+                        : b.bookingStatus === 'CONSULTING'
+                        ? 'Đang tư vấn'
+                        : b.bookingStatus === 'CONFIRMED'
+                        ? 'Đã xác nhận lịch & cọc'
+                        : b.bookingStatus === 'CHECKED_IN'
+                        ? 'Đã check-in'
+                        : b.bookingStatus === 'SHOOTING'
+                        ? 'Đang chụp'
+                        : b.bookingStatus === 'SHOOT_COMPLETED'
+                        ? 'Đã hoàn tất buổi chụp'
+                        : b.bookingStatus === 'EDITING'
+                        ? 'Đang hậu kỳ'
+                        : b.bookingStatus === 'READY_FOR_REVIEW'
+                        ? 'Ảnh đang được duyệt'
+                        : b.bookingStatus === 'DELIVERED'
+                        ? 'Ảnh đã được giao'
+                        : b.bookingStatus === 'COMPLETED'
+                        ? 'Hoàn tất'
+                        : b.bookingStatus === 'RESCHEDULED'
+                        ? 'Đã dời lịch'
+                        : b.bookingStatus === 'CANCELLED'
+                        ? 'Đã hủy'
+                        : b.bookingStatus.replace('_', ' ')}
                     </span>
                     <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#8C6E53', marginTop: '0.4rem' }}>
                       {b.totalAmount.toLocaleString('vi-VN')} đ
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' ? '#047857' : '#D97706', fontWeight: 600 }}>
-                      {b.paymentStatus === 'DEPOSIT_PAID'
+                    <div style={{ fontSize: '0.8rem', color: (b.depositAmount > 0 || b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID') ? '#047857' : '#D97706', fontWeight: 600 }}>
+                      {b.depositAmount > 0 || b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID'
                         ? `Đã cọc: ${b.depositAmount.toLocaleString('vi-VN')} đ`
                         : b.paymentStatus === 'FULLY_PAID'
                         ? 'Đã thanh toán đủ 100%'
+                        : b.bookingStatus === 'CONSULTATION_REQUESTED' || b.bookingStatus === 'CONSULTING'
+                        ? 'Chờ xác nhận cọc'
                         : 'Chờ thanh toán cọc'}
                     </div>
                   </div>
@@ -373,11 +399,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', fontSize: '0.78rem' }}>
                     {[
-                      { label: '1. Đã Nhận Cọc', done: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
+                      { label: '1. Đã Nhận Cọc', done: ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
                       { label: '2. Đã Check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
                       { label: '3. Đang Chụp', done: ['SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
                       { label: '4. Hậu Kỳ', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '5. Đã Giao Ảnh', done: ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.driveReadyForCustomer },
+                      { label: '5. Đã Giao Ảnh', done: ['DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || Boolean(b.driveReadyForCustomer) },
                     ].map((step, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: step.done ? '#047857' : '#A39385', fontWeight: step.done ? 600 : 400 }}>
                         <Check size={14} color={step.done ? '#047857' : '#A39385'} />
@@ -418,10 +444,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       </button>
                     )}
 
-                    {/* Google Drive Delivery Button (#8 integration) */}
-                    {(b.driveReadyForCustomer || b.driveFolderUrl || b.bookingStatus === 'READY_FOR_REVIEW' || b.bookingStatus === 'DELIVERED') ? (
+                    {/* Google Drive Delivery Button (#8 integration) - ONLY when delivered or ready for customer */}
+                    {(b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && b.driveFolderUrl ? (
                       <a
-                        href={b.driveFolderUrl || 'https://drive.google.com'}
+                        href={b.driveFolderUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-mipa-gold"
@@ -440,14 +466,14 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       </a>
                     ) : (
                       <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
-                        ⏳ Ảnh đang được hậu kỳ kỹ lưỡng
+                        ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
                       </span>
                     )}
                   </div>
 
                   {/* Reschedule / Cancel options */}
                   <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {['PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED'].includes(b.bookingStatus) && (
+                    {['CONSULTATION_REQUESTED', 'CONSULTING', 'PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED'].includes(b.bookingStatus) && (
                       <>
                         <button
                           onClick={() => setRescheduleBooking(b)}

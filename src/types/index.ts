@@ -15,7 +15,9 @@ export type BookingStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'RESCHEDULED';
+  | 'RESCHEDULED'
+  | 'CONSULTATION_REQUESTED'
+  | 'CONSULTING';
 
 export type PaymentStatus = 'UNPAID' | 'DEPOSIT_PAID' | 'FULLY_PAID' | 'REFUNDED';
 
@@ -199,6 +201,38 @@ export interface Booking {
   conceptId?: string;
   conceptIds?: string[];
   conceptName?: string;
+  depositConfirmedAt?: string;
+  depositConfirmedBy?: string;
+  depositNote?: string;
+}
+
+export type DeliveryStatus =
+  | 'NOT_CREATED'
+  | 'CREATING'
+  | 'READY_FOR_UPLOAD'
+  | 'READY_FOR_CUSTOMER'
+  | 'ERROR'
+  | 'REVOKED'
+  | 'NEEDS_RECONCILE';
+
+export interface BookingDelivery {
+  id: string;
+  bookingId: string;
+  provider: string;
+  driveFolderId?: string;
+  driveFolderUrl?: string;
+  status: DeliveryStatus;
+  customerPermissionId?: string;
+  shareEmail?: string;
+  createdBy?: string;
+  readyBy?: string;
+  revokedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  readyAt?: string;
+  revokedAt?: string;
+  lastReconciledAt?: string;
+  lastError?: string;
 }
 
 export type PhotoType = 'RAW' | 'PREVIEW' | 'SELECTED' | 'FINAL';

@@ -5,6 +5,7 @@ import {
   resetInMemoryBookings,
   getInMemoryBookings,
   updateBookingStatus,
+  confirmBookingDeposit,
   assignBookingStaff,
   resolveEntityUuid,
   BookingConflictError,
@@ -23,7 +24,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
   });
 
   describe('P0 Requirement: Anti-Double-Booking Protection (Exclusion Constraint Simulation)', () => {
-    it('concurrently rejects overlapping bookings on the same studio and time (1 succeeds, 1 conflicts)', async () => {
+    it('allows concurrent consultation requests for same slot, but confirms only one (1 succeeds, 1 conflicts)', async () => {
       // Booking Request 1: 10:00 - 11:00 in Room 01
       const request1 = {
         serviceId: testService.id,
@@ -34,7 +35,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
         customerName: 'Khách A',
       };
 
-      // Booking Request 2 (Concurrent overlapping): 10:30 - 11:30 in Room 01
+      // Booking Request 2 (Overlapping): 10:30 - 11:30 in Room 01
       const request2 = {
         serviceId: testService.id,
         packageId: testPackage.id,
@@ -44,18 +45,28 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
         customerName: 'Khách B',
       };
 
-      // Request 1 succeeds
+      // Both consultation requests are created successfully without blocking each other
       const booking1 = await createBooking(request1);
       expect(booking1).toBeDefined();
       expect(booking1.bookingCode).toMatch(/^MIPA-260915-[A-Z0-9]{4}$/);
+      expect(booking1.bookingStatus).toBe('CONSULTATION_REQUESTED');
 
-      // Request 2 MUST fail with BookingConflictError
-      await expect(createBooking(request2)).rejects.toThrowError(BookingConflictError);
+      const booking2 = await createBooking(request2);
+      expect(booking2).toBeDefined();
+      expect(booking2.bookingStatus).toBe('CONSULTATION_REQUESTED');
 
-      // Verify that database has exactly 1 booking
+      // Manager authoritatively confirms deposit for booking 1
+      const confirmed1 = await confirmBookingDeposit(booking1.id, 400000, 'Đã nhận cọc tiền mặt');
+      expect(confirmed1.bookingStatus).toBe('CONFIRMED');
+
+      // Attempting to confirm booking 2 for overlapping slot MUST fail with BookingConflictError
+      await expect(confirmBookingDeposit(booking2.id, 400000, 'Đã nhận cọc')).rejects.toThrowError(BookingConflictError);
+
+      // Verify that booking 1 is CONFIRMED and booking 2 remains unconfirmed
       const currentBookings = getInMemoryBookings();
-      expect(currentBookings.length).toBe(1);
-      expect(currentBookings[0].customerName).toBe('Khách A');
+      expect(currentBookings.length).toBe(2);
+      expect(currentBookings.find(b => b.id === booking1.id)?.bookingStatus).toBe('CONFIRMED');
+      expect(currentBookings.find(b => b.id === booking2.id)?.bookingStatus).toBe('CONSULTATION_REQUESTED');
     });
 
     it('allows adjacent back-to-back bookings (10:00-11:00 and 11:00-12:00) without conflict', async () => {
@@ -114,7 +125,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
 
       expect(rebooked).toBeDefined();
       expect(rebooked.customerName).toBe('Khách Mới Đặt Lại');
-      expect(rebooked.bookingStatus).toBe('PENDING_PAYMENT');
+      expect(rebooked.bookingStatus).toBe('CONSULTATION_REQUESTED');
     });
   });
 
@@ -170,7 +181,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
   });
 
   describe('Booking State Machine Transitions', () => {
-    it('allows valid progressive transitions (PENDING_PAYMENT -> CONFIRMED -> COMPLETED)', async () => {
+    it('allows valid progressive transitions (CONSULTATION_REQUESTED -> CONFIRMED -> COMPLETED)', async () => {
       const b = await createBooking({
         serviceId: testService.id,
         packageId: testPackage.id,
@@ -179,11 +190,11 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
         timeSlot: '13:00',
       });
 
-      expect(b.bookingStatus).toBe('PENDING_PAYMENT');
+      expect(b.bookingStatus).toBe('CONSULTATION_REQUESTED');
 
-      const confirmed = await updateBookingStatus(b.id, 'CONFIRMED', 'Đã nhận cọc');
+      const confirmed = await confirmBookingDeposit(b.id, 400000, 'Đã nhận cọc');
       expect(confirmed.bookingStatus).toBe('CONFIRMED');
-      expect(confirmed.staffNote).toContain('Đã nhận cọc');
+      expect(confirmed.depositAmount).toBe(400000);
 
       const completed = await updateBookingStatus(b.id, 'COMPLETED', 'Đã giao ảnh');
       expect(completed.bookingStatus).toBe('COMPLETED');

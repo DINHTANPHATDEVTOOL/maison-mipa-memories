@@ -280,11 +280,13 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
   const endMinutes = startMinutes + totalDuration;
   const endTimeStr = minutesToTime(endMinutes);
 
-  // Anti-double-booking interval check
+  // Anti-double-booking interval check against confirmed operational bookings
+  // Multiple customers may submit consultation requests for the same preferred slot
   const conflicting = inMemoryBookings.find(b => {
     if (b.bookingDate !== request.date) return false;
     if (b.studioId !== studio.id) return false;
-    if (b.bookingStatus === 'CANCELLED') return false;
+    const blockingStatuses = ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'DEPOSIT_PAID'];
+    if (!blockingStatuses.includes(b.bookingStatus)) return false;
 
     const existingStart = timeToMinutes(b.startTime);
     const existingEnd = timeToMinutes(b.endTime);
@@ -349,7 +351,7 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     depositAmount: pricing.depositAmount,
     totalAmount: pricing.totalAmount,
     paymentStatus: 'UNPAID',
-    bookingStatus: 'PENDING_PAYMENT',
+    bookingStatus: 'CONSULTATION_REQUESTED',
     customerNote: request.customerNote,
     occasion: request.occasion,
     assignments: [],
@@ -424,7 +426,7 @@ export function subscribeBookings(
     }
   };
 
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     const channelName = `realtime-bookings-${customerId || 'all'}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -477,7 +479,7 @@ export async function updateBookingStatus(
   newStatus: BookingStatus,
   staffNote?: string
 ): Promise<Booking> {
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     const { data, error } = await supabase.rpc('update_booking_status', {
       p_booking_id: bookingId,
       p_new_status: newStatus,
@@ -501,7 +503,11 @@ export async function updateBookingStatus(
     throw new Error('Booking not found in memory store.');
   }
 
-  if (existing.bookingStatus === 'COMPLETED' && ['DRAFT', 'PENDING_PAYMENT'].includes(newStatus)) {
+  if (newStatus === 'CONFIRMED' && ['CONSULTATION_REQUESTED', 'CONSULTING'].includes(existing.bookingStatus)) {
+    throw new Error('Xác nhận đơn đặt lịch từ trạng thái tư vấn phải thông qua quy trình xác nhận nhận cọc (confirmBookingDeposit).');
+  }
+
+  if (existing.bookingStatus === 'COMPLETED' && ['DRAFT', 'PENDING_PAYMENT', 'CONSULTATION_REQUESTED', 'CONSULTING'].includes(newStatus)) {
     throw new Error(`Illegal state transition from COMPLETED to ${newStatus}`);
   }
 
@@ -514,6 +520,145 @@ export async function updateBookingStatus(
 
   inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
   return updated;
+}
+
+export interface UpdateBookingConsultationParams {
+  serviceId?: string;
+  packageId?: string;
+  studioRoomId?: string;
+  startAt?: string;
+  conceptIds?: string[];
+  addonIds?: string[];
+  customerNote?: string;
+  staffNote?: string;
+  status?: string;
+}
+
+/**
+ * Manager/Admin updates booking consultation details.
+ */
+export async function updateBookingConsultation(
+  bookingId: string,
+  params: UpdateBookingConsultationParams
+): Promise<Booking> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data, error } = await supabase.rpc('update_booking_consultation', {
+      p_booking_id: bookingId,
+      p_service_id: params.serviceId || null,
+      p_package_id: params.packageId || null,
+      p_studio_room_id: params.studioRoomId || null,
+      p_start_at: params.startAt || null,
+      p_concept_ids: params.conceptIds || null,
+      p_addon_ids: params.addonIds || null,
+      p_customer_note: params.customerNote || null,
+      p_staff_note: params.staffNote || null,
+      p_status: params.status || null,
+    });
+
+    if (error) {
+      throw new Error(`Không thể cập nhật thông tin tư vấn: ${error.message}`);
+    }
+    return mapDatabaseRecordToDomain(data as any);
+  }
+
+  const index = inMemoryBookings.findIndex(b => b.id === bookingId || b.bookingCode === bookingId);
+  if (index === -1) {
+    throw new Error(`Đơn đặt lịch ${bookingId} không tồn tại.`);
+  }
+
+  const existing = inMemoryBookings[index];
+  const updated: Booking = {
+    ...existing,
+    ...(params.serviceId ? { serviceId: params.serviceId } : {}),
+    ...(params.packageId ? { packageId: params.packageId } : {}),
+    ...(params.studioRoomId ? { studioId: params.studioRoomId } : {}),
+    ...(params.customerNote !== undefined ? { customerNote: params.customerNote } : {}),
+    ...(params.staffNote !== undefined ? { staffNote: params.staffNote } : {}),
+    ...(params.status === 'CONSULTING' ? { bookingStatus: 'CONSULTING' } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryBookings[index] = updated;
+  return updated;
+}
+
+/**
+ * Manager/Admin authoritatively confirms deposit received outside the website.
+ * Sets booking status to CONFIRMED and blocks slot.
+ */
+export async function confirmBookingDeposit(
+  bookingId: string,
+  depositAmount: number,
+  depositNote?: string,
+  finalTotal?: number
+): Promise<Booking> {
+  if (depositAmount < 0) {
+    throw new Error('Số tiền cọc không được nhỏ hơn 0.');
+  }
+
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data, error } = await supabase.rpc('confirm_booking_deposit', {
+      p_booking_id: bookingId,
+      p_deposit_amount: depositAmount,
+      p_deposit_note: depositNote || null,
+      p_final_total: finalTotal || null,
+    });
+
+    if (error) {
+      if (error.code === '23P01' || error.message?.includes('đã có lịch')) {
+        throw new BookingConflictError(error.message || 'Khung giờ phòng studio đã có lịch đặt chính thức.');
+      }
+      throw new Error(`Xác nhận cọc thất bại: ${error.message}`);
+    }
+
+    return mapDatabaseRecordToDomain(data as any);
+  }
+
+  const index = inMemoryBookings.findIndex(b => b.id === bookingId || b.bookingCode === bookingId);
+  if (index === -1) {
+    throw new Error(`Đơn đặt lịch ${bookingId} không tồn tại.`);
+  }
+
+  const booking = inMemoryBookings[index];
+  const targetTotal = finalTotal !== undefined && finalTotal > 0 ? finalTotal : booking.totalAmount;
+
+  if (depositAmount > targetTotal) {
+    throw new Error(`Số tiền cọc (${depositAmount.toLocaleString('vi-VN')}đ) không được vượt quá tổng giá trị (${targetTotal.toLocaleString('vi-VN')}đ).`);
+  }
+
+  // Concurrency-safe slot collision check against OTHER confirmed bookings
+  const startM = timeToMinutes(booking.startTime);
+  const endM = timeToMinutes(booking.endTime);
+  const conflict = inMemoryBookings.find(b => {
+    if (b.id === booking.id) return false;
+    if (b.bookingDate !== booking.bookingDate) return false;
+    if (b.studioId !== booking.studioId) return false;
+    const blockingStatuses = ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'DEPOSIT_PAID'];
+    if (!blockingStatuses.includes(b.bookingStatus)) return false;
+
+    const bStart = timeToMinutes(b.startTime);
+    const bEnd = timeToMinutes(b.endTime);
+    return isIntervalOverlapping(startM, endM, bStart, bEnd);
+  });
+
+  if (conflict) {
+    throw new BookingConflictError(`Phòng studio đã có lịch đặt chính thức cho khung giờ này (#${conflict.bookingCode}). Không thể xác nhận cọc.`);
+  }
+
+  const confirmed: Booking = {
+    ...booking,
+    bookingStatus: 'CONFIRMED',
+    paymentStatus: depositAmount >= targetTotal ? 'FULLY_PAID' : 'DEPOSIT_PAID',
+    depositAmount,
+    totalAmount: targetTotal,
+    depositConfirmedAt: new Date().toISOString(),
+    depositConfirmedBy: 'mgr_current',
+    depositNote,
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryBookings[index] = confirmed;
+  return confirmed;
 }
 
 /**
@@ -803,13 +948,16 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     depositAmount: Number(record.deposit_amount || record.depositAmount || 0),
     totalAmount: Number(record.total_amount || record.totalAmount || 0),
     paymentStatus: record.payment_status || record.paymentStatus || 'UNPAID',
-    bookingStatus: record.booking_status || record.bookingStatus || 'PENDING_PAYMENT',
+    bookingStatus: record.booking_status || record.bookingStatus || 'CONSULTATION_REQUESTED',
     customerNote: record.customer_note || record.customerNote,
     staffNote: record.staff_note || record.staffNote,
     occasion: record.occasion,
     assignments,
     startAt,
     endAt,
+    depositConfirmedAt: record.deposit_confirmed_at || record.depositConfirmedAt,
+    depositConfirmedBy: record.deposit_confirmed_by || record.depositConfirmedBy,
+    depositNote: record.deposit_note || record.depositNote,
     customerScheduleConfirmedAt: record.customer_schedule_confirmed_at,
     customerShootAckAt: record.customer_shoot_ack_at,
     rescheduleRequestedAt: record.reschedule_requested_at,

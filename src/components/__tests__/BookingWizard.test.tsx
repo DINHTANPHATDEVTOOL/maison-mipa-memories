@@ -47,26 +47,28 @@ describe('BookingWizard Component', () => {
     expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
   });
 
-  it('completes booking happy path and triggers onBookingSuccess callback', async () => {
+  it('completes booking happy path and triggers onBookingSuccess callback with CONSULTATION_REQUESTED', async () => {
     renderWithAuth(<BookingWizard {...defaultProps} />);
 
-    // Advance to step 6 (Payment)
+    // Advance through steps 1 to 5
     for (let i = 1; i <= 5; i++) {
       const nextBtn = screen.getByRole('button', { name: /Tiếp Theo/i });
       fireEvent.click(nextBtn);
     }
 
-    // Step 6: Payment & Deposit confirmation
-    const payBtn = screen.getByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i });
-    expect(payBtn).toBeInTheDocument();
+    // Step 6: Consultation request submitted
+    expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Yêu cầu tư vấn đã được gửi/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Maison MIPA đã nhận được yêu cầu của bạn/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Chi phí dự kiến/i).length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.click(payBtn);
+    // Verify zero payment button
+    expect(screen.queryByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i })).toBeNull();
+    expect(screen.queryByText(/TỰ ĐỘNG XÁC NHẬN QUA ACB/i)).toBeNull();
 
-    // Advance fake timers for setTimeout in handleConfirmAndPay
-    act(() => {
-      vi.runAllTimers();
-    });
-
+    // onBookingSuccess should have been called upon submission
     expect(defaultProps.onBookingSuccess).toHaveBeenCalled();
+    const calledBooking = defaultProps.onBookingSuccess.mock.calls[0][0];
+    expect(calledBooking.bookingStatus).toBe('CONSULTATION_REQUESTED');
   });
 });

@@ -86,10 +86,11 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
   let bodyContent = '';
 
   switch (templateKey) {
+    case 'booking_consultation_requested':
     case 'booking_created':
       const serviceTitle = serviceName ? ` - ${serviceName}` : '';
       const packageTitle = packageName ? ` (${packageName})` : '';
-      subject = `[Maison MIPA] Xác nhận đặt lịch #${bookingCode}${packageTitle}${serviceTitle}`;
+      subject = `Maison MIPA — Đã nhận yêu cầu tư vấn #${bookingCode}${packageTitle}${serviceTitle}`;
 
       const rawFeatures = getVal('features');
       const featureItems = Array.isArray(rawFeatures) && rawFeatures.length > 0
@@ -112,146 +113,66 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
           Kính chào ${name},
         </h2>
         <p style="color: #604634; line-height: 1.6; font-size: 14.5px;">
-          Maison MIPA Memories chân thành cảm ơn bạn đã tin tưởng lựa chọn studio để lưu giữ những khoảnh khắc quý giá. Yêu cầu đặt lịch chụp ảnh của bạn đã được ghi nhận thành công trên hệ thống.
+          Maison MIPA Memories chân thành cảm ơn bạn đã quan tâm và gửi yêu cầu tư vấn chụp ảnh.
         </p>
 
-        <!-- 1. Card Chi Tiết Buổi Chụp -->
+        <div style="background: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 10px; padding: 16px; margin: 16px 0; color: #92400E; font-size: 14px; line-height: 1.5;">
+          <strong>📌 Lưu ý quan trọng:</strong> Yêu cầu của bạn hiện đang ở trạng thái <strong>CHỜ TƯ VẤN</strong> và <strong>CHƯA ĐƯỢC GIỮ LỊCH CHÍNH THỨC</strong>. Đội ngũ Maison MIPA sẽ chủ động liên hệ với bạn để tư vấn chi tiết, xác nhận lịch chụp và hướng dẫn đặt cọc.
+        </div>
+
+        <!-- Chi Tiết Yêu Cầu Tư Vấn -->
         <div style="background: #FAF6EE; border: 1.5px solid #E6D7B9; border-radius: 12px; padding: 20px; margin: 20px 0;">
           <div style="border-bottom: 1.5px solid #E6D7B9; padding-bottom: 10px; margin-bottom: 14px;">
             <div style="font-size: 16.5px; font-weight: 700; color: #604634; text-transform: uppercase; letter-spacing: 0.5px;">
-              📸 Gói Chụp: ${packageName}
+              📸 Gói Chụp Đề Xuất: ${packageName}
             </div>
             <div style="font-size: 13px; color: #8C6E53; margin-top: 3px; font-weight: 600;">
-              Dịch vụ: ${serviceName} • Mã đơn: <span style="font-family: monospace; color: #604634;">#${bookingCode}</span>
+              Dịch vụ: ${serviceName} • Mã yêu cầu: <span style="font-family: monospace; color: #604634;">#${bookingCode}</span>
             </div>
           </div>
 
           <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; color: #4A3525;">
             <tr>
-              <td style="padding: 6px 0; width: 42%; color: #8C6E53;">⏱️ Thời gian chụp hẹn:</td>
+              <td style="padding: 6px 0; width: 42%; color: #8C6E53;">⏱️ Khung giờ mong muốn:</td>
               <td style="padding: 6px 0; font-weight: 700; color: #2C221E;">${startAt}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #8C6E53;">🏛️ Phòng Studio:</td>
+              <td style="padding: 6px 0; color: #8C6E53;">🏛️ Không gian phòng:</td>
               <td style="padding: 6px 0; font-weight: 600;">${studioName}</td>
             </tr>
             ${durationMinutes ? `
             <tr>
-              <td style="padding: 6px 0; color: #8C6E53;">⏳ Thời lượng chụp:</td>
+              <td style="padding: 6px 0; color: #8C6E53;">⏳ Thời lượng dự kiến:</td>
               <td style="padding: 6px 0; font-weight: 600;">${durationMinutes} phút</td>
             </tr>` : ''}
             <tr>
               <td style="padding: 6px 0; color: #8C6E53;">🎨 Concept bối cảnh:</td>
               <td style="padding: 6px 0; font-weight: 600;">${conceptDisplay}</td>
             </tr>
-            ${editedPhotosCount ? `
-            <tr>
-              <td style="padding: 6px 0; color: #8C6E53;">✨ Ảnh hoàn thiện retouch:</td>
-              <td style="padding: 6px 0; font-weight: 600;">${editedPhotosCount} ảnh chỉnh sửa cao cấp</td>
-            </tr>` : ''}
             ${addonDisplay ? `
             <tr>
-              <td style="padding: 6px 0; color: #8C6E53;">🎁 Dịch vụ cộng thêm:</td>
+              <td style="padding: 6px 0; color: #8C6E53;">🎁 Dịch vụ kèm theo:</td>
               <td style="padding: 6px 0; font-weight: 600;">${addonDisplay}</td>
-            </tr>` : ''}
-            ${occasion ? `
-            <tr>
-              <td style="padding: 6px 0; color: #8C6E53;">🎉 Dịp kỷ niệm:</td>
-              <td style="padding: 6px 0; font-weight: 600;">${occasion}</td>
             </tr>` : ''}
             ${customerNote ? `
             <tr>
-              <td style="padding: 6px 0; color: #8C6E53;">📝 Ghi chú yêu cầu:</td>
+              <td style="padding: 6px 0; color: #8C6E53;">📝 Ghi chú của bạn:</td>
               <td style="padding: 6px 0; font-weight: 500; font-style: italic;">"${customerNote}"</td>
             </tr>` : ''}
           </table>
-
-          ${featureItems ? `
-          <div style="border-top: 1px dashed #D9C8A9; padding-top: 10px; margin-top: 12px;">
-            <p style="margin: 0 0 6px 0; font-weight: 700; font-size: 13px; color: #604634;">Quyền lợi trọn gói bao gồm:</p>
-            <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5;">
-              ${featureItems}
-            </ul>
-          </div>` : ''}
         </div>
 
-        <!-- 2. Bảng Kê Chi Phí & Số Tiền Cọc Nổi Bật -->
-        <div style="background: #FFFFFF; border: 1.5px solid #EFE6C9; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-          <div style="font-size: 15px; font-weight: 700; color: #604634; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #EFE6C9; padding-bottom: 8px; margin-bottom: 12px;">
-            💰 Chi Tiết Giá Tiền & Tiền Cọc Giữ Lịch
+        <!-- Ước tính chi phí -->
+        <div style="background: #FFFFFF; border: 1.5px solid #EFE6C9; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <div style="font-size: 15px; font-weight: 700; color: #604634; border-bottom: 1px solid #EFE6C9; padding-bottom: 8px; margin-bottom: 12px;">
+            💰 Chi Phí Dự Kiến
           </div>
-
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #4A3525;">
-            ${packagePrice > 0 ? `
-            <tr>
-              <td style="padding: 5px 0; color: #6E5F55;">Giá niêm yết gói chụp:</td>
-              <td style="padding: 5px 0; text-align: right; font-weight: 600;">${formatVnd(packagePrice)}</td>
-            </tr>` : ''}
-            ${addonTotal > 0 ? `
-            <tr>
-              <td style="padding: 5px 0; color: #6E5F55;">Phụ phí Add-on dịch vụ:</td>
-              <td style="padding: 5px 0; text-align: right; font-weight: 600;">+ ${formatVnd(addonTotal)}</td>
-            </tr>` : ''}
-            ${discountTotal > 0 ? `
-            <tr>
-              <td style="padding: 5px 0; color: #047857;">Ưu đãi giảm giá Voucher:</td>
-              <td style="padding: 5px 0; text-align: right; font-weight: 600; color: #047857;">- ${formatVnd(discountTotal)}</td>
-            </tr>` : ''}
-            <tr style="border-top: 1px solid #EFE6C9;">
-              <td style="padding: 10px 0 6px 0; font-weight: 700; color: #2C221E; font-size: 15px;">Tổng Chi Phí Buổi Chụp:</td>
-              <td style="padding: 10px 0 6px 0; text-align: right; font-weight: 700; color: #2C221E; font-size: 16px;">${formatVnd(totalAmount || subtotal)}</td>
-            </tr>
-          </table>
-
-          <!-- Khung Tiền Cọc Nổi Bật -->
-          <div style="background: #FFFDF6; border: 2px solid ${BRAND_GOLD}; border-radius: 10px; padding: 14px 18px; margin: 14px 0 6px 0; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8C6E53;">
-                SỐ TIỀN CỌC CẦN THANH TOÁN
-              </div>
-              <div style="font-size: 11.5px; color: #8C6E53; margin-top: 2px;">
-                (Thanh toán để xác nhận giữ lịch & khóa phòng studio)
-              </div>
-            </div>
-            <div style="font-size: 20px; font-weight: 800; color: #B45309; text-align: right;">
-              ${formatVnd(depositAmount)}
-            </div>
+          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; color: #2C221E;">
+            <span>Tổng chi phí dự kiến:</span>
+            <span>${formatVnd(totalAmount || subtotal)}</span>
           </div>
-
-          <div style="font-size: 13px; color: #8C6E53; text-align: right; margin-top: 6px;">
-            Số tiền còn lại thanh toán tại studio: <strong>${formatVnd(remainingAmount)}</strong>
-          </div>
-        </div>
-
-        <!-- 3. Hướng Dẫn Chuyển Khoản & VietQR -->
-        <div style="background: #FAF8F5; border: 1px solid #E6D7B9; border-radius: 10px; padding: 16px 20px; margin: 20px 0;">
-          <div style="font-weight: 700; font-size: 14px; color: #604634; margin-bottom: 8px;">
-            🏦 Hướng Dẫn Chuyển Khoản Đặt Cọc
-          </div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #4A3525;">
-            <tr>
-              <td style="padding: 4px 0; width: 38%; color: #8C6E53;">Ngân hàng:</td>
-              <td style="padding: 4px 0; font-weight: 600;">ACB - Ngân Hàng TMCP Á Châu</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 0; color: #8C6E53;">Số tài khoản:</td>
-              <td style="padding: 4px 0; font-weight: 700; font-family: monospace; font-size: 14px; color: #2C221E;">118822999</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 0; color: #8C6E53;">Chủ tài khoản:</td>
-              <td style="padding: 4px 0; font-weight: 700; text-transform: uppercase;">MAISON MIPA MEMORIES</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 0; color: #8C6E53;">Số tiền cọc:</td>
-              <td style="padding: 4px 0; font-weight: 700; color: #B45309;">${formatVnd(depositAmount)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 4px 0; color: #8C6E53;">Nội dung chuyển khoản:</td>
-              <td style="padding: 4px 0; font-weight: 700; font-family: monospace; color: #B45309; font-size: 14px;">${transferRef}</td>
-            </tr>
-          </table>
-          <p style="margin: 10px 0 0 0; font-size: 12.5px; color: #8C6E53; line-height: 1.4;">
-            * Quý khách có thể quét mã VietQR tự động trên hệ thống web để thanh toán nhanh chóng. Lịch chụp được bảo lưu trong vòng 24 giờ.
+          <p style="margin: 8px 0 0 0; font-size: 12.5px; color: #8C6E53;">
+            * Chi phí chính xác và khoản cọc giữ lịch sẽ được thống nhất sau khi Maison MIPA tư vấn cùng bạn.
           </p>
         </div>
       `;
@@ -276,12 +197,94 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
       break;
 
     case 'booking_confirmed':
-      subject = `[Maison MIPA] Lịch chụp đã được duyệt & gán kíp #${data.bookingCode || ''}`;
+      subject = `Maison MIPA — Xác nhận lịch chụp ${bookingCode}`;
+      const confConceptDisplay = Array.isArray(conceptNames) && conceptNames.length > 0
+        ? conceptNames.join(', ')
+        : (typeof conceptNames === 'string' ? conceptNames : 'Theo tư vấn studio');
+
+      let confAddonDisplay = '';
+      if (Array.isArray(addonsData) && addonsData.length > 0) {
+        confAddonDisplay = addonsData
+          .map((a: any) => typeof a === 'string' ? a : a.name)
+          .join(', ');
+      }
+
       bodyContent = `
-        <h2 style="color: ${BRAND_DARK}; font-size: 20px; margin-top: 0;">Lịch Chụp Đã Sẵn Sàng</h2>
-        <p style="color: #604634; line-height: 1.6;">Xin chào ${name},</p>
-        <p style="color: #604634; line-height: 1.6;">
-          Đơn chụp <strong>${data.bookingCode}</strong> đã được studio phê duyệt và sắp xếp phòng studio hoàn tất. Bạn có thể đăng nhập vào cổng khách hàng để xác nhận lịch chụp.
+        <h2 style="color: #047857; font-size: 21px; margin-top: 0; font-family: 'Playfair Display', Georgia, serif;">
+          ✓ Xác Nhận Lịch Chụp Thành Công
+        </h2>
+        <p style="color: #604634; line-height: 1.6; font-size: 14.5px;">
+          Xin chào ${name},
+        </p>
+        <p style="color: #604634; line-height: 1.6; font-size: 14.5px;">
+          <strong>Maison MIPA đã xác nhận khoản cọc của bạn và lịch chụp đã được giữ chính thức.</strong>
+        </p>
+
+        <!-- Card Chi Tiết Lịch Chụp Chính Thức -->
+        <div style="background: #FAF6EE; border: 1.5px solid #E6D7B9; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <div style="border-bottom: 1.5px solid #E6D7B9; padding-bottom: 10px; margin-bottom: 14px;">
+            <div style="font-size: 16.5px; font-weight: 700; color: #604634; text-transform: uppercase;">
+              📸 ${packageName}
+            </div>
+            <div style="font-size: 13px; color: #8C6E53; margin-top: 3px;">
+              Dịch vụ: ${serviceName} • Mã đơn: <strong style="color: #604634; font-family: monospace;">#${bookingCode}</strong>
+            </div>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; color: #4A3525;">
+            <tr>
+              <td style="padding: 6px 0; width: 40%; color: #8C6E53;">Khách hàng:</td>
+              <td style="padding: 6px 0; font-weight: 600;">${name} (${getVal('customerPhone', 'customer_phone') || ''})</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #8C6E53;">Thời gian chụp:</td>
+              <td style="padding: 6px 0; font-weight: 700; color: #047857;">${startAt}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #8C6E53;">Địa điểm / Phòng:</td>
+              <td style="padding: 6px 0; font-weight: 600;">${studioName}</td>
+            </tr>
+            ${durationMinutes ? `
+            <tr>
+              <td style="padding: 6px 0; color: #8C6E53;">Thời lượng:</td>
+              <td style="padding: 6px 0; font-weight: 600;">${durationMinutes} phút</td>
+            </tr>` : ''}
+            <tr>
+              <td style="padding: 6px 0; color: #8C6E53;">Concept:</td>
+              <td style="padding: 6px 0; font-weight: 600;">${confConceptDisplay}</td>
+            </tr>
+            ${confAddonDisplay ? `
+            <tr>
+              <td style="padding: 6px 0; color: #8C6E53;">Dịch vụ kèm theo:</td>
+              <td style="padding: 6px 0; font-weight: 600;">${confAddonDisplay}</td>
+            </tr>` : ''}
+          </table>
+        </div>
+
+        <!-- Bảng Kê Tài Chính -->
+        <div style="background: #FFFFFF; border: 1.5px solid #EFE6C9; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <div style="font-size: 15px; font-weight: 700; color: #604634; border-bottom: 1px solid #EFE6C9; padding-bottom: 8px; margin-bottom: 12px;">
+            💰 Chi Tiết Chi Phí & Khoản Cọc Đã Nhận
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #4A3525;">
+            <tr>
+              <td style="padding: 6px 0; color: #6E5F55;">Tổng giá trị buổi chụp:</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700;">${formatVnd(totalAmount)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #047857;">Tiền cọc đã nhận:</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #047857;">${formatVnd(depositAmount)}</td>
+            </tr>
+            <tr style="border-top: 1px solid #EFE6C9;">
+              <td style="padding: 10px 0 6px 0; font-weight: 700; color: #2C221E;">Số tiền còn lại cần thanh toán tại studio:</td>
+              <td style="padding: 10px 0 6px 0; text-align: right; font-weight: 700; color: #B45309; font-size: 16px;">${formatVnd(remainingAmount)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="color: #604634; line-height: 1.6; font-size: 13.5px;">
+          Mọi thắc mắc hoặc cần hỗ trợ trước ngày chụp, quý khách vui lòng liên hệ hotline <strong>0908 123 456</strong> hoặc email <strong>contact@maisonmipa.io.vn</strong>. Maison MIPA rất hân hạnh được đồng hành cùng bạn!
         </p>
       `;
       break;
