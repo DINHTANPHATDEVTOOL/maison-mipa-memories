@@ -10,6 +10,7 @@
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { FocusTrap } from '../ui/FocusTrap';
 import type { User, UserRole } from '../../types';
 import {
   Mail,
@@ -242,8 +243,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
       style={{
         position: 'fixed',
         inset: 0,
@@ -259,19 +258,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        className="mipa-card-gold"
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          borderRadius: '24px',
-          backgroundColor: '#FFFDF6',
-          boxShadow: '0 25px 60px rgba(96, 70, 52, 0.35)',
-          overflow: 'hidden',
-          animation: 'fadeIn 0.25s ease-out',
-          position: 'relative',
-        }}
+      <FocusTrap
+        active={isOpen}
+        onEscape={onClose}
+        aria-labelledby="auth-modal-title"
+        style={{ width: '100%', maxWidth: '520px' }}
       >
+        <div
+          className="mipa-card-gold"
+          style={{
+            width: '100%',
+            maxWidth: '520px',
+            borderRadius: '24px',
+            backgroundColor: '#FFFDF6',
+            boxShadow: '0 25px 60px rgba(96, 70, 52, 0.35)',
+            overflow: 'hidden',
+            animation: 'fadeIn 0.25s ease-out',
+            position: 'relative',
+          }}
+        >
         {/* Modal Header */}
         <div
           style={{
@@ -303,6 +308,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
             <div>
               <div
+                id="auth-modal-title"
                 style={{
                   fontFamily: 'var(--mipa-font-heading)',
                   fontSize: '1.15rem',
@@ -1077,6 +1083,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <span style={{ fontWeight: 600, color: '#8C6E53' }}>Maison MIPA Memories</span>
         </div>
       </div>
-    </div>
-  );
+    </FocusTrap>
+  </div>
+);
 };

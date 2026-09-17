@@ -31,6 +31,12 @@ jobs:
       - name: Typecheck and Production Build
         run: npm run build
 
+      - name: Enforce Bundle Regression Budget
+        run: npm run check:budget
+
+      - name: Scan Production Bundle for Secrets & Leaks
+        run: npm run scan:secrets
+
       - name: Run Unit & Integration Tests
         run: npm run test:run
 

@@ -13,6 +13,8 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "verify:schema": "node scripts/verify-production-schema.mjs",
+    "check:budget": "node scripts/check-bundle-budget.mjs",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -30,6 +32,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

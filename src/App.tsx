@@ -18,29 +18,34 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/auth/AuthModal';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SITE_CONFIG } from './config/site';
 import { Phone, MessageSquare, Calendar } from 'lucide-react';
 
-// Public Pages
+// Public Primary Eager Pages
 import { HomePage } from './pages/HomePage';
-import { ConceptCatalogPage } from './pages/ConceptCatalogPage';
-import { ConceptDetailPage } from './pages/ConceptDetailPage';
-import { ServicesPage } from './pages/ServicesPage';
-import { ServiceDetailPage } from './pages/ServiceDetailPage';
-import { PricingPage } from './pages/PricingPage';
-import { PortfolioPage } from './pages/PortfolioPage';
-import { CollectionDetailPage } from './pages/CollectionDetailPage';
-import { EditorialGuidePage } from './pages/EditorialGuidePage';
-import { BookingPage } from './pages/BookingPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-// Lazy-loaded routes to optimize initial public bundle size (Three.js isolated from Homepage)
+// Lazy-loaded routes to optimize initial public bundle size (Code Splitting)
+const ConceptCatalogPage = lazy(() => import('./pages/ConceptCatalogPage'));
+const ConceptDetailPage = lazy(() => import('./pages/ConceptDetailPage'));
+const ServicesPage = lazy(() => import('./pages/ServicesPage'));
+const ServiceDetailPage = lazy(() => import('./pages/ServiceDetailPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const CollectionDetailPage = lazy(() => import('./pages/CollectionDetailPage'));
+const EditorialGuidePage = lazy(() => import('./pages/EditorialGuidePage'));
+const BookingPage = lazy(() => import('./pages/BookingPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const AtelierPage = lazy(() => import('./pages/AtelierPage'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const StaffPage = lazy(() => import('./pages/StaffPage'));
 const ManagementPage = lazy(() => import('./pages/ManagementPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+
+// Reliability & Accessibility Components
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
+import { OfflineBanner } from './components/common/OfflineBanner';
 
 // Cinematic Motion & Art Direction
 import { CustomCursor } from './motion/CustomCursor';
@@ -216,6 +221,27 @@ function AppContent() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mipa-background)' }}>
+      {/* Skip to Main Content Link for Keyboard & Screen Readers */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only"
+        style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          zIndex: 100000,
+          backgroundColor: '#29231F',
+          color: '#EFE6C9',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '4px',
+          fontWeight: 600,
+          textDecoration: 'none',
+          border: '2px solid #C6A45F',
+        }}
+      >
+        Chuyển đến nội dung chính
+      </a>
+
       {/* Top Sticky Navigation */}
       <Navbar
         currentUser={currentUser}
@@ -228,7 +254,7 @@ function AppContent() {
       />
 
       {/* Main Presentation Body */}
-      <main className="mipa-public-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main id="main-content" tabIndex={-1} className="mipa-public-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', outline: 'none' }}>
         <PageTransition>
           {/* Real URL Router Routes */}
           <Suspense fallback={
@@ -247,7 +273,8 @@ function AppContent() {
             </div>
           </div>
         }>
-          <Routes>
+          <RouteErrorBoundary>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage onOpenBooking={handleOpenBooking} />} />
             <Route path="/concept" element={<ConceptCatalogPage onOpenBooking={handleOpenBooking} />} />
@@ -320,6 +347,7 @@ function AppContent() {
             {/* 404 Catch-All Route */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          </RouteErrorBoundary>
         </Suspense>
         </PageTransition>
       </main>
@@ -451,13 +479,16 @@ function AppContent() {
 
 export function App() {
   return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </BrowserRouter>
-    </HelmetProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <OfflineBanner />
+            <AppContent />
+          </AuthProvider>
+        </BrowserRouter>
+      </HelmetProvider>
+    </ErrorBoundary>
   );
 }
 

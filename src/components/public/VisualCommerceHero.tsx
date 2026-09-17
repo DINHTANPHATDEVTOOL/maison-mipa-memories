@@ -199,7 +199,15 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
         <img
           ref={imageRef}
           src={heroImageUrl}
+          srcSet={
+            heroImageUrl === BRAND_HERO_ASSET || heroImageUrl === '/hero.png'
+              ? '/hero-800w.webp 800w, /hero.webp 1920w'
+              : undefined
+          }
+          sizes="(max-width: 768px) 100vw, 1920px"
           alt="Maison MIPA Memories — Nhiếp ảnh nghệ thuật phong cách Pháp"
+          width="1920"
+          height="1080"
           fetchPriority="high"
           decoding="async"
           style={{
