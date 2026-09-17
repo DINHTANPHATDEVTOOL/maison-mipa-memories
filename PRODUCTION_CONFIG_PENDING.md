@@ -1,13 +1,16 @@
-# PRODUCTION_CONFIG_PENDING: Kế Hoạch & Migration Audit Production
+# PRODUCTION_CONFIG_PENDING: Kế Hoạch & Migration Audit Production (RESOLVED)
 
-> **MIGRATION AUDIT & PRODUCTION STATUS**
+> **MIGRATION AUDIT & PRODUCTION STATUS**: `[SUPERSEDED & RESOLVED]`
+> 
+> Booking Flow V2 đã chính thức kích hoạt trên production Supabase project `dkvkhysnabhtbbuvommu` với trạng thái `[PRODUCTION_READY=YES]`.
+> Toàn bộ 21/21 migrations đã được áp dụng và xác thực 1:1 (`MIGRATION_HISTORY=VERIFIED`).
 >
-> Trạng thái hiện tại: `[PRODUCTION_CONFIG_PENDING]` | `[MIGRATION_HISTORY=UNVERIFIED]`
-> Đã kiểm tra qua `npm run verify:schema`:
-> - **21/21 Bảng ứng dụng & cấu hình**: PASS (bao gồm `root_owner_config` với RLS active).
-> - **4/4 Schema Contract Columns**: PASS (`addons.duration_minutes`, `promotions` schema columns, `packages.concepts_count`, `studio_rooms.active`).
-> - **Core RPCs**: `get_auth_role`, `get_auth_user_status`, `get_auth_staff_role`, `is_root_owner`, `create_booking` PASS.
-> - **Availability RPC**: `get_studio_booked_slots` cần được xác thực lịch sử áp dụng với remote database.
+> 📖 **Vui lòng tham khảo tài liệu phát hành chính thức mới nhất**:
+> **[PRODUCTION_RELEASE_STATUS.md](./PRODUCTION_RELEASE_STATUS.md)**
+>
+> **Lưu ý về các thành phần thanh toán cũ:**
+> - `payment-webhook`, `create-payos-link`, `payOS`, `VietQR`: **LEGACY / NOT USED BY BOOKING FLOW V2**.
+> - Không cấu hình hoặc deploy các dịch vụ này cho Booking Flow V2.
 
 ---
 
