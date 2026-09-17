@@ -28,6 +28,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260917000002_google_drive_delivery.sql',
     '20260917000003_audit_logs_actor_columns.sql',
     '20260917000004_shoot_to_delivery_workflow.sql',
+    '20260918000001_crm_business_intelligence.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -52,6 +53,13 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'portfolio_photos',
     'booking_concepts',
     'root_owner_config',
+    'customer_crm_profiles',
+    'crm_tags',
+    'crm_customer_tags',
+    'crm_interactions',
+    'crm_follow_up_tasks',
+    'booking_status_history',
+    'booking_financial_transactions',
   ];
 
   const EXPECTED_RPCS = [
@@ -75,6 +83,14 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'update_booking_consultation',
     'confirm_booking_deposit',
     'get_booking_delivery_secure',
+    'record_booking_payment_receipt',
+    'get_crm_customers',
+    'get_customer_360',
+    'get_crm_dashboard_summary',
+    'get_booking_funnel_metrics',
+    'get_service_performance',
+    'get_concept_performance',
+    'get_studio_utilization_metrics',
   ];
 
   it('1. all migration files exist in sequential order', () => {
@@ -82,7 +98,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     expect(files.sort()).toEqual(EXPECTED_MIGRATIONS.sort());
   });
 
-  it('2. all 21 required application tables are created across migrations', () => {
+  it('2. all required application tables are created across migrations', () => {
     const combinedSql = EXPECTED_MIGRATIONS
       .map(file => fs.readFileSync(path.join(migrationsDir, file), 'utf-8'))
       .join('\n');
@@ -93,7 +109,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     }
   });
 
-  it('3. all 15 core RPC functions and triggers are defined with search_path safety', () => {
+  it('3. all core RPC functions and triggers are defined with search_path safety', () => {
     const combinedSql = EXPECTED_MIGRATIONS
       .map(file => fs.readFileSync(path.join(migrationsDir, file), 'utf-8'))
       .join('\n');

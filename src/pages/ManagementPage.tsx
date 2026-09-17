@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import { ManagerDashboard } from '../components/management/ManagerDashboard';
 import { StudioCalendar } from '../components/management/StudioCalendar';
 import { CustomerCRM } from '../components/management/CustomerCRM';
+import { CrmFollowUpDashboard } from '../components/management/CrmFollowUpDashboard';
+import { FinancialLedgerDashboard } from '../components/management/FinancialLedgerDashboard';
+import { BusinessIntelligenceDashboard } from '../components/management/BusinessIntelligenceDashboard';
 import { PortfolioCMS } from '../components/management/PortfolioCMS';
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
-import { LayoutDashboard, Clock, Users, Camera, Shield, Crown } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, CheckCircle2, DollarSign, TrendingUp, Camera, Shield, Crown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
 
@@ -30,7 +33,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
   onRequireAuth,
 }) => {
   const { user, isRootOwner } = useAuth();
-  const [subTab, setSubTab] = useState<'dashboard' | 'calendar' | 'crm' | 'portfolio'>('dashboard');
+  const [subTab, setSubTab] = useState<'dashboard' | 'calendar' | 'crm' | 'followup' | 'finance' | 'analytics' | 'portfolio'>('dashboard');
 
   return (
     <RoleGuard
@@ -51,10 +54,11 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: '0.75rem',
+        gap: '0.6rem',
         fontSize: '0.82rem',
         borderBottom: '1px solid rgba(239, 230, 201, 0.15)',
         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+        flexWrap: 'wrap',
       }}>
         <button
           onClick={() => setSubTab('dashboard')}
@@ -62,17 +66,17 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'dashboard' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.9rem',
+            padding: '0.35rem 0.8rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 600,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
+            gap: '0.35rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <LayoutDashboard size={15} color="#EFE6C9" /> Overview Dashboard
+          <LayoutDashboard size={14} color="#EFE6C9" /> Tổng quan
         </button>
         <button
           onClick={() => setSubTab('calendar')}
@@ -80,17 +84,17 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'calendar' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.9rem',
+            padding: '0.35rem 0.8rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 600,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
+            gap: '0.35rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Clock size={15} color="#EFE6C9" /> Lịch Phòng Studio
+          <Clock size={14} color="#EFE6C9" /> Lịch phòng
         </button>
         <button
           onClick={() => setSubTab('crm')}
@@ -98,17 +102,71 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'crm' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.9rem',
+            padding: '0.35rem 0.8rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 600,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
+            gap: '0.35rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Users size={15} color="#EFE6C9" /> CRM & Khách Hàng
+          <Users size={14} color="#EFE6C9" /> CRM khách hàng
+        </button>
+        <button
+          onClick={() => setSubTab('followup')}
+          style={{
+            border: 'none',
+            background: subTab === 'followup' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.35rem 0.8rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <CheckCircle2 size={14} color="#EFE6C9" /> Follow-up
+        </button>
+        <button
+          onClick={() => setSubTab('finance')}
+          style={{
+            border: 'none',
+            background: subTab === 'finance' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.35rem 0.8rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <DollarSign size={14} color="#EFE6C9" /> Tài chính
+        </button>
+        <button
+          onClick={() => setSubTab('analytics')}
+          style={{
+            border: 'none',
+            background: subTab === 'analytics' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.35rem 0.8rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <TrendingUp size={14} color="#EFE6C9" /> Phân tích & BI
         </button>
         <button
           onClick={() => setSubTab('portfolio')}
@@ -116,17 +174,17 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'portfolio' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.9rem',
+            padding: '0.35rem 0.8rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 600,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
+            gap: '0.35rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Camera size={15} color="#EFE6C9" /> Portfolio & Concept CMS
+          <Camera size={14} color="#EFE6C9" /> Portfolio & Concept CMS
         </button>
 
         {(user?.role === 'ADMIN' || isRootOwner) && (
@@ -137,14 +195,14 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
               background: 'rgba(255, 253, 246, 0.08)',
               border: '1px solid rgba(198, 164, 95, 0.4)',
               color: '#FFFDF6',
-              padding: '0.35rem 0.9rem',
+              padding: '0.35rem 0.8rem',
               borderRadius: '12px',
               fontWeight: 600,
               fontSize: '0.82rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              marginLeft: '0.5rem',
+              gap: '0.35rem',
+              marginLeft: '0.3rem',
               transition: 'all 0.2s ease',
             }}
           >
@@ -185,6 +243,20 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         />
       )}
 
+      {subTab === 'followup' && (
+        <CrmFollowUpDashboard />
+      )}
+
+      {subTab === 'finance' && (
+        <FinancialLedgerDashboard
+          bookings={bookings}
+        />
+      )}
+
+      {subTab === 'analytics' && (
+        <BusinessIntelligenceDashboard />
+      )}
+
       {subTab === 'portfolio' && (
         <PortfolioCMS />
       )}
@@ -193,3 +265,4 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
 };
 
 export default ManagementPage;
+

@@ -1351,6 +1351,270 @@ export interface Database {
           }
         ];
       };
+      customer_crm_profiles: {
+        Row: {
+          customer_id: string;
+          crm_owner_id: string | null;
+          lifecycle_stage: string;
+          acquisition_source: string | null;
+          first_contact_at: string;
+          last_contact_at: string;
+          next_follow_up_at: string | null;
+          internal_summary: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          crm_owner_id?: string | null;
+          lifecycle_stage?: string;
+          acquisition_source?: string | null;
+          first_contact_at?: string;
+          last_contact_at?: string;
+          next_follow_up_at?: string | null;
+          internal_summary?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          customer_id?: string;
+          crm_owner_id?: string | null;
+          lifecycle_stage?: string;
+          acquisition_source?: string | null;
+          first_contact_at?: string;
+          last_contact_at?: string;
+          next_follow_up_at?: string | null;
+          internal_summary?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      crm_tags: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          color: string;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          color?: string;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          color?: string;
+          description?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      crm_customer_tags: {
+        Row: {
+          customer_id: string;
+          tag_id: string;
+          tagged_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          tag_id: string;
+          tagged_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          customer_id?: string;
+          tag_id?: string;
+          tagged_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      crm_interactions: {
+        Row: {
+          id: string;
+          customer_id: string;
+          booking_id: string | null;
+          actor_id: string | null;
+          interaction_type: string;
+          channel: string;
+          outcome: string | null;
+          summary: string;
+          occurred_at: string;
+          next_follow_up_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          booking_id?: string | null;
+          actor_id?: string | null;
+          interaction_type: string;
+          channel: string;
+          outcome?: string | null;
+          summary: string;
+          occurred_at?: string;
+          next_follow_up_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          booking_id?: string | null;
+          actor_id?: string | null;
+          interaction_type?: string;
+          channel?: string;
+          outcome?: string | null;
+          summary?: string;
+          occurred_at?: string;
+          next_follow_up_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      crm_follow_up_tasks: {
+        Row: {
+          id: string;
+          customer_id: string;
+          booking_id: string | null;
+          assigned_to: string | null;
+          task_type: string;
+          title: string;
+          description: string | null;
+          due_at: string;
+          status: string;
+          priority: string;
+          completed_at: string | null;
+          completed_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          booking_id?: string | null;
+          assigned_to?: string | null;
+          task_type?: string;
+          title: string;
+          description?: string | null;
+          due_at: string;
+          status?: string;
+          priority?: string;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          booking_id?: string | null;
+          assigned_to?: string | null;
+          task_type?: string;
+          title?: string;
+          description?: string | null;
+          due_at?: string;
+          status?: string;
+          priority?: string;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_status_history: {
+        Row: {
+          id: string;
+          booking_id: string;
+          from_status: string | null;
+          to_status: string;
+          actor_id: string | null;
+          actor_role: string | null;
+          reason: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          from_status?: string | null;
+          to_status: string;
+          actor_id?: string | null;
+          actor_role?: string | null;
+          reason?: string | null;
+          changed_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          from_status?: string | null;
+          to_status?: string;
+          actor_id?: string | null;
+          actor_role?: string | null;
+          reason?: string | null;
+          changed_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_financial_transactions: {
+        Row: {
+          id: string;
+          booking_id: string;
+          customer_id: string;
+          transaction_type: string;
+          direction: string;
+          amount: number;
+          method: string;
+          received_at: string;
+          reference_note: string | null;
+          idempotency_key: string | null;
+          recorded_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          customer_id: string;
+          transaction_type: string;
+          direction: string;
+          amount: number;
+          method: string;
+          received_at?: string;
+          reference_note?: string | null;
+          idempotency_key?: string | null;
+          recorded_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          customer_id?: string;
+          transaction_type?: string;
+          direction?: string;
+          amount?: number;
+          method?: string;
+          received_at?: string;
+          reference_note?: string | null;
+          idempotency_key?: string | null;
+          recorded_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1595,6 +1859,144 @@ export interface Database {
           p_booking_id: string;
         };
         Returns: unknown;
+      };
+      record_booking_payment_receipt: {
+        Args: {
+          p_booking_id: string;
+          p_transaction_type: string;
+          p_amount: number;
+          p_method: string;
+          p_reference_note?: string | null;
+          p_idempotency_key?: string | null;
+          p_received_at?: string | null;
+        };
+        Returns: {
+          success: boolean;
+          transaction_id: string;
+          new_net_cash: number;
+          outstanding_balance: number;
+          error?: string;
+        };
+      };
+      get_crm_customers: {
+        Args: {
+          p_search?: string | null;
+          p_lifecycle?: string | null;
+          p_tag_slug?: string | null;
+          p_repeat_only?: boolean | null;
+          p_overdue_only?: boolean | null;
+          p_limit?: number | null;
+          p_offset?: number | null;
+        };
+        Returns: {
+          id: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          account_status: string;
+          lifecycle_stage: string;
+          crm_owner_id?: string | null;
+          crm_owner_name?: string | null;
+          first_contact_at?: string | null;
+          last_contact_at?: string | null;
+          next_follow_up_at?: string | null;
+          tags: any[];
+          total_bookings: number;
+          confirmed_bookings: number;
+          completed_bookings: number;
+          confirmed_booking_value: number;
+          actual_cash_received: number;
+          outstanding_balance: number;
+          last_booking_at?: string | null;
+          next_booking_at?: string | null;
+          overdue_tasks_count: number;
+          today_tasks_count: number;
+          total_count: number;
+        }[];
+      };
+      get_customer_360: {
+        Args: {
+          p_customer_id: string;
+        };
+        Returns: any;
+      };
+      get_crm_dashboard_summary: {
+        Args: {
+          p_start_at?: string | null;
+          p_end_at?: string | null;
+        };
+        Returns: {
+          period: any;
+          funnel: any;
+          financials: any;
+          customers: any;
+          operations: any;
+        };
+      };
+      get_booking_funnel_metrics: {
+        Args: {
+          p_start_at?: string | null;
+          p_end_at?: string | null;
+        };
+        Returns: {
+          cohort_total_created: number;
+          stages: {
+            stage: string;
+            count: number;
+            conversion_rate: number;
+            median_hours_from_previous: number | null;
+          }[];
+        };
+      };
+      get_service_performance: {
+        Args: {
+          p_start_at?: string | null;
+          p_end_at?: string | null;
+        };
+        Returns: {
+          service_id: string;
+          service_name: string;
+          category: string;
+          consultation_requests: number;
+          confirmed_bookings: number;
+          completed_bookings: number;
+          confirmed_booking_value: number;
+          actual_cash_received: number;
+          conversion_rate: number;
+        }[];
+      };
+      get_concept_performance: {
+        Args: {
+          p_start_at?: string | null;
+          p_end_at?: string | null;
+        };
+        Returns: {
+          concept_id: string;
+          concept_name: string;
+          concept_slug?: string | null;
+          times_selected: number;
+          confirmed_bookings: number;
+          completed_bookings: number;
+          conversion_rate: number;
+        }[];
+      };
+      get_studio_utilization_metrics: {
+        Args: {
+          p_start_at?: string | null;
+          p_end_at?: string | null;
+        };
+        Returns: {
+          room_id: string;
+          room_name: string;
+          room_code: string;
+          capacity: number;
+          confirmed_bookings_count: number;
+          confirmed_booking_hours: number;
+          available_business_hours: number;
+          utilization_rate: number;
+          popular_weekday?: string | null;
+          popular_time_range?: string | null;
+        }[];
       };
     };
     Enums: {

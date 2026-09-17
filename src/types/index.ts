@@ -431,3 +431,327 @@ export interface FocalPoint {
   y: number; // percentage 0 - 100
 }
 
+// ==========================================
+// CRM & CUSTOMER 360 TYPES
+// ==========================================
+
+export type CrmLifecycleStage =
+  | 'NEW'
+  | 'CONSULTATION'
+  | 'QUALIFIED'
+  | 'BOOKED'
+  | 'ACTIVE'
+  | 'DELIVERED'
+  | 'RETURNING'
+  | 'INACTIVE';
+
+export type CrmInteractionType =
+  | 'CONSULTATION_CALL'
+  | 'ZALO'
+  | 'PHONE_CALL'
+  | 'EMAIL'
+  | 'IN_PERSON'
+  | 'FOLLOW_UP'
+  | 'BOOKING_DISCUSSION'
+  | 'CUSTOMER_REQUEST'
+  | 'INTERNAL_NOTE';
+
+export type CrmChannel = 'PHONE' | 'ZALO' | 'EMAIL' | 'IN_PERSON' | 'OTHER';
+
+export type CrmTaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+
+export type CrmTaskPriority = 'LOW' | 'NORMAL' | 'HIGH';
+
+export interface CrmTag {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface CustomerCrmProfile {
+  customerId: string;
+  crmOwnerId?: string;
+  lifecycleStage: CrmLifecycleStage;
+  acquisitionSource?: string;
+  firstContactAt: string;
+  lastContactAt: string;
+  nextFollowUpAt?: string;
+  internalSummary?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CrmInteraction {
+  id: string;
+  customerId: string;
+  bookingId?: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  interactionType: CrmInteractionType;
+  channel: CrmChannel;
+  outcome?: string;
+  summary: string;
+  occurredAt: string;
+  nextFollowUpAt?: string;
+  createdAt: string;
+}
+
+export interface CrmFollowUpTask {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  customerPhone?: string;
+  bookingId?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  taskType: string;
+  title: string;
+  description?: string;
+  dueAt: string;
+  status: CrmTaskStatus;
+  priority: CrmTaskPriority;
+  completedAt?: string;
+  completedBy?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CrmCustomerListItem {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  accountStatus: UserStatus;
+  lifecycleStage: CrmLifecycleStage;
+  crmOwnerId?: string;
+  crmOwnerName?: string;
+  firstContactAt?: string;
+  lastContactAt?: string;
+  nextFollowUpAt?: string;
+  tags: CrmTag[];
+  totalBookings: number;
+  confirmedBookings: number;
+  completedBookings: number;
+  confirmedBookingValue: number;
+  actualCashReceived: number;
+  outstandingBalance: number;
+  lastBookingAt?: string;
+  nextBookingAt?: string;
+  overdueTasksCount: number;
+  todayTasksCount: number;
+}
+
+export interface Customer360 {
+  identity: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    status: UserStatus;
+    createdAt: string;
+  };
+  crm: {
+    lifecycleStage: CrmLifecycleStage;
+    crmOwnerId?: string;
+    crmOwnerName?: string;
+    acquisitionSource?: string;
+    firstContactAt: string;
+    lastContactAt: string;
+    nextFollowUpAt?: string;
+    internalSummary?: string;
+    tags: CrmTag[];
+    notesCount: number;
+  };
+  bookingsSummary: {
+    totalBookings: number;
+    consultationRequests: number;
+    consulting: number;
+    confirmedBookings: number;
+    completedBookings: number;
+    cancelledBookings: number;
+    isRepeatCustomer: boolean;
+    upcomingBooking?: {
+      id: string;
+      code: string;
+      status: BookingStatus;
+      bookingDate: string;
+      startTime: string;
+      serviceName?: string;
+    } | null;
+    previousBooking?: {
+      id: string;
+      code: string;
+      status: BookingStatus;
+      bookingDate: string;
+      startTime: string;
+      serviceName?: string;
+    } | null;
+  };
+  financialSummary: {
+    confirmedBookingValue: number;
+    completedBookingValue: number;
+    confirmedDeposits: number;
+    actualCashReceived: number;
+    outstandingBalance: number;
+    totalRefunded: number;
+  };
+  preferences: {
+    topServices: { id: string; name: string; count: number }[];
+    topConcepts: { id: string; name: string; count: number }[];
+    topAddons: { id: string; name: string; count: number }[];
+  };
+  bookings: Array<{
+    id: string;
+    code: string;
+    status: BookingStatus;
+    bookingDate: string;
+    startTime: string;
+    totalAmount: number;
+    depositAmount: number;
+    depositConfirmedAt?: string;
+    serviceName?: string;
+    packageName?: string;
+    createdAt: string;
+  }>;
+  interactions: CrmInteraction[];
+  financialTransactions: FinancialTransaction[];
+  followUpTasks: CrmFollowUpTask[];
+}
+
+// ==========================================
+// FINANCIAL LEDGER TYPES
+// ==========================================
+
+export type FinancialTransactionType =
+  | 'DEPOSIT'
+  | 'BALANCE'
+  | 'ADDITIONAL_CHARGE'
+  | 'REFUND'
+  | 'ADJUSTMENT';
+
+export type FinancialDirection = 'IN' | 'OUT';
+
+export type FinancialPaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'OTHER';
+
+export interface FinancialTransaction {
+  id: string;
+  bookingId: string;
+  bookingCode?: string;
+  customerId: string;
+  customerName?: string;
+  customerPhone?: string;
+  transactionType: FinancialTransactionType;
+  direction: FinancialDirection;
+  amount: number;
+  method: FinancialPaymentMethod;
+  receivedAt: string;
+  referenceNote?: string;
+  idempotencyKey?: string;
+  recordedBy: string;
+  recordedByName?: string;
+  createdAt: string;
+}
+
+export interface RecordPaymentReceiptInput {
+  bookingId: string;
+  transactionType: FinancialTransactionType;
+  amount: number;
+  method: FinancialPaymentMethod;
+  receivedAt?: string;
+  referenceNote?: string;
+  idempotencyKey?: string;
+}
+
+// ==========================================
+// BUSINESS INTELLIGENCE & KPI TYPES
+// ==========================================
+
+export interface BusinessDashboardSummary {
+  period: {
+    startAt: string;
+    endAt: string;
+  };
+  funnel: {
+    consultationRequests: number;
+    consulting: number;
+    confirmedBookings: number;
+    completedBookings: number;
+    cancelledBookings: number;
+    consultationConversionRate: number;
+    confirmedToCompletedRate: number;
+  };
+  financials: {
+    confirmedBookingValue: number;
+    completedBookingValue: number;
+    confirmedDeposits: number;
+    actualCashReceived: number;
+    outstandingBalance: number;
+    refundedAmount: number;
+  };
+  customers: {
+    totalActiveCustomers: number;
+    newCustomers: number;
+    returningCustomers: number;
+    repeatCustomerRate: number;
+  };
+  operations: {
+    upcomingShoots: number;
+    overdueOperationalJobs: number;
+    openFollowUps: number;
+    overdueFollowUps: number;
+  };
+}
+
+export interface FunnelStageMetric {
+  stage: string;
+  count: number;
+  conversionRate: number;
+  medianHoursFromPrevious: number | null;
+}
+
+export interface BookingFunnelMetrics {
+  cohortTotalCreated: number;
+  stages: FunnelStageMetric[];
+}
+
+export interface ServicePerformanceMetric {
+  serviceId: string;
+  serviceName: string;
+  category: string;
+  consultationRequests: number;
+  confirmedBookings: number;
+  completedBookings: number;
+  confirmedBookingValue: number;
+  actualCashReceived: number;
+  conversionRate: number;
+}
+
+export interface ConceptPerformanceMetric {
+  conceptId: string;
+  conceptName: string;
+  conceptSlug?: string;
+  timesSelected: number;
+  confirmedBookings: number;
+  completedBookings: number;
+  conversionRate: number;
+}
+
+export interface StudioUtilizationMetric {
+  roomId: string;
+  roomName: string;
+  roomCode: string;
+  capacity: number;
+  confirmedBookingsCount: number;
+  confirmedBookingHours: number;
+  availableBusinessHours: number;
+  utilizationRate: number;
+  popularWeekday?: string;
+  popularTimeRange?: string;
+}
+
+
