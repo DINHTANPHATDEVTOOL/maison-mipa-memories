@@ -37,19 +37,25 @@ export const ALLOWED_TRANSITIONS: Record<BookingStatus, { next: BookingStatus[];
     { next: ['CANCELLED'], allowedRoles: ['MANAGER', 'ADMIN'] },
   ],
   CHECKED_IN: [
-    { next: ['SHOOTING'], allowedRoles: ['PHOTOGRAPHER', 'MANAGER', 'ADMIN'] },
+    { next: ['SHOOTING'], allowedRoles: ['PHOTOGRAPHER', 'STAFF', 'MANAGER', 'ADMIN'] },
   ],
   SHOOTING: [
-    { next: ['SHOOT_COMPLETED'], allowedRoles: ['PHOTOGRAPHER', 'MANAGER', 'ADMIN'] },
+    { next: ['SHOOT_COMPLETED'], allowedRoles: ['PHOTOGRAPHER', 'STAFF', 'MANAGER', 'ADMIN'] },
   ],
   SHOOT_COMPLETED: [
-    { next: ['EDITING'], allowedRoles: ['EDITOR', 'MANAGER', 'ADMIN'] },
+    { next: ['AWAITING_SELECTION'], allowedRoles: ['PHOTOGRAPHER', 'STAFF', 'MANAGER', 'ADMIN'] },
+    { next: ['EDITING'], allowedRoles: ['MANAGER', 'ADMIN'] }, // Selection bypass: "Không cần khách chọn ảnh"
+  ],
+  AWAITING_SELECTION: [
+    { next: ['EDITING'], allowedRoles: ['CUSTOMER', 'MANAGER', 'ADMIN'] },
   ],
   EDITING: [
-    { next: ['READY_FOR_REVIEW'], allowedRoles: ['EDITOR', 'MANAGER', 'ADMIN'] },
+    { next: ['READY_FOR_REVIEW'], allowedRoles: ['EDITOR', 'STAFF', 'MANAGER', 'ADMIN'] },
+    { next: ['AWAITING_SELECTION'], allowedRoles: ['MANAGER', 'ADMIN'] }, // Reopen selection
   ],
   READY_FOR_REVIEW: [
     { next: ['DELIVERED'], allowedRoles: ['MANAGER', 'ADMIN'] },
+    { next: ['EDITING'], allowedRoles: ['MANAGER', 'ADMIN'] }, // Revision request
   ],
   DELIVERED: [
     { next: ['COMPLETED'], allowedRoles: ['CUSTOMER', 'MANAGER', 'ADMIN'] },
@@ -71,6 +77,9 @@ export const getNextActionForBooking = (
 
   // Customer Actions: Acknowledgements & Deliveries (Never operational mutations)
   if (userRole === 'CUSTOMER') {
+    if (status === 'AWAITING_SELECTION') {
+      return { label: '📸 CHỌN ẢNH HẬU KỲ', targetStatus: 'AWAITING_SELECTION', buttonClass: 'btn-mipa-gold' };
+    }
     if (status === 'DELIVERED') {
       return { label: '⭐ HOÀN TẤT & ĐÁNH GIÁ', targetStatus: 'COMPLETED', buttonClass: 'btn-mipa-gold' };
     }
@@ -87,7 +96,7 @@ export const getNextActionForBooking = (
       return null;
     }
 
-    // PHOTOGRAPHER: Shoot Start & Shoot Complete
+    // PHOTOGRAPHER: Shoot Start and Shoot Complete
     if (userStaffRole === 'PHOTOGRAPHER') {
       if (status === 'CHECKED_IN') {
         return { label: '📷 BẮT ĐẦU BUỔI CHỤP', targetStatus: 'SHOOTING', buttonClass: 'btn-mipa-gold' };
@@ -118,7 +127,7 @@ export const getNextActionForBooking = (
     if (status === 'CONFIRMED') return { label: '📌 XÁC NHẬN CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
     if (status === 'CHECKED_IN') return { label: '📷 BẮT ĐẦU BUỔI CHỤP', targetStatus: 'SHOOTING', buttonClass: 'btn-mipa-gold' };
     if (status === 'SHOOTING') return { label: '✅ HOÀN TẤT BUỔI CHỤP', targetStatus: 'SHOOT_COMPLETED', buttonClass: 'btn-mipa-primary' };
-    if (status === 'SHOOT_COMPLETED') return { label: '🎨 NHẬN TASK HẬU KỲ', targetStatus: 'EDITING', buttonClass: 'btn-mipa-gold' };
+    if (status === 'SHOOT_COMPLETED') return { label: '📤 ĐỒNG BỘ ẢNH CHỌN', targetStatus: 'AWAITING_SELECTION', buttonClass: 'btn-mipa-gold' };
     if (status === 'EDITING') return { label: '✨ HOÀN TẤT HẬU KỲ', targetStatus: 'READY_FOR_REVIEW', buttonClass: 'btn-mipa-gold' };
   }
 
@@ -129,7 +138,12 @@ export const getNextActionForBooking = (
     if (status === 'DEPOSIT_PAID') return { label: '✔️ XÁC NHẬN CỌC & GÁN KÍP CHỤP', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-gold' };
     if (status === 'CONFIRMED' && booking.assignments.length === 0) return { label: '👤 GÁN PHOTOGRAPHER & MAKEUP', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-secondary' };
     if (status === 'CONFIRMED') return { label: '📌 XÁC NHẬN KHÁCH CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
-    if (status === 'READY_FOR_REVIEW') return { label: '📩 DUYỆT BỘ ẢNH & MỞ DRIVE CHO KHÁCH', targetStatus: 'DELIVERED', buttonClass: 'btn-mipa-gold' };
+    if (status === 'CHECKED_IN') return { label: '📷 BẮT ĐẦU BUỔI CHỤP', targetStatus: 'SHOOTING', buttonClass: 'btn-mipa-gold' };
+    if (status === 'SHOOTING') return { label: '✅ HOÀN TẤT BUỔI CHỤP', targetStatus: 'SHOOT_COMPLETED', buttonClass: 'btn-mipa-primary' };
+    if (status === 'SHOOT_COMPLETED') return { label: '📤 ĐỒNG BỘ ẢNH PROOFS', targetStatus: 'AWAITING_SELECTION', buttonClass: 'btn-mipa-gold' };
+    if (status === 'AWAITING_SELECTION') return { label: '⏩ BỎ QUA CHỌN ẢNH (VÀO HẬU KỲ)', targetStatus: 'EDITING', buttonClass: 'btn-mipa-secondary' };
+    if (status === 'EDITING') return { label: '✨ HOÀN TẤT HẬU KỲ', targetStatus: 'READY_FOR_REVIEW', buttonClass: 'btn-mipa-gold' };
+    if (status === 'READY_FOR_REVIEW') return { label: '📩 DUYỆT BỘ ẢNH & GIAO KHÁCH', targetStatus: 'DELIVERED', buttonClass: 'btn-mipa-gold' };
     if (status === 'DELIVERED') return { label: '🏁 HOÀN TẤT ĐƠN', targetStatus: 'COMPLETED', buttonClass: 'btn-mipa-primary' };
   }
 
@@ -179,23 +193,47 @@ export const getOperationsInboxStats = (bookings: Booking[]) => {
   const consultationRequested = bookings.filter((b) => b.bookingStatus === 'CONSULTATION_REQUESTED');
   const consulting = bookings.filter((b) => b.bookingStatus === 'CONSULTING');
   const confirmed = bookings.filter((b) => b.bookingStatus === 'CONFIRMED');
+  const checkedIn = bookings.filter((b) => b.bookingStatus === 'CHECKED_IN');
+  const shooting = bookings.filter((b) => b.bookingStatus === 'SHOOTING');
+  const shootCompleted = bookings.filter((b) => b.bookingStatus === 'SHOOT_COMPLETED');
+  const awaitingSelection = bookings.filter((b) => b.bookingStatus === 'AWAITING_SELECTION');
+  const editing = bookings.filter((b) => b.bookingStatus === 'EDITING');
+  const readyForReview = bookings.filter((b) => b.bookingStatus === 'READY_FOR_REVIEW');
+  const delivered = bookings.filter((b) => b.bookingStatus === 'DELIVERED');
+  const completed = bookings.filter((b) => b.bookingStatus === 'COMPLETED');
+
   const pendingDeposit = bookings.filter((b) => b.bookingStatus === 'PENDING_PAYMENT');
   const pendingConfirmation = bookings.filter((b) => b.bookingStatus === 'DEPOSIT_PAID');
   const unassignedStaff = bookings.filter((b) => (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && b.assignments.length === 0);
   const shootingNow = bookings.filter((b) => b.bookingStatus === 'SHOOTING' || b.bookingStatus === 'CHECKED_IN');
-  const editingQueue = bookings.filter((b) => b.bookingStatus === 'SHOOT_COMPLETED' || b.bookingStatus === 'EDITING');
+  const editingQueue = bookings.filter((b) => b.bookingStatus === 'SHOOT_COMPLETED' || b.bookingStatus === 'AWAITING_SELECTION' || b.bookingStatus === 'EDITING');
   const readyToDeliver = bookings.filter((b) => b.bookingStatus === 'READY_FOR_REVIEW');
 
   return {
     consultationRequestedCount: consultationRequested.length,
     consultingCount: consulting.length,
     confirmedCount: confirmed.length,
+    checkedInCount: checkedIn.length,
+    shootingCount: shooting.length,
+    shootCompletedCount: shootCompleted.length,
+    awaitingSelectionCount: awaitingSelection.length,
+    editingCount: editing.length,
+    readyForReviewCount: readyForReview.length,
+    deliveredCount: delivered.length,
+    completedCount: completed.length,
+
     pendingDepositCount: pendingDeposit.length,
     pendingConfirmationCount: pendingConfirmation.length,
     unassignedStaffCount: unassignedStaff.length,
     shootingNowCount: shootingNow.length,
     editingQueueCount: editingQueue.length,
     readyToDeliverCount: readyToDeliver.length,
-    totalActionRequired: consultationRequested.length + consulting.length + pendingConfirmation.length + unassignedStaff.length + editingQueue.length + readyToDeliver.length,
+    totalActionRequired:
+      consultationRequested.length +
+      consulting.length +
+      pendingConfirmation.length +
+      unassignedStaff.length +
+      editingQueue.length +
+      readyToDeliver.length,
   };
 };

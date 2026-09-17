@@ -27,6 +27,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260917000001_consultation_first_booking_flow.sql',
     '20260917000002_google_drive_delivery.sql',
     '20260917000003_audit_logs_actor_columns.sql',
+    '20260917000004_shoot_to_delivery_workflow.sql',
   ];
 
   const EXPECTED_TABLES = [

@@ -83,6 +83,9 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
                     </h4>
                     <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
                       Khách hàng: <strong>{b.customerName}</strong> • Ngày chụp: <strong>{b.bookingDate}</strong>
+                      {b.selectionSubmittedAt && (
+                        <span> • Khách đã gửi chọn: <strong>{b.selectedPhotoCount || b.selectionLimit || 0} ảnh</strong></span>
+                      )}
                     </div>
                   </div>
 
@@ -91,6 +94,13 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
                     <div style={{ fontWeight: 700, color: '#604634' }}>{b.bookingStatus}</div>
                   </div>
                 </div>
+
+                {/* Revision Notes Alert if any */}
+                {b.revisionNotes && (
+                  <div style={{ padding: '0.8rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', marginBottom: '1rem', fontSize: '0.85rem', color: '#991B1B' }}>
+                    ⚠️ <strong>Yêu cầu chỉnh sửa lại từ Quản lý:</strong> {b.revisionNotes}
+                  </div>
+                )}
 
                 {/* Edit Tone Instructions */}
                 <div style={{ padding: '0.8rem 1rem', backgroundColor: '#FFFDF6', borderRadius: '10px', border: '1px solid var(--mipa-beige)', marginBottom: '1rem', fontSize: '0.85rem' }}>

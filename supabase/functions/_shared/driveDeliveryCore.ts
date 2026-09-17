@@ -110,6 +110,56 @@ export async function ensureRootFolder(
 }
 
 /**
+ * Ensures child subfolder exists under parentFolderId (e.g. 01_RAW, 02_PROOFS, 03_FINAL).
+ */
+export async function ensureSubfolder(
+  accessToken: string,
+  parentFolderId: string,
+  subfolderName: string,
+  fetchFn: typeof fetch = fetch
+): Promise<{ id: string; webViewLink?: string }> {
+  try {
+    const query = `name = '${subfolderName}' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    const searchRes = await fetchFn(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,webViewLink)&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (searchRes.ok) {
+      const data = await searchRes.json();
+      if (data.files && data.files.length > 0) {
+        return { id: data.files[0].id, webViewLink: data.files[0].webViewLink };
+      }
+    }
+
+    const createRes = await fetchFn('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: subfolderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId],
+      }),
+    });
+
+    if (createRes.ok) {
+      const created = await createRes.json();
+      return {
+        id: created.id,
+        webViewLink: created.webViewLink || `https://drive.google.com/drive/folders/${created.id}`,
+      };
+    }
+  } catch (err) {
+    console.error(`ensureSubfolder error for ${subfolderName}:`, err);
+  }
+
+  throw new Error(`Failed to ensure subfolder ${subfolderName}`);
+}
+
+/**
  * Exchanges refresh token for short-lived Google access token.
  */
 export async function getGoogleAccessToken(
@@ -195,10 +245,10 @@ export async function getGoogleAccessToken(
 }
 
 /**
- * Handles authoritative drive-delivery actions: CREATE_FOLDER, MARK_READY, REVOKE, RECONCILE.
+ * Handles authoritative drive-delivery actions: CREATE_FOLDER, MARK_READY, REVOKE, RECONCILE, SYNC_PROOFS, SYNC_FINAL.
  */
 export async function executeDriveDeliveryAction(
-  action: 'CREATE_FOLDER' | 'MARK_READY' | 'REVOKE' | 'RECONCILE',
+  action: 'CREATE_FOLDER' | 'MARK_READY' | 'REVOKE' | 'RECONCILE' | 'SYNC_PROOFS' | 'SYNC_FINAL',
   bookingId: string,
   ctx: ProcessContext
 ): Promise<ActionResult> {
@@ -407,12 +457,34 @@ export async function executeDriveDeliveryAction(
         driveFolderUrl = `https://drive.google.com/drive/folders/${driveFolderId}`;
       }
 
+      // Ensure standard subfolders exist: 01_RAW, 02_PROOFS, 03_FINAL
+      let rawFolderId: string | null = null;
+      let proofsFolderId: string | null = null;
+      let finalFolderId: string | null = null;
+      let finalFolderUrl: string | null = null;
+
+      try {
+        const rawSub = await ensureSubfolder(accessToken, driveFolderId, '01_RAW', fetchFn);
+        rawFolderId = rawSub.id;
+        const proofsSub = await ensureSubfolder(accessToken, driveFolderId, '02_PROOFS', fetchFn);
+        proofsFolderId = proofsSub.id;
+        const finalSub = await ensureSubfolder(accessToken, driveFolderId, '03_FINAL', fetchFn);
+        finalFolderId = finalSub.id;
+        finalFolderUrl = finalSub.webViewLink || `https://drive.google.com/drive/folders/${finalSub.id}`;
+      } catch (subErr) {
+        console.warn('Subfolder creation warning:', subErr);
+      }
+
       // Update delivery state in database
       const { data: savedDelivery, error: saveErr } = await supabaseAdmin
         .from('booking_deliveries')
         .update({
           drive_folder_id: driveFolderId,
           drive_folder_url: driveFolderUrl,
+          raw_folder_id: rawFolderId,
+          proofs_folder_id: proofsFolderId,
+          final_folder_id: finalFolderId,
+          final_folder_url: finalFolderUrl,
           status: 'READY_FOR_UPLOAD',
           created_by: callerProfile.id,
           last_error: null,
@@ -432,7 +504,7 @@ export async function executeDriveDeliveryAction(
         entity_id: booking.id,
         action: isReconciled ? 'DRIVE_FOLDER_RECONCILED' : 'DRIVE_FOLDER_CREATED',
         old_data: { booking_code: booking.booking_code },
-        new_data: { folder_id: driveFolderId, status: 'READY_FOR_UPLOAD' },
+        new_data: { folder_id: driveFolderId, raw_folder_id: rawFolderId, proofs_folder_id: proofsFolderId, final_folder_id: finalFolderId, status: 'READY_FOR_UPLOAD' },
       });
 
       return {
@@ -542,9 +614,45 @@ export async function executeDriveDeliveryAction(
         };
       }
 
-      // 6. Grant Google Drive Permission (role=reader, type=user) — NEVER type=anyone (Blocker 7)
+      // 6. Ensure 03_FINAL subfolder exists and contains deliverable assets (Phase 14 security rules)
+      let finalFolderId = delivery.final_folder_id;
+      let finalFolderUrl = delivery.final_folder_url;
+      if (!finalFolderId && delivery.drive_folder_id) {
+        const finalSub = await ensureSubfolder(tokenResult.accessToken, delivery.drive_folder_id, '03_FINAL', fetchFn).catch(() => null);
+        finalFolderId = finalSub?.id || null;
+        finalFolderUrl = finalSub?.webViewLink || (finalSub?.id ? `https://drive.google.com/drive/folders/${finalSub.id}` : null);
+      }
+
+      if (!finalFolderId) {
+        return { status: 400, data: { error: 'Thư mục 03_FINAL chưa được khởi tạo cho đơn đặt lịch này.' } };
+      }
+
+      // Check final deliverables count
+      let finalCount = delivery.final_file_count || 0;
+      if (finalCount <= 0) {
+        const countQ = `'${finalFolderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`;
+        const countRes = await fetchFn(
+          `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(countQ)}&fields=files(id)&supportsAllDrives=true`,
+          { headers: { Authorization: `Bearer ${tokenResult.accessToken}` } }
+        );
+        if (countRes.ok) {
+          const countData = await countRes.json();
+          finalCount = countData.files?.length || 0;
+        }
+      }
+
+      if (finalCount <= 0) {
+        return {
+          status: 400,
+          data: {
+            error: 'Thư mục 03_FINAL chưa có ảnh nào. Vui lòng tải ảnh hoàn thiện trước khi duyệt và giao.',
+          },
+        };
+      }
+
+      // 7. Grant Google Drive Permission ONLY to 03_FINAL (role=reader, type=user) — NEVER root, 01_RAW, 02_PROOFS, or type=anyone
       const permRes = await fetchFn(
-        `https://www.googleapis.com/drive/v3/files/${delivery.drive_folder_id}/permissions?sendNotificationEmail=false&supportsAllDrives=true`,
+        `https://www.googleapis.com/drive/v3/files/${finalFolderId}/permissions?sendNotificationEmail=false&supportsAllDrives=true`,
         {
           method: 'POST',
           headers: {
@@ -578,7 +686,7 @@ export async function executeDriveDeliveryAction(
       const permData = await permRes.json();
       const permissionId = permData.id;
 
-      // 7. Update booking_deliveries record to READY_FOR_CUSTOMER
+      // 8. Update booking_deliveries record to READY_FOR_CUSTOMER with final_folder metadata
       const nowIso = new Date().toISOString();
       const { data: updatedDelivery, error: uErr } = await supabaseAdmin
         .from('booking_deliveries')
@@ -586,6 +694,9 @@ export async function executeDriveDeliveryAction(
           status: 'READY_FOR_CUSTOMER',
           customer_permission_id: permissionId,
           share_email: customerEmail,
+          final_folder_id: finalFolderId,
+          final_folder_url: finalFolderUrl,
+          final_file_count: finalCount,
           ready_at: nowIso,
           ready_by: callerProfile.id,
           updated_at: nowIso,
@@ -608,7 +719,7 @@ export async function executeDriveDeliveryAction(
         })
         .eq('id', booking.id);
 
-      // 8. Enqueue Transactional Notification Email via service_role (Blocker 10)
+      // 9. Enqueue Transactional Notification Email via service_role (Blocker 10)
       try {
         await supabaseAdmin.rpc('enqueue_drive_delivery_email', {
           p_booking_id: booking.id,
@@ -617,6 +728,20 @@ export async function executeDriveDeliveryAction(
       } catch (mailErr) {
         console.warn('enqueue_drive_delivery_email warning:', mailErr);
       }
+
+      await supabaseAdmin.from('notification_outbox').insert({
+        event_type: 'BOOKING_DELIVERED',
+        idempotency_key: `booking-delivered:${booking.id}`,
+        recipient_email: customerEmail,
+        recipient_name: customerProfile?.full_name || 'Quý khách',
+        payload: {
+          booking_id: booking.id,
+          booking_code: booking.booking_code,
+          final_file_count: finalCount,
+          final_folder_url: finalFolderUrl,
+        },
+        status: 'PENDING',
+      }).catch(() => {});
 
       await supabaseAdmin.from('audit_logs').insert({
         actor_user_id: callerProfile.id,
@@ -628,6 +753,8 @@ export async function executeDriveDeliveryAction(
           status: 'READY_FOR_CUSTOMER',
           email: customerEmail,
           permission_id: permissionId,
+          final_folder_id: finalFolderId,
+          final_file_count: finalCount,
         },
       });
 
@@ -678,8 +805,9 @@ export async function executeDriveDeliveryAction(
         };
       }
 
+      const targetFolderId = delivery.final_folder_id || delivery.drive_folder_id;
       const delRes = await fetchFn(
-        `https://www.googleapis.com/drive/v3/files/${delivery.drive_folder_id}/permissions/${delivery.customer_permission_id}?supportsAllDrives=true`,
+        `https://www.googleapis.com/drive/v3/files/${targetFolderId}/permissions/${delivery.customer_permission_id}?supportsAllDrives=true`,
         {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
@@ -829,6 +957,269 @@ export async function executeDriveDeliveryAction(
         data: {
           success: true,
           delivery: updatedDelivery,
+        },
+      };
+    }
+
+    // ==========================================================================
+    // ACTION: SYNC_PROOFS (Phase 7)
+    // ==========================================================================
+    case 'SYNC_PROOFS': {
+      const isManagerOrAdmin = ['MANAGER', 'ADMIN'].includes(callerProfile.role) || isServiceRole;
+      if (!isManagerOrAdmin) {
+        const { data: assignment } = await supabaseAdmin
+          .from('booking_assignments')
+          .select('id')
+          .eq('booking_id', booking.id)
+          .eq('employee_id', callerProfile.id)
+          .maybeSingle();
+
+        if (!assignment) {
+          return { status: 403, data: { error: 'Access Denied: You are not assigned to this booking.' } };
+        }
+      }
+
+      let { data: delivery } = await supabaseAdmin
+        .from('booking_deliveries')
+        .select('*')
+        .eq('booking_id', booking.id)
+        .maybeSingle();
+
+      const tokenResult = await getGoogleAccessToken(ctx);
+      if ('error' in tokenResult) {
+        return { status: tokenResult.reauthRequired ? 403 : 500, data: tokenResult };
+      }
+      const accessToken = tokenResult.accessToken;
+
+      // Ensure root & subfolders exist
+      if (!delivery || !delivery.proofs_folder_id) {
+        const folderAction = await executeDriveDeliveryAction('CREATE_FOLDER', booking.id, ctx);
+        if (folderAction.status !== 200) {
+          return folderAction;
+        }
+        const { data: refreshed } = await supabaseAdmin
+          .from('booking_deliveries')
+          .select('*')
+          .eq('booking_id', booking.id)
+          .single();
+        delivery = refreshed;
+      }
+
+      const proofsFolderId = delivery?.proofs_folder_id;
+      if (!proofsFolderId) {
+        return { status: 500, data: { error: 'Không tìm thấy thư mục 02_PROOFS.' } };
+      }
+
+      // Enumerate files in 02_PROOFS
+      const q = `'${proofsFolderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`;
+      const listRes = await fetchFn(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,imageMediaMetadata,size)&pageSize=1000&supportsAllDrives=true`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (!listRes.ok) {
+        const err = await listRes.json().catch(() => ({}));
+        return { status: 502, data: { error: err.error?.message || 'Không thể liệt kê ảnh từ Google Drive.' } };
+      }
+
+      const listData = await listRes.json();
+      const rawFiles: any[] = listData.files || [];
+
+      // Filter out non-images or raw files
+      const imageFiles = rawFiles.filter((f: any) => {
+        const mime = (f.mimeType || '').toLowerCase();
+        const name = (f.name || '').toLowerCase();
+        const isImageMime = mime.startsWith('image/') || mime === 'application/octet-stream';
+        const isRawExt =
+          name.endsWith('.cr2') ||
+          name.endsWith('.cr3') ||
+          name.endsWith('.nef') ||
+          name.endsWith('.arw') ||
+          name.endsWith('.dng') ||
+          name.endsWith('.raw');
+        return isImageMime && !isRawExt;
+      });
+
+      const nowIso = new Date().toISOString();
+      const driveFileIds = imageFiles.map((f: any) => f.id);
+
+      // Upsert proof images into booking_proof_images
+      if (imageFiles.length > 0) {
+        const upsertRows = imageFiles.map((f: any, index: number) => ({
+          booking_id: booking.id,
+          drive_file_id: f.id,
+          file_name: f.name,
+          mime_type: f.mimeType,
+          width: f.imageMediaMetadata?.width || null,
+          height: f.imageMediaMetadata?.height || null,
+          sort_order: index + 1,
+          active: true,
+          updated_at: nowIso,
+        }));
+
+        const { error: upsertErr } = await supabaseAdmin
+          .from('booking_proof_images')
+          .upsert(upsertRows, { onConflict: 'booking_id,drive_file_id' });
+
+        if (upsertErr) {
+          return { status: 500, data: { error: `Lỗi lưu ảnh proof: ${upsertErr.message}` } };
+        }
+      }
+
+      // Deactivate any proofs in DB that are no longer in Google Drive
+      if (driveFileIds.length > 0) {
+        await supabaseAdmin
+          .from('booking_proof_images')
+          .update({ active: false, updated_at: nowIso })
+          .eq('booking_id', booking.id)
+          .not('drive_file_id', 'in', `(${driveFileIds.map((id: string) => `"${id}"`).join(',')})`);
+      } else {
+        await supabaseAdmin
+          .from('booking_proof_images')
+          .update({ active: false, updated_at: nowIso })
+          .eq('booking_id', booking.id);
+      }
+
+      // Update proof_file_count on delivery
+      await supabaseAdmin
+        .from('booking_deliveries')
+        .update({ proof_file_count: imageFiles.length, updated_at: nowIso })
+        .eq('booking_id', booking.id);
+
+      // If booking is SHOOT_COMPLETED, transition to AWAITING_SELECTION
+      if (booking.booking_status === 'SHOOT_COMPLETED' && imageFiles.length > 0) {
+        await supabaseAdmin
+          .from('bookings')
+          .update({ booking_status: 'AWAITING_SELECTION', updated_at: nowIso })
+          .eq('id', booking.id);
+
+        const { data: custProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', booking.customer_id)
+          .maybeSingle();
+
+        if (custProfile?.email) {
+          await supabaseAdmin.from('notification_outbox').insert({
+            event_type: 'PROOFS_READY',
+            idempotency_key: `proofs-ready:${booking.id}`,
+            recipient_email: custProfile.email,
+            recipient_name: custProfile.full_name || 'Quý khách',
+            payload: {
+              booking_id: booking.id,
+              booking_code: booking.booking_code,
+              proof_count: imageFiles.length,
+            },
+            status: 'PENDING',
+          }).catch(() => {});
+        }
+
+        await supabaseAdmin.from('staff_tasks').insert({
+          booking_id: booking.id,
+          title: `Chờ khách chọn ảnh — ${booking.booking_code}`,
+          task_type: 'SELECTION',
+          status: 'PENDING',
+        }).catch(() => {});
+      }
+
+      await supabaseAdmin.from('audit_logs').insert({
+        actor_user_id: callerProfile.id,
+        entity_type: 'BOOKING',
+        entity_id: booking.id,
+        action: 'PROOFS_SYNCED',
+        new_data: { proof_file_count: imageFiles.length },
+      });
+
+      return {
+        status: 200,
+        data: {
+          success: true,
+          proof_file_count: imageFiles.length,
+        },
+      };
+    }
+
+    // ==========================================================================
+    // ACTION: SYNC_FINAL (Phase 12)
+    // ==========================================================================
+    case 'SYNC_FINAL': {
+      const isManagerOrAdmin = ['MANAGER', 'ADMIN'].includes(callerProfile.role) || isServiceRole;
+      if (!isManagerOrAdmin) {
+        const { data: assignment } = await supabaseAdmin
+          .from('booking_assignments')
+          .select('id')
+          .eq('booking_id', booking.id)
+          .eq('employee_id', callerProfile.id)
+          .maybeSingle();
+
+        if (!assignment) {
+          return { status: 403, data: { error: 'Access Denied: You are not assigned to this booking.' } };
+        }
+      }
+
+      let { data: delivery } = await supabaseAdmin
+        .from('booking_deliveries')
+        .select('*')
+        .eq('booking_id', booking.id)
+        .maybeSingle();
+
+      const tokenResult = await getGoogleAccessToken(ctx);
+      if ('error' in tokenResult) {
+        return { status: tokenResult.reauthRequired ? 403 : 500, data: tokenResult };
+      }
+      const accessToken = tokenResult.accessToken;
+
+      if (!delivery || !delivery.final_folder_id) {
+        const folderAction = await executeDriveDeliveryAction('CREATE_FOLDER', booking.id, ctx);
+        if (folderAction.status !== 200) {
+          return folderAction;
+        }
+        const { data: refreshed } = await supabaseAdmin
+          .from('booking_deliveries')
+          .select('*')
+          .eq('booking_id', booking.id)
+          .single();
+        delivery = refreshed;
+      }
+
+      const finalFolderId = delivery?.final_folder_id;
+      if (!finalFolderId) {
+        return { status: 500, data: { error: 'Không tìm thấy thư mục 03_FINAL.' } };
+      }
+
+      const q = `'${finalFolderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`;
+      const listRes = await fetchFn(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,size)&pageSize=1000&supportsAllDrives=true`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (!listRes.ok) {
+        const err = await listRes.json().catch(() => ({}));
+        return { status: 502, data: { error: err.error?.message || 'Không thể kiểm tra ảnh final từ Google Drive.' } };
+      }
+
+      const listData = await listRes.json();
+      const finalFiles: any[] = listData.files || [];
+      const nowIso = new Date().toISOString();
+
+      await supabaseAdmin
+        .from('booking_deliveries')
+        .update({ final_file_count: finalFiles.length, updated_at: nowIso })
+        .eq('booking_id', booking.id);
+
+      await supabaseAdmin.from('audit_logs').insert({
+        actor_user_id: callerProfile.id,
+        entity_type: 'BOOKING',
+        entity_id: booking.id,
+        action: 'FINAL_ASSETS_SYNCED',
+        new_data: { final_file_count: finalFiles.length },
+      });
+
+      return {
+        status: 200,
+        data: {
+          success: true,
+          final_file_count: finalFiles.length,
         },
       };
     }
@@ -983,3 +1374,89 @@ export async function executeOAuthAction(
 
   return { status: 400, data: { error: `Unsupported action: ${action}` } };
 }
+
+/**
+ * Authoritative customer proof preview proxy (Phase 8).
+ * Authenticates user, verifies proof belongs to booking, fetches safe preview bytes from Google Drive.
+ * Never exposes refresh token, credentials, or RAW files to customer.
+ */
+export async function fetchProofPreview(
+  bookingId: string,
+  proofImageId: string,
+  ctx: ProcessContext
+): Promise<{ status: number; headers: Record<string, string>; body?: any; error?: string }> {
+  const { supabaseAdmin } = ctx;
+  const callerProfile = ctx.callerProfile;
+  const fetchFn = ctx.fetchFn || fetch;
+
+  if (!callerProfile) {
+    return { status: 401, headers: { 'Content-Type': 'application/json' }, error: 'Unauthorized' };
+  }
+
+  // 1. Fetch booking
+  const { data: booking, error: bErr } = await supabaseAdmin
+    .from('bookings')
+    .select('id, customer_id, booking_status')
+    .eq('id', bookingId)
+    .single();
+
+  if (bErr || !booking) {
+    return { status: 404, headers: { 'Content-Type': 'application/json' }, error: 'Booking not found' };
+  }
+
+  // 2. Auth check: customer owns booking OR caller is staff/manager/admin
+  const isOwner = callerProfile.id === booking.customer_id;
+  const isStaffOrAdmin = ['STAFF', 'MANAGER', 'ADMIN'].includes(callerProfile.role);
+  if (!isOwner && !isStaffOrAdmin) {
+    return { status: 403, headers: { 'Content-Type': 'application/json' }, error: 'Forbidden: Access denied to this proof' };
+  }
+
+  // 3. For customer, booking must be in valid proof viewing status
+  const allowedCustomerStatuses = ['AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'];
+  if (isOwner && !allowedCustomerStatuses.includes(booking.booking_status)) {
+    return { status: 403, headers: { 'Content-Type': 'application/json' }, error: 'Proof photos are not currently available for viewing' };
+  }
+
+  // 4. Fetch proof image record
+  const { data: proof, error: pErr } = await supabaseAdmin
+    .from('booking_proof_images')
+    .select('*')
+    .eq('id', proofImageId)
+    .eq('booking_id', bookingId)
+    .eq('active', true)
+    .single();
+
+  if (pErr || !proof) {
+    return { status: 404, headers: { 'Content-Type': 'application/json' }, error: 'Proof image not found' };
+  }
+
+  // 5. Get access token
+  const tokenResult = await getGoogleAccessToken(ctx);
+  if ('error' in tokenResult) {
+    return { status: 500, headers: { 'Content-Type': 'application/json' }, error: 'Google Drive authentication error' };
+  }
+
+  // 6. Fetch preview bytes from Google Drive API
+  const driveRes = await fetchFn(
+    `https://www.googleapis.com/drive/v3/files/${proof.drive_file_id}?alt=media&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${tokenResult.accessToken}` } }
+  );
+
+  if (!driveRes.ok) {
+    return { status: 502, headers: { 'Content-Type': 'application/json' }, error: 'Failed to fetch preview image from Google Drive' };
+  }
+
+  const contentType = driveRes.headers.get('content-type') || proof.mime_type || 'image/jpeg';
+  const body = driveRes.body || (await driveRes.arrayBuffer());
+
+  return {
+    status: 200,
+    headers: {
+      'Content-Type': contentType,
+      'Cache-Control': 'private, max-age=3600',
+      'X-Content-Type-Options': 'nosniff',
+    },
+    body,
+  };
+}
+

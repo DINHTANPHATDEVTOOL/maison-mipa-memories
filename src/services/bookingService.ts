@@ -511,6 +511,24 @@ export async function updateBookingStatus(
     throw new Error(`Illegal state transition from COMPLETED to ${newStatus}`);
   }
 
+  if (existing.bookingStatus === 'READY_FOR_REVIEW' && newStatus === 'EDITING') {
+    if (!staffNote || !staffNote.trim()) {
+      throw new Error('Yêu cầu chỉnh sửa phải có ghi chú chi tiết.');
+    }
+  }
+
+  if (existing.bookingStatus === 'SHOOT_COMPLETED' && newStatus === 'EDITING') {
+    if (!staffNote || !staffNote.trim()) {
+      throw new Error('Chuyển thẳng sang hậu kỳ (không cần khách chọn ảnh) phải có lý do.');
+    }
+  }
+
+  if (newStatus === 'READY_FOR_REVIEW') {
+    if (!existing.finalFileCount || existing.finalFileCount <= 0) {
+      throw new Error('Chưa có ảnh hoàn thiện trong thư mục 03_FINAL. Vui lòng tải ảnh lên trước khi hoàn tất hậu kỳ.');
+    }
+  }
+
   const updated: Booking = {
     ...existing,
     bookingStatus: newStatus,
@@ -958,6 +976,16 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     depositConfirmedAt: record.deposit_confirmed_at || record.depositConfirmedAt,
     depositConfirmedBy: record.deposit_confirmed_by || record.depositConfirmedBy,
     depositNote: record.deposit_note || record.depositNote,
+    selectionLimit: record.selection_limit != null ? Number(record.selection_limit) : (record.selectionLimit != null ? Number(record.selectionLimit) : undefined),
+    selectionSubmittedAt: record.selection_submitted_at || record.selectionSubmittedAt,
+    selectionSubmittedBy: record.selection_submitted_by || record.selectionSubmittedBy,
+    revisionNotes: record.revision_notes || record.revisionNotes,
+    rawFolderId: record.raw_folder_id || record.rawFolderId,
+    proofsFolderId: record.proofs_folder_id || record.proofsFolderId,
+    finalFolderId: record.final_folder_id || record.finalFolderId,
+    finalFolderUrl: record.final_folder_url || record.finalFolderUrl,
+    proofFileCount: record.proof_file_count != null ? Number(record.proof_file_count) : (record.proofFileCount != null ? Number(record.proofFileCount) : 0),
+    finalFileCount: record.final_file_count != null ? Number(record.final_file_count) : (record.finalFileCount != null ? Number(record.finalFileCount) : 0),
     customerScheduleConfirmedAt: record.customer_schedule_confirmed_at,
     customerShootAckAt: record.customer_shoot_ack_at,
     rescheduleRequestedAt: record.reschedule_requested_at,
