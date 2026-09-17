@@ -1021,13 +1021,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             <span className="editorial-overline" style={{ marginBottom: '0.2rem' }}>
               MAISON MIPA / ĐẶT LỊCH
             </span>
-            <h3 style={{
-              fontFamily: 'var(--editorial-font-heading)',
-              fontSize: '1.4rem',
-              color: 'var(--editorial-brown)',
-              margin: 0,
-              fontWeight: 600,
-            }}>
+            <h3
+              role="status"
+              aria-live="polite"
+              style={{
+                fontFamily: 'var(--editorial-font-heading)',
+                fontSize: '1.4rem',
+                color: 'var(--editorial-brown)',
+                margin: 0,
+                fontWeight: 600,
+              }}
+            >
               {`Bước ${step}/6 — ${
                 step === 1 ? 'Chọn loại hình dịch vụ' :
                 step === 2 ? 'Chọn gói chụp' :
@@ -1063,10 +1067,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
         {/* Progress Bar */}
         {step <= 6 && (
-          <div className="booking-progress-bar">
+          <div
+            className="booking-progress-bar"
+            role="progressbar"
+            aria-valuenow={step}
+            aria-valuemin={1}
+            aria-valuemax={6}
+            aria-label={`Tiến trình đặt lịch: Bước ${step} trên 6`}
+          >
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
+                aria-hidden="true"
                 className={`booking-progress-step ${i <= step ? 'active' : ''}`}
               />
             ))}
@@ -1840,9 +1852,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.2rem' }}>
                 <div>
-                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Họ và tên *</label>
+                  <label htmlFor="booking-customer-name" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Họ và tên *</label>
                   <input
+                    id="booking-customer-name"
                     type="text"
+                    required
+                    aria-required="true"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="mipa-input"
@@ -1851,23 +1866,30 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Số điện thoại *</label>
+                  <label htmlFor="booking-customer-phone" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Số điện thoại *</label>
                   <input
-                    type="text"
+                    id="booking-customer-phone"
+                    type="tel"
+                    required
+                    aria-required="true"
+                    aria-describedby="booking-phone-hint"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="mipa-input"
                     placeholder="Số điện thoại"
                     style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: 'var(--editorial-text-muted)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div id="booking-phone-hint" style={{ fontSize: '0.75rem', color: 'var(--editorial-text-muted)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <ShieldCheck size={13} color="var(--editorial-brown-accent)" /> Studio sẽ liên hệ xác nhận qua số điện thoại này.
                   </div>
                 </div>
                 <div>
-                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Email *</label>
+                  <label htmlFor="booking-customer-email" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Email *</label>
                   <input
+                    id="booking-customer-email"
                     type="email"
+                    required
+                    aria-required="true"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="mipa-input"
@@ -1876,8 +1898,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Dịp chụp hình</label>
+                  <label htmlFor="booking-occasion" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Dịp chụp hình</label>
                   <select
+                    id="booking-occasion"
                     value={occasion}
                     onChange={(e) => setOccasion(e.target.value)}
                     className="mipa-input"
@@ -1894,8 +1917,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               </div>
 
               <div style={{ marginTop: '1.2rem' }}>
-                <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Ghi chú thêm cho studio</label>
+                <label htmlFor="booking-customer-note" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Ghi chú thêm cho studio</label>
                 <textarea
+                  id="booking-customer-note"
                   rows={3}
                   value={customerNote}
                   onChange={(e) => setCustomerNote(e.target.value)}
@@ -1907,9 +1931,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
               {/* Voucher Code Box */}
               <div style={{ marginTop: '1.2rem', padding: '1rem 1.2rem', backgroundColor: '#FAF6EE', borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}>
-                <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Mã ưu đãi (nếu có)</label>
+                <label htmlFor="booking-voucher" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Mã ưu đãi (nếu có)</label>
                 <div style={{ display: 'flex', gap: '0.6rem' }}>
                   <input
+                    id="booking-voucher"
                     type="text"
                     value={voucherCode}
                     onChange={(e) => {

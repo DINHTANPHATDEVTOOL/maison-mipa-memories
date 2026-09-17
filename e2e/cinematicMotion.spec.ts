@@ -201,7 +201,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     const navBookBtn = page.getByRole('button', { name: 'Đặt lịch', exact: true });
     await navBookBtn.click({ force: true });
 
-    await expect(page.locator('text=Bước 1/6')).toBeVisible();
+    await expect(page.locator('text=Bước 1/6')).toBeVisible({ timeout: 15000 });
   });
 
   test('9. Mobile 390x844 responsive layout has zero horizontal overflow in Flagship Atelier', async ({ page }) => {

@@ -4,6 +4,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
+import { FocusTrap } from '../ui/FocusTrap';
 import type { Booking, BookingProofImage } from '../../types';
 import { getBookingProofs, submitPhotoSelection } from '../../services/photoWorkflowService';
 import {
@@ -68,6 +69,21 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
       isMounted = false;
     };
   }, [booking.id]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightboxIndex(null);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev !== null && prev < proofs.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : proofs.length - 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, proofs.length]);
 
   const toggleSelect = (id: string) => {
     setErrorMsg('');
@@ -272,7 +288,11 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
             </p>
           </div>
         ) : (
-          <div
+          <>
+            <div role="status" aria-live="polite" className="sr-only">
+              Đã chọn {selectedIds.length} trên tối đa {selectionLimit} ảnh được chọn.
+            </div>
+            <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
@@ -284,6 +304,16 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
               return (
                 <div
                   key={proof.id}
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  aria-label={`Ảnh số ${idx + 1}: ${proof.fileName}`}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      toggleSelect(proof.id);
+                    }
+                  }}
                   style={{
                     position: 'relative',
                     borderRadius: '12px',
@@ -294,6 +324,7 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
                     boxShadow: isSelected ? '0 0 16px rgba(198, 164, 95, 0.45)' : '0 4px 12px rgba(0,0,0,0.2)',
                     transition: 'all 0.2s ease',
                     cursor: 'pointer',
+                    outline: 'none',
                   }}
                   onClick={() => toggleSelect(proof.id)}
                 >
@@ -394,6 +425,7 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
               );
             })}
           </div>
+        </>
         )}
       </div>
 
@@ -500,16 +532,22 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
             padding: '1.5rem',
           }}
         >
-          <div
-            className="mipa-card"
-            style={{
-              padding: '2rem',
-              borderRadius: '16px',
-              maxWidth: '480px',
-              width: '100%',
-              textAlign: 'center',
-            }}
+          <FocusTrap
+            active={showConfirmModal}
+            onEscape={() => setShowConfirmModal(false)}
+            aria-labelledby="confirm-selection-title"
+            style={{ maxWidth: '480px', width: '100%' }}
           >
+            <div
+              className="mipa-card"
+              style={{
+                padding: '2rem',
+                borderRadius: '16px',
+                maxWidth: '480px',
+                width: '100%',
+                textAlign: 'center',
+              }}
+            >
             {submitSuccess ? (
               <div>
                 <CheckCircle2 size={54} color="#059669" style={{ margin: '0 auto 1rem' }} />
@@ -523,7 +561,7 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
             ) : (
               <div>
                 <Sparkles size={44} color="#C6A45F" style={{ margin: '0 auto 1rem' }} />
-                <h3 style={{ fontSize: '1.35rem', color: '#604634', marginBottom: '0.6rem' }}>
+                <h3 id="confirm-selection-title" style={{ fontSize: '1.35rem', color: '#604634', marginBottom: '0.6rem' }}>
                   Xác Nhận Danh Sách Ảnh Hậu Kỳ
                 </h3>
                 <p style={{ color: '#6E5F55', fontSize: '0.92rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
@@ -564,6 +602,7 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
               </div>
             )}
           </div>
+          </FocusTrap>
         </div>
       )}
     </div>

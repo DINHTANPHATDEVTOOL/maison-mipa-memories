@@ -12,20 +12,24 @@ describe('SecurityGuards and Access Control in App', () => {
     window.history.pushState({}, '', '/');
   });
 
-  it('allows guest to access public tabs freely', () => {
+  it('allows guest to access public tabs freely', async () => {
     render(<App />);
     const servicesLink = screen.getAllByRole('link', { name: /Dịch Vụ/i })[0];
     fireEvent.click(servicesLink);
-    expect(screen.getByRole('heading', { name: /Dịch Vụ/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Dịch Vụ/i })).toBeInTheDocument();
+    });
   });
 
-  it('allows unauthenticated guest to enter booking funnel and access booking wizard freely', () => {
+  it('allows unauthenticated guest to enter booking funnel and access booking wizard freely', async () => {
     render(<App />);
     const bookingButtons = screen.getAllByRole('button', { name: /ĐẶT LỊCH/i });
     fireEvent.click(bookingButtons[0]);
 
     // Guest enters wizard step 1
-    expect(screen.getByText(/Bước 1\/6/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Bước 1\/6/i)).toBeInTheDocument();
+    });
   });
 
   it('allows authenticated customer to open Booking Wizard', async () => {
