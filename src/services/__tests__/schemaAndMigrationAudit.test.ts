@@ -29,6 +29,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260917000003_audit_logs_actor_columns.sql',
     '20260917000004_shoot_to_delivery_workflow.sql',
     '20260918000001_crm_business_intelligence.sql',
+    '20260918000002_workforce_and_resource_operations.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -60,6 +61,18 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'crm_follow_up_tasks',
     'booking_status_history',
     'booking_financial_transactions',
+    'staff_skills',
+    'employee_skills',
+    'staff_working_hours',
+    'staff_leave_requests',
+    'staff_shifts',
+    'booking_crew_requirements',
+    'resource_categories',
+    'studio_resources',
+    'booking_resource_reservations',
+    'booking_resource_handoffs',
+    'resource_maintenance',
+    'resource_incidents',
   ];
 
   const EXPECTED_RPCS = [
@@ -91,6 +104,14 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'get_service_performance',
     'get_concept_performance',
     'get_studio_utilization_metrics',
+    'assign_booking_staff_v2',
+    'approve_staff_leave',
+    'reject_staff_leave',
+    'reserve_booking_resource',
+    'checkout_booking_resource',
+    'return_booking_resource',
+    'get_operations_calendar_events',
+    'get_daily_operations_board',
   ];
 
   it('1. all migration files exist in sequential order', () => {

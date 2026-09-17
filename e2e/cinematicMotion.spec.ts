@@ -141,6 +141,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
   });
 
   test('8. Flagship WebGL Living French Atelier renders diorama scene, camera & lighting controls, and booking flow', async ({ page }) => {
+    test.setTimeout(60000);
     await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
 

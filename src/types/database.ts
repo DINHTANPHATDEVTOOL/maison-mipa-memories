@@ -275,6 +275,9 @@ export interface Database {
           total_sessions: number;
           active: boolean;
           shift_schedule: unknown;
+          default_working_hours?: unknown | null;
+          hire_date?: string | null;
+          notes?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -290,6 +293,9 @@ export interface Database {
           total_sessions?: number;
           active?: boolean;
           shift_schedule?: unknown;
+          default_working_hours?: unknown | null;
+          hire_date?: string | null;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -305,6 +311,9 @@ export interface Database {
           total_sessions?: number;
           active?: boolean;
           shift_schedule?: unknown;
+          default_working_hours?: unknown | null;
+          hire_date?: string | null;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -412,6 +421,10 @@ export interface Database {
           selection_submitted_at?: string | null;
           selection_submitted_by?: string | null;
           revision_notes?: string | null;
+          editing_due_at?: string | null;
+          delivery_due_at?: string | null;
+          crew_status?: 'CREW_READY' | 'CREW_INCOMPLETE' | 'CREW_CONFLICT';
+          resource_status?: 'RESOURCE_READY' | 'RESOURCE_INCOMPLETE' | 'RESOURCE_CONFLICT';
           created_at: string;
           updated_at: string;
         };
@@ -451,6 +464,10 @@ export interface Database {
           selection_submitted_at?: string | null;
           selection_submitted_by?: string | null;
           revision_notes?: string | null;
+          editing_due_at?: string | null;
+          delivery_due_at?: string | null;
+          crew_status?: 'CREW_READY' | 'CREW_INCOMPLETE' | 'CREW_CONFLICT';
+          resource_status?: 'RESOURCE_READY' | 'RESOURCE_INCOMPLETE' | 'RESOURCE_CONFLICT';
           created_at?: string;
           updated_at?: string;
         };
@@ -490,6 +507,10 @@ export interface Database {
           customer_shoot_ack_at?: string | null;
           cancel_requested_at?: string | null;
           reschedule_requested_at?: string | null;
+          editing_due_at?: string | null;
+          delivery_due_at?: string | null;
+          crew_status?: 'CREW_READY' | 'CREW_INCOMPLETE' | 'CREW_CONFLICT';
+          resource_status?: 'RESOURCE_READY' | 'RESOURCE_INCOMPLETE' | 'RESOURCE_CONFLICT';
           created_at?: string;
           updated_at?: string;
         };
@@ -1615,6 +1636,507 @@ export interface Database {
         };
         Relationships: [];
       };
+      staff_skills: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          category: string;
+          description: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          category?: string;
+          description?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          name?: string;
+          category?: string;
+          description?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_skills: {
+        Row: {
+          id: string;
+          employee_id: string;
+          skill_id: string;
+          skill_level: string;
+          certified: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          skill_id: string;
+          skill_level?: string;
+          certified?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          skill_id?: string;
+          skill_level?: string;
+          certified?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_working_hours: {
+        Row: {
+          id: string;
+          employee_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          is_day_off: boolean;
+          timezone: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          day_of_week: number;
+          start_time?: string;
+          end_time?: string;
+          is_day_off?: boolean;
+          timezone?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          day_of_week?: number;
+          start_time?: string;
+          end_time?: string;
+          is_day_off?: boolean;
+          timezone?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_leave_requests: {
+        Row: {
+          id: string;
+          employee_id: string;
+          leave_type: string;
+          start_at: string;
+          end_at: string;
+          reason: string;
+          status: string;
+          manager_note: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          leave_type: string;
+          start_at: string;
+          end_at: string;
+          reason: string;
+          status?: string;
+          manager_note?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          leave_type?: string;
+          start_at?: string;
+          end_at?: string;
+          reason?: string;
+          status?: string;
+          manager_note?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_shifts: {
+        Row: {
+          id: string;
+          employee_id: string;
+          studio_room_id: string | null;
+          shift_date: string;
+          start_at: string;
+          end_at: string;
+          shift_type: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          studio_room_id?: string | null;
+          shift_date: string;
+          start_at: string;
+          end_at: string;
+          shift_type?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          studio_room_id?: string | null;
+          shift_date?: string;
+          start_at?: string;
+          end_at?: string;
+          shift_type?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_crew_requirements: {
+        Row: {
+          id: string;
+          service_id: string | null;
+          package_id: string | null;
+          role: string;
+          quantity: number;
+          is_mandatory: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          service_id?: string | null;
+          package_id?: string | null;
+          role: string;
+          quantity?: number;
+          is_mandatory?: boolean;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          service_id?: string | null;
+          package_id?: string | null;
+          role?: string;
+          quantity?: number;
+          is_mandatory?: boolean;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      resource_categories: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          icon: string | null;
+          is_consumable: boolean;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          icon?: string | null;
+          is_consumable?: boolean;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          name?: string;
+          icon?: string | null;
+          is_consumable?: boolean;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      studio_resources: {
+        Row: {
+          id: string;
+          asset_code: string;
+          category_id: string;
+          name: string;
+          brand: string | null;
+          model: string | null;
+          serial_number: string | null;
+          purchase_date: string | null;
+          purchase_cost: number | null;
+          current_location: string;
+          condition: string;
+          status: string;
+          cleaning_status: string;
+          is_serialized: boolean;
+          quantity_total: number;
+          quantity_available: number;
+          unit: string;
+          reorder_threshold: number;
+          next_maintenance_date: string | null;
+          props_metadata: unknown;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          asset_code: string;
+          category_id: string;
+          name: string;
+          brand?: string | null;
+          model?: string | null;
+          serial_number?: string | null;
+          purchase_date?: string | null;
+          purchase_cost?: number | null;
+          current_location?: string;
+          condition?: string;
+          status?: string;
+          cleaning_status?: string;
+          is_serialized?: boolean;
+          quantity_total?: number;
+          quantity_available?: number;
+          unit?: string;
+          reorder_threshold?: number;
+          next_maintenance_date?: string | null;
+          props_metadata?: unknown;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          asset_code?: string;
+          category_id?: string;
+          name?: string;
+          brand?: string | null;
+          model?: string | null;
+          serial_number?: string | null;
+          purchase_date?: string | null;
+          purchase_cost?: number | null;
+          current_location?: string;
+          condition?: string;
+          status?: string;
+          cleaning_status?: string;
+          is_serialized?: boolean;
+          quantity_total?: number;
+          quantity_available?: number;
+          unit?: string;
+          reorder_threshold?: number;
+          next_maintenance_date?: string | null;
+          props_metadata?: unknown;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_resource_reservations: {
+        Row: {
+          id: string;
+          booking_id: string;
+          resource_id: string;
+          quantity: number;
+          reserved_from: string;
+          reserved_until: string;
+          status: string;
+          notes: string | null;
+          reserved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          resource_id: string;
+          quantity?: number;
+          reserved_from: string;
+          reserved_until: string;
+          status?: string;
+          notes?: string | null;
+          reserved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          resource_id?: string;
+          quantity?: number;
+          reserved_from?: string;
+          reserved_until?: string;
+          status?: string;
+          notes?: string | null;
+          reserved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_resource_handoffs: {
+        Row: {
+          id: string;
+          reservation_id: string;
+          resource_id: string;
+          booking_id: string;
+          employee_id: string;
+          handoff_type: string;
+          condition_state: string;
+          actor_id: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reservation_id: string;
+          resource_id: string;
+          booking_id: string;
+          employee_id: string;
+          handoff_type: string;
+          condition_state?: string;
+          actor_id: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          reservation_id?: string;
+          resource_id?: string;
+          booking_id?: string;
+          employee_id?: string;
+          handoff_type?: string;
+          condition_state?: string;
+          actor_id?: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      resource_maintenance: {
+        Row: {
+          id: string;
+          resource_id: string;
+          maintenance_type: string;
+          scheduled_at: string;
+          completed_at: string | null;
+          vendor: string | null;
+          cost: number | null;
+          notes: string | null;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          resource_id: string;
+          maintenance_type: string;
+          scheduled_at: string;
+          completed_at?: string | null;
+          vendor?: string | null;
+          cost?: number | null;
+          notes?: string | null;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          resource_id?: string;
+          maintenance_type?: string;
+          scheduled_at?: string;
+          completed_at?: string | null;
+          vendor?: string | null;
+          cost?: number | null;
+          notes?: string | null;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      resource_incidents: {
+        Row: {
+          id: string;
+          resource_id: string;
+          booking_id: string | null;
+          reported_by: string;
+          description: string;
+          severity: string;
+          status: string;
+          resolution_note: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          resource_id: string;
+          booking_id?: string | null;
+          reported_by: string;
+          description: string;
+          severity?: string;
+          status?: string;
+          resolution_note?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          resource_id?: string;
+          booking_id?: string | null;
+          reported_by?: string;
+          description?: string;
+          severity?: string;
+          status?: string;
+          resolution_note?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1998,6 +2520,71 @@ export interface Database {
           popular_time_range?: string | null;
         }[];
       };
+      assign_booking_staff_v2: {
+        Args: {
+          p_booking_id: string;
+          p_employee_id: string;
+          p_assignment_role: string;
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      approve_staff_leave: {
+        Args: {
+          p_leave_id: string;
+          p_manager_note?: string | null;
+        };
+        Returns: unknown;
+      };
+      reject_staff_leave: {
+        Args: {
+          p_leave_id: string;
+          p_manager_note?: string | null;
+        };
+        Returns: unknown;
+      };
+      reserve_booking_resource: {
+        Args: {
+          p_booking_id: string;
+          p_resource_id: string;
+          p_quantity?: number;
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      checkout_booking_resource: {
+        Args: {
+          p_reservation_id: string;
+          p_employee_id: string;
+          p_condition_before?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      return_booking_resource: {
+        Args: {
+          p_reservation_id: string;
+          p_condition_after?: string | null;
+          p_is_damaged?: boolean;
+          p_damage_severity?: string | null;
+          p_damage_description?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      get_operations_calendar_events: {
+        Args: {
+          p_start_at: string;
+          p_end_at: string;
+        };
+        Returns: unknown;
+      };
+      get_daily_operations_board: {
+        Args: {
+          p_target_date?: string | null;
+        };
+        Returns: unknown;
+      };
     };
     Enums: {
       user_role: DatabaseRole;
@@ -2053,4 +2640,17 @@ export type PaymentStatus = PaymentRow['status'];
 export type PaymentMethod = PaymentRow['method'];
 export type PaymentType = PaymentRow['payment_type'];
 export type OtpPurpose = OtpChallengeRow['purpose'];
+
+export type StaffSkillRow = Database['public']['Tables']['staff_skills']['Row'];
+export type EmployeeSkillRow = Database['public']['Tables']['employee_skills']['Row'];
+export type StaffWorkingHoursRow = Database['public']['Tables']['staff_working_hours']['Row'];
+export type StaffLeaveRequestRow = Database['public']['Tables']['staff_leave_requests']['Row'];
+export type StaffShiftRow = Database['public']['Tables']['staff_shifts']['Row'];
+export type BookingCrewRequirementRow = Database['public']['Tables']['booking_crew_requirements']['Row'];
+export type ResourceCategoryRow = Database['public']['Tables']['resource_categories']['Row'];
+export type StudioResourceRow = Database['public']['Tables']['studio_resources']['Row'];
+export type BookingResourceReservationRow = Database['public']['Tables']['booking_resource_reservations']['Row'];
+export type BookingResourceHandoffRow = Database['public']['Tables']['booking_resource_handoffs']['Row'];
+export type ResourceMaintenanceRow = Database['public']['Tables']['resource_maintenance']['Row'];
+export type ResourceIncidentRow = Database['public']['Tables']['resource_incidents']['Row'];
 
