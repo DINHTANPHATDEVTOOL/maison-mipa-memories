@@ -25,7 +25,7 @@ Repository này được cấu hình sẵn để **GPT (ChatGPT, GitHub Actions,
 
 ## ✨ Tính Năng Nổi Bật
 
-- **Booking Wizard**: Quy trình đặt lịch chụp ảnh online 4 bước trực quan (chọn gói, dịch vụ thêm, chọn ngày/giờ, thông tin cá nhân & thanh toán cọc).
+- **Booking Wizard**: Quy trình đặt lịch chụp ảnh trực quan (chọn gói, dịch vụ thêm, chọn ngày/giờ, thông tin cá nhân & gửi yêu cầu tư vấn). Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
 - **Public Showcase**: Hero section sang trọng, danh mục dịch vụ (Couple, Portrait, Family, Graduation, Concept Signature), portfolio ảnh chất lượng cao.
 - **Portals Đa Vai Trò**:
   - **Khách hàng**: Tra cứu lịch hẹn, trạng thái hợp đồng, link tải album ảnh.
@@ -113,11 +113,13 @@ npx supabase migration up
 npx supabase db reset
 ```
 
-### 4. Supabase Edge Functions & Server Secrets (Issue #3):
-Hệ thống sử dụng các Edge Functions server-side đảm bảo tuyệt đối không lộ API key/secret và không để client tự tạo/so sánh OTP:
+### 4. Supabase Edge Functions & Server Secrets:
+Hệ thống sử dụng các Edge Functions server-side đảm bảo an toàn secrets và xử lý logic tự động:
 - `supabase/functions/request-otp/`: Tạo OTP 6 số CSPRNG, hash SHA-256 kèm server pepper, kiểm tra rate limit & cooldown 60s, dispatch qua SMS Provider (eSMS / SpeedSMS).
 - `supabase/functions/verify-otp/`: Xác thực OTP, khóa challenge sau 5 lần nhập sai, kiểm tra hạn 5 phút và chống dùng lại mã đã tiêu thụ.
-- `supabase/functions/payment-webhook/`: Xác thực chữ ký HMAC-SHA256, kiểm tra số tiền cọc, bảo vệ chống replay và cập nhật trạng thái đơn đặt lịch sang `DEPOSIT_PAID` một cách transaction-safe.
+- `supabase/functions/send-email/`: Gửi email xác nhận đặt lịch & thông tin ca chụp khi đơn được xác nhận cọc.
+- `supabase/functions/drive-delivery/`: Tự động khởi tạo thư mục Google Drive workspace cho khách hàng.
+- `supabase/functions/payment-webhook/` (LEGACY): Cổng webhook thanh toán cũ. Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
 
 Thiết lập secrets trên Supabase:
 ```bash
@@ -126,8 +128,7 @@ npx supabase secrets set \
   SMS_API_KEY=your_esms_key \
   SMS_SECRET=your_esms_secret \
   SMS_BRANDNAME=MIPA \
-  OTP_PEPPER=your_secure_server_pepper \
-  PAYMENT_WEBHOOK_SECRET=your_hmac_secret
+  OTP_PEPPER=your_secure_server_pepper
 ```
 
 ### 5. Cơ Chế Chống Double-Booking (P0):
@@ -143,7 +144,7 @@ WHERE (booking_status NOT IN ('CANCELLED'));
 ```
 - **Interval nửa mở `[)`**: Cho phép các ca chụp liền kề (10:00–11:00 và 11:00–12:00) hoạt động trơn tru.
 - **Filter `booking_status NOT IN ('CANCELLED')`**: Tự động giải phóng khung giờ khi đơn trước bị huỷ.
-- **RPC `create_booking` & `create_deposit_payment`**: Tính toán giá dịch vụ, tiền cọc và thời lượng authoritatively trên server; client không thể giả mạo `totalAmount` hay `deposit_amount`.
+- **RPC `create_booking`**: Tính toán giá dịch vụ, tiền cọc và thời lượng authoritatively trên server. Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
 
 
 ---
