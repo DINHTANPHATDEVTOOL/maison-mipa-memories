@@ -597,6 +597,8 @@ export interface Database {
         Row: {
           id: string;
           actor_user_id: string | null;
+          actor_id: string | null;
+          actor_role: string | null;
           entity_type: string;
           entity_id: string;
           action: string;
@@ -607,6 +609,8 @@ export interface Database {
         Insert: {
           id?: string;
           actor_user_id?: string | null;
+          actor_id?: string | null;
+          actor_role?: string | null;
           entity_type: string;
           entity_id: string;
           action: string;
@@ -617,6 +621,8 @@ export interface Database {
         Update: {
           id?: string;
           actor_user_id?: string | null;
+          actor_id?: string | null;
+          actor_role?: string | null;
           entity_type?: string;
           entity_id?: string;
           action?: string;
@@ -628,6 +634,12 @@ export interface Database {
           {
             foreignKeyName: 'audit_logs_actor_user_id_fkey';
             columns: ['actor_user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'audit_logs_actor_id_fkey';
+            columns: ['actor_id'];
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           }
