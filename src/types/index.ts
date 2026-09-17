@@ -112,6 +112,9 @@ export interface Employee {
   totalSessions: number;
   status: 'ACTIVE' | 'OFF' | 'ON_LEAVE';
   shiftSchedule: { [dayOfWeek: string]: string }; // e.g. "Mon": "09:00 - 18:00"
+  defaultWorkingHours?: Record<string, { start: string; end: string; isOff: boolean }>;
+  hireDate?: string;
+  notes?: string;
 }
 
 export interface CustomerProfile {
@@ -216,6 +219,10 @@ export interface Booking {
   proofFileCount?: number;
   finalFileCount?: number;
   selectedPhotoCount?: number;
+  editingDueAt?: string;
+  deliveryDueAt?: string;
+  crewStatus?: 'CREW_READY' | 'CREW_INCOMPLETE' | 'CREW_CONFLICT';
+  resourceStatus?: 'RESOURCE_READY' | 'RESOURCE_INCOMPLETE' | 'RESOURCE_CONFLICT';
   delivery?: BookingDelivery;
 }
 
@@ -752,6 +759,236 @@ export interface StudioUtilizationMetric {
   utilizationRate: number;
   popularWeekday?: string;
   popularTimeRange?: string;
+}
+
+// ==============================================================================
+// Studio Operations & Workforce Scheduling Types
+// ==============================================================================
+
+export interface StaffSkill {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  active: boolean;
+  createdAt?: string;
+}
+
+export interface EmployeeSkill {
+  id: string;
+  employeeId: string;
+  skillId: string;
+  skillLevel: string;
+  certified: boolean;
+  skill?: StaffSkill;
+}
+
+export interface StaffWorkingHours {
+  id: string;
+  employeeId: string;
+  dayOfWeek: number; // 0 (Sun) - 6 (Sat)
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  isDayOff: boolean;
+  timezone: string;
+}
+
+export type StaffLeaveType = 'ANNUAL' | 'SICK' | 'PERSONAL' | 'UNPAID' | 'OTHER';
+export type StaffLeaveStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface StaffLeaveRequest {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  leaveType: StaffLeaveType;
+  startAt: string;
+  endAt: string;
+  reason: string;
+  status: StaffLeaveStatus;
+  managerNote?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+}
+
+export interface StaffShift {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  studioRoomId?: string | null;
+  studioRoomName?: string | null;
+  shiftDate: string;
+  startAt: string;
+  endAt: string;
+  shiftType: string;
+  notes?: string | null;
+}
+
+export interface CrewRequirement {
+  id: string;
+  serviceId?: string | null;
+  packageId?: string | null;
+  role: StaffRole;
+  quantity: number;
+  isMandatory: boolean;
+  notes?: string | null;
+}
+
+export interface ResourceCategory {
+  id: string;
+  code: string;
+  name: string;
+  icon?: string | null;
+  isConsumable: boolean;
+  active: boolean;
+}
+
+export type ResourceCondition = 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'DAMAGED';
+export type ResourceStatus = 'AVAILABLE' | 'RESERVED' | 'IN_USE' | 'MAINTENANCE' | 'DAMAGED' | 'LOST' | 'RETIRED';
+export type ResourceCleaningStatus = 'AVAILABLE' | 'IN_USE' | 'NEEDS_CLEANING' | 'CLEANING';
+
+export interface StudioResource {
+  id: string;
+  assetCode: string;
+  categoryId: string;
+  categoryName?: string;
+  name: string;
+  brand?: string | null;
+  model?: string | null;
+  serialNumber?: string | null;
+  purchaseDate?: string | null;
+  purchaseCost?: number | null;
+  currentLocation: string;
+  condition: ResourceCondition;
+  status: ResourceStatus;
+  cleaningStatus?: ResourceCleaningStatus;
+  isSerialized: boolean;
+  quantityTotal: number;
+  quantityAvailable: number;
+  unit: string;
+  reorderThreshold: number;
+  nextMaintenanceDate?: string | null;
+  propsMetadata?: {
+    size?: string;
+    color?: string;
+    style?: string;
+    season?: string;
+    tags?: string[];
+  } | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ResourceReservationStatus = 'RESERVED' | 'CHECKED_OUT' | 'RETURNED' | 'CANCELLED';
+
+export interface ResourceReservation {
+  id: string;
+  bookingId: string;
+  bookingCode?: string;
+  resourceId: string;
+  resourceName?: string;
+  assetCode?: string;
+  quantity: number;
+  reservedFrom: string;
+  reservedUntil: string;
+  status: ResourceReservationStatus;
+  notes?: string | null;
+  reservedBy?: string | null;
+}
+
+export interface ResourceHandoff {
+  id: string;
+  reservationId: string;
+  resourceId: string;
+  bookingId: string;
+  employeeId: string;
+  employeeName?: string;
+  handoffType: 'CHECKOUT' | 'RETURN';
+  conditionState: ResourceCondition;
+  actorId: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ResourceMaintenance {
+  id: string;
+  resourceId: string;
+  resourceName?: string;
+  assetCode?: string;
+  maintenanceType: string;
+  scheduledAt: string;
+  completedAt?: string | null;
+  vendor?: string | null;
+  cost?: number | null;
+  notes?: string | null;
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+}
+
+export interface ResourceIncident {
+  id: string;
+  resourceId: string;
+  resourceName?: string;
+  bookingId?: string | null;
+  reportedBy: string;
+  reporterName?: string;
+  description: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'OPEN' | 'UNDER_REVIEW' | 'REPAIRED' | 'RETIRED';
+  resolutionNote?: string | null;
+  resolvedBy?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+}
+
+export interface OperationsCalendarEvent {
+  id: string;
+  title: string;
+  type: 'BOOKING' | 'STAFF_SHIFT' | 'STAFF_LEAVE' | 'MAINTENANCE';
+  startAt: string;
+  endAt: string;
+  studioRoomId?: string | null;
+  studioRoomName?: string | null;
+  bookingCode?: string;
+  serviceName?: string;
+  customerName?: string;
+  bookingStatus?: BookingStatus;
+  crewStatus?: 'CREW_READY' | 'CREW_INCOMPLETE' | 'CREW_CONFLICT';
+  resourceStatus?: 'RESOURCE_READY' | 'RESOURCE_INCOMPLETE' | 'RESOURCE_CONFLICT';
+  staffName?: string;
+  staffRole?: StaffRole;
+  leaveType?: StaffLeaveType;
+  metadata?: Record<string, any>;
+}
+
+export interface DailyOperationsBoardData {
+  todayShoots: Booking[];
+  upcomingCheckIns: Booking[];
+  crewIssues: {
+    bookingId: string;
+    bookingCode: string;
+    customerName: string;
+    serviceName: string;
+    startTime: string;
+    missingRoles: string[];
+    conflictRoles: string[];
+  }[];
+  resourceIssues: {
+    bookingId: string;
+    bookingCode: string;
+    resourceName: string;
+    issueType: 'MISSING' | 'OVERDUE_RETURN' | 'MAINTENANCE_CONFLICT';
+  }[];
+  postProductionDue: {
+    bookingId: string;
+    bookingCode: string;
+    customerName: string;
+    editorName?: string;
+    status: BookingStatus;
+    dueAt?: string;
+    isOverdue: boolean;
+  }[];
 }
 
 
