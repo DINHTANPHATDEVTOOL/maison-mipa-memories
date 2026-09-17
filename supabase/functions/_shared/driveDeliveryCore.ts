@@ -114,10 +114,13 @@ export async function ensureRootFolder(
  */
 export async function ensureSubfolder(
   accessToken: string,
-  parentFolderId: string,
+  parentFolderId: string | null | undefined,
   subfolderName: string,
   fetchFn: typeof fetch = fetch
 ): Promise<{ id: string; webViewLink?: string }> {
+  if (!parentFolderId) {
+    throw new Error(`Cannot ensure subfolder '${subfolderName}': parentFolderId is required`);
+  }
   try {
     const query = `name = '${subfolderName}' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
     const searchRes = await fetchFn(
@@ -463,16 +466,18 @@ export async function executeDriveDeliveryAction(
       let finalFolderId: string | null = null;
       let finalFolderUrl: string | null = null;
 
-      try {
-        const rawSub = await ensureSubfolder(accessToken, driveFolderId, '01_RAW', fetchFn);
-        rawFolderId = rawSub.id;
-        const proofsSub = await ensureSubfolder(accessToken, driveFolderId, '02_PROOFS', fetchFn);
-        proofsFolderId = proofsSub.id;
-        const finalSub = await ensureSubfolder(accessToken, driveFolderId, '03_FINAL', fetchFn);
-        finalFolderId = finalSub.id;
-        finalFolderUrl = finalSub.webViewLink || `https://drive.google.com/drive/folders/${finalSub.id}`;
-      } catch (subErr) {
-        console.warn('Subfolder creation warning:', subErr);
+      if (driveFolderId) {
+        try {
+          const rawSub = await ensureSubfolder(accessToken, driveFolderId, '01_RAW', fetchFn);
+          rawFolderId = rawSub.id;
+          const proofsSub = await ensureSubfolder(accessToken, driveFolderId, '02_PROOFS', fetchFn);
+          proofsFolderId = proofsSub.id;
+          const finalSub = await ensureSubfolder(accessToken, driveFolderId, '03_FINAL', fetchFn);
+          finalFolderId = finalSub.id;
+          finalFolderUrl = finalSub.webViewLink || `https://drive.google.com/drive/folders/${finalSub.id}`;
+        } catch (subErr) {
+          console.warn('Subfolder creation warning:', subErr);
+        }
       }
 
       // Update delivery state in database
