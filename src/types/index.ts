@@ -10,6 +10,7 @@ export type BookingStatus =
   | 'CHECKED_IN'
   | 'SHOOTING'
   | 'SHOOT_COMPLETED'
+  | 'AWAITING_SELECTION'
   | 'EDITING'
   | 'READY_FOR_REVIEW'
   | 'DELIVERED'
@@ -204,6 +205,18 @@ export interface Booking {
   depositConfirmedAt?: string;
   depositConfirmedBy?: string;
   depositNote?: string;
+  selectionLimit?: number;
+  selectionSubmittedAt?: string;
+  selectionSubmittedBy?: string;
+  revisionNotes?: string;
+  rawFolderId?: string;
+  proofsFolderId?: string;
+  finalFolderId?: string;
+  finalFolderUrl?: string;
+  proofFileCount?: number;
+  finalFileCount?: number;
+  selectedPhotoCount?: number;
+  delivery?: BookingDelivery;
 }
 
 export type DeliveryStatus =
@@ -221,6 +234,12 @@ export interface BookingDelivery {
   provider: string;
   driveFolderId?: string;
   driveFolderUrl?: string;
+  rawFolderId?: string;
+  proofsFolderId?: string;
+  finalFolderId?: string;
+  finalFolderUrl?: string;
+  proofFileCount?: number;
+  finalFileCount?: number;
   status: DeliveryStatus;
   customerPermissionId?: string;
   shareEmail?: string;
@@ -233,6 +252,33 @@ export interface BookingDelivery {
   revokedAt?: string;
   lastReconciledAt?: string;
   lastError?: string;
+}
+
+export interface BookingProofImage {
+  id: string;
+  bookingId: string;
+  driveFileId: string;
+  fileName: string;
+  mimeType: string;
+  width?: number;
+  height?: number;
+  sortOrder: number;
+  previewUrl?: string;
+  thumbnailUrl?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  selected?: boolean;
+}
+
+export interface BookingPhotoSelection {
+  id: string;
+  bookingId: string;
+  proofImageId: string;
+  selectedBy?: string;
+  selectedAt: string;
+  notes?: string;
+  createdAt?: string;
 }
 
 export type PhotoType = 'RAW' | 'PREVIEW' | 'SELECTED' | 'FINAL';

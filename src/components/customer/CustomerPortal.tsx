@@ -17,6 +17,7 @@ import {
   requestBookingReschedule,
   requestBookingCancel,
 } from '../../services/bookingService';
+import { CustomerProofGallery } from './CustomerProofGallery';
 import {
   Calendar,
   Camera,
@@ -46,6 +47,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
     searchParams.get('tab') === 'profile' ? 'profile' : 'bookings'
   );
   const [actionNotice, setActionNotice] = useState<string>('');
+  const [selectedProofBooking, setSelectedProofBooking] = useState<Booking | null>(null);
 
   // Profile edit state
   const [editFullName, setEditFullName] = useState(user?.fullName || '');
@@ -363,10 +365,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                         ? 'Đang chụp'
                         : b.bookingStatus === 'SHOOT_COMPLETED'
                         ? 'Đã hoàn tất buổi chụp'
+                        : b.bookingStatus === 'AWAITING_SELECTION'
+                        ? 'Chờ bạn chọn ảnh'
                         : b.bookingStatus === 'EDITING'
                         ? 'Đang hậu kỳ'
                         : b.bookingStatus === 'READY_FOR_REVIEW'
-                        ? 'Ảnh đang được duyệt'
+                        ? 'Ảnh đang được Maison MIPA duyệt'
                         : b.bookingStatus === 'DELIVERED'
                         ? 'Ảnh đã được giao'
                         : b.bookingStatus === 'COMPLETED'
@@ -397,13 +401,14 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#8C6E53', marginBottom: '0.8rem' }}>
                     TIẾN ĐỘ BUỔI CHỤP:
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', fontSize: '0.78rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
                     {[
-                      { label: '1. Đã Nhận Cọc', done: ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
-                      { label: '2. Đã Check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '3. Đang Chụp', done: ['SHOOTING', 'SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '4. Hậu Kỳ', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '5. Đã Giao Ảnh', done: ['DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || Boolean(b.driveReadyForCustomer) },
+                      { label: '1. Đã Nhận Cọc', done: ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
+                      { label: '2. Đã Check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '3. Buổi Chụp', done: ['SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '4. Chọn Ảnh', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '5. Hậu Kỳ', done: ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                      { label: '6. Đã Giao Ảnh', done: ['DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || Boolean(b.driveReadyForCustomer) },
                     ].map((step, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: step.done ? '#047857' : '#A39385', fontWeight: step.done ? 600 : 400 }}>
                         <Check size={14} color={step.done ? '#047857' : '#A39385'} />
@@ -415,7 +420,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
 
                 {/* Customer Acknowledgements & Delivery Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem' }}>
-                  <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     {/* Schedule confirmation acknowledgement */}
                     {b.bookingStatus === 'CONFIRMED' && !b.customerScheduleConfirmedAt && (
                       <button
@@ -444,10 +449,27 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       </button>
                     )}
 
-                    {/* Google Drive Delivery Button (#8 integration) - ONLY when delivered or ready for customer */}
-                    {(b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && b.driveFolderUrl ? (
+                    {/* Customer Photo Selection Action (Phase 9) */}
+                    {b.bookingStatus === 'AWAITING_SELECTION' && (
+                      <button
+                        onClick={() => setSelectedProofBooking(b)}
+                        className="btn-mipa-gold"
+                        style={{
+                          fontSize: '0.88rem',
+                          padding: '0.5rem 1.3rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                        }}
+                      >
+                        <Camera size={16} /> Chọn Ảnh Hậu Kỳ
+                      </button>
+                    )}
+
+                    {/* Google Drive Final Delivery Button (Phase 16) */}
+                    {(b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && (b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl) ? (
                       <a
-                        href={b.driveFolderUrl}
+                        href={b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-mipa-gold"
@@ -460,14 +482,17 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                           backgroundColor: '#047857',
                           color: '#FFFFFF',
                           textDecoration: 'none',
+                          fontWeight: 700,
                         }}
                       >
-                        <FolderDown size={16} /> Lấy Ảnh Google Drive
+                        <FolderDown size={16} /> XEM ẢNH
                       </a>
                     ) : (
-                      <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
-                        ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
-                      </span>
+                      b.bookingStatus !== 'AWAITING_SELECTION' && (
+                        <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                          ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
+                        </span>
+                      )
                     )}
                   </div>
 
@@ -897,6 +922,20 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
             </form>
           </div>
         </div>
+      )}
+
+      {/* Customer Photo Selection Modal (Phase 9) */}
+      {selectedProofBooking && (
+        <CustomerProofGallery
+          booking={selectedProofBooking}
+          onClose={() => setSelectedProofBooking(null)}
+          onSelectionSubmitted={(updated) => {
+            setActionNotice(
+              `✓ Đã gửi danh sách ảnh chọn cho đơn ${updated.bookingCode} thành công! Maison MIPA đang bắt đầu hậu kỳ.`
+            );
+            setTimeout(() => setActionNotice(''), 6000);
+          }}
+        />
       )}
 
     </div>

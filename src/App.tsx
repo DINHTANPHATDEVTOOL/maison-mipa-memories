@@ -7,7 +7,7 @@
 // - Route /auth/reset-password for password recovery
 // ==============================================================================
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import type { User, Booking, BookingStatus } from './types';
 import { INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_EMPLOYEES, INITIAL_STUDIO_ROOMS } from './mockData';
@@ -281,6 +281,7 @@ function AppContent() {
                 />
               }
             />
+            <Route path="/customer" element={<Navigate to="/account" replace />} />
             <Route
               path="/staff"
               element={

@@ -133,7 +133,13 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
                       </button>
                     )}
 
-                    {isCompleted && (
+                    {b.bookingStatus === 'SHOOT_COMPLETED' && (
+                      <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                        ✓ Đã hoàn tất buổi chụp • Chờ upload & đồng bộ proofs
+                      </span>
+                    )}
+
+                    {isCompleted && b.bookingStatus !== 'SHOOT_COMPLETED' && (
                       <span style={{ fontSize: '0.85rem', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                         ✓ Buổi chụp đã hoàn tất
                       </span>

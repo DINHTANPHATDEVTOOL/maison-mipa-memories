@@ -12,24 +12,28 @@ import type { Booking, BookingStatus, Employee, StudioRoom } from '../../types';
 import { getOperationsInboxStats, getNextActionForBooking } from '../../utils/bookingStateMachine';
 import {
   Calendar,
-  Users,
   Search,
-  CheckCircle,
   AlertTriangle,
   FolderDown,
-  UserCheck,
-  MapPin,
-  Clock,
-  ExternalLink,
-  DollarSign,
   Plus,
   X,
-  Edit3,
-  CreditCard,
   Check,
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
 import { confirmBookingDeposit, updateBookingConsultation } from '../../services/bookingService';
+import {
+  checkInBooking,
+  startBookingShoot,
+  completeBookingShoot,
+  syncBookingProofs,
+  syncFinalAssets,
+  bypassCustomerSelection,
+  reopenPhotoSelection,
+  completeBookingEditing,
+  requestBookingRevision,
+  approveAndDeliverFinals,
+  completeBooking,
+} from '../../services/photoWorkflowService';
 
 interface ManagerDashboardProps {
   bookings: Booking[];
@@ -79,6 +83,20 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [consultationStaffNoteInput, setConsultationStaffNoteInput] = useState<string>('');
   const [isUpdatingConsultation, setIsUpdatingConsultation] = useState<boolean>(false);
   const [consultationError, setConsultationError] = useState<string | null>(null);
+
+  // Workflow Modals State
+  const [revisionModalBooking, setRevisionModalBooking] = useState<Booking | null>(null);
+  const [revisionNotesInput, setRevisionNotesInput] = useState<string>('');
+
+  const [reopenModalBooking, setReopenModalBooking] = useState<Booking | null>(null);
+  const [reopenReasonInput, setReopenReasonInput] = useState<string>('');
+
+  const [bypassModalBooking, setBypassModalBooking] = useState<Booking | null>(null);
+  const [bypassReasonInput, setBypassReasonInput] = useState<string>('');
+
+  const [workflowActionLoading, setWorkflowActionLoading] = useState<string | null>(null);
+  const [workflowNotice, setWorkflowNotice] = useState<string>('');
+  const [workflowError, setWorkflowError] = useState<string>('');
 
   // Computed Operations Inbox stats
   const inboxStats = getOperationsInboxStats(bookings);
@@ -182,6 +200,187 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     setSelectedEmployeeId('');
   };
 
+  const handleCheckIn = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      await checkInBooking(b.id);
+      onUpdateStatus(b.id, 'CHECKED_IN', 'Đã xác nhận khách check-in');
+      setWorkflowNotice(`✓ Khách ${b.customerName} đã check-in thành công.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể check-in.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleStartShoot = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      await startBookingShoot(b.id);
+      onUpdateStatus(b.id, 'SHOOTING', 'Bắt đầu chụp tại studio');
+      setWorkflowNotice(`✓ Đã bắt đầu ca chụp cho đơn ${b.bookingCode}.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể bắt đầu ca chụp.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleCompleteShoot = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      await completeBookingShoot(b.id);
+      onUpdateStatus(b.id, 'SHOOT_COMPLETED', 'Buổi chụp hoàn tất');
+      setWorkflowNotice(`✓ Buổi chụp ${b.bookingCode} đã hoàn tất. Vui lòng tải ảnh lên Drive và đồng bộ.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể hoàn tất buổi chụp.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleSyncProofs = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      const res = await syncBookingProofs(b.id);
+      onUpdateStatus(b.id, 'AWAITING_SELECTION', `Đồng bộ ${res.proofFileCount} ảnh proof thành công`);
+      setWorkflowNotice(`✓ Đã đồng bộ ${res.proofFileCount} ảnh proof vào hệ thống cho khách chọn.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể đồng bộ ảnh proof.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleSyncFinal = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      const res = await syncFinalAssets(b.id);
+      setWorkflowNotice(`✓ Đã đồng bộ ${res.finalFileCount} ảnh final từ Google Drive.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể đồng bộ ảnh final.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleCompleteEditing = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      await completeBookingEditing(b.id);
+      onUpdateStatus(b.id, 'READY_FOR_REVIEW', 'Hoàn tất hậu kỳ, sẵn sàng duyệt');
+      setWorkflowNotice(`✓ Đã chuyển đơn ${b.bookingCode} sang trạng thái chờ duyệt.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể hoàn tất hậu kỳ.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleApproveDelivery = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      await approveAndDeliverFinals(b.id);
+      onUpdateStatus(b.id, 'DELIVERED', 'Đã duyệt và mở quyền Drive cho khách hàng');
+      setWorkflowNotice(`✓ Đã duyệt và giao ảnh thành công cho khách hàng ${b.customerName}!`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể giao ảnh.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleCompleteOrder = async (b: Booking) => {
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      await completeBooking(b.id);
+      onUpdateStatus(b.id, 'COMPLETED', 'Đơn đặt lịch hoàn tất thành công');
+      setWorkflowNotice(`✓ Đơn đặt lịch ${b.bookingCode} đã hoàn tất.`);
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể hoàn tất đơn.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleRequestRevisionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revisionModalBooking || !revisionNotesInput.trim()) return;
+    try {
+      setWorkflowActionLoading(revisionModalBooking.id);
+      await requestBookingRevision(revisionModalBooking.id, revisionNotesInput.trim());
+      onUpdateStatus(revisionModalBooking.id, 'EDITING', `Yêu cầu chỉnh sửa: ${revisionNotesInput.trim()}`);
+      setRevisionModalBooking(null);
+      setRevisionNotesInput('');
+      setWorkflowNotice('✓ Đã gửi yêu cầu chỉnh sửa cho bộ phận hậu kỳ.');
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể gửi yêu cầu chỉnh sửa.');
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleReopenSelectionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reopenModalBooking || !reopenReasonInput.trim()) return;
+    try {
+      setWorkflowActionLoading(reopenModalBooking.id);
+      await reopenPhotoSelection(reopenModalBooking.id, reopenReasonInput.trim());
+      onUpdateStatus(reopenModalBooking.id, 'AWAITING_SELECTION', `Mở lại chọn ảnh: ${reopenReasonInput.trim()}`);
+      setReopenModalBooking(null);
+      setReopenReasonInput('');
+      setWorkflowNotice('✓ Đã mở lại khâu chọn ảnh cho khách hàng.');
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể mở lại khâu chọn ảnh.');
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleBypassSelectionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bypassModalBooking || !bypassReasonInput.trim()) return;
+    try {
+      setWorkflowActionLoading(bypassModalBooking.id);
+      await bypassCustomerSelection(bypassModalBooking.id, bypassReasonInput.trim());
+      onUpdateStatus(bypassModalBooking.id, 'EDITING', `Không cần khách chọn ảnh: ${bypassReasonInput.trim()}`);
+      setBypassModalBooking(null);
+      setBypassReasonInput('');
+      setWorkflowNotice('✓ Đã chuyển thẳng vào khâu hậu kỳ.');
+      setTimeout(() => setWorkflowNotice(''), 4000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể bỏ qua chọn ảnh.');
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
   return (
     <div style={{ maxWidth: '1350px', margin: '1.5rem auto', padding: '0 1.5rem' }}>
 
@@ -209,7 +408,43 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
       </div>
 
-      {/* OPERATIONS INBOX BANNER - Actionable Workstation */}
+      {workflowNotice && (
+        <div style={{
+          padding: '0.8rem 1.2rem',
+          backgroundColor: '#ECFDF5',
+          border: '1px solid #6EE7B7',
+          borderRadius: '12px',
+          color: '#065F46',
+          fontWeight: 600,
+          fontSize: '0.88rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <Check size={18} /> {workflowNotice}
+        </div>
+      )}
+
+      {workflowError && (
+        <div style={{
+          padding: '0.8rem 1.2rem',
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #FCA5A5',
+          borderRadius: '12px',
+          color: '#991B1B',
+          fontWeight: 600,
+          fontSize: '0.88rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <AlertTriangle size={18} /> {workflowError}
+        </div>
+      )}
+
+      {/* OPERATIONS INBOX BANNER - 9 Operational Queues (Phase 18) */}
       <div style={{
         backgroundColor: '#FFFDF6',
         border: '1.5px solid #E6D7B9',
@@ -221,93 +456,44 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#604634', fontWeight: 700, fontSize: '1rem' }}>
             <AlertTriangle size={19} color="#C6A45F" />
-            <span>HÀNG ĐỢI ĐIỀU PHỐI — {inboxStats.totalActionRequired} VIỆC CẦN XỬ LÝ:</span>
+            <span>HÀNG ĐỢI VẬN HÀNH STUDIO (OPERATIONS PIPELINE):</span>
           </div>
           <span style={{ fontSize: '0.78rem', backgroundColor: '#F8F3E6', color: '#8C6E53', padding: '0.2rem 0.6rem', borderRadius: '10px', fontWeight: 700, border: '1px solid #E6D7B9' }}>
-            Ưu tiên xử lý theo luồng vận hành studio
+            9 Hàng đợi theo chuẩn Shoot-to-Delivery
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem' }}>
-          <button
-            onClick={() => setSelectedStatusFilter('CONSULTATION_REQUESTED')}
-            style={{
-              padding: '0.8rem 1rem',
-              borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'CONSULTATION_REQUESTED' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'CONSULTATION_REQUESTED' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>YÊU CẦU TƯ VẤN MỚI</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.consultationRequestedCount} đơn</div>
-          </button>
-
-          <button
-            onClick={() => setSelectedStatusFilter('CONSULTING')}
-            style={{
-              padding: '0.8rem 1rem',
-              borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'CONSULTING' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'CONSULTING' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG TƯ VẤN</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.consultingCount} đơn</div>
-          </button>
-
-          <button
-            onClick={() => setSelectedStatusFilter('CONFIRMED')}
-            style={{
-              padding: '0.8rem 1rem',
-              borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'CONFIRMED' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'CONFIRMED' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>ĐÃ XÁC NHẬN LỊCH & CỌC</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.unassignedStaffCount} đơn</div>
-          </button>
-
-          <button
-            onClick={() => setSelectedStatusFilter('SHOOTING')}
-            style={{
-              padding: '0.8rem 1rem',
-              borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'SHOOTING' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'SHOOTING' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG CHỤP TRONG PHÒNG</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.shootingNowCount} ca</div>
-          </button>
-
-          <button
-            onClick={() => setSelectedStatusFilter('READY_FOR_REVIEW')}
-            style={{
-              padding: '0.8rem 1rem',
-              borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'READY_FOR_REVIEW' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'READY_FOR_REVIEW' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ DUYỆT GIAO ẢNH</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.readyToDeliverCount} bộ</div>
-          </button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.6rem' }}>
+          {[
+            { id: 'CONFIRMED', label: '1. SẮP CHỤP', count: inboxStats.confirmedCount, unit: 'đơn' },
+            { id: 'CHECKED_IN', label: '2. ĐÃ CHECK-IN', count: inboxStats.checkedInCount, unit: 'ca' },
+            { id: 'SHOOTING', label: '3. ĐANG CHỤP', count: inboxStats.shootingCount, unit: 'ca' },
+            { id: 'SHOOT_COMPLETED', label: '4. CHỜ SYNC ẢNH', count: inboxStats.shootCompletedCount, unit: 'đơn' },
+            { id: 'AWAITING_SELECTION', label: '5. KHÁCH CHỌN ẢNH', count: inboxStats.awaitingSelectionCount, unit: 'đơn' },
+            { id: 'EDITING', label: '6. ĐANG HẬU KỲ', count: inboxStats.editingCount, unit: 'bộ' },
+            { id: 'READY_FOR_REVIEW', label: '7. CHỜ DUYỆT', count: inboxStats.readyForReviewCount, unit: 'bộ' },
+            { id: 'DELIVERED', label: '8. ĐÃ GIAO', count: inboxStats.deliveredCount, unit: 'đơn' },
+            { id: 'COMPLETED', label: '9. HOÀN TẤT', count: inboxStats.completedCount, unit: 'đơn' },
+          ].map((queue) => (
+            <button
+              key={queue.id}
+              onClick={() => setSelectedStatusFilter(queue.id)}
+              style={{
+                padding: '0.65rem 0.75rem',
+                borderRadius: '12px',
+                backgroundColor: selectedStatusFilter === queue.id ? '#FAF6EE' : '#FFFFFF',
+                border: selectedStatusFilter === queue.id ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{ fontSize: '0.68rem', color: '#8C6E53', fontWeight: 700 }}>{queue.label}</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#604634', marginTop: '0.1rem' }}>
+                {queue.count} {queue.unit}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -318,7 +504,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         <div className="mipa-card" style={{ padding: '1.5rem', borderRadius: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.8rem' }}>
             {/* Protected In-Portal Search */}
-            <div style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8C6E53' }} />
               <input
                 type="text"
@@ -331,17 +517,20 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             </div>
 
             {/* Status Filter Pills with Vietnamese labels */}
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               {[
                 { id: 'ALL', label: 'Tất cả' },
-                { id: 'CONSULTATION_REQUESTED', label: 'Yêu cầu tư vấn' },
-                { id: 'CONSULTING', label: 'Đang tư vấn' },
-                { id: 'CONFIRMED', label: 'Đã xác nhận' },
+                { id: 'CONFIRMED', label: 'Sắp chụp' },
+                { id: 'CHECKED_IN', label: 'Đã check-in' },
                 { id: 'SHOOTING', label: 'Đang chụp' },
-                { id: 'READY_FOR_REVIEW', label: 'Chờ duyệt ảnh' },
-                { id: 'COMPLETED', label: 'Hoàn thành' },
-                { id: 'PENDING_PAYMENT', label: 'Chờ cọc (cũ)' },
-                { id: 'DEPOSIT_PAID', label: 'Đã cọc (cũ)' },
+                { id: 'SHOOT_COMPLETED', label: 'Chờ sync ảnh' },
+                { id: 'AWAITING_SELECTION', label: 'Khách chọn' },
+                { id: 'EDITING', label: 'Đang hậu kỳ' },
+                { id: 'READY_FOR_REVIEW', label: 'Chờ duyệt' },
+                { id: 'DELIVERED', label: 'Đã giao' },
+                { id: 'COMPLETED', label: 'Hoàn tất' },
+                { id: 'CONSULTATION_REQUESTED', label: 'Tư vấn mới' },
+                { id: 'CONSULTING', label: 'Đang tư vấn' },
               ].map((filterItem) => (
                 <button
                   key={filterItem.id}
@@ -351,9 +540,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     borderColor: selectedStatusFilter === filterItem.id ? '#8C6E53' : '#EFE6C9',
                     background: selectedStatusFilter === filterItem.id ? 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)' : '#FFFDF6',
                     color: selectedStatusFilter === filterItem.id ? '#FFFDF6' : '#604634',
-                    padding: '0.35rem 0.75rem',
+                    padding: '0.3rem 0.65rem',
                     borderRadius: '16px',
-                    fontSize: '0.75rem',
+                    fontSize: '0.73rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     boxShadow: selectedStatusFilter === filterItem.id ? '0 2px 6px rgba(96, 70, 52, 0.2)' : 'none',
@@ -540,7 +729,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
                 <div style={{ marginTop: '0.5rem', borderTop: '1px solid #EFE6C9', paddingTop: '0.8rem' }}>
                   <div style={{ fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>Hành động vận hành:</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                     {activeBookingTimeline.bookingStatus === 'CONSULTATION_REQUESTED' && (
                       <button
                         onClick={() => onUpdateStatus(activeBookingTimeline.id, 'CONSULTING', 'Bắt đầu tư vấn')}
@@ -570,15 +759,191 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                       </>
                     )}
 
-                    {activeBookingTimeline.bookingStatus === 'READY_FOR_REVIEW' && (
+                    {activeBookingTimeline.bookingStatus === 'CONFIRMED' && (
                       <button
-                        onClick={() => onUpdateStatus(activeBookingTimeline.id, 'DELIVERED', 'Đã duyệt ảnh và mở Drive cho khách')}
+                        onClick={() => handleCheckIn(activeBookingTimeline)}
+                        disabled={workflowActionLoading === activeBookingTimeline.id}
                         className="btn-mipa-gold"
-                        style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%' }}
+                        style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700 }}
                       >
-                        📩 Mở Quyền Xem Ảnh Cho Khách
+                        📌 CHECK-IN KHÁCH
                       </button>
                     )}
+
+                    {activeBookingTimeline.bookingStatus === 'CHECKED_IN' && (
+                      <button
+                        onClick={() => handleStartShoot(activeBookingTimeline)}
+                        disabled={workflowActionLoading === activeBookingTimeline.id}
+                        className="btn-mipa-gold"
+                        style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700 }}
+                      >
+                        📷 BẮT ĐẦU BUỔI CHỤP
+                      </button>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'SHOOTING' && (
+                      <button
+                        onClick={() => handleCompleteShoot(activeBookingTimeline)}
+                        disabled={workflowActionLoading === activeBookingTimeline.id}
+                        className="btn-mipa-primary"
+                        style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700 }}
+                      >
+                        ✅ HOÀN TẤT BUỔI CHỤP
+                      </button>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'SHOOT_COMPLETED' && (
+                      <>
+                        <button
+                          onClick={() => handleSyncProofs(activeBookingTimeline)}
+                          disabled={workflowActionLoading === activeBookingTimeline.id}
+                          className="btn-mipa-gold"
+                          style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700 }}
+                        >
+                          📤 ĐỒNG BỘ ẢNH PROOFS (DRIVE)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setBypassModalBooking(activeBookingTimeline);
+                            setBypassReasonInput('Gói dịch vụ không yêu cầu khách chọn ảnh hoặc quản lý duyệt nhanh');
+                          }}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%' }}
+                        >
+                          ⏩ Bỏ Qua Khâu Chọn Ảnh
+                        </button>
+                      </>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'AWAITING_SELECTION' && (
+                      <>
+                        <div style={{ padding: '0.5rem', backgroundColor: '#FFFBEB', borderRadius: '8px', fontSize: '0.78rem', color: '#92400E' }}>
+                          Khách đang chọn ảnh (Giới hạn: {activeBookingTimeline.selectionLimit || 10} ảnh)
+                        </div>
+                        <button
+                          onClick={() => {
+                            setBypassModalBooking(activeBookingTimeline);
+                            setBypassReasonInput('Khách nhờ studio chọn thay hoặc duyệt trực tiếp');
+                          }}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%' }}
+                        >
+                          ⏩ Bỏ Qua Chọn Ảnh (Vào Hậu Kỳ)
+                        </button>
+                      </>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'EDITING' && (
+                      <>
+                        <div style={{ fontSize: '0.8rem', color: '#6E5F55' }}>
+                          Ảnh final hiện có: <strong>{activeBookingTimeline.finalFileCount || 0}</strong>
+                        </div>
+                        <button
+                          onClick={() => handleSyncFinal(activeBookingTimeline)}
+                          disabled={workflowActionLoading === activeBookingTimeline.id}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.82rem', padding: '0.45rem', width: '100%' }}
+                        >
+                          📤 Đồng Bộ Ảnh Final (03_FINAL)
+                        </button>
+                        <button
+                          onClick={() => handleCompleteEditing(activeBookingTimeline)}
+                          disabled={workflowActionLoading === activeBookingTimeline.id}
+                          className="btn-mipa-gold"
+                          style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700 }}
+                        >
+                          ✨ HOÀN TẤT HẬU KỲ (SẴN SÀNG DUYỆT)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setReopenModalBooking(activeBookingTimeline);
+                            setReopenReasonInput('');
+                          }}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.78rem', padding: '0.4rem', width: '100%', color: '#8C6E53' }}
+                        >
+                          🔄 Mở Lại Khâu Chọn Ảnh
+                        </button>
+                      </>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'READY_FOR_REVIEW' && (
+                      <>
+                        <div style={{ fontSize: '0.8rem', color: '#6E5F55' }}>
+                          Số lượng file final: <strong>{activeBookingTimeline.finalFileCount || 0}</strong>
+                        </div>
+                        <button
+                          onClick={() => handleApproveDelivery(activeBookingTimeline)}
+                          disabled={workflowActionLoading === activeBookingTimeline.id}
+                          className="btn-mipa-gold"
+                          style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700, backgroundColor: '#047857' }}
+                        >
+                          📩 DUYỆT & GIAO ẢNH CHO KHÁCH
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRevisionModalBooking(activeBookingTimeline);
+                            setRevisionNotesInput('');
+                          }}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%', color: '#DC2626', borderColor: '#FCA5A5' }}
+                        >
+                          ↩️ Yêu Cầu Chỉnh Sửa Lại
+                        </button>
+                      </>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'DELIVERED' && (
+                      <button
+                        onClick={() => handleCompleteOrder(activeBookingTimeline)}
+                        disabled={workflowActionLoading === activeBookingTimeline.id}
+                        className="btn-mipa-primary"
+                        style={{ fontSize: '0.85rem', padding: '0.55rem', width: '100%', fontWeight: 700 }}
+                      >
+                        🏁 HOÀN TẤT ĐƠN ĐẶT LỊCH
+                      </button>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus === 'COMPLETED' && (
+                      <div style={{ padding: '0.5rem', backgroundColor: '#ECFDF5', color: '#065F46', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, textAlign: 'center' }}>
+                        ✓ Đơn đặt lịch đã hoàn tất trọn vẹn
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Detailed 12-Step Operational Timeline (Phase 18) */}
+                <div style={{ marginTop: '1rem', borderTop: '1px solid #EFE6C9', paddingTop: '1rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#8C6E53', marginBottom: '0.6rem' }}>
+                    TIẾN TRÌNH CHI TIẾT (TIMELINE):
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.78rem' }}>
+                    {[
+                      { label: '1. Yêu cầu tư vấn', isDone: true, time: activeBookingTimeline.createdAt },
+                      { label: '2. Đang tư vấn', isDone: activeBookingTimeline.bookingStatus !== 'CONSULTATION_REQUESTED', time: undefined },
+                      { label: '3. Đã nhận cọc', isDone: ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: activeBookingTimeline.depositConfirmedAt },
+                      { label: '4. Đã check-in', isDone: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '5. Bắt đầu chụp', isDone: ['SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '6. Hoàn tất buổi chụp', isDone: ['SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '7. Mở chọn ảnh', isDone: ['AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '8. Khách gửi ảnh chọn', isDone: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: activeBookingTimeline.selectionSubmittedAt },
+                      { label: '9. Đang hậu kỳ', isDone: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '10. Chờ duyệt ảnh', isDone: ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '11. Đã giao ảnh', isDone: ['DELIVERED', 'COMPLETED'].includes(activeBookingTimeline.bookingStatus), time: undefined },
+                      { label: '12. Hoàn tất đơn', isDone: activeBookingTimeline.bookingStatus === 'COMPLETED', time: undefined },
+                    ].map((step, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: step.isDone ? '#047857' : '#A39385' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Check size={13} color={step.isDone ? '#047857' : '#A39385'} />
+                          <span style={{ fontWeight: step.isDone ? 600 : 400 }}>{step.label}</span>
+                        </div>
+                        {step.time && (
+                          <span style={{ fontSize: '0.7rem', color: '#6E5F55' }}>
+                            {new Date(step.time).toLocaleDateString('vi-VN')}
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1092,6 +1457,320 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   style={{ flex: 1, padding: '0.75rem' }}
                 >
                   {isUpdatingConsultation ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Revision Request Modal (Phase 13) */}
+      {revisionModalBooking && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(30, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !workflowActionLoading) setRevisionModalBooking(null);
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '500px',
+              width: '100%',
+              padding: '2rem',
+              borderRadius: '20px',
+              backgroundColor: '#FFFDF9',
+              boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+              border: '1px solid #E6D7B9',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  YÊU CẦU CHỈNH SỬA LẠI (REVISION)
+                </div>
+                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
+                  #{revisionModalBooking.bookingCode} — {revisionModalBooking.customerName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={Boolean(workflowActionLoading)}
+                onClick={() => setRevisionModalBooking(null)}
+                style={{
+                  background: '#F3EDE2',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#604634',
+                }}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRequestRevisionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Ghi chú yêu cầu chỉnh sửa cho Editor *
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  disabled={Boolean(workflowActionLoading)}
+                  value={revisionNotesInput}
+                  onChange={(e) => setRevisionNotesInput(e.target.value)}
+                  placeholder="Ghi rõ ảnh nào cần chỉnh lại (màu sắc, da, dáng, ánh sáng...)"
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  disabled={Boolean(workflowActionLoading)}
+                  onClick={() => setRevisionModalBooking(null)}
+                  className="btn-mipa-secondary"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={Boolean(workflowActionLoading) || !revisionNotesInput.trim()}
+                  className="btn-mipa-primary"
+                  style={{ flex: 1, padding: '0.75rem', backgroundColor: '#DC2626', color: '#FFF' }}
+                >
+                  {workflowActionLoading ? 'Đang gửi yêu cầu...' : 'GỬI YÊU CẦU CHỈNH SỬA'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reopen Selection Modal (Phase 10) */}
+      {reopenModalBooking && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(30, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !workflowActionLoading) setReopenModalBooking(null);
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '500px',
+              width: '100%',
+              padding: '2rem',
+              borderRadius: '20px',
+              backgroundColor: '#FFFDF9',
+              boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+              border: '1px solid #E6D7B9',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  MỞ LẠI KHÂU CHỌN ẢNH (CHO KHÁCH)
+                </div>
+                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
+                  #{reopenModalBooking.bookingCode} — {reopenModalBooking.customerName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={Boolean(workflowActionLoading)}
+                onClick={() => setReopenModalBooking(null)}
+                style={{
+                  background: '#F3EDE2',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#604634',
+                }}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '0.6rem 0.8rem', backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '0.8rem', color: '#92400E', marginBottom: '1rem' }}>
+              ℹ️ Hệ thống sẽ chuyển trạng thái về <strong>AWAITING_SELECTION</strong> và giữ lại danh sách ảnh khách đã chọn trước đó làm bản nháp để khách tiện đổi ý.
+            </div>
+
+            <form onSubmit={handleReopenSelectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Lý do mở lại khâu chọn ảnh *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  disabled={Boolean(workflowActionLoading)}
+                  value={reopenReasonInput}
+                  onChange={(e) => setReopenReasonInput(e.target.value)}
+                  placeholder="Khách yêu cầu đổi ảnh chọn, thêm ảnh..."
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  disabled={Boolean(workflowActionLoading)}
+                  onClick={() => setReopenModalBooking(null)}
+                  className="btn-mipa-secondary"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={Boolean(workflowActionLoading) || !reopenReasonInput.trim()}
+                  className="btn-mipa-gold"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  {workflowActionLoading ? 'Đang mở lại...' : 'XÁC NHẬN MỞ LẠI'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bypass Selection Modal (Phase 2) */}
+      {bypassModalBooking && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(30, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !workflowActionLoading) setBypassModalBooking(null);
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '500px',
+              width: '100%',
+              padding: '2rem',
+              borderRadius: '20px',
+              backgroundColor: '#FFFDF9',
+              boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+              border: '1px solid #E6D7B9',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  BỎ QUA KHÂU KHÁCH CHỌN ẢNH
+                </div>
+                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
+                  #{bypassModalBooking.bookingCode} — {bypassModalBooking.customerName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={Boolean(workflowActionLoading)}
+                onClick={() => setBypassModalBooking(null)}
+                style={{
+                  background: '#F3EDE2',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#604634',
+                }}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '0.6rem 0.8rem', backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '0.8rem', color: '#92400E', marginBottom: '1rem' }}>
+              ℹ️ Thao tác này sẽ chuyển đơn trực tiếp sang trạng thái <strong>EDITING</strong> (Đang hậu kỳ) mà không cần khách chọn ảnh qua cổng portal.
+            </div>
+
+            <form onSubmit={handleBypassSelectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Lý do bỏ qua chọn ảnh *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  disabled={Boolean(workflowActionLoading)}
+                  value={bypassReasonInput}
+                  onChange={(e) => setBypassReasonInput(e.target.value)}
+                  placeholder="Gói không cần chọn ảnh / Studio tự chọn / Khách chốt qua Zalo..."
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  disabled={Boolean(workflowActionLoading)}
+                  onClick={() => setBypassModalBooking(null)}
+                  className="btn-mipa-secondary"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={Boolean(workflowActionLoading) || !bypassReasonInput.trim()}
+                  className="btn-mipa-gold"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  {workflowActionLoading ? 'Đang xử lý...' : 'XÁC NHẬN VÀO HẬU KỲ'}
                 </button>
               </div>
             </form>

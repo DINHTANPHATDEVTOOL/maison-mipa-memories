@@ -14,6 +14,7 @@ export type DatabaseBookingStatus =
   | 'CHECKED_IN'
   | 'SHOOTING'
   | 'SHOOT_COMPLETED'
+  | 'AWAITING_SELECTION'
   | 'EDITING'
   | 'READY_FOR_REVIEW'
   | 'DELIVERED'
@@ -407,6 +408,10 @@ export interface Database {
           deposit_confirmed_at?: string | null;
           deposit_confirmed_by?: string | null;
           deposit_note?: string | null;
+          selection_limit?: number | null;
+          selection_submitted_at?: string | null;
+          selection_submitted_by?: string | null;
+          revision_notes?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -442,6 +447,10 @@ export interface Database {
           deposit_confirmed_at?: string | null;
           deposit_confirmed_by?: string | null;
           deposit_note?: string | null;
+          selection_limit?: number | null;
+          selection_submitted_at?: string | null;
+          selection_submitted_by?: string | null;
+          revision_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -474,6 +483,10 @@ export interface Database {
           deposit_confirmed_at?: string | null;
           deposit_confirmed_by?: string | null;
           deposit_note?: string | null;
+          selection_limit?: number | null;
+          selection_submitted_at?: string | null;
+          selection_submitted_by?: string | null;
+          revision_notes?: string | null;
           customer_shoot_ack_at?: string | null;
           cancel_requested_at?: string | null;
           reschedule_requested_at?: string | null;
@@ -1158,6 +1171,186 @@ export interface Database {
         };
         Relationships: [];
       };
+      booking_proof_images: {
+        Row: {
+          id: string;
+          booking_id: string;
+          drive_file_id: string;
+          file_name: string;
+          mime_type: string;
+          width: number | null;
+          height: number | null;
+          sort_order: number;
+          preview_url: string | null;
+          thumbnail_url: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          drive_file_id: string;
+          file_name: string;
+          mime_type?: string;
+          width?: number | null;
+          height?: number | null;
+          sort_order?: number;
+          preview_url?: string | null;
+          thumbnail_url?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          drive_file_id?: string;
+          file_name?: string;
+          mime_type?: string;
+          width?: number | null;
+          height?: number | null;
+          sort_order?: number;
+          preview_url?: string | null;
+          thumbnail_url?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_proof_images_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      booking_photo_selections: {
+        Row: {
+          id: string;
+          booking_id: string;
+          proof_image_id: string;
+          selected_by: string | null;
+          selected_at: string;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          proof_image_id: string;
+          selected_by?: string | null;
+          selected_at?: string;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          proof_image_id?: string;
+          selected_by?: string | null;
+          selected_at?: string;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_photo_selections_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'booking_photo_selections_proof_image_id_fkey';
+            columns: ['proof_image_id'];
+            referencedRelation: 'booking_proof_images';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      booking_deliveries: {
+        Row: {
+          id: string;
+          booking_id: string;
+          provider: string;
+          drive_folder_id: string | null;
+          drive_folder_url: string | null;
+          raw_folder_id: string | null;
+          proofs_folder_id: string | null;
+          final_folder_id: string | null;
+          final_folder_url: string | null;
+          status: string;
+          customer_permission_id: string | null;
+          share_email: string | null;
+          created_by: string | null;
+          ready_by: string | null;
+          revoked_by: string | null;
+          created_at: string;
+          updated_at: string;
+          ready_at: string | null;
+          revoked_at: string | null;
+          last_reconciled_at: string | null;
+          last_error: string | null;
+          proof_file_count: number;
+          final_file_count: number;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          provider?: string;
+          drive_folder_id?: string | null;
+          drive_folder_url?: string | null;
+          raw_folder_id?: string | null;
+          proofs_folder_id?: string | null;
+          final_folder_id?: string | null;
+          final_folder_url?: string | null;
+          status?: string;
+          customer_permission_id?: string | null;
+          share_email?: string | null;
+          created_by?: string | null;
+          ready_by?: string | null;
+          revoked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          ready_at?: string | null;
+          revoked_at?: string | null;
+          last_reconciled_at?: string | null;
+          last_error?: string | null;
+          proof_file_count?: number;
+          final_file_count?: number;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          provider?: string;
+          drive_folder_id?: string | null;
+          drive_folder_url?: string | null;
+          raw_folder_id?: string | null;
+          proofs_folder_id?: string | null;
+          final_folder_id?: string | null;
+          final_folder_url?: string | null;
+          status?: string;
+          customer_permission_id?: string | null;
+          share_email?: string | null;
+          created_by?: string | null;
+          ready_by?: string | null;
+          revoked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          ready_at?: string | null;
+          revoked_at?: string | null;
+          last_reconciled_at?: string | null;
+          last_error?: string | null;
+          proof_file_count?: number;
+          final_file_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_deliveries_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1347,6 +1540,62 @@ export interface Database {
         };
         Returns: unknown;
       };
+      check_in_booking: {
+        Args: {
+          p_booking_id: string;
+          p_note?: string | null;
+        };
+        Returns: unknown;
+      };
+      start_booking_shoot: {
+        Args: {
+          p_booking_id: string;
+          p_note?: string | null;
+        };
+        Returns: unknown;
+      };
+      complete_booking_shoot: {
+        Args: {
+          p_booking_id: string;
+          p_note?: string | null;
+        };
+        Returns: unknown;
+      };
+      submit_photo_selection: {
+        Args: {
+          p_booking_id: string;
+          p_selected_proof_ids: string[];
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      reopen_photo_selection: {
+        Args: {
+          p_booking_id: string;
+          p_reason: string;
+        };
+        Returns: unknown;
+      };
+      request_booking_revision: {
+        Args: {
+          p_booking_id: string;
+          p_revision_notes: string;
+        };
+        Returns: unknown;
+      };
+      complete_booking_editing: {
+        Args: {
+          p_booking_id: string;
+          p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      complete_booking: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: unknown;
+      };
     };
     Enums: {
       user_role: DatabaseRole;
@@ -1394,6 +1643,9 @@ export type PortfolioPhotoUpdate = Database['public']['Tables']['portfolio_photo
 
 export type BookingConceptRow = Database['public']['Tables']['booking_concepts']['Row'];
 export type RootOwnerConfigRow = Database['public']['Tables']['root_owner_config']['Row'];
+export type BookingProofImageRow = Database['public']['Tables']['booking_proof_images']['Row'];
+export type BookingPhotoSelectionRow = Database['public']['Tables']['booking_photo_selections']['Row'];
+export type BookingDeliveryRow = Database['public']['Tables']['booking_deliveries']['Row'];
 
 export type PaymentStatus = PaymentRow['status'];
 export type PaymentMethod = PaymentRow['method'];
