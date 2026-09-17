@@ -19,7 +19,9 @@ export type DatabaseBookingStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'RESCHEDULED';
+  | 'RESCHEDULED'
+  | 'CONSULTATION_REQUESTED'
+  | 'CONSULTING';
 
 export type DatabasePaymentStatus = 'UNPAID' | 'DEPOSIT_PAID' | 'FULLY_PAID' | 'REFUNDED';
 
@@ -402,6 +404,9 @@ export interface Database {
           customer_shoot_ack_at?: string | null;
           cancel_requested_at?: string | null;
           reschedule_requested_at?: string | null;
+          deposit_confirmed_at?: string | null;
+          deposit_confirmed_by?: string | null;
+          deposit_note?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -434,6 +439,9 @@ export interface Database {
           customer_shoot_ack_at?: string | null;
           cancel_requested_at?: string | null;
           reschedule_requested_at?: string | null;
+          deposit_confirmed_at?: string | null;
+          deposit_confirmed_by?: string | null;
+          deposit_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -463,6 +471,9 @@ export interface Database {
           drive_folder_url?: string | null;
           drive_delivery_ready_at?: string | null;
           customer_schedule_confirmed_at?: string | null;
+          deposit_confirmed_at?: string | null;
+          deposit_confirmed_by?: string | null;
+          deposit_note?: string | null;
           customer_shoot_ack_at?: string | null;
           cancel_requested_at?: string | null;
           reschedule_requested_at?: string | null;
@@ -1208,6 +1219,36 @@ export interface Database {
           start_at: string;
           end_at: string;
         }[];
+      };
+      confirm_booking_deposit: {
+        Args: {
+          p_booking_id: string;
+          p_deposit_amount: number;
+          p_deposit_note?: string | null;
+          p_final_total?: number | null;
+        };
+        Returns: unknown;
+      };
+      update_booking_consultation: {
+        Args: {
+          p_booking_id: string;
+          p_service_id?: string | null;
+          p_package_id?: string | null;
+          p_studio_room_id?: string | null;
+          p_start_at?: string | null;
+          p_concept_ids?: string[] | null;
+          p_addon_ids?: string[] | null;
+          p_customer_note?: string | null;
+          p_staff_note?: string | null;
+          p_status?: string | null;
+        };
+        Returns: unknown;
+      };
+      get_booking_delivery_secure: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: unknown;
       };
       mark_transfer_submitted: {
         Args: {

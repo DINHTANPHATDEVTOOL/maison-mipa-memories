@@ -228,15 +228,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
 
+    if (isDemoMode || !isSupabaseConfigured()) {
+      setIsLoading(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
     const initializeAuth = async () => {
       try {
-        if (!isSupabaseConfigured()) {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-          return;
-        }
-
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -295,7 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [resolveSessionAndProfile, clearAuthoritativeAuthState]);
+  }, [resolveSessionAndProfile, clearAuthoritativeAuthState, isDemoMode]);
 
   /**
    * Production Login with Email & Password
@@ -305,7 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
 
     try {
-      if (!isSupabaseConfigured()) {
+      if (isDemoMode || !isSupabaseConfigured()) {
         if (isDemoMode) {
           const matchedProfile = Object.values(CURRENT_USER_PROFILES).find(
             (p) => p.email.toLowerCase() === email.trim().toLowerCase()
@@ -421,7 +421,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
 
     try {
-      if (!isSupabaseConfigured()) {
+      if (isDemoMode || !isSupabaseConfigured()) {
         if (isDemoMode) {
           const newDemoUser: User = {
             id: `demo_${Date.now()}`,

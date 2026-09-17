@@ -24,8 +24,12 @@ import {
   DollarSign,
   Plus,
   X,
+  Edit3,
+  CreditCard,
+  Check,
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
+import { confirmBookingDeposit, updateBookingConsultation } from '../../services/bookingService';
 
 interface ManagerDashboardProps {
   bookings: Booking[];
@@ -35,6 +39,8 @@ interface ManagerDashboardProps {
   onUpdateStatus: (bookingId: string, newStatus: BookingStatus, note?: string) => void;
   onAssignStaff: (bookingId: string, employeeId: string, role?: string) => void;
   onNavigateTab: (tab: string) => void;
+  onConfirmDeposit?: (bookingId: string, depositAmount: number, depositNote?: string, finalTotalAmount?: number) => Promise<void>;
+  onUpdateConsultation?: (bookingId: string, data: any) => Promise<void>;
 }
 
 export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
@@ -45,6 +51,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   onUpdateStatus,
   onAssignStaff,
   onNavigateTab,
+  onConfirmDeposit,
+  onUpdateConsultation,
 }) => {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -55,8 +63,105 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedStaffRole, setSelectedStaffRole] = useState<string>('PHOTOGRAPHER');
 
+  // Manual Deposit Modal State
+  const [depositModalBooking, setDepositModalBooking] = useState<Booking | null>(null);
+  const [depositFinalTotalInput, setDepositFinalTotalInput] = useState<number>(0);
+  const [depositAmountInput, setDepositAmountInput] = useState<number>(0);
+  const [depositNoteInput, setDepositNoteInput] = useState<string>('');
+  const [isConfirmingDeposit, setIsConfirmingDeposit] = useState<boolean>(false);
+  const [depositError, setDepositError] = useState<string | null>(null);
+
+  // Consultation Editor Modal State
+  const [consultationModalBooking, setConsultationModalBooking] = useState<Booking | null>(null);
+  const [consultationDateInput, setConsultationDateInput] = useState<string>('');
+  const [consultationTimeInput, setConsultationTimeInput] = useState<string>('');
+  const [consultationCustomerNoteInput, setConsultationCustomerNoteInput] = useState<string>('');
+  const [consultationStaffNoteInput, setConsultationStaffNoteInput] = useState<string>('');
+  const [isUpdatingConsultation, setIsUpdatingConsultation] = useState<boolean>(false);
+  const [consultationError, setConsultationError] = useState<string | null>(null);
+
   // Computed Operations Inbox stats
   const inboxStats = getOperationsInboxStats(bookings);
+
+  const openDepositModal = (b: Booking) => {
+    setDepositModalBooking(b);
+    setDepositFinalTotalInput(b.totalAmount);
+    setDepositAmountInput(b.depositAmount > 0 ? b.depositAmount : Math.round(b.totalAmount * 0.3));
+    setDepositNoteInput(b.depositNote || 'Đã nhận cọc chuyển khoản ngân hàng');
+    setDepositError(null);
+  };
+
+  const handleConfirmDepositSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!depositModalBooking) return;
+    if (depositAmountInput < 0) {
+      setDepositError('Số tiền cọc không được nhỏ hơn 0.');
+      return;
+    }
+    if (depositAmountInput > depositFinalTotalInput) {
+      setDepositError('Số tiền cọc không được lớn hơn tổng giá trị đơn.');
+      return;
+    }
+
+    setIsConfirmingDeposit(true);
+    setDepositError(null);
+    try {
+      if (onConfirmDeposit) {
+        await onConfirmDeposit(depositModalBooking.id, depositAmountInput, depositNoteInput, depositFinalTotalInput);
+      } else {
+        await confirmBookingDeposit(
+          depositModalBooking.id,
+          depositAmountInput,
+          depositNoteInput,
+          depositFinalTotalInput
+        );
+        onUpdateStatus(depositModalBooking.id, 'CONFIRMED', `Đã nhận cọc: ${depositAmountInput.toLocaleString('vi-VN')} đ`);
+      }
+      setDepositModalBooking(null);
+    } catch (err: any) {
+      setDepositError(err.message || 'Không thể xác nhận tiền cọc.');
+    } finally {
+      setIsConfirmingDeposit(false);
+    }
+  };
+
+  const openConsultationModal = (b: Booking) => {
+    setConsultationModalBooking(b);
+    setConsultationDateInput(b.bookingDate);
+    setConsultationTimeInput(b.startTime);
+    setConsultationCustomerNoteInput(b.customerNote || '');
+    setConsultationStaffNoteInput(b.staffNote || '');
+    setConsultationError(null);
+  };
+
+  const handleUpdateConsultationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!consultationModalBooking) return;
+    setIsUpdatingConsultation(true);
+    setConsultationError(null);
+    try {
+      const startAtStr = consultationDateInput && consultationTimeInput ? `${consultationDateInput}T${consultationTimeInput}:00Z` : undefined;
+      if (onUpdateConsultation) {
+        await onUpdateConsultation(consultationModalBooking.id, {
+          startAt: startAtStr,
+          customerNote: consultationCustomerNoteInput,
+          staffNote: consultationStaffNoteInput,
+        });
+      } else {
+        await updateBookingConsultation(consultationModalBooking.id, {
+          startAt: startAtStr,
+          customerNote: consultationCustomerNoteInput,
+          staffNote: consultationStaffNoteInput,
+        });
+        onUpdateStatus(consultationModalBooking.id, 'CONSULTING', 'Đã cập nhật thông tin tư vấn');
+      }
+      setConsultationModalBooking(null);
+    } catch (err: any) {
+      setConsultationError(err.message || 'Không thể cập nhật thông tin tư vấn.');
+    } finally {
+      setIsUpdatingConsultation(false);
+    }
+  };
 
   // Search & Filter bookings
   const filteredBookings = bookings.filter((b) => {
@@ -123,21 +228,37 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem' }}>
           <button
-            onClick={() => setSelectedStatusFilter('DEPOSIT_PAID')}
+            onClick={() => setSelectedStatusFilter('CONSULTATION_REQUESTED')}
             style={{
               padding: '0.8rem 1rem',
               borderRadius: '12px',
-              backgroundColor: selectedStatusFilter === 'DEPOSIT_PAID' ? '#FAF6EE' : '#FFFFFF',
-              border: selectedStatusFilter === 'DEPOSIT_PAID' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
+              backgroundColor: selectedStatusFilter === 'CONSULTATION_REQUESTED' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'CONSULTATION_REQUESTED' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
               textAlign: 'left',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ XÁC NHẬN CỌC</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.pendingConfirmationCount} đơn</div>
+            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>YÊU CẦU TƯ VẤN MỚI</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.consultationRequestedCount} đơn</div>
+          </button>
+
+          <button
+            onClick={() => setSelectedStatusFilter('CONSULTING')}
+            style={{
+              padding: '0.8rem 1rem',
+              borderRadius: '12px',
+              backgroundColor: selectedStatusFilter === 'CONSULTING' ? '#FAF6EE' : '#FFFFFF',
+              border: selectedStatusFilter === 'CONSULTING' ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
+              textAlign: 'left',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG TƯ VẤN</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.consultingCount} đơn</div>
           </button>
 
           <button
@@ -152,8 +273,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHƯA GÁN KÍP CHỤP</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.unassignedStaffCount} đơn</div>
+            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>ĐÃ XÁC NHẬN LỊCH & CỌC</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.unassignedStaffCount} đơn</div>
           </button>
 
           <button
@@ -168,8 +289,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG CHỤP TRONG PHÒNG</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.shootingNowCount} ca</div>
+            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>ĐANG CHỤP TRONG PHÒNG</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.shootingNowCount} ca</div>
           </button>
 
           <button
@@ -184,8 +305,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ DUYỆT GIAO ẢNH</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.readyToDeliverCount} bộ</div>
+            <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>CHỜ DUYỆT GIAO ẢNH</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#604634', marginTop: '0.15rem' }}>{inboxStats.readyToDeliverCount} bộ</div>
           </button>
         </div>
       </div>
@@ -213,12 +334,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
                 { id: 'ALL', label: 'Tất cả' },
-                { id: 'PENDING_PAYMENT', label: 'Chờ cọc' },
-                { id: 'DEPOSIT_PAID', label: 'Đã cọc' },
+                { id: 'CONSULTATION_REQUESTED', label: 'Yêu cầu tư vấn' },
+                { id: 'CONSULTING', label: 'Đang tư vấn' },
                 { id: 'CONFIRMED', label: 'Đã xác nhận' },
                 { id: 'SHOOTING', label: 'Đang chụp' },
                 { id: 'READY_FOR_REVIEW', label: 'Chờ duyệt ảnh' },
                 { id: 'COMPLETED', label: 'Hoàn thành' },
+                { id: 'PENDING_PAYMENT', label: 'Chờ cọc (cũ)' },
+                { id: 'DEPOSIT_PAID', label: 'Đã cọc (cũ)' },
               ].map((filterItem) => (
                 <button
                   key={filterItem.id}
@@ -289,12 +412,18 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#8C6E53' }}>
                           {b.totalAmount.toLocaleString('vi-VN')} đ
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' ? '#047857' : '#D97706', fontWeight: 600 }}>
-                          Cọc: {b.depositAmount.toLocaleString('vi-VN')} đ ({b.paymentStatus})
+                        <div style={{ fontSize: '0.75rem', color: (b.depositAmount > 0 || b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID') ? '#047857' : '#D97706', fontWeight: 600 }}>
+                          {b.depositAmount > 0 || b.depositConfirmedAt
+                            ? `Cọc: ${b.depositAmount.toLocaleString('vi-VN')} đ`
+                            : b.bookingStatus === 'CONSULTATION_REQUESTED'
+                            ? 'Chờ tư vấn'
+                            : b.bookingStatus === 'CONSULTING'
+                            ? 'Chờ chốt cọc'
+                            : `Cọc: ${b.depositAmount.toLocaleString('vi-VN')} đ`}
                         </div>
                       </div>
                     </div>
@@ -326,7 +455,32 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                           👤 Gán Kíp
                         </button>
 
-                        {nextAction && (
+                        {(b.bookingStatus === 'CONSULTATION_REQUESTED' || b.bookingStatus === 'CONSULTING') && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openConsultationModal(b);
+                              }}
+                              className="btn-mipa-secondary"
+                              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                            >
+                              ✏️ Tư Vấn
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDepositModal(b);
+                              }}
+                              className="btn-mipa-gold"
+                              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                            >
+                              💵 Nhận Cọc
+                            </button>
+                          </>
+                        )}
+
+                        {nextAction && b.bookingStatus !== 'CONSULTING' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -385,16 +539,35 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </div>
 
                 <div style={{ marginTop: '0.5rem', borderTop: '1px solid #EFE6C9', paddingTop: '0.8rem' }}>
-                  <div style={{ fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>Cập nhật thủ công:</div>
+                  <div style={{ fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>Hành động vận hành:</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    {activeBookingTimeline.bookingStatus === 'PENDING_PAYMENT' && (
+                    {activeBookingTimeline.bookingStatus === 'CONSULTATION_REQUESTED' && (
                       <button
-                        onClick={() => onUpdateStatus(activeBookingTimeline.id, 'CONFIRMED', 'Xác nhận cọc trực tiếp tại quầy')}
+                        onClick={() => onUpdateStatus(activeBookingTimeline.id, 'CONSULTING', 'Bắt đầu tư vấn')}
                         className="btn-mipa-gold"
                         style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%' }}
                       >
-                        ✓ Xác Nhận Đã Nhận Cọc
+                        📞 Bắt Đầu Tư Vấn
                       </button>
+                    )}
+
+                    {(activeBookingTimeline.bookingStatus === 'CONSULTATION_REQUESTED' || activeBookingTimeline.bookingStatus === 'CONSULTING' || activeBookingTimeline.bookingStatus === 'PENDING_PAYMENT') && (
+                      <>
+                        <button
+                          onClick={() => openDepositModal(activeBookingTimeline)}
+                          className="btn-mipa-gold"
+                          style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%', backgroundColor: '#047857', color: '#FFFFFF' }}
+                        >
+                          ✓ XÁC NHẬN ĐÃ NHẬN CỌC
+                        </button>
+                        <button
+                          onClick={() => openConsultationModal(activeBookingTimeline)}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.82rem', padding: '0.5rem', width: '100%' }}
+                        >
+                          ✏️ Tư Vấn & Chỉnh Sửa Đơn
+                        </button>
+                      </>
                     )}
 
                     {activeBookingTimeline.bookingStatus === 'READY_FOR_REVIEW' && (
@@ -615,6 +788,316 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </div>
         );
       })()}
+
+      {/* Manual Deposit Modal */}
+      {depositModalBooking && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(30, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isConfirmingDeposit) setDepositModalBooking(null);
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '500px',
+              width: '100%',
+              padding: '2rem',
+              borderRadius: '20px',
+              backgroundColor: '#FFFDF9',
+              boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+              border: '1px solid #E6D7B9',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  XÁC NHẬN ĐÃ NHẬN CỌC
+                </div>
+                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                  #{depositModalBooking.bookingCode} — {depositModalBooking.customerName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={isConfirmingDeposit}
+                onClick={() => setDepositModalBooking(null)}
+                style={{
+                  background: '#F3EDE2',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#604634',
+                }}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {depositError && (
+              <div style={{ padding: '0.6rem 0.8rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', color: '#991B1B', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                ⚠️ {depositError}
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmDepositSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Tổng giá trị đã chốt (VNĐ) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  disabled={isConfirmingDeposit}
+                  value={depositFinalTotalInput}
+                  onChange={(e) => setDepositFinalTotalInput(Number(e.target.value) || 0)}
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Số tiền cọc đã nhận (VNĐ) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  max={depositFinalTotalInput}
+                  disabled={isConfirmingDeposit}
+                  value={depositAmountInput}
+                  onChange={(e) => setDepositAmountInput(Number(e.target.value) || 0)}
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              {/* Calculated Remaining Balance Display */}
+              <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FAF7F2',
+                borderRadius: '10px',
+                border: '1px solid #EAE0D0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.9rem',
+              }}>
+                <span style={{ color: '#6E5F55', fontWeight: 600 }}>Còn lại thanh toán tại studio:</span>
+                <strong style={{ color: '#047857', fontSize: '1.1rem' }}>
+                  {Math.max(depositFinalTotalInput - depositAmountInput, 0).toLocaleString('vi-VN')} đ
+                </strong>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Ghi chú cọc
+                </label>
+                <textarea
+                  rows={2}
+                  disabled={isConfirmingDeposit}
+                  value={depositNoteInput}
+                  onChange={(e) => setDepositNoteInput(e.target.value)}
+                  placeholder="Ghi rõ phương thức nhận (VCB, MoMo, Tiền mặt...) và mã giao dịch nếu có"
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  disabled={isConfirmingDeposit}
+                  onClick={() => setDepositModalBooking(null)}
+                  className="btn-mipa-secondary"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isConfirmingDeposit || depositAmountInput < 0 || depositAmountInput > depositFinalTotalInput}
+                  className="btn-mipa-gold"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  {isConfirmingDeposit ? 'Đang xác nhận...' : 'XÁC NHẬN ĐÃ NHẬN CỌC'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Consultation Editor Modal */}
+      {consultationModalBooking && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(30, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isUpdatingConsultation) setConsultationModalBooking(null);
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              padding: '2rem',
+              borderRadius: '20px',
+              backgroundColor: '#FFFDF9',
+              boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+              border: '1px solid #E6D7B9',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  TƯ VẤN & CHỐT ĐƠN CHỤP
+                </div>
+                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                  #{consultationModalBooking.bookingCode} — {consultationModalBooking.customerName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={isUpdatingConsultation}
+                onClick={() => setConsultationModalBooking(null)}
+                style={{
+                  background: '#F3EDE2',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#604634',
+                }}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {consultationError && (
+              <div style={{ padding: '0.6rem 0.8rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', color: '#991B1B', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                ⚠️ {consultationError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateConsultationSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                    Ngày chụp chốt *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    disabled={isUpdatingConsultation}
+                    value={consultationDateInput}
+                    onChange={(e) => setConsultationDateInput(e.target.value)}
+                    className="mipa-input"
+                    style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                    Giờ bắt đầu *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    disabled={isUpdatingConsultation}
+                    value={consultationTimeInput}
+                    onChange={(e) => setConsultationTimeInput(e.target.value)}
+                    placeholder="09:00"
+                    className="mipa-input"
+                    style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Ghi chú của khách hàng
+                </label>
+                <textarea
+                  rows={2}
+                  disabled={isUpdatingConsultation}
+                  value={consultationCustomerNoteInput}
+                  onChange={(e) => setConsultationCustomerNoteInput(e.target.value)}
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.35rem' }}>
+                  Ghi chú nội bộ studio (Staff Notes)
+                </label>
+                <textarea
+                  rows={2}
+                  disabled={isUpdatingConsultation}
+                  value={consultationStaffNoteInput}
+                  onChange={(e) => setConsultationStaffNoteInput(e.target.value)}
+                  placeholder="Yêu cầu makeup đặc biệt, tone ánh sáng, đạo cụ cần chuẩn bị..."
+                  className="mipa-input"
+                  style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.6rem 0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  disabled={isUpdatingConsultation}
+                  onClick={() => setConsultationModalBooking(null)}
+                  className="btn-mipa-secondary"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingConsultation}
+                  className="btn-mipa-gold"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  {isUpdatingConsultation ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

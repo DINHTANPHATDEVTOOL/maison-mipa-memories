@@ -25,7 +25,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: 'Chính sách đặt cọc và thanh toán như thế nào?',
-    answer: 'Để giữ lịch phòng và kíp chụp riêng tư, bạn thanh toán cọc 30% giá trị gói chụp qua mã chuyển khoản VietQR tự động. Số tiền còn lại bạn có thể thanh toán sau khi hoàn tất buổi chụp tại studio.',
+    answer: 'Sau khi gửi yêu cầu tư vấn, đội ngũ Maison MIPA sẽ liên hệ trực tiếp để tư vấn chi tiết, thống nhất lịch chụp và hướng dẫn đặt cọc giữ lịch. Số tiền còn lại bạn có thể thanh toán sau khi hoàn tất buổi chụp tại studio.',
   },
   {
     question: 'Nếu có việc bận đột xuất, tôi có thể đổi lịch chụp không?',

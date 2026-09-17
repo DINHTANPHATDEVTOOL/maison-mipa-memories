@@ -29,6 +29,18 @@ export interface AvailabilityParams {
   existingBookings?: Booking[];
 }
 
+// Confirmed operational bookings that block availability
+export const BLOCKING_BOOKING_STATUSES = [
+  'CONFIRMED',
+  'CHECKED_IN',
+  'SHOOTING',
+  'SHOOT_COMPLETED',
+  'EDITING',
+  'READY_FOR_REVIEW',
+  'DELIVERED',
+  'DEPOSIT_PAID',
+];
+
 // Configurable Business Hours
 export const STUDIO_CONFIG = {
   OPENING_HOUR: 9, // 09:00
@@ -145,8 +157,8 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
       .filter(b => {
         const matchesStudio = b.studioId === studioId;
         const matchesDate = b.bookingDate === date || (b.startAt && b.startAt.startsWith(date));
-        const isNotCancelled = b.bookingStatus !== 'CANCELLED';
-        return matchesStudio && matchesDate && isNotCancelled;
+        const isBlocking = BLOCKING_BOOKING_STATUSES.includes(b.bookingStatus);
+        return matchesStudio && matchesDate && isBlocking;
       })
       .map(b => parseBookingRangeMinutes(date, b))
       .filter((range): range is { start: number; end: number } => range !== null);
@@ -261,12 +273,10 @@ export async function resolveStudioRoomUuid(studioIdOrSlug: string): Promise<str
  * RPC errors, network errors, or malformed data will throw AvailabilityUnavailableError.
  */
 export async function getAvailableSlots(params: AvailabilityParams): Promise<TimeSlot[]> {
-  if (!isSupabaseConfigured()) {
-    if (isDemoModeEnabled()) {
-      return getAvailableSlotsSync(params);
-    }
-    throw new AvailabilityUnavailableError('Hệ thống cơ sở dữ liệu chưa được kích hoạt.');
+  if (isDemoModeEnabled() || !isSupabaseConfigured()) {
+    return getAvailableSlotsSync(params);
   }
+
 
   const { date, studioId, durationMinutes, existingBookings } = params;
   const safeDuration = Math.max(30, durationMinutes || 60);
@@ -310,8 +320,8 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
       .filter(b => {
         const matchesStudio = b.studioId === studioId;
         const matchesDate = b.bookingDate === date || (b.startAt && b.startAt.startsWith(date));
-        const isNotCancelled = b.bookingStatus !== 'CANCELLED';
-        return matchesStudio && matchesDate && isNotCancelled;
+        const isBlocking = BLOCKING_BOOKING_STATUSES.includes(b.bookingStatus);
+        return matchesStudio && matchesDate && isBlocking;
       })
       .map(b => {
         if (b.startAt && b.endAt) {

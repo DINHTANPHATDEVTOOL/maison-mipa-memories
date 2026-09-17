@@ -14,7 +14,13 @@ export interface BookingActivityLog {
 // 1. State Machine Allowed Transitions Graph (Strictly enforced at backend)
 export const ALLOWED_TRANSITIONS: Record<BookingStatus, { next: BookingStatus[]; allowedRoles: (UserRole | StaffRole)[] }[]> = {
   DRAFT: [
-    { next: ['PENDING_PAYMENT'], allowedRoles: ['CUSTOMER', 'GUEST', 'MANAGER', 'ADMIN'] },
+    { next: ['PENDING_PAYMENT', 'CONSULTATION_REQUESTED'], allowedRoles: ['CUSTOMER', 'GUEST', 'MANAGER', 'ADMIN'] },
+  ],
+  CONSULTATION_REQUESTED: [
+    { next: ['CONSULTING', 'CONFIRMED', 'CANCELLED'], allowedRoles: ['MANAGER', 'ADMIN'] },
+  ],
+  CONSULTING: [
+    { next: ['CONFIRMED', 'CANCELLED'], allowedRoles: ['MANAGER', 'ADMIN'] },
   ],
   PENDING_PAYMENT: [
     // Note: DEPOSIT_PAID transition is STRICTLY backend-authoritative (Manager/Admin or Payment Webhook)
@@ -118,6 +124,8 @@ export const getNextActionForBooking = (
 
   // Manager & Admin Actions
   if (userRole === 'MANAGER' || userRole === 'ADMIN') {
+    if (status === 'CONSULTATION_REQUESTED') return { label: '📞 BẮT ĐẦU TƯ VẤN', targetStatus: 'CONSULTING', buttonClass: 'btn-mipa-gold' };
+    if (status === 'CONSULTING') return { label: '💵 XÁC NHẬN ĐÃ NHẬN CỌC', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-gold' };
     if (status === 'DEPOSIT_PAID') return { label: '✔️ XÁC NHẬN CỌC & GÁN KÍP CHỤP', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-gold' };
     if (status === 'CONFIRMED' && booking.assignments.length === 0) return { label: '👤 GÁN PHOTOGRAPHER & MAKEUP', targetStatus: 'CONFIRMED', buttonClass: 'btn-mipa-secondary' };
     if (status === 'CONFIRMED') return { label: '📌 XÁC NHẬN KHÁCH CHECK-IN', targetStatus: 'CHECKED_IN', buttonClass: 'btn-mipa-gold' };
@@ -168,6 +176,9 @@ export const filterBookingsForRole = (
 
 // 4. Operations Inbox Aggregator for Manager / Admin
 export const getOperationsInboxStats = (bookings: Booking[]) => {
+  const consultationRequested = bookings.filter((b) => b.bookingStatus === 'CONSULTATION_REQUESTED');
+  const consulting = bookings.filter((b) => b.bookingStatus === 'CONSULTING');
+  const confirmed = bookings.filter((b) => b.bookingStatus === 'CONFIRMED');
   const pendingDeposit = bookings.filter((b) => b.bookingStatus === 'PENDING_PAYMENT');
   const pendingConfirmation = bookings.filter((b) => b.bookingStatus === 'DEPOSIT_PAID');
   const unassignedStaff = bookings.filter((b) => (b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'DEPOSIT_PAID') && b.assignments.length === 0);
@@ -176,12 +187,15 @@ export const getOperationsInboxStats = (bookings: Booking[]) => {
   const readyToDeliver = bookings.filter((b) => b.bookingStatus === 'READY_FOR_REVIEW');
 
   return {
+    consultationRequestedCount: consultationRequested.length,
+    consultingCount: consulting.length,
+    confirmedCount: confirmed.length,
     pendingDepositCount: pendingDeposit.length,
     pendingConfirmationCount: pendingConfirmation.length,
     unassignedStaffCount: unassignedStaff.length,
     shootingNowCount: shootingNow.length,
     editingQueueCount: editingQueue.length,
     readyToDeliverCount: readyToDeliver.length,
-    totalActionRequired: pendingConfirmation.length + unassignedStaff.length + editingQueue.length + readyToDeliver.length,
+    totalActionRequired: consultationRequested.length + consulting.length + pendingConfirmation.length + unassignedStaff.length + editingQueue.length + readyToDeliver.length,
   };
 };

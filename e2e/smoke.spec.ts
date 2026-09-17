@@ -77,14 +77,16 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.locator('text=Bước 5/6')).toBeVisible();
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
 
-    // Step 6: Review & Payment
+    // Step 6: Consultation Request Confirmation
     await expect(page.locator('text=Bước 6/6')).toBeVisible();
-    await page.getByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i }).click();
+    await expect(page.getByRole('heading', { name: 'Yêu cầu tư vấn đã được gửi', exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Mã đặt lịch')).toBeVisible();
+    await expect(page.getByText(/Chi phí dự kiến/i).first()).toBeVisible();
+    await expect(page.getByText(/Chờ Maison MIPA tư vấn/i)).toBeVisible();
 
-    // Step 7: Confirmation receipt
-    await expect(page.locator('text=Booking của bạn đã được xác nhận!')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Mã booking')).toBeVisible();
-    await expect(page.locator('text=MIPA-26').first()).toBeVisible();
+    // Complete / Close modal
+    await page.getByRole('button', { name: /Hoàn tất|Về trang chủ/i }).click();
+    await expect(page.getByRole('heading', { name: 'Yêu cầu tư vấn đã được gửi', exact: true })).not.toBeVisible();
   });
 
   test('4. Protected area không cho guest/customer trái quyền truy cập', async ({ page }) => {
@@ -241,7 +243,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.getByText('Mật khẩu xác nhận không khớp.')).toBeVisible();
   });
 
-  test('13. Step 6 Booking hiển thị banner tự động xác nhận qua ACB & payOS', async ({ page }) => {
+  test('13. Step 6 Booking hiển thị xác nhận yêu cầu tư vấn và không hiển thị cổng thanh toán online', async ({ page }) => {
     await page.goto('/booking');
 
     // Step 1 -> 5
@@ -250,10 +252,16 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
       await page.getByRole('button', { name: /Tiếp Theo/i }).click();
     }
 
-    // Step 6: Verify ACB & payOS auto-confirm banner
+    // Step 6: Verify Consultation Confirmation and zero online payment banner
     await expect(page.locator('text=Bước 6/6')).toBeVisible();
-    await expect(page.getByText(/TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS/i)).toBeVisible();
-    await expect(page.getByText(/Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Yêu cầu tư vấn đã được gửi', exact: true })).toBeVisible();
+    await expect(page.getByText(/Maison MIPA đã nhận được yêu cầu của bạn/i)).toBeVisible();
+    await expect(page.getByText(/Chi phí dự kiến/i).first()).toBeVisible();
+
+    // Ensure NO online payment / QR / payOS / VietQR banner
+    await expect(page.getByText(/TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS/i)).not.toBeVisible();
+    await expect(page.getByText(/Quét mã QR/i)).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i })).not.toBeVisible();
   });
 
   test('14. Auth Modal: Đăng ký tài khoản khách hàng mới hoàn tất thành công', async ({ page }) => {
