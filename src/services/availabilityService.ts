@@ -111,6 +111,14 @@ export function parseBookingRangeMinutes(
   date: string,
   booking: { bookingDate?: string; startTime?: string; endTime?: string; startAt?: string; endAt?: string; booking_status?: string; bookingStatus?: string; studioId?: string; studio_room_id?: string }
 ): { start: number; end: number } | null {
+  // Prefer literal startTime / endTime if present (guaranteed local studio time)
+  if (booking.startTime && booking.endTime) {
+    return {
+      start: timeToMinutes(booking.startTime),
+      end: timeToMinutes(booking.endTime),
+    };
+  }
+
   // If ISO timestamps are present
   if (booking.startAt && booking.endAt) {
     const startDate = new Date(booking.startAt);
@@ -120,16 +128,19 @@ export function parseBookingRangeMinutes(
     return { start: startM, end: endM };
   }
 
-  // Fallback to bookingDate + startTime / endTime
-  if (booking.startTime && booking.endTime) {
-    return {
-      start: timeToMinutes(booking.startTime),
-      end: timeToMinutes(booking.endTime),
-    };
-  }
-
   return null;
 }
+
+export const OCCUPIED_BOOKING_STATUSES = [
+  'CONFIRMED',
+  'CHECKED_IN',
+  'SHOOTING',
+  'SHOOT_COMPLETED',
+  'EDITING',
+  'READY_FOR_REVIEW',
+  'DELIVERED',
+  'DEPOSIT_PAID', // Legacy confirmed deposit
+];
 
 /**
  * Synchronous availability evaluation (used for offline mode, initial state, and test runner)
@@ -145,8 +156,8 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
       .filter(b => {
         const matchesStudio = b.studioId === studioId;
         const matchesDate = b.bookingDate === date || (b.startAt && b.startAt.startsWith(date));
-        const isNotCancelled = b.bookingStatus !== 'CANCELLED';
-        return matchesStudio && matchesDate && isNotCancelled;
+        const isOccupied = OCCUPIED_BOOKING_STATUSES.includes(b.bookingStatus);
+        return matchesStudio && matchesDate && isOccupied;
       })
       .map(b => parseBookingRangeMinutes(date, b))
       .filter((range): range is { start: number; end: number } => range !== null);
@@ -310,8 +321,8 @@ export async function getAvailableSlots(params: AvailabilityParams): Promise<Tim
       .filter(b => {
         const matchesStudio = b.studioId === studioId;
         const matchesDate = b.bookingDate === date || (b.startAt && b.startAt.startsWith(date));
-        const isNotCancelled = b.bookingStatus !== 'CANCELLED';
-        return matchesStudio && matchesDate && isNotCancelled;
+        const isOccupied = OCCUPIED_BOOKING_STATUSES.includes(b.bookingStatus);
+        return matchesStudio && matchesDate && isOccupied;
       })
       .map(b => {
         if (b.startAt && b.endAt) {

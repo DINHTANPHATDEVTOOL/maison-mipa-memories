@@ -7,9 +7,8 @@ export type DatabaseStaffRole = 'PHOTOGRAPHER' | 'MAKEUP' | 'EDITOR' | 'RECEPTIO
 export type DatabaseProfileStatus = 'ACTIVE' | 'PENDING_VERIFICATION' | 'SUSPENDED' | 'DISABLED';
 
 export type DatabaseBookingStatus =
-  | 'DRAFT'
-  | 'PENDING_PAYMENT'
-  | 'DEPOSIT_PAID'
+  | 'CONSULTATION_REQUESTED'
+  | 'CONSULTING'
   | 'CONFIRMED'
   | 'CHECKED_IN'
   | 'SHOOTING'
@@ -19,7 +18,10 @@ export type DatabaseBookingStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'RESCHEDULED';
+  | 'RESCHEDULED'
+  | 'DRAFT'
+  | 'PENDING_PAYMENT'
+  | 'DEPOSIT_PAID';
 
 export type DatabasePaymentStatus = 'UNPAID' | 'DEPOSIT_PAID' | 'FULLY_PAID' | 'REFUNDED';
 
@@ -1135,6 +1137,73 @@ export interface Database {
         };
         Relationships: [];
       };
+      booking_deliveries: {
+        Row: {
+          id: string;
+          booking_id: string;
+          provider: string;
+          drive_folder_id: string | null;
+          drive_folder_url: string | null;
+          status: string;
+          customer_permission_id: string | null;
+          share_email: string | null;
+          created_by: string | null;
+          ready_by: string | null;
+          revoked_by: string | null;
+          created_at: string;
+          updated_at: string;
+          ready_at: string | null;
+          revoked_at: string | null;
+          last_reconciled_at: string | null;
+          last_error: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          provider?: string;
+          drive_folder_id?: string | null;
+          drive_folder_url?: string | null;
+          status?: string;
+          customer_permission_id?: string | null;
+          share_email?: string | null;
+          created_by?: string | null;
+          ready_by?: string | null;
+          revoked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          ready_at?: string | null;
+          revoked_at?: string | null;
+          last_reconciled_at?: string | null;
+          last_error?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          provider?: string;
+          drive_folder_id?: string | null;
+          drive_folder_url?: string | null;
+          status?: string;
+          customer_permission_id?: string | null;
+          share_email?: string | null;
+          created_by?: string | null;
+          ready_by?: string | null;
+          revoked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          ready_at?: string | null;
+          revoked_at?: string | null;
+          last_reconciled_at?: string | null;
+          last_error?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_deliveries_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1291,6 +1360,36 @@ export interface Database {
           p_task_id: string;
           p_new_status: string;
           p_notes?: string | null;
+        };
+        Returns: unknown;
+      };
+      update_booking_consultation: {
+        Args: {
+          p_booking_id: string;
+          p_service_id?: string;
+          p_package_id?: string;
+          p_studio_room_id?: string;
+          p_start_at?: string;
+          p_addon_ids?: string[];
+          p_concept_ids?: string[];
+          p_total_amount?: number;
+          p_customer_note?: string | null;
+          p_staff_note?: string | null;
+        };
+        Returns: unknown;
+      };
+      confirm_booking_deposit: {
+        Args: {
+          p_booking_id: string;
+          p_deposit_amount: number;
+          p_deposit_note?: string | null;
+          p_final_total?: number | null;
+        };
+        Returns: unknown;
+      };
+      get_booking_delivery_secure: {
+        Args: {
+          p_booking_id: string;
         };
         Returns: unknown;
       };

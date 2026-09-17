@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BookingWizard } from '../booking/BookingWizard';
 import { AuthProvider } from '../../context/AuthContext';
@@ -50,23 +50,16 @@ describe('BookingWizard Component', () => {
   it('completes booking happy path and triggers onBookingSuccess callback', async () => {
     renderWithAuth(<BookingWizard {...defaultProps} />);
 
-    // Advance to step 6 (Payment)
+    // Advance through steps 1 to 5
     for (let i = 1; i <= 5; i++) {
       const nextBtn = screen.getByRole('button', { name: /Tiếp Theo/i });
       fireEvent.click(nextBtn);
     }
 
-    // Step 6: Payment & Deposit confirmation
-    const payBtn = screen.getByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i });
-    expect(payBtn).toBeInTheDocument();
-
-    fireEvent.click(payBtn);
-
-    // Advance fake timers for setTimeout in handleConfirmAndPay
-    act(() => {
-      vi.runAllTimers();
-    });
-
+    // Step 6: Consultation request confirmed screen
+    expect(screen.getAllByText(/Yêu cầu tư vấn đã được gửi/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Maison MIPA đã nhận được yêu cầu của bạn/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chi phí dự kiến/i)).toBeInTheDocument();
     expect(defaultProps.onBookingSuccess).toHaveBeenCalled();
   });
 });

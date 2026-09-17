@@ -51,6 +51,7 @@ export const REQUIRED_TABLES = [
   'audit_logs',
   'otp_challenges',
   'root_owner_config',
+  'booking_deliveries',
 ];
 
 export const CONTRACT_CHECKS = [
@@ -62,6 +63,16 @@ export const CONTRACT_CHECKS = [
   },
   { table: 'packages', columns: 'concepts_count', label: 'packages.concepts_count' },
   { table: 'studio_rooms', columns: 'active', label: 'studio_rooms.active' },
+  {
+    table: 'bookings',
+    columns: 'deposit_amount, deposit_confirmed_at, deposit_confirmed_by, deposit_note',
+    label: 'bookings (deposit_amount, deposit_confirmed_at, deposit_confirmed_by, deposit_note)',
+  },
+  {
+    table: 'booking_deliveries',
+    columns: 'delivery_status, drive_folder_id, drive_folder_url',
+    label: 'booking_deliveries (delivery_status, drive_folder_id, drive_folder_url)',
+  },
 ];
 
 export const CORE_RPCS = [
@@ -83,6 +94,19 @@ export const CORE_RPCS = [
     params: {
       p_studio_room_id: '00000000-0000-0000-0000-000000000000',
       p_date: '2026-09-16',
+    },
+  },
+  {
+    name: 'update_booking_consultation',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+    },
+  },
+  {
+    name: 'confirm_booking_deposit',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_deposit_amount: 100000,
     },
   },
 ];

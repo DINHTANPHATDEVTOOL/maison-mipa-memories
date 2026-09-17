@@ -24,6 +24,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260911000010_seed_and_enhance_employees_table.sql',
     '20260916000001_fix_create_booking_promotion_contract.sql',
     '20260916000002_atomic_promotion_and_pricing_parity.sql',
+    '20260917000001_consultation_first_booking_flow.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -48,6 +49,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'portfolio_photos',
     'booking_concepts',
     'root_owner_config',
+    'booking_deliveries',
   ];
 
   const EXPECTED_RPCS = [
@@ -68,6 +70,8 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'admin_update_user_role_and_status',
     'publish_portfolio_collection',
     'enqueue_shoot_reminder',
+    'update_booking_consultation',
+    'confirm_booking_deposit',
   ];
 
   it('1. all migration files exist in sequential order', () => {

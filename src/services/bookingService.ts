@@ -14,7 +14,8 @@ import type {
 import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, INITIAL_STUDIO_ROOMS, INITIAL_EMPLOYEES, INITIAL_PROMOTIONS } from '../mockData';
 import { DEMO_CONCEPTS } from './portfolioService';
 import { calculatePricing, validatePromotion } from './pricingService';
-import { isIntervalOverlapping, timeToMinutes, minutesToTime } from './availabilityService';
+import { isIntervalOverlapping, timeToMinutes, minutesToTime, OCCUPIED_BOOKING_STATUSES } from './availabilityService';
+import { createDriveFolder } from './deliveryService';
 
 export class BookingConflictError extends Error {
   constructor(message: string = 'Phòng studio đã có lịch đặt trong khoảng thời gian này. Vui lòng chọn khung giờ khác.') {
@@ -280,11 +281,11 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
   const endMinutes = startMinutes + totalDuration;
   const endTimeStr = minutesToTime(endMinutes);
 
-  // Anti-double-booking interval check
+  // Anti-double-booking interval check: ONLY occupied confirmed bookings block slots
   const conflicting = inMemoryBookings.find(b => {
     if (b.bookingDate !== request.date) return false;
     if (b.studioId !== studio.id) return false;
-    if (b.bookingStatus === 'CANCELLED') return false;
+    if (!OCCUPIED_BOOKING_STATUSES.includes(b.bookingStatus)) return false;
 
     const existingStart = timeToMinutes(b.startTime);
     const existingEnd = timeToMinutes(b.endTime);
@@ -349,7 +350,7 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     depositAmount: pricing.depositAmount,
     totalAmount: pricing.totalAmount,
     paymentStatus: 'UNPAID',
-    bookingStatus: 'PENDING_PAYMENT',
+    bookingStatus: 'CONSULTATION_REQUESTED',
     customerNote: request.customerNote,
     occasion: request.occasion,
     assignments: [],
@@ -513,6 +514,181 @@ export async function updateBookingStatus(
   };
 
   inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
+  return updated;
+}
+
+export interface UpdateConsultationRequest {
+  bookingId: string;
+  serviceId?: string;
+  packageId?: string;
+  studioId?: string;
+  date?: string;
+  timeSlot?: string;
+  addonIds?: string[];
+  conceptIds?: string[];
+  totalAmount?: number;
+  customerNote?: string;
+  staffNote?: string;
+}
+
+export async function updateBookingConsultation(
+  request: UpdateConsultationRequest
+): Promise<Booking> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('update_booking_consultation', {
+      p_booking_id: request.bookingId,
+      p_service_id: request.serviceId,
+      p_package_id: request.packageId,
+      p_studio_room_id: request.studioId,
+      p_start_at: request.date && request.timeSlot ? `${request.date}T${request.timeSlot}:00+07:00` : undefined,
+      p_addon_ids: request.addonIds || [],
+      p_concept_ids: request.conceptIds || [],
+      p_total_amount: request.totalAmount,
+      p_customer_note: request.customerNote,
+      p_staff_note: request.staffNote,
+    });
+    if (error) {
+      throw new Error(`Lỗi cập nhật tư vấn: ${error.message}`);
+    }
+    return mapDatabaseRecordToDomain(data);
+  }
+
+  return updateBookingConsultationInMemory(request);
+}
+
+export function updateBookingConsultationInMemory(request: UpdateConsultationRequest): Booking {
+  const existing = inMemoryBookings.find(b => b.id === request.bookingId || b.bookingCode === request.bookingId);
+  if (!existing) {
+    throw new Error('Không tìm thấy đơn đặt lịch.');
+  }
+
+  let addons = existing.addons;
+  if (request.addonIds) {
+    addons = request.addonIds
+      .map(id => INITIAL_ADDONS.find(a => a.id === id))
+      .filter((a): a is Addon => Boolean(a));
+  }
+
+  const pkg = INITIAL_PACKAGES.find(p => p.id === (request.packageId || existing.packageId)) || { price: existing.packagePrice || existing.totalAmount };
+  const calculatedTotal = pkg.price + addons.reduce((sum, a) => sum + (a.price || 0), 0);
+  const totalAmount = request.totalAmount !== undefined ? request.totalAmount : calculatedTotal;
+
+  const updated: Booking = {
+    ...existing,
+    serviceId: request.serviceId || existing.serviceId,
+    packageId: request.packageId || existing.packageId,
+    studioId: request.studioId || existing.studioId,
+    bookingDate: request.date || existing.bookingDate,
+    startTime: request.timeSlot || existing.startTime,
+    addons,
+    conceptIds: request.conceptIds || existing.conceptIds,
+    totalAmount,
+    depositAmount: existing.depositAmount || 0,
+    customerNote: request.customerNote !== undefined ? request.customerNote : existing.customerNote,
+    staffNote: request.staffNote ? `${existing.staffNote || ''}\n${request.staffNote}`.trim() : existing.staffNote,
+    bookingStatus: 'CONSULTING',
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
+  return updated;
+}
+
+export interface ConfirmDepositRequest {
+  bookingId: string;
+  depositAmount: number;
+  depositNote?: string;
+  finalTotal?: number;
+  confirmedBy?: string;
+}
+
+export async function confirmBookingDeposit(
+  request: ConfirmDepositRequest
+): Promise<Booking> {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.rpc('confirm_booking_deposit', {
+      p_booking_id: request.bookingId,
+      p_deposit_amount: request.depositAmount,
+      p_deposit_note: request.depositNote || null,
+      p_final_total: request.finalTotal || null,
+    });
+    if (error) {
+      if (error.code === '23P01' || error.message?.includes('already booked') || error.message?.includes('conflict')) {
+        throw new BookingConflictError(error.message || 'Phòng studio đã có lịch đặt trong khoảng thời gian này.');
+      }
+      throw new Error(`Lỗi xác nhận cọc: ${error.message}`);
+    }
+    const domainBooking = mapDatabaseRecordToDomain(data);
+
+    // Asynchronously trigger Google Drive folder provisioning intent in background
+    createDriveFolder(domainBooking.id).catch((err) => {
+      console.warn('Notice: Background Drive folder provisioning intent:', err?.message);
+    });
+
+    return domainBooking;
+  }
+
+  return confirmBookingDepositInMemory(request);
+}
+
+export function confirmBookingDepositInMemory(request: ConfirmDepositRequest): Booking {
+  const existing = inMemoryBookings.find(b => b.id === request.bookingId || b.bookingCode === request.bookingId);
+  if (!existing) {
+    throw new Error('Không tìm thấy đơn đặt lịch.');
+  }
+
+  if (existing.bookingStatus !== 'CONSULTATION_REQUESTED' && existing.bookingStatus !== 'CONSULTING') {
+    throw new Error('Xác nhận cọc chỉ áp dụng cho đơn đang ở trạng thái tư vấn (CONSULTATION_REQUESTED hoặc CONSULTING).');
+  }
+
+  const finalTotal = request.finalTotal !== undefined ? request.finalTotal : existing.totalAmount;
+  if (request.depositAmount < 0) {
+    throw new Error('Số tiền cọc không được là số âm.');
+  }
+  if (request.depositAmount > finalTotal) {
+    throw new Error('Số tiền cọc không được lớn hơn tổng chi phí.');
+  }
+
+  // Concurrency-safe overlap check against OCCUPIED bookings
+  const startMinutes = timeToMinutes(existing.startTime);
+  const endMinutes = timeToMinutes(existing.endTime);
+
+  const conflict = inMemoryBookings.find(b => {
+    if (b.id === existing.id) return false;
+    if (b.bookingDate !== existing.bookingDate) return false;
+    if (b.studioId !== existing.studioId) return false;
+    if (!OCCUPIED_BOOKING_STATUSES.includes(b.bookingStatus)) return false;
+
+    const otherStart = timeToMinutes(b.startTime);
+    const otherEnd = timeToMinutes(b.endTime);
+
+    return isIntervalOverlapping(startMinutes, endMinutes, otherStart, otherEnd);
+  });
+
+  if (conflict) {
+    throw new BookingConflictError(
+      `⚠️ TRÙNG LỊCH: Phòng studio đã có lịch đặt chính thức từ ${conflict.startTime} đến ${conflict.endTime}. Vui lòng chọn khung giờ khác.`
+    );
+  }
+
+  const nowIso = new Date().toISOString();
+  const updated: Booking = {
+    ...existing,
+    bookingStatus: 'CONFIRMED',
+    totalAmount: finalTotal,
+    depositAmount: request.depositAmount,
+    depositConfirmedAt: nowIso,
+    depositConfirmedBy: request.confirmedBy || 'manager_current',
+    depositNote: request.depositNote,
+    deliveryStatus: 'NOT_CREATED',
+    updatedAt: nowIso,
+  };
+
+  inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
+
+  // Trigger Drive mock provisioning in memory
+  createDriveFolder(updated.id).catch(() => {});
+
   return updated;
 }
 
@@ -803,7 +979,10 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     depositAmount: Number(record.deposit_amount || record.depositAmount || 0),
     totalAmount: Number(record.total_amount || record.totalAmount || 0),
     paymentStatus: record.payment_status || record.paymentStatus || 'UNPAID',
-    bookingStatus: record.booking_status || record.bookingStatus || 'PENDING_PAYMENT',
+    bookingStatus: record.booking_status || record.bookingStatus || 'CONSULTATION_REQUESTED',
+    depositConfirmedAt: record.deposit_confirmed_at || record.depositConfirmedAt,
+    depositConfirmedBy: record.deposit_confirmed_by || record.depositConfirmedBy,
+    depositNote: record.deposit_note || record.depositNote,
     customerNote: record.customer_note || record.customerNote,
     staffNote: record.staff_note || record.staffNote,
     occasion: record.occasion,
@@ -818,8 +997,10 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     rescheduleRequestedReason: record.reschedule_requested_reason,
     cancelRequestedAt: record.cancel_requested_at,
     cancelRequestedReason: record.cancel_requested_reason,
+    driveFolderId: record.drive_folder_id || record.driveFolderId,
     driveFolderUrl: record.drive_folder_url,
     driveReadyForCustomer: record.drive_ready_for_customer,
+    driveSharedAt: record.drive_shared_at || record.driveSharedAt,
     createdAt: record.created_at || record.createdAt || new Date().toISOString(),
     updatedAt: record.updated_at || record.updatedAt || new Date().toISOString(),
   };

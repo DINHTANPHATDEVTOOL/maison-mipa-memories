@@ -73,18 +73,16 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.locator('text=Bước 4/6')).toBeVisible();
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
 
-    // Step 5: Customer Details
+    // Step 5: Customer Details & Submit Consultation
     await expect(page.locator('text=Bước 5/6')).toBeVisible();
-    await page.getByRole('button', { name: /Tiếp Theo/i }).click();
+    await page.getByRole('button', { name: /Gửi yêu cầu tư vấn|Tiếp Theo/i }).click();
 
-    // Step 6: Review & Payment
+    // Step 6: Consultation confirmation screen (NO payment)
     await expect(page.locator('text=Bước 6/6')).toBeVisible();
-    await page.getByRole('button', { name: /XÁC NHẬN ĐÃ CHUYỂN CỌC/i }).click();
-
-    // Step 7: Confirmation receipt
-    await expect(page.locator('text=Booking của bạn đã được xác nhận!')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Mã booking')).toBeVisible();
+    await expect(page.locator('text=Yêu cầu tư vấn đã được gửi').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Mã đặt lịch')).toBeVisible();
     await expect(page.locator('text=MIPA-26').first()).toBeVisible();
+    await expect(page.locator('text=Chi phí dự kiến')).toBeVisible();
   });
 
   test('4. Protected area không cho guest/customer trái quyền truy cập', async ({ page }) => {
@@ -241,19 +239,22 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await expect(page.getByText('Mật khẩu xác nhận không khớp.')).toBeVisible();
   });
 
-  test('13. Step 6 Booking hiển thị banner tự động xác nhận qua ACB & payOS', async ({ page }) => {
+  test('13. Step 6 Booking hiển thị xác nhận tư vấn và không có giao diện thanh toán web', async ({ page }) => {
     await page.goto('/booking');
 
     // Step 1 -> 5
     for (let i = 1; i <= 5; i++) {
       await expect(page.locator(`text=Bước ${i}/6`)).toBeVisible();
-      await page.getByRole('button', { name: /Tiếp Theo/i }).click();
+      await page.getByRole('button', { name: /Gửi yêu cầu tư vấn|Tiếp Theo/i }).click();
     }
 
-    // Step 6: Verify ACB & payOS auto-confirm banner
+    // Step 6: Verify Consultation Confirmation and ZERO Payment UI
     await expect(page.locator('text=Bước 6/6')).toBeVisible();
-    await expect(page.getByText(/TỰ ĐỘNG XÁC NHẬN QUA ACB & PAYOS/i)).toBeVisible();
-    await expect(page.getByText(/Quý khách chỉ cần quét mã QR bằng ứng dụng ngân hàng và xác nhận/i)).toBeVisible();
+    await expect(page.getByText(/Yêu cầu tư vấn đã được gửi/i).first()).toBeVisible();
+    await expect(page.getByText(/Chi phí dự kiến/i)).toBeVisible();
+    await expect(page.locator('text=payOS')).not.toBeVisible();
+    await expect(page.locator('text=VietQR')).not.toBeVisible();
+    await expect(page.locator('text=Chờ thanh toán')).not.toBeVisible();
   });
 
   test('14. Auth Modal: Đăng ký tài khoản khách hàng mới hoàn tất thành công', async ({ page }) => {

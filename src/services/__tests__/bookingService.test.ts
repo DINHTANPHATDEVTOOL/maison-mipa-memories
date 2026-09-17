@@ -7,6 +7,7 @@ import {
   updateBookingStatus,
   assignBookingStaff,
   resolveEntityUuid,
+  confirmBookingDeposit,
   BookingConflictError,
   BookingValidationError,
 } from '../bookingService';
@@ -22,8 +23,8 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
     resetInMemoryBookings([]);
   });
 
-  describe('P0 Requirement: Anti-Double-Booking Protection (Exclusion Constraint Simulation)', () => {
-    it('concurrently rejects overlapping bookings on the same studio and time (1 succeeds, 1 conflicts)', async () => {
+  describe('P0 Requirement: Anti-Double-Booking Protection & Slot Occupation', () => {
+    it('allows concurrent consultation requests for the same slot, but rejects conflicting deposit confirmations', async () => {
       // Booking Request 1: 10:00 - 11:00 in Room 01
       const request1 = {
         serviceId: testService.id,
@@ -44,18 +45,27 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
         customerName: 'Khách B',
       };
 
-      // Request 1 succeeds
+      // Request 1 and Request 2 both succeed as consultation requests
       const booking1 = await createBooking(request1);
+      const booking2 = await createBooking(request2);
       expect(booking1).toBeDefined();
-      expect(booking1.bookingCode).toMatch(/^MIPA-260915-[A-Z0-9]{4}$/);
+      expect(booking1.bookingStatus).toBe('CONSULTATION_REQUESTED');
+      expect(booking2.bookingStatus).toBe('CONSULTATION_REQUESTED');
 
-      // Request 2 MUST fail with BookingConflictError
-      await expect(createBooking(request2)).rejects.toThrowError(BookingConflictError);
+      // Manager confirms booking1 with deposit -> succeeds and occupies the slot
+      const confirmed1 = await confirmBookingDeposit({
+        bookingId: booking1.id,
+        depositAmount: 387000,
+      });
+      expect(confirmed1.bookingStatus).toBe('CONFIRMED');
 
-      // Verify that database has exactly 1 booking
-      const currentBookings = getInMemoryBookings();
-      expect(currentBookings.length).toBe(1);
-      expect(currentBookings[0].customerName).toBe('Khách A');
+      // Manager attempts to confirm booking2 on overlapping slot -> MUST fail with BookingConflictError
+      await expect(
+        confirmBookingDeposit({
+          bookingId: booking2.id,
+          depositAmount: 387000,
+        })
+      ).rejects.toThrowError(BookingConflictError);
     });
 
     it('allows adjacent back-to-back bookings (10:00-11:00 and 11:00-12:00) without conflict', async () => {
@@ -114,7 +124,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
 
       expect(rebooked).toBeDefined();
       expect(rebooked.customerName).toBe('Khách Mới Đặt Lại');
-      expect(rebooked.bookingStatus).toBe('PENDING_PAYMENT');
+      expect(rebooked.bookingStatus).toBe('CONSULTATION_REQUESTED');
     });
   });
 
@@ -179,7 +189,7 @@ describe('Booking Service, Persistence & Database-Level Exclusion Logic', () => 
         timeSlot: '13:00',
       });
 
-      expect(b.bookingStatus).toBe('PENDING_PAYMENT');
+      expect(b.bookingStatus).toBe('CONSULTATION_REQUESTED');
 
       const confirmed = await updateBookingStatus(b.id, 'CONFIRMED', 'Đã nhận cọc');
       expect(confirmed.bookingStatus).toBe('CONFIRMED');

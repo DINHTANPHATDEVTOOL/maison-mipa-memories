@@ -3,9 +3,8 @@ export type UserRole = 'GUEST' | 'CUSTOMER' | 'STAFF' | 'MANAGER' | 'ADMIN';
 export type StaffRole = 'PHOTOGRAPHER' | 'MAKEUP' | 'EDITOR' | 'RECEPTIONIST' | 'MANAGER' | 'ADMIN';
 
 export type BookingStatus =
-  | 'DRAFT'
-  | 'PENDING_PAYMENT'
-  | 'DEPOSIT_PAID'
+  | 'CONSULTATION_REQUESTED'
+  | 'CONSULTING'
   | 'CONFIRMED'
   | 'CHECKED_IN'
   | 'SHOOTING'
@@ -15,7 +14,11 @@ export type BookingStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'RESCHEDULED';
+  | 'RESCHEDULED'
+  // Legacy statuses preserved for backward compatibility
+  | 'DRAFT'
+  | 'PENDING_PAYMENT'
+  | 'DEPOSIT_PAID';
 
 export type PaymentStatus = 'UNPAID' | 'DEPOSIT_PAID' | 'FULLY_PAID' | 'REFUNDED';
 
@@ -193,12 +196,48 @@ export interface Booking {
   rescheduleRequestedReason?: string;
   cancelRequestedAt?: string;
   cancelRequestedReason?: string;
+  depositConfirmedAt?: string;
+  depositConfirmedBy?: string;
+  depositNote?: string;
+  driveFolderId?: string;
   driveFolderUrl?: string;
   driveReadyForCustomer?: boolean;
+  driveSharedAt?: string;
+  deliveryStatus?: DeliveryStatus;
   albumId?: string;
   conceptId?: string;
   conceptIds?: string[];
   conceptName?: string;
+}
+
+export type DeliveryStatus =
+  | 'NOT_CREATED'
+  | 'CREATING'
+  | 'READY_FOR_UPLOAD'
+  | 'SHARING'
+  | 'READY_FOR_CUSTOMER'
+  | 'ERROR'
+  | 'NEEDS_RECONCILE'
+  | 'REVOKED';
+
+export interface BookingDelivery {
+  id: string;
+  bookingId: string;
+  provider: 'GOOGLE_DRIVE';
+  driveFolderId?: string;
+  driveFolderUrl?: string;
+  status: DeliveryStatus;
+  customerPermissionId?: string;
+  shareEmail?: string;
+  createdBy?: string;
+  readyBy?: string;
+  revokedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  readyAt?: string;
+  revokedAt?: string;
+  lastReconciledAt?: string;
+  lastError?: string;
 }
 
 export type PhotoType = 'RAW' | 'PREVIEW' | 'SELECTED' | 'FINAL';

@@ -744,19 +744,13 @@ describe('Pre-Submit Slot Race Protection & Guest Draft Contract', () => {
       expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    // Step 5 -> Step 6
+    // Step 5 -> Step 6 (Consultation request confirmation screen)
     fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Yêu cầu tư vấn đã được gửi/i).length).toBeGreaterThanOrEqual(1);
     });
-
-    // Step 6 -> Step 7 (in offline/demo mode, clicking confirm transfer confirms instantly)
-    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đặt lịch/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Booking của bạn đã được xác nhận/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
 
     // Button in PAGE mode must say "Về trang chủ"
     const homeBtn = screen.getByRole('button', { name: /Về trang chủ/i });
@@ -795,25 +789,18 @@ describe('Pre-Submit Slot Race Protection & Guest Draft Contract', () => {
       expect(screen.getByText(/Bước 5\/6/i)).toBeInTheDocument();
     });
 
-    // Step 5 -> Step 6
+    // Step 5 -> Step 6 (Consultation request confirmation screen)
     fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Yêu cầu tư vấn đã được gửi/i).length).toBeGreaterThanOrEqual(1);
     });
 
-    // Step 6 -> Step 7
-    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đặt lịch/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Booking của bạn đã được xác nhận/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
-
-    // Button in MODAL mode must say "Đóng"
-    const closeButtons = screen.getAllByRole('button', { name: /Đóng/i });
-    const modalConfirmBtn = closeButtons.find(b => b.classList.contains('public-btn-primary')) || closeButtons[0];
-    expect(modalConfirmBtn).toHaveTextContent('Đóng');
-    fireEvent.click(modalConfirmBtn);
+    // Button in MODAL mode says "Hoàn tất"
+    const finishBtn = screen.getByRole('button', { name: /Hoàn tất/i });
+    expect(finishBtn).toBeInTheDocument();
+    fireEvent.click(finishBtn);
 
     expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
