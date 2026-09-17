@@ -1,12 +1,15 @@
 // ==============================================================================
-// Maison MIPA Memories - Editor Portal ("Hậu kỳ của tôi")
+// Maison MIPA Memories - Editor Portal (Hậu kỳ của tôi)
 // Dedicated workspace for Photo Retouchers & Post-Production Editors.
-// Authority: Assigned bookings only. SHOOT_COMPLETED -> EDITING -> READY_FOR_REVIEW.
-// Prepares integration for Google Drive customer delivery #8.
+// Authority: Assigned bookings only. EDITING → READY_FOR_REVIEW.
 // ==============================================================================
-import React from 'react';
+import React, { useState } from 'react';
 import type { Booking, BookingStatus, User } from '../../types';
-import { Palette, CheckCircle, Clock, FolderUp, CheckSquare, Sparkles } from 'lucide-react';
+import { Palette, CheckSquare, FolderUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { StatusBadge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { EmptyState } from '../ui/AsyncStates';
+import { completeBookingEditing } from '../../services/photoWorkflowService';
 
 interface EditorPortalProps {
   currentUser: User | null;
@@ -19,7 +22,10 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
   bookings,
   onUpdateStatus,
 }) => {
-  // ABAC: Editor sees ONLY assigned editing bookings
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
   const assignedEdits = bookings.filter(b => {
     if (!currentUser) return false;
     return b.assignments.some(
@@ -28,124 +34,149 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
     );
   });
 
+  const handleCompleteEditing = async (b: Booking) => {
+    try {
+      setLoadingId(b.id);
+      setError('');
+      await completeBookingEditing(b.id);
+      onUpdateStatus(b.id, 'READY_FOR_REVIEW', 'Đã tải ảnh hoàn thiện lên Drive, sẵn sàng duyệt');
+      setNotice(`✓ Bộ ảnh ${b.bookingCode} đã hoàn tất hậu kỳ, chờ quản lý duyệt.`);
+      setTimeout(() => setNotice(''), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Không thể hoàn tất hậu kỳ. Vui lòng đảm bảo đã tải ảnh final lên Drive 03_FINAL.');
+      setTimeout(() => setError(''), 7000);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   return (
-    <div style={{ maxWidth: '1150px', margin: '0 auto' }}>
-      <div className="mipa-card-gold" style={{ padding: '1.5rem 2rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      {/* Header */}
+      <div
+        style={{
+          background: 'var(--mipa-surface)',
+          border: '1px solid var(--mipa-border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
         <div>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 700 }}>
-            POST-PRODUCTION WORKSPACE • HẬU KỲ CỦA TÔI
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--mipa-gold)', fontWeight: 700 }}>
+            POST-PRODUCTION WORKSPACE · HẬU KỲ CỦA TÔI
           </div>
-          <h2 style={{ fontSize: '1.6rem', color: '#604634', margin: '0.2rem 0' }}>
+          <h2 style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.5rem', color: 'var(--mipa-text)', margin: '0.2rem 0 0', fontWeight: 600 }}>
             {currentUser?.fullName || 'Chuyên Viên Hậu Kỳ'}
           </h2>
-          <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-            Nhiệm vụ: Chỉnh màu tone film Maison MIPA, retouch da & upload ảnh chất lượng cao lên Drive.
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.84rem', color: 'var(--mipa-text-muted)', marginTop: '0.2rem' }}>
+            Nhiệm vụ: Chỉnh màu tone film MIPA, retouch & upload ảnh chất lượng cao lên Drive 03_FINAL.
           </div>
         </div>
-
-        <div style={{ textAlign: 'right', padding: '0.6rem 1.4rem', backgroundColor: '#FFFDF6', borderRadius: '12px', border: '1px solid #EFE6C9' }}>
-          <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>DỰ ÁN HẬU KỲ</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#604634' }}>
-            {assignedEdits.length} bộ
-          </div>
+        <div style={{ padding: '0.65rem 1.2rem', background: 'var(--mipa-surface-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--mipa-border)', textAlign: 'right' }}>
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', color: 'var(--mipa-text-muted)', fontWeight: 700 }}>DỰ ÁN HẬU KỲ</div>
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--mipa-text)' }}>{assignedEdits.length} bộ</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+      {/* Feedback */}
+      {notice && <div style={{ background: 'var(--mipa-success-soft)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: 'var(--radius-sm)', padding: '0.65rem 1rem', color: 'var(--mipa-success)', fontFamily: 'var(--mipa-font-body)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle size={15} /> {notice}</div>}
+      {error && <div style={{ background: 'var(--mipa-danger-soft)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 'var(--radius-sm)', padding: '0.65rem 1rem', color: 'var(--mipa-danger)', fontFamily: 'var(--mipa-font-body)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={15} /> {error}</div>}
+
+      {/* List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {assignedEdits.length === 0 ? (
-          <div className="mipa-card" style={{ padding: '3rem', textAlign: 'center', borderRadius: '16px', color: '#8C6E53' }}>
-            <Palette size={38} color="#C6A45F" style={{ margin: '0 auto 0.8rem' }} />
-            <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>Hiện bạn chưa có đơn hậu kỳ nào được phân công.</div>
-            <div style={{ fontSize: '0.85rem', color: '#6E5F55', marginTop: '0.3rem' }}>
-              Khi buổi chụp hoàn tất, quản lý studio sẽ chỉ định chuyên viên hậu kỳ cho từng bộ ảnh.
-            </div>
-          </div>
+          <EmptyState
+            icon={<Palette size={22} />}
+            title="Chưa có đơn hậu kỳ nào được phân công"
+            message="Khi buổi chụp hoàn tất, quản lý studio sẽ chỉ định chuyên viên hậu kỳ cho từng bộ ảnh."
+            height={260}
+          />
         ) : (
           assignedEdits.map((b) => {
-            const canStartEdit = b.bookingStatus === 'SHOOT_COMPLETED';
             const canFinishEdit = b.bookingStatus === 'EDITING';
-            const isReadyOrDelivered = ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus);
+            const isReadyOrDone = ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus);
+            const hasRevision = !!b.revisionNotes;
 
             return (
-              <div key={b.id} className="mipa-card" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+              <div
+                key={b.id}
+                style={{
+                  background: 'var(--mipa-surface)',
+                  border: `1px solid ${hasRevision ? 'rgba(239, 68, 68, 0.4)' : canFinishEdit ? 'rgba(168, 85, 247, 0.35)' : 'var(--mipa-border)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.25rem 1.5rem',
+                }}
+              >
+                {/* Top row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
-                      <span style={{ fontWeight: 700, color: '#8C6E53', backgroundColor: '#EFE6C9', padding: '0.2rem 0.6rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-                        {b.bookingCode}
-                      </span>
-                      <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                        ● {b.bookingStatus.replace('_', ' ')}
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'var(--mipa-font-body)', fontWeight: 700, color: 'var(--mipa-gold)', background: 'rgba(198, 164, 95, 0.12)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-xs)', fontSize: '0.85rem' }}>{b.bookingCode}</span>
+                      <StatusBadge status={b.bookingStatus} size="sm" pulseDot={canFinishEdit} />
+                      {hasRevision && <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', background: 'var(--mipa-danger-soft)', color: 'var(--mipa-danger)', border: '1px solid rgba(239,68,68,0.3)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>⚠ Cần chỉnh sửa lại</span>}
                     </div>
-                    <h4 style={{ fontSize: '1.3rem', color: '#604634', margin: '0.2rem 0' }}>
+                    <h4 style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.15rem', color: 'var(--mipa-text)', margin: '0 0 0.25rem' }}>
                       {b.serviceName} — {b.packageName}
                     </h4>
-                    <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-                      Khách hàng: <strong>{b.customerName}</strong> • Ngày chụp: <strong>{b.bookingDate}</strong>
+                    <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-text-muted)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <span>Khách: <strong style={{ color: 'var(--mipa-text-soft)' }}>{b.customerName}</strong></span>
+                      <span>Ngày chụp: <strong style={{ color: 'var(--mipa-text-soft)' }}>{b.bookingDate}</strong></span>
                       {b.selectionSubmittedAt && (
-                        <span> • Khách đã gửi chọn: <strong>{b.selectedPhotoCount || b.selectionLimit || 0} ảnh</strong></span>
+                        <span>Đã chọn: <strong style={{ color: 'var(--mipa-gold)' }}>{b.selectedPhotoCount || b.selectionLimit || '?'} ảnh</strong></span>
                       )}
                     </div>
                   </div>
-
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#8C6E53', fontWeight: 600 }}>Trạng thái:</div>
-                    <div style={{ fontWeight: 700, color: '#604634' }}>{b.bookingStatus}</div>
-                  </div>
+                  <StatusBadge status={b.bookingStatus} size="sm" />
                 </div>
 
-                {/* Revision Notes Alert if any */}
-                {b.revisionNotes && (
-                  <div style={{ padding: '0.8rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', marginBottom: '1rem', fontSize: '0.85rem', color: '#991B1B' }}>
-                    ⚠️ <strong>Yêu cầu chỉnh sửa lại từ Quản lý:</strong> {b.revisionNotes}
+                {/* Revision note alert */}
+                {hasRevision && (
+                  <div style={{ padding: '0.65rem 0.85rem', background: 'var(--mipa-danger-soft)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-sm)', marginBottom: '0.85rem', fontFamily: 'var(--mipa-font-body)', fontSize: '0.83rem', color: 'var(--mipa-danger)' }}>
+                    <strong>Yêu cầu chỉnh sửa từ Quản lý:</strong> {b.revisionNotes}
                   </div>
                 )}
 
-                {/* Edit Tone Instructions */}
-                <div style={{ padding: '0.8rem 1rem', backgroundColor: '#FFFDF6', borderRadius: '10px', border: '1px solid var(--mipa-beige)', marginBottom: '1rem', fontSize: '0.85rem' }}>
-                  <div>🎨 <strong>Tone màu & Yêu cầu chỉnh sửa:</strong> {b.customerNote || 'Tone màu cổ điển Pháp, giữ khối da tự nhiên.'}</div>
-                </div>
-
-                {/* Workflow Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {/* Google Drive Upload Integration Button */}
-                    <a
-                      href={b.driveFolderUrl || 'https://drive.google.com'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-mipa-secondary"
-                      style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-                    >
-                      <FolderUp size={15} /> Mở Thư Mục Google Drive Upload Ảnh
-                    </a>
+                {/* Tone note */}
+                {b.customerNote && (
+                  <div style={{ padding: '0.65rem 0.85rem', background: 'var(--mipa-surface-soft)', border: '1px solid var(--mipa-border-subtle)', borderRadius: 'var(--radius-sm)', marginBottom: '0.85rem', fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-text-muted)' }}>
+                    <strong style={{ color: 'var(--mipa-text-soft)' }}>Tone màu & yêu cầu khách:</strong> {b.customerNote}
                   </div>
+                )}
 
-                  <div>
-                    {canStartEdit && (
-                      <button
-                        onClick={() => onUpdateStatus(b.id, 'EDITING', 'Bắt đầu quy trình chỉnh màu & retouch')}
-                        className="btn-mipa-gold"
-                        style={{ fontSize: '0.9rem', padding: '0.6rem 1.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                      >
-                        <Palette size={16} /> BẮT ĐẦU HẬU KỲ
-                      </button>
-                    )}
+                {/* Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--mipa-border-subtle)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <a
+                    href={b.driveFolderUrl || 'https://drive.google.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-gold)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', border: '1px solid var(--mipa-border)', borderRadius: 'var(--radius-full)', padding: '0.4rem 0.85rem', transition: 'all var(--transition-fast)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--mipa-gold-glow)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <FolderUp size={14} /> Mở Drive 03_FINAL
+                  </a>
 
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {canFinishEdit && (
-                      <button
-                        onClick={() => onUpdateStatus(b.id, 'READY_FOR_REVIEW', 'Đã tải ảnh hoàn thiện lên Drive, sẵn sàng duyệt')}
-                        className="btn-mipa-primary"
-                        style={{ fontSize: '0.9rem', padding: '0.6rem 1.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                      <Button
+                        variant="outline"
+                        size="md"
+                        icon={<CheckSquare size={16} />}
+                        loading={loadingId === b.id}
+                        onClick={() => handleCompleteEditing(b)}
                       >
-                        <CheckSquare size={16} /> HOÀN TẤT & SẴN SÀNG DUYỆT
-                      </button>
+                        Hoàn tất & sẵn sàng duyệt
+                      </Button>
                     )}
-
-                    {isReadyOrDelivered && (
-                      <span style={{ fontSize: '0.85rem', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        ✓ Bộ ảnh đã sẵn sàng hoặc đã giao cho khách
+                    {isReadyOrDone && (
+                      <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.85rem', color: 'var(--mipa-success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <CheckCircle size={15} /> Bộ ảnh đã sẵn sàng / đã giao
                       </span>
                     )}
                   </div>

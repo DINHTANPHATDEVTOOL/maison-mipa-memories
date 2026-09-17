@@ -19,6 +19,7 @@ import {
   X,
   Check,
 } from 'lucide-react';
+import { StatusBadge } from '../ui/Badge';
 import { INITIAL_EMPLOYEES } from '../../mockData';
 import { confirmBookingDeposit, updateBookingConsultation } from '../../services/bookingService';
 import {
@@ -387,110 +388,112 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       {/* Top Banner & Quick Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700 }}>
-            MAISON MIPA STUDIO MANAGEMENT SYSTEM
+          <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--mipa-gold)', fontWeight: 700, fontFamily: 'var(--mipa-font-body)' }}>
+            MAISON MIPA — STUDIO OPERATIONS
           </div>
-          <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: 0 }}>
-            Tổng Quan Vận Hành Studio (Operations Dashboard)
+          <h2 style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.8rem', color: 'var(--mipa-text)', margin: '0.2rem 0 0', fontWeight: 600 }}>
+            Tổng Quan Vận Hành Studio
           </h2>
-          <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-            Hệ thống điều phối kíp chụp, quản lý tiến độ đơn & phân bổ tài nguyên studio theo thời gian thực.
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.84rem', color: 'var(--mipa-text-muted)', marginTop: '0.2rem' }}>
+            Điều phối kíp chụp · quản lý tiến độ · phân bổ tài nguyên theo thời gian thực.
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={() => onNavigateTab('studio_calendar')} className="btn-mipa-secondary" style={{ fontSize: '0.85rem' }}>
+          <button onClick={() => onNavigateTab('studio_calendar')} className="btn-mipa-secondary" style={{ fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
             <Calendar size={15} /> Lịch Studio
           </button>
-          <button onClick={onOpenBooking} className="btn-mipa-gold" style={{ fontSize: '0.85rem' }}>
-            <Plus size={16} /> Tạo Đơn Trực Tiếp
+          <button onClick={onOpenBooking} className="btn-mipa-gold" style={{ fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Plus size={16} /> Tạo Đơn
           </button>
         </div>
       </div>
 
       {workflowNotice && (
         <div style={{
-          padding: '0.8rem 1.2rem',
-          backgroundColor: '#ECFDF5',
-          border: '1px solid #6EE7B7',
-          borderRadius: '12px',
-          color: '#065F46',
+          padding: '0.75rem 1.1rem',
+          background: 'var(--mipa-success-soft)',
+          border: '1px solid rgba(16, 185, 129, 0.4)',
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--mipa-success)',
           fontWeight: 600,
-          fontSize: '0.88rem',
+          fontFamily: 'var(--mipa-font-body)',
+          fontSize: '0.875rem',
           marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
         }}>
-          <Check size={18} /> {workflowNotice}
+          <Check size={16} /> {workflowNotice}
         </div>
       )}
 
       {workflowError && (
         <div style={{
-          padding: '0.8rem 1.2rem',
-          backgroundColor: '#FEF2F2',
-          border: '1px solid #FCA5A5',
-          borderRadius: '12px',
-          color: '#991B1B',
+          padding: '0.75rem 1.1rem',
+          background: 'var(--mipa-danger-soft)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--mipa-danger)',
           fontWeight: 600,
-          fontSize: '0.88rem',
+          fontFamily: 'var(--mipa-font-body)',
+          fontSize: '0.875rem',
           marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
         }}>
-          <AlertTriangle size={18} /> {workflowError}
+          <AlertTriangle size={16} /> {workflowError}
         </div>
       )}
 
-      {/* OPERATIONS INBOX BANNER - 9 Operational Queues (Phase 18) */}
+      {/* OPERATIONS INBOX BANNER - 9 Operational Queues */}
       <div style={{
-        backgroundColor: '#FFFDF6',
-        border: '1.5px solid #E6D7B9',
-        borderRadius: '20px',
-        padding: '1.2rem 1.6rem',
-        marginBottom: '1.8rem',
-        boxShadow: '0 4px 20px rgba(96, 70, 52, 0.05)',
+        background: 'var(--mipa-surface)',
+        border: '1px solid var(--mipa-border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '1.1rem 1.4rem',
+        marginBottom: '1.5rem',
+        boxShadow: 'var(--shadow-sm)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#604634', fontWeight: 700, fontSize: '1rem' }}>
-            <AlertTriangle size={19} color="#C6A45F" />
-            <span>HÀNG ĐỢI VẬN HÀNH STUDIO (OPERATIONS PIPELINE):</span>
+          <div style={{ fontFamily: 'var(--mipa-font-body)', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--mipa-text-soft)', fontWeight: 600, fontSize: '0.875rem' }}>
+            <AlertTriangle size={16} color="var(--mipa-gold)" />
+            <span>OPERATIONS PIPELINE</span>
           </div>
-          <span style={{ fontSize: '0.78rem', backgroundColor: '#F8F3E6', color: '#8C6E53', padding: '0.2rem 0.6rem', borderRadius: '10px', fontWeight: 700, border: '1px solid #E6D7B9' }}>
-            9 Hàng đợi theo chuẩn Shoot-to-Delivery
+          <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', background: 'rgba(198, 164, 95, 0.1)', color: 'var(--mipa-gold)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', fontWeight: 700, border: '1px solid var(--mipa-border)' }}>
+            9 hàng đợi · Shoot-to-Delivery
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.6rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
           {[
-            { id: 'CONFIRMED', label: '1. SẮP CHỤP', count: inboxStats.confirmedCount, unit: 'đơn' },
-            { id: 'CHECKED_IN', label: '2. ĐÃ CHECK-IN', count: inboxStats.checkedInCount, unit: 'ca' },
-            { id: 'SHOOTING', label: '3. ĐANG CHỤP', count: inboxStats.shootingCount, unit: 'ca' },
-            { id: 'SHOOT_COMPLETED', label: '4. CHỜ SYNC ẢNH', count: inboxStats.shootCompletedCount, unit: 'đơn' },
-            { id: 'AWAITING_SELECTION', label: '5. KHÁCH CHỌN ẢNH', count: inboxStats.awaitingSelectionCount, unit: 'đơn' },
-            { id: 'EDITING', label: '6. ĐANG HẬU KỲ', count: inboxStats.editingCount, unit: 'bộ' },
-            { id: 'READY_FOR_REVIEW', label: '7. CHỜ DUYỆT', count: inboxStats.readyForReviewCount, unit: 'bộ' },
-            { id: 'DELIVERED', label: '8. ĐÃ GIAO', count: inboxStats.deliveredCount, unit: 'đơn' },
-            { id: 'COMPLETED', label: '9. HOÀN TẤT', count: inboxStats.completedCount, unit: 'đơn' },
+            { id: 'CONFIRMED', label: '① Sắp chụp', count: inboxStats.confirmedCount, unit: 'đơn' },
+            { id: 'CHECKED_IN', label: '② Check-in', count: inboxStats.checkedInCount, unit: 'ca' },
+            { id: 'SHOOTING', label: '③ Đang chụp', count: inboxStats.shootingCount, unit: 'ca' },
+            { id: 'SHOOT_COMPLETED', label: '④ Sync ảnh', count: inboxStats.shootCompletedCount, unit: 'đơn' },
+            { id: 'AWAITING_SELECTION', label: '⑤ Chọn ảnh', count: inboxStats.awaitingSelectionCount, unit: 'đơn' },
+            { id: 'EDITING', label: '⑥ Hậu kỳ', count: inboxStats.editingCount, unit: 'bộ' },
+            { id: 'READY_FOR_REVIEW', label: '⑦ Chờ duyệt', count: inboxStats.readyForReviewCount, unit: 'bộ' },
+            { id: 'DELIVERED', label: '⑧ Đã giao', count: inboxStats.deliveredCount, unit: 'đơn' },
+            { id: 'COMPLETED', label: '⑨ Hoàn tất', count: inboxStats.completedCount, unit: 'đơn' },
           ].map((queue) => (
             <button
               key={queue.id}
               onClick={() => setSelectedStatusFilter(queue.id)}
               style={{
-                padding: '0.65rem 0.75rem',
-                borderRadius: '12px',
-                backgroundColor: selectedStatusFilter === queue.id ? '#FAF6EE' : '#FFFFFF',
-                border: selectedStatusFilter === queue.id ? '1.5px solid #8C6E53' : '1px solid #EFE6C9',
+                padding: '0.6rem 0.65rem',
+                borderRadius: 'var(--radius-sm)',
+                background: selectedStatusFilter === queue.id ? 'rgba(198, 164, 95, 0.15)' : 'var(--mipa-surface-soft)',
+                border: selectedStatusFilter === queue.id ? '1.5px solid var(--mipa-gold)' : '1px solid var(--mipa-border-subtle)',
                 textAlign: 'left',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                transition: 'all var(--transition-fast)',
               }}
             >
-              <div style={{ fontSize: '0.68rem', color: '#8C6E53', fontWeight: 700 }}>{queue.label}</div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#604634', marginTop: '0.1rem' }}>
-                {queue.count} {queue.unit}
+              <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.67rem', color: selectedStatusFilter === queue.id ? 'var(--mipa-gold)' : 'var(--mipa-text-muted)', fontWeight: 700 }}>{queue.label}</div>
+              <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '1.1rem', fontWeight: 700, color: selectedStatusFilter === queue.id ? 'var(--mipa-gold-light)' : 'var(--mipa-text-soft)', marginTop: '0.1rem' }}>
+                {queue.count} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{queue.unit}</span>
               </div>
             </button>
           ))}
@@ -582,10 +585,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <strong style={{ color: '#8C6E53', fontSize: '0.9rem' }}>{b.bookingCode}</strong>
-                        <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                          ● {b.bookingStatus}
-                        </span>
+                        <strong style={{ fontFamily: 'var(--mipa-font-body)', color: 'var(--mipa-gold)', fontSize: '0.9rem' }}>{b.bookingCode}</strong>
+                        <StatusBadge status={b.bookingStatus} size="sm" pulseDot />
                       </div>
 
                       <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>

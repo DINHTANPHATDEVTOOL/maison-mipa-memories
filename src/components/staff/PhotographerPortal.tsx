@@ -1,11 +1,15 @@
 // ==============================================================================
-// Maison MIPA Memories - Photographer Portal ("Ca chụp của tôi")
+// Maison MIPA Memories - Photographer Portal (Ca chụp của tôi)
 // Dedicated workspace for Lead Photographers.
-// Authority: Assigned bookings only. CHECKED_IN -> SHOOTING -> SHOOT_COMPLETED.
+// Authority: Assigned bookings only. CHECKED_IN → SHOOTING → SHOOT_COMPLETED.
 // ==============================================================================
-import React from 'react';
+import React, { useState } from 'react';
 import type { Booking, BookingStatus, User } from '../../types';
-import { Camera, Clock, CheckSquare, Upload, FolderUp, MapPin, Sparkles } from 'lucide-react';
+import { Camera, CheckSquare, FolderUp, CheckCircle, MapPin } from 'lucide-react';
+import { StatusBadge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { EmptyState } from '../ui/AsyncStates';
+import { startBookingShoot, completeBookingShoot } from '../../services/photoWorkflowService';
 
 interface PhotographerPortalProps {
   currentUser: User | null;
@@ -18,7 +22,10 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
   bookings,
   onUpdateStatus,
 }) => {
-  // ABAC: Photographer sees ONLY assigned bookings
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
   const assignedShoots = bookings.filter(b => {
     if (!currentUser) return false;
     return b.assignments.some(
@@ -27,121 +34,167 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
     );
   });
 
+  const handleAction = async (b: Booking, action: 'start' | 'complete') => {
+    try {
+      setLoadingId(`${b.id}-${action}`);
+      setError('');
+      if (action === 'start') {
+        await startBookingShoot(b.id);
+        onUpdateStatus(b.id, 'SHOOTING', 'Bắt đầu chụp tại studio');
+        setNotice(`✓ Đã bắt đầu ca chụp ${b.bookingCode}.`);
+      } else {
+        await completeBookingShoot(b.id);
+        onUpdateStatus(b.id, 'SHOOT_COMPLETED', 'Đã chụp xong, chuyển giao hậu kỳ');
+        setNotice(`✓ Hoàn tất ca chụp ${b.bookingCode}. Vui lòng tải ảnh lên Drive 01_RAW.`);
+      }
+      setTimeout(() => setNotice(''), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Thao tác thất bại.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   return (
-    <div style={{ maxWidth: '1150px', margin: '0 auto' }}>
-      <div className="mipa-card-gold" style={{ padding: '1.5rem 2rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      {/* Header */}
+      <div
+        style={{
+          background: 'var(--mipa-surface)',
+          border: '1px solid var(--mipa-border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
         <div>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 700 }}>
-            PHOTOGRAPHER WORKSPACE • CA CHỤP CỦA TÔI
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--mipa-gold)', fontWeight: 700 }}>
+            PHOTOGRAPHER WORKSPACE · CA CHỤP CỦA TÔI
           </div>
-          <h2 style={{ fontSize: '1.6rem', color: '#604634', margin: '0.2rem 0' }}>
+          <h2 style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.5rem', color: 'var(--mipa-text)', margin: '0.2rem 0 0', fontWeight: 600 }}>
             {currentUser?.fullName || 'Nhiếp Ảnh Gia'}
           </h2>
-          <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-            Nhiệm vụ: Chụp ảnh theo concept, bắt góc khoảnh khắc & tải file gốc lên Drive.
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.84rem', color: 'var(--mipa-text-muted)', marginTop: '0.2rem' }}>
+            Nhiệm vụ: Chụp ảnh theo concept & tải file gốc lên Drive 01_RAW.
           </div>
         </div>
-
-        <div style={{ textAlign: 'right', padding: '0.6rem 1.4rem', backgroundColor: '#FFFDF6', borderRadius: '12px', border: '1px solid #EFE6C9' }}>
-          <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 600 }}>CA ĐƯỢC PHÂN CÔNG</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#604634' }}>
-            {assignedShoots.length} ca
-          </div>
+        <div style={{ padding: '0.65rem 1.2rem', background: 'var(--mipa-surface-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--mipa-border)', textAlign: 'right' }}>
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', color: 'var(--mipa-text-muted)', fontWeight: 700 }}>CA PHÂN CÔNG</div>
+          <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--mipa-text)' }}>{assignedShoots.length} ca</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+      {/* Feedback */}
+      {notice && <div style={{ background: 'var(--mipa-success-soft)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: 'var(--radius-sm)', padding: '0.65rem 1rem', color: 'var(--mipa-success)', fontFamily: 'var(--mipa-font-body)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle size={15} /> {notice}</div>}
+      {error && <div style={{ background: 'var(--mipa-danger-soft)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 'var(--radius-sm)', padding: '0.65rem 1rem', color: 'var(--mipa-danger)', fontFamily: 'var(--mipa-font-body)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem' }}>{error}</div>}
+
+      {/* List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {assignedShoots.length === 0 ? (
-          <div className="mipa-card" style={{ padding: '3rem', textAlign: 'center', borderRadius: '16px', color: '#8C6E53' }}>
-            <Camera size={38} color="#C6A45F" style={{ margin: '0 auto 0.8rem' }} />
-            <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>Hiện bạn chưa có ca chụp nào được phân công.</div>
-            <div style={{ fontSize: '0.85rem', color: '#6E5F55', marginTop: '0.3rem' }}>
-              Quản lý studio sẽ gán ca chụp dựa trên lịch đăng ký làm việc của bạn.
-            </div>
-          </div>
+          <EmptyState
+            icon={<Camera size={22} />}
+            title="Chưa có ca chụp nào được phân công"
+            message="Quản lý studio sẽ gán ca chụp dựa trên lịch đăng ký làm việc của bạn."
+            height={260}
+          />
         ) : (
           assignedShoots.map((b) => {
-            const canStartShoot = b.bookingStatus === 'CHECKED_IN';
-            const canCompleteShoot = b.bookingStatus === 'SHOOTING';
-            const isCompleted = ['SHOOT_COMPLETED', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus);
+            const canStart = b.bookingStatus === 'CHECKED_IN';
+            const canComplete = b.bookingStatus === 'SHOOTING';
+            const isDone = ['SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus);
 
             return (
-              <div key={b.id} className="mipa-card" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+              <div
+                key={b.id}
+                style={{
+                  background: 'var(--mipa-surface)',
+                  border: `1px solid ${canStart ? 'rgba(245, 158, 11, 0.4)' : canComplete ? 'rgba(239, 68, 68, 0.35)' : 'var(--mipa-border)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.25rem 1.5rem',
+                }}
+              >
+                {/* Top row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#604634', backgroundColor: '#EFE6C9', padding: '0.2rem 0.6rem', borderRadius: '8px' }}>
-                        {b.startTime} - {b.endTime}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.8rem', fontWeight: 700, color: 'var(--mipa-gold)', background: 'rgba(198, 164, 95, 0.12)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-xs)' }}>
+                        {b.startTime} — {b.endTime}
                       </span>
-                      <span style={{ fontWeight: 700, color: '#8C6E53' }}>{b.bookingCode}</span>
-                      <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
-                        ● {b.bookingStatus.replace('_', ' ')}
-                      </span>
+                      <span style={{ fontFamily: 'var(--mipa-font-body)', fontWeight: 700, color: 'var(--mipa-text-soft)', fontSize: '0.85rem' }}>{b.bookingCode}</span>
+                      <StatusBadge status={b.bookingStatus} size="sm" pulseDot={canComplete} />
                     </div>
-                    <h4 style={{ fontSize: '1.3rem', color: '#604634', margin: '0.2rem 0' }}>
+                    <h4 style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.15rem', color: 'var(--mipa-text)', margin: '0 0 0.25rem' }}>
                       {b.serviceName} — {b.packageName}
                     </h4>
-                    <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-                      Khách hàng: <strong>{b.customerName}</strong> • Phòng: <strong>{b.studioName}</strong> • Dịp: <strong>{b.occasion || 'Kỷ niệm'}</strong>
+                    <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-text-muted)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <span>Khách: <strong style={{ color: 'var(--mipa-text-soft)' }}>{b.customerName}</strong></span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={12} /> {b.studioName}</span>
+                      {b.occasion && <span>Dịp: <strong style={{ color: 'var(--mipa-text-soft)' }}>{b.occasion}</strong></span>}
                     </div>
                   </div>
-
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#8C6E53', fontWeight: 600 }}>Ngày chụp:</div>
-                    <div style={{ fontWeight: 700, color: '#604634' }}>{b.bookingDate}</div>
+                    <div style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.75rem', color: 'var(--mipa-text-muted)' }}>Ngày chụp</div>
+                    <div style={{ fontFamily: 'var(--mipa-font-body)', fontWeight: 700, color: 'var(--mipa-text-soft)', fontSize: '0.9rem' }}>{b.bookingDate}</div>
                   </div>
                 </div>
 
-                {/* Concept / Customer Notes */}
-                <div style={{ padding: '0.8rem 1rem', backgroundColor: '#FFFDF6', borderRadius: '10px', border: '1px solid var(--mipa-beige)', marginBottom: '1rem', fontSize: '0.85rem' }}>
-                  <div>💬 <strong>Yêu cầu Concept / Phong cách:</strong> {b.customerNote || 'Tone màu tự nhiên, phong cách thanh lịch Pháp.'}</div>
-                </div>
-
-                {/* Workflow Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {/* Google Drive Upload Integration Button */}
-                    <a
-                      href={b.driveFolderUrl || 'https://drive.google.com'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-mipa-secondary"
-                      style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-                    >
-                      <FolderUp size={15} /> Mở Thư Mục Upload Ảnh
-                    </a>
+                {/* Concept note */}
+                {b.customerNote && (
+                  <div style={{ padding: '0.65rem 0.85rem', background: 'var(--mipa-surface-soft)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--mipa-border-subtle)', marginBottom: '0.85rem', fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-text-muted)' }}>
+                    <strong style={{ color: 'var(--mipa-text-soft)' }}>Yêu cầu concept:</strong> {b.customerNote}
                   </div>
+                )}
 
-                  <div>
-                    {canStartShoot && (
-                      <button
-                        onClick={() => onUpdateStatus(b.id, 'SHOOTING', 'Bắt đầu chụp tại studio')}
-                        className="btn-mipa-gold"
-                        style={{ fontSize: '0.9rem', padding: '0.6rem 1.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                {/* Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--mipa-border-subtle)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <a
+                    href={b.driveFolderUrl || 'https://drive.google.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-gold)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', border: '1px solid var(--mipa-border)', borderRadius: 'var(--radius-full)', padding: '0.4rem 0.85rem', transition: 'all var(--transition-fast)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--mipa-gold-glow)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <FolderUp size={14} /> Mở thư mục Drive
+                  </a>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {canStart && (
+                      <Button
+                        variant="gold"
+                        size="md"
+                        icon={<Camera size={16} />}
+                        loading={loadingId === `${b.id}-start`}
+                        onClick={() => handleAction(b, 'start')}
                       >
-                        <Camera size={16} /> BẮT ĐẦU BUỔI CHỤP
-                      </button>
+                        Bắt đầu buổi chụp
+                      </Button>
                     )}
-
-                    {canCompleteShoot && (
-                      <button
-                        onClick={() => onUpdateStatus(b.id, 'SHOOT_COMPLETED', 'Đã chụp xong, chuyển giao hậu kỳ')}
-                        className="btn-mipa-primary"
-                        style={{ fontSize: '0.9rem', padding: '0.6rem 1.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    {canComplete && (
+                      <Button
+                        variant="outline"
+                        size="md"
+                        icon={<CheckSquare size={16} />}
+                        loading={loadingId === `${b.id}-complete`}
+                        onClick={() => handleAction(b, 'complete')}
                       >
-                        <CheckSquare size={16} /> HOÀN TẤT BUỔI CHỤP
-                      </button>
+                        Hoàn tất buổi chụp
+                      </Button>
                     )}
-
-                    {b.bookingStatus === 'SHOOT_COMPLETED' && (
-                      <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                        ✓ Đã hoàn tất buổi chụp • Chờ upload & đồng bộ proofs
+                    {isDone && (
+                      <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.85rem', color: 'var(--mipa-success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <CheckCircle size={15} /> Buổi chụp đã hoàn tất
                       </span>
                     )}
-
-                    {isCompleted && b.bookingStatus !== 'SHOOT_COMPLETED' && (
-                      <span style={{ fontSize: '0.85rem', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        ✓ Buổi chụp đã hoàn tất
+                    {b.bookingStatus === 'SHOOT_COMPLETED' && !isDone && (
+                      <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.82rem', color: 'var(--mipa-gold)', fontWeight: 600 }}>
+                        ✓ Chờ upload & đồng bộ proofs
                       </span>
                     )}
                   </div>

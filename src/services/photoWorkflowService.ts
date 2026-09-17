@@ -291,7 +291,7 @@ export async function getBookingProofs(
         .eq('booking_id', bookingId),
       supabase
         .from('bookings')
-        .select('package_id, selection_limit, packages(photos_count)')
+        .select('package_id, selection_limit, packages(edited_photos_count)')
         .eq('id', bookingId)
         .single(),
     ]);
@@ -302,7 +302,7 @@ export async function getBookingProofs(
     const bookingData = bRes.data;
     const selectionLimit =
       bookingData?.selection_limit ||
-      (bookingData?.packages as any)?.photos_count ||
+      (bookingData?.packages as any)?.edited_photos_count ||
       10;
 
     const proofs: BookingProofImage[] = (proofsRes.data || []).map((p: any) => ({

@@ -1,11 +1,14 @@
 // ==============================================================================
-// Maison MIPA Memories - CustomerProofGallery.tsx (Phase 9)
-// Private proof gallery for customer photo selection with strict limit guards
+// Maison MIPA Memories - CustomerProofGallery.tsx
+// Premium proof gallery: selection counter, limit enforcement, lightbox, dark theme
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Booking, BookingProofImage } from '../../types';
 import { getBookingProofs, submitPhotoSelection } from '../../services/photoWorkflowService';
+import { LoadingState, ErrorState } from '../ui/AsyncStates';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { Button } from '../ui/Button';
 import {
   Check,
   X,
@@ -34,376 +37,409 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionLimit, setSelectionLimit] = useState<number>(10);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      try {
-        setLoading(true);
-        setErrorMsg('');
-        const res = await getBookingProofs(booking.id);
-        if (isMounted) {
-          setProofs(res.proofs);
-          setSelectionLimit(res.selectionLimit);
-          const initialSelected = res.selections.map((s) => s.proofImageId);
-          setSelectedIds(initialSelected);
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setErrorMsg(err.message || 'Không thể tải danh sách ảnh chụp.');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const res = await getBookingProofs(booking.id);
+      setProofs(res.proofs);
+      setSelectionLimit(res.selectionLimit);
+      setSelectedIds(res.selections.map((s) => s.proofImageId));
+    } catch (err: any) {
+      setLoadError(err.message || 'Không thể tải danh sách ảnh chụp.');
+    } finally {
+      setLoading(false);
     }
-    loadData();
-    return () => {
-      isMounted = false;
-    };
   }, [booking.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') setLightboxIndex((i) => (i !== null ? (i + 1) % proofs.length : 0));
+      if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i !== null ? (i - 1 + proofs.length) % proofs.length : 0));
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (lightboxIndex !== null) toggleSelect(proofs[lightboxIndex].id);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIndex, proofs]);
 
   const toggleSelect = (id: string) => {
     setErrorMsg('');
-    if (selectedIds.includes(id)) {
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
-    } else {
-      if (selectedIds.length >= selectionLimit) {
-        setErrorMsg(`Bạn đã chọn đủ tối đa ${selectionLimit} ảnh theo gói dịch vụ. Hãy bỏ chọn ảnh khác nếu muốn đổi.`);
-        return;
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= selectionLimit) {
+        setErrorMsg(
+          `Bạn đã chọn đủ tối đa ${selectionLimit} ảnh theo gói dịch vụ. Hãy bỏ chọn ảnh khác nếu muốn đổi.`
+        );
+        return prev;
       }
-      setSelectedIds((prev) => [...prev, id]);
-    }
-  };
-
-  const handleClearSelection = () => {
-    setSelectedIds([]);
-    setErrorMsg('');
+      return [...prev, id];
+    });
   };
 
   const handleSubmit = async () => {
     if (selectedIds.length === 0) {
       setErrorMsg('Vui lòng chọn ít nhất 1 ảnh trước khi gửi.');
+      setShowConfirm(false);
       return;
     }
-    if (selectedIds.length > selectionLimit) {
-      setErrorMsg(`Số lượng ảnh chọn (${selectedIds.length}) vượt quá giới hạn (${selectionLimit} ảnh).`);
-      return;
-    }
-
     try {
       setSubmitting(true);
       setErrorMsg('');
       const updated = await submitPhotoSelection(booking.id, selectedIds);
       setSubmitSuccess(true);
       setTimeout(() => {
-        if (onSelectionSubmitted) {
-          onSelectionSubmitted(updated);
-        }
+        onSelectionSubmitted?.(updated);
         onClose();
-      }, 1500);
+      }, 1600);
     } catch (err: any) {
       setErrorMsg(err.message || 'Không thể gửi danh sách ảnh chọn. Vui lòng thử lại.');
-      setShowConfirmModal(false);
+      setShowConfirm(false);
     } finally {
       setSubmitting(false);
     }
   };
 
   const remaining = Math.max(0, selectionLimit - selectedIds.length);
+  const isAtLimit = selectedIds.length >= selectionLimit;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(28, 22, 18, 0.85)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header Bar */}
+    <>
+      {/* Full-screen gallery overlay */}
       <div
         style={{
-          padding: '1rem 1.5rem',
-          backgroundColor: '#FFFDF6',
-          borderBottom: '1px solid #EFE6C9',
+          position: 'fixed',
+          inset: 0,
+          background: 'var(--mipa-bg)',
+          zIndex: 9900,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
-        <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#8C6E53', letterSpacing: '0.05em' }}>
-            MAISON MIPA MEMORIES — CHỌN ẢNH HẬU KỲ
-          </div>
-          <h2 style={{ fontSize: '1.25rem', color: '#604634', margin: '0.1rem 0' }}>
-            {booking.bookingCode} — {booking.packageName}
-          </h2>
-        </div>
-
-        {/* Counter Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              padding: '0.45rem 1rem',
-              borderRadius: '20px',
-              backgroundColor: selectedIds.length === selectionLimit ? '#ECFDF5' : '#FFFBEB',
-              border: `1px solid ${selectedIds.length === selectionLimit ? '#6EE7B7' : '#FCD34D'}`,
-              color: selectedIds.length === selectionLimit ? '#065F46' : '#92400E',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <Sparkles size={16} />
-            Đã chọn {selectedIds.length} / {selectionLimit} ảnh {remaining > 0 ? `(Còn lại ${remaining})` : '(Đã đủ)'}
-          </div>
-
-          {selectedIds.length > 0 && (
-            <button
-              onClick={handleClearSelection}
-              disabled={submitting}
-              style={{
-                background: 'transparent',
-                border: '1px solid #D1C7BD',
-                borderRadius: '8px',
-                padding: '0.45rem 0.8rem',
-                fontSize: '0.82rem',
-                color: '#6E5F55',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-              }}
-            >
-              <RotateCcw size={14} /> Xóa chọn
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowConfirmModal(true)}
-            disabled={submitting || selectedIds.length === 0}
-            className="btn-mipa-gold"
-            style={{
-              padding: '0.55rem 1.4rem',
-              fontSize: '0.9rem',
-              cursor: selectedIds.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: selectedIds.length === 0 ? 0.6 : 1,
-            }}
-          >
-            Xác Nhận Danh Sách ({selectedIds.length})
-          </button>
-
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#604634',
-              padding: '0.4rem',
-              borderRadius: '50%',
-            }}
-            aria-label="Đóng"
-          >
-            <X size={24} />
-          </button>
-        </div>
-      </div>
-
-      {/* Error alert */}
-      {errorMsg && (
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <div
           style={{
-            margin: '0.8rem 1.5rem 0',
-            padding: '0.75rem 1rem',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            borderRadius: '10px',
-            color: '#991B1B',
-            fontSize: '0.86rem',
+            padding: '0.9rem 1.5rem',
+            background: 'var(--mipa-surface)',
+            borderBottom: '1px solid var(--mipa-border)',
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '0.5rem',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            flexShrink: 0,
           }}
         >
-          <AlertCircle size={16} /> {errorMsg}
-        </div>
-      )}
-
-      {/* Main Gallery Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#FFFDF6' }}>
-            <Camera size={42} color="#C6A45F" style={{ margin: '0 auto 1rem', animation: 'spin 2s linear infinite' }} />
-            <p style={{ fontSize: '1rem', fontWeight: 600 }}>Đang tải danh sách ảnh chụp thử (proofs)...</p>
-          </div>
-        ) : proofs.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '4rem 1.5rem',
-              backgroundColor: '#FFFDF6',
-              borderRadius: '16px',
-              maxWidth: '600px',
-              margin: '3rem auto',
-            }}
-          >
-            <Camera size={48} color="#C6A45F" style={{ margin: '0 auto 1rem' }} />
-            <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.5rem' }}>
-              Chưa có ảnh proof nào
-            </h3>
-            <p style={{ color: '#6E5F55', fontSize: '0.9rem' }}>
-              Nhiếp ảnh gia đang xử lý và tải ảnh proof lên thư mục. Quý khách vui lòng quay lại sau ít phút hoặc liên hệ Maison MIPA nếu cần hỗ trợ.
+          <div>
+            <p style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--mipa-gold)', letterSpacing: '0.08em', margin: 0 }}>
+              MAISON MIPA MEMORIES — CHỌN ẢNH HẬU KỲ
             </p>
+            <h2
+              style={{
+                fontFamily: 'var(--mipa-font-heading)',
+                fontSize: '1.15rem',
+                fontWeight: 600,
+                color: 'var(--mipa-text)',
+                margin: '0.15rem 0 0',
+              }}
+            >
+              {booking.bookingCode} — {booking.packageName}
+            </h2>
           </div>
-        ) : (
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Selection counter */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.35rem 0.85rem',
+                borderRadius: 'var(--radius-full)',
+                background: isAtLimit ? 'var(--mipa-success-soft)' : 'rgba(198, 164, 95, 0.12)',
+                border: `1px solid ${isAtLimit ? 'rgba(16, 185, 129, 0.4)' : 'var(--mipa-border)'}`,
+                color: isAtLimit ? 'var(--mipa-success)' : 'var(--mipa-gold)',
+                fontFamily: 'var(--mipa-font-body)',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+              }}
+            >
+              <Sparkles size={14} />
+              Đã chọn: {selectedIds.length} / {selectionLimit} ảnh
+              {remaining > 0 ? ` (Tối đa ${selectionLimit} ảnh)` : ' (Đã đủ)'}
+            </div>
+
+            {selectedIds.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<RotateCcw size={13} />}
+                onClick={() => { setSelectedIds([]); setErrorMsg(''); }}
+                disabled={submitting}
+              >
+                Xóa chọn
+              </Button>
+            )}
+
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={() => setShowConfirm(true)}
+              disabled={submitting || selectedIds.length === 0}
+              loading={submitting}
+            >
+              Xác nhận ({selectedIds.length})
+            </Button>
+
+            <button
+              onClick={onClose}
+              aria-label="Đóng"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--mipa-border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--mipa-text-muted)',
+                padding: '0.35rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'all var(--transition-fast)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--mipa-text)'; e.currentTarget.style.background = 'rgba(251,246,238,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--mipa-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Error Alert ─────────────────────────────────────────────────── */}
+        {errorMsg && (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '1.2rem',
+              margin: '0.75rem 1.5rem 0',
+              padding: '0.65rem 1rem',
+              background: 'var(--mipa-danger-soft)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--mipa-danger)',
+              fontFamily: 'var(--mipa-font-body)',
+              fontSize: '0.84rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexShrink: 0,
             }}
           >
-            {proofs.map((proof, idx) => {
-              const isSelected = selectedIds.includes(proof.id);
-              return (
-                <div
-                  key={proof.id}
-                  style={{
-                    position: 'relative',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    backgroundColor: '#261F1A',
-                    aspectRatio: '3 / 4',
-                    border: isSelected ? '3px solid #C6A45F' : '2px solid transparent',
-                    boxShadow: isSelected ? '0 0 16px rgba(198, 164, 95, 0.45)' : '0 4px 12px rgba(0,0,0,0.2)',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => toggleSelect(proof.id)}
-                >
-                  {/* Image Display */}
-                  <img
-                    src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80&sig=${idx}`}
-                    alt={proof.fileName}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.3s ease',
-                    }}
-                  />
-
-                  {/* Watermark/Proof tag */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      left: '8px',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: '#FFFDF6',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    #{idx + 1}
-                  </div>
-
-                  {/* Lightbox button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLightboxIndex(idx);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      bottom: '8px',
-                      right: '8px',
-                      background: 'rgba(0, 0, 0, 0.65)',
-                      border: 'none',
-                      color: '#FFFDF6',
-                      borderRadius: '6px',
-                      padding: '5px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                    title="Xem ảnh lớn"
-                  >
-                    <Maximize2 size={15} />
-                  </button>
-
-                  {/* Checkbox / Selection Indicator */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      backgroundColor: isSelected ? '#C6A45F' : 'rgba(0,0,0,0.5)',
-                      border: `2px solid ${isSelected ? '#FFFDF6' : 'rgba(255,255,255,0.7)'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#FFFDF6',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    {isSelected && <Check size={18} strokeWidth={3} />}
-                  </div>
-
-                  {/* File Name Label */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: '6px 8px',
-                      background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-                      color: '#FFFDF6',
-                      fontSize: '0.72rem',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {proof.fileName}
-                  </div>
-                </div>
-              );
-            })}
+            <AlertCircle size={15} strokeWidth={2.5} />
+            {errorMsg}
           </div>
         )}
+
+        {/* ── Gallery Grid ─────────────────────────────────────────────────── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
+          {loading ? (
+            <LoadingState label="Đang tải ảnh proof từ studio..." height={300} />
+          ) : loadError ? (
+            <ErrorState
+              title="Không tải được ảnh proof"
+              message={loadError}
+              onRetry={loadData}
+              height={300}
+            />
+          ) : proofs.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '1rem',
+                height: 300,
+                textAlign: 'center',
+                color: 'var(--mipa-text-muted)',
+              }}
+            >
+              <Camera size={42} color="var(--mipa-gold)" strokeWidth={1.5} />
+              <div>
+                <p style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.15rem', color: 'var(--mipa-text-soft)', margin: '0 0 0.4rem' }}>
+                  Chưa có ảnh proof nào
+                </p>
+                <p style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.85rem', maxWidth: 420 }}>
+                  Nhiếp ảnh gia đang xử lý và tải ảnh proof lên. Quý khách vui lòng quay lại sau hoặc liên hệ Maison MIPA nếu cần hỗ trợ.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '1rem',
+              }}
+            >
+              {proofs.map((proof, idx) => {
+                const isSelected = selectedIds.includes(proof.id);
+                return (
+                  <div
+                    key={proof.id}
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    tabIndex={0}
+                    onClick={() => toggleSelect(proof.id)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelect(proof.id); } }}
+                    style={{
+                      position: 'relative',
+                      borderRadius: 'var(--radius-md)',
+                      overflow: 'hidden',
+                      background: 'var(--mipa-surface-soft)',
+                      aspectRatio: '3 / 4',
+                      border: isSelected
+                        ? '2px solid var(--mipa-gold)'
+                        : '2px solid var(--mipa-border-subtle)',
+                      boxShadow: isSelected
+                        ? 'var(--shadow-gold)'
+                        : 'var(--shadow-sm)',
+                      transition: 'all var(--transition-normal)',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isSelected) e.currentTarget.style.borderColor = 'var(--mipa-border-hover)';
+                    }}
+                    onMouseLeave={e => {
+                      if (!isSelected) e.currentTarget.style.borderColor = 'var(--mipa-border-subtle)';
+                    }}
+                  >
+                    {/* Proof image */}
+                    <img
+                      src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=75&sig=${proof.id}`}
+                      alt={proof.fileName}
+                      loading="lazy"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform var(--transition-normal)',
+                      }}
+                    />
+
+                    {/* Number tag */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        left: 8,
+                        background: 'rgba(0,0,0,0.65)',
+                        color: 'var(--mipa-text)',
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-xs)',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        fontFamily: 'var(--mipa-font-body)',
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      #{idx + 1}
+                    </div>
+
+                    {/* Selection circle */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        background: isSelected ? 'var(--mipa-gold)' : 'rgba(0,0,0,0.55)',
+                        border: `2px solid ${isSelected ? 'var(--mipa-gold-light)' : 'rgba(255,255,255,0.5)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all var(--transition-fast)',
+                      }}
+                    >
+                      {isSelected && <Check size={15} strokeWidth={3} color="var(--mipa-espresso-dark)" />}
+                    </div>
+
+                    {/* Lightbox button */}
+                    <button
+                      onClick={e => { e.stopPropagation(); setLightboxIndex(idx); }}
+                      aria-label="Xem ảnh lớn"
+                      style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        right: 8,
+                        background: 'rgba(0,0,0,0.6)',
+                        border: 'none',
+                        color: 'var(--mipa-text)',
+                        borderRadius: 'var(--radius-xs)',
+                        padding: '5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        backdropFilter: 'blur(4px)',
+                        transition: 'background var(--transition-fast)',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(198, 164, 95, 0.7)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; }}
+                    >
+                      <Maximize2 size={13} />
+                    </button>
+
+                    {/* Filename gradient overlay */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        padding: '2rem 0.65rem 0.6rem',
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.72))',
+                        color: 'var(--mipa-text-soft)',
+                        fontSize: '0.68rem',
+                        fontFamily: 'var(--mipa-font-body)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {proof.fileName}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Lightbox Modal */}
+      {/* ── Lightbox ──────────────────────────────────────────────────────── */}
       {lightboxIndex !== null && proofs[lightboxIndex] && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 12, 10, 0.96)',
+            background: 'rgba(10, 8, 6, 0.97)',
             zIndex: 10000,
             display: 'flex',
             flexDirection: 'column',
@@ -421,151 +457,136 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              gap: '1rem',
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
+            {/* Close */}
+            <button
+              onClick={() => setLightboxIndex(null)}
+              style={{
+                position: 'absolute',
+                top: -12,
+                right: -12,
+                background: 'rgba(255,255,255,0.12)',
+                border: 'none',
+                color: '#fff',
+                borderRadius: '50%',
+                padding: 6,
+                cursor: 'pointer',
+                zIndex: 1,
+              }}
+            >
+              <X size={18} />
+            </button>
+
             <img
-              src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1400&q=85&sig=${lightboxIndex}`}
+              src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1400&q=85&sig=${proofs[lightboxIndex].id}`}
               alt={proofs[lightboxIndex].fileName}
               style={{
-                maxWidth: '90vw',
-                maxHeight: '75vh',
+                maxWidth: '88vw',
+                maxHeight: '72vh',
                 objectFit: 'contain',
-                borderRadius: '8px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 16px 64px rgba(0,0,0,0.8)',
               }}
             />
 
-            {/* Bottom Controls in Lightbox */}
-            <div
-              style={{
-                marginTop: '1rem',
-                display: 'flex',
-                gap: '1.5rem',
-                alignItems: 'center',
-                color: '#FFFDF6',
-              }}
-            >
+            {/* Lightbox controls */}
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <button
-                onClick={() => setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : proofs.length - 1))}
-                style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  border: 'none',
-                  color: '#FFF',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                }}
+                onClick={() => setLightboxIndex(i => (i !== null ? (i - 1 + proofs.length) % proofs.length : 0))}
+                style={{ background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                aria-label="Ảnh trước"
               >
-                <ChevronLeft size={22} />
+                <ChevronLeft size={20} />
               </button>
 
-              <button
+              <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)' }}>
+                {lightboxIndex + 1} / {proofs.length}
+              </span>
+
+              <Button
+                variant={selectedIds.includes(proofs[lightboxIndex].id) ? 'success' : 'gold'}
+                size="sm"
+                icon={selectedIds.includes(proofs[lightboxIndex].id) ? <Check size={13} /> : undefined}
                 onClick={() => toggleSelect(proofs[lightboxIndex].id)}
-                className={selectedIds.includes(proofs[lightboxIndex].id) ? 'btn-mipa-gold' : 'btn-mipa-secondary'}
-                style={{ padding: '0.55rem 1.6rem', fontSize: '0.9rem' }}
               >
-                {selectedIds.includes(proofs[lightboxIndex].id) ? '✓ Đã Chọn Ảnh Này' : '+ Chọn Ảnh Này'}
-              </button>
+                {selectedIds.includes(proofs[lightboxIndex].id) ? 'Đã chọn ảnh này' : 'Chọn ảnh này'}
+              </Button>
 
               <button
-                onClick={() => setLightboxIndex((prev) => (prev !== null && prev < proofs.length - 1 ? prev + 1 : 0))}
-                style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  border: 'none',
-                  color: '#FFF',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                }}
+                onClick={() => setLightboxIndex(i => (i !== null ? (i + 1) % proofs.length : 0))}
+                style={{ background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                aria-label="Ảnh tiếp theo"
               >
-                <ChevronRight size={22} />
+                <ChevronRight size={20} />
               </button>
             </div>
+
+            <p style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+              Dùng ← → để điều hướng · Space để chọn · Esc để đóng
+            </p>
           </div>
         </div>
       )}
 
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
+      {/* ── Confirm dialog ──────────────────────────────────────────────── */}
+      {submitSuccess ? (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.65)',
             zIndex: 10001,
+            background: 'rgba(10, 8, 6, 0.85)',
             display: 'flex',
-            justifyContent: 'center',
             alignItems: 'center',
-            padding: '1.5rem',
+            justifyContent: 'center',
           }}
         >
           <div
-            className="mipa-card"
             style={{
-              padding: '2rem',
-              borderRadius: '16px',
-              maxWidth: '480px',
-              width: '100%',
+              background: 'var(--mipa-surface)',
+              border: '1px solid var(--mipa-border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '2.5rem',
+              maxWidth: 400,
               textAlign: 'center',
+              boxShadow: 'var(--shadow-lg)',
             }}
           >
-            {submitSuccess ? (
-              <div>
-                <CheckCircle2 size={54} color="#059669" style={{ margin: '0 auto 1rem' }} />
-                <h3 style={{ fontSize: '1.35rem', color: '#065F46', marginBottom: '0.5rem' }}>
-                  Xác Nhận Thành Công!
-                </h3>
-                <p style={{ color: '#6E5F55', fontSize: '0.92rem' }}>
-                  Maison MIPA đã nhận danh sách {selectedIds.length} ảnh chọn của bạn và sẽ bắt đầu quá trình hậu kỳ ngay lập tức.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <Sparkles size={44} color="#C6A45F" style={{ margin: '0 auto 1rem' }} />
-                <h3 style={{ fontSize: '1.35rem', color: '#604634', marginBottom: '0.6rem' }}>
-                  Xác Nhận Danh Sách Ảnh Hậu Kỳ
-                </h3>
-                <p style={{ color: '#6E5F55', fontSize: '0.92rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-                  Bạn đã chọn <strong>{selectedIds.length}</strong> / {selectionLimit} ảnh.
-                  <br />
-                  Sau khi gửi, Maison MIPA sẽ bắt đầu hậu kỳ và bạn sẽ không thể tự thay đổi danh sách.
-                </p>
-
-                <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => setShowConfirmModal(false)}
-                    disabled={submitting}
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid #D1C7BD',
-                      borderRadius: '10px',
-                      padding: '0.65rem 1.4rem',
-                      fontWeight: 600,
-                      color: '#6E5F55',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Xem Lại
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="btn-mipa-gold"
-                    style={{
-                      padding: '0.65rem 1.8rem',
-                      fontWeight: 700,
-                      cursor: submitting ? 'wait' : 'pointer',
-                    }}
-                  >
-                    {submitting ? 'Đang Gửi...' : 'XÁC NHẬN GỬI'}
-                  </button>
-                </div>
-              </div>
-            )}
+            <CheckCircle2 size={52} color="var(--mipa-success)" style={{ margin: '0 auto 1rem' }} />
+            <h3 style={{ fontFamily: 'var(--mipa-font-heading)', fontSize: '1.35rem', color: 'var(--mipa-text)', marginBottom: '0.5rem' }}>
+              Xác Nhận Thành Công!
+            </h3>
+            <p style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.9rem', color: 'var(--mipa-text-soft)', lineHeight: 1.6 }}>
+              Maison MIPA đã nhận danh sách <strong>{selectedIds.length}</strong> ảnh của bạn và sẽ bắt đầu hậu kỳ ngay lập tức.
+            </p>
           </div>
         </div>
+      ) : (
+        <ConfirmDialog
+          open={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={handleSubmit}
+          title="Xác nhận danh sách ảnh hậu kỳ"
+          message={
+            <>
+              Bạn đã chọn <strong>{selectedIds.length}</strong> / {selectionLimit} ảnh.
+              <br />
+              <span style={{ fontFamily: 'var(--mipa-font-body)', fontSize: '0.8rem', color: 'var(--mipa-text-muted)', display: 'block', marginTop: '0.5rem' }}>
+                Sau khi gửi, Maison MIPA sẽ bắt đầu hậu kỳ và bạn sẽ không thể tự thay đổi danh sách.
+              </span>
+            </>
+          }
+          confirmLabel="Xác nhận gửi"
+          cancelLabel="Xem lại"
+          variant="info"
+          loading={submitting}
+        />
       )}
-    </div>
+    </>
   );
 };
+
+export default CustomerProofGallery;

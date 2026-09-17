@@ -135,3 +135,51 @@ Operators must **never** configure payOS API keys or webhook URLs as prerequisit
 
 - **PRODUCTION_READY**: `YES`
 - **BLOCKERS**: `NONE`
+
+---
+
+## 9. Full Product Completion V1 — Release Record
+
+> **Branch**: `ai/full-product-completion-v1`  
+> **Scope**: UI/UX master polish + functional hardening + customer/staff/admin experience
+
+### Migration Added
+- `20260917000005_full_product_completion_hardening.sql`
+  - RLS hardening: revoke direct INSERT/UPDATE/DELETE on `booking_photo_selections` from `authenticated`
+  - Authoritative `submit_photo_selection` RPC: atomic selection, server-enforced limit, audit log
+  - `update_booking_status` strict transition matrix
+  - All lifecycle RPCs normalized to return full booking JSONB
+  - `notification_outbox(idempotency_key)` unique index
+
+### Design System
+- `src/styles/tokens.css` — Authoritative design tokens (colors, spacing, radius, shadows, transitions)
+- `src/index.css` — Unified with tokens, backward-compatible legacy aliases
+
+### UI Primitives Created
+- `src/components/ui/Button.tsx` — gold/outline/ghost/danger/success variants
+- `src/components/ui/Badge.tsx` — StatusBadge + generic Badge with domain booking status labels (Vietnamese)
+- `src/components/ui/Modal.tsx` — accessible dialog (Escape, backdrop, focus trap)
+- `src/components/ui/Drawer.tsx` — slide-over panel
+- `src/components/ui/ConfirmDialog.tsx` — standardized confirm
+- `src/components/ui/AsyncStates.tsx` — LoadingState, ErrorState, EmptyState
+
+### Components Upgraded
+- `CustomerProofGallery.tsx` — dark theme, "Đã chọn: X / N ảnh (Tối đa N ảnh)" counter, keyboard lightbox
+- `ManagerDashboard.tsx` — dark theme header + pipeline, StatusBadge integration
+- `ReceptionistPortal.tsx` — dark theme, Button + StatusBadge, checkInBooking RPC direct call
+- `PhotographerPortal.tsx` — dark theme, Button + StatusBadge, start/complete shoot RPC direct call
+- `EditorPortal.tsx` — dark theme, Button + StatusBadge, completeBookingEditing RPC direct call
+
+### Service Layer Fixes
+- `photoWorkflowService.ts` — fixed `photos_count` → `edited_photos_count` (authoritative column)
+
+### Documentation Created
+- `PRODUCT_FLOW.md` — full product flow specification
+- `DESIGN_SYSTEM.md` — design system reference
+- `OPERATIONS_WORKFLOW.md` — studio operations guide
+- `SECURITY_MODEL.md` — RLS, RBAC, Drive security architecture
+
+### Test Results
+- `npm run build` — ✅ Clean (0 TypeScript errors)
+- `npm run test:run` — ✅ 48 test files, 457 tests — all PASS
+- Web payment runtime — ✅ ZERO (unchanged)

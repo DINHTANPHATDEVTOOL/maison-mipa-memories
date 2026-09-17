@@ -1,34 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap');
+@import './styles/tokens.css';
 @import './styles/editorial.css';
 @import './styles/visual-commerce.css';
 
 :root {
-  --mipa-cream: #221A15;
-  --mipa-beige: #2C221C;
-  --mipa-brown: #C6A45F;
-  --mipa-dark-brown: #E0C287;
-  --mipa-gold: #C6A45F;
-  --mipa-background: #15110E;
+  /* ── Legacy aliases — keep old names working ──────────────────────────────── */
+  --mipa-cream: var(--mipa-surface-card);
+  --mipa-beige: var(--mipa-surface-soft);
+  --mipa-brown: var(--mipa-gold);
+  --mipa-dark-brown: var(--mipa-gold-light);
+  --mipa-background: var(--mipa-bg);
   --mipa-white: #FFFFFF;
-  
-  --mipa-text-main: #FBF6EE;
-  --mipa-text-muted: #D1C4B7;
-  --mipa-text-light: #A39385;
-  
-  --mipa-border: rgba(198, 164, 95, 0.18);
-  --mipa-border-hover: rgba(224, 194, 135, 0.5);
-  
-  --mipa-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --mipa-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
-  --mipa-shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
-  
-  --mipa-font-heading: 'Cormorant Garamond', Georgia, serif;
-  --mipa-font-body: 'Be Vietnam Pro', system-ui, sans-serif;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 14px;
-  --radius-full: 9999px;
+  --mipa-text-main: var(--mipa-text);
+  --mipa-text-light: var(--mipa-text-muted);
+
+  --mipa-shadow-sm: var(--shadow-sm);
+  --mipa-shadow-md: var(--shadow-md);
+  --mipa-shadow-lg: var(--shadow-lg);
+
+  /* ── Spin animation for loaders ──────────────────────────────────────────── */
+  /* (declared here so it's available globally) */
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes mipa-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
 
 * {
