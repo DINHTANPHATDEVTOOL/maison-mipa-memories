@@ -1,34 +1,18 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ManagerDashboard } from '../components/management/ManagerDashboard';
-import { StudioCalendar } from '../components/management/StudioCalendar';
-import { CustomerCRM } from '../components/management/CustomerCRM';
-import { CrmFollowUpDashboard } from '../components/management/CrmFollowUpDashboard';
-import { FinancialLedgerDashboard } from '../components/management/FinancialLedgerDashboard';
-import { BusinessIntelligenceDashboard } from '../components/management/BusinessIntelligenceDashboard';
-import { PortfolioCMS } from '../components/management/PortfolioCMS';
-import { DailyOperationsBoard } from '../components/management/DailyOperationsBoard';
-import { TomorrowPrepBoard } from '../components/management/TomorrowPrepBoard';
 import { WorkforceScheduling } from '../components/management/WorkforceScheduling';
-import { ResourceInventory } from '../components/management/ResourceInventory';
-import { OperationsCalendar } from '../components/management/OperationsCalendar';
-import { BookingCrewAndResourcePlanner } from '../components/management/BookingCrewAndResourcePlanner';
+import { FinancialLedgerDashboard } from '../components/management/FinancialLedgerDashboard';
+import { PortfolioCMS } from '../components/management/PortfolioCMS';
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
 import {
-  LayoutDashboard,
-  Clock,
   Users,
-  CheckCircle2,
   DollarSign,
-  TrendingUp,
   Camera,
+  CalendarCheck,
   Shield,
   Crown,
-  Sparkles,
-  CalendarCheck,
-  Calendar as CalendarIcon,
-  Package,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
@@ -53,22 +37,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
   onRequireAuth,
 }) => {
   const { user, isRootOwner } = useAuth();
-  const [subTab, setSubTab] = useState<
-    | 'dashboard'
-    | 'operations'
-    | 'tomorrow'
-    | 'calendar'
-    | 'ops_calendar'
-    | 'workforce'
-    | 'resources'
-    | 'crm'
-    | 'followup'
-    | 'finance'
-    | 'analytics'
-    | 'portfolio'
-  >('dashboard');
-
-  const [plannerBooking, setPlannerBooking] = useState<Booking | null>(null);
+  const [subTab, setSubTab] = useState<'dashboard' | 'workforce' | 'finance' | 'portfolio'>('dashboard');
 
   return (
     <RoleGuard
@@ -76,21 +45,21 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
       onRequireAuth={onRequireAuth}
     >
       <SeoHead
-        title="Studio Manager OS — Quản Lý Vận Hành | Maison MIPA Memories"
-        description="Hệ thống vận hành studio, quản lý lịch phòng, doanh thu và CRM khách hàng."
+        title="Studio Management System — Điều Phối & Vận Hành | Maison MIPA Memories"
+        description="Hệ thống điều phối kíp chụp, quản lý tiến độ đơn hàng, nhân sự và doanh thu theo thời gian thực."
         noIndex={true}
       />
 
-      {/* Sub Navigation Bar for Manager OS */}
+      {/* Sub Navigation Bar for Manager OS - Streamlined to 4 Core Tabs */}
       <div style={{
         backgroundColor: '#604634',
         color: '#EFE6C9',
-        padding: '0.45rem 1rem',
+        padding: '0.5rem 1rem',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: '0.5rem',
-        fontSize: '0.82rem',
+        gap: '0.6rem',
+        fontSize: '0.85rem',
         borderBottom: '1px solid rgba(239, 230, 201, 0.15)',
         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
         flexWrap: 'wrap',
@@ -101,74 +70,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'dashboard' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <LayoutDashboard size={14} color="#EFE6C9" /> Tổng quan
-        </button>
-
-        <button
-          onClick={() => setSubTab('operations')}
-          style={{
-            border: 'none',
-            background: subTab === 'operations' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Sparkles size={14} color="#C6A45F" /> Hôm nay
-        </button>
-
-        <button
-          onClick={() => setSubTab('tomorrow')}
-          style={{
-            border: 'none',
-            background: subTab === 'tomorrow' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <CalendarCheck size={14} color="#EFE6C9" /> Chuẩn bị ngày mai
-        </button>
-
-        <button
-          onClick={() => setSubTab('ops_calendar')}
-          style={{
-            border: 'none',
-            background: subTab === 'ops_calendar' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <CalendarIcon size={14} color="#EFE6C9" /> Lịch vận hành
+          <CalendarCheck size={16} color={subTab === 'dashboard' ? '#FFFDF6' : '#EFE6C9'} />
+          Lịch Booking & Vận Hành
         </button>
 
         <button
@@ -177,93 +90,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'workforce' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Users size={14} color="#EFE6C9" /> Nhân sự & Lịch trực
-        </button>
-
-        <button
-          onClick={() => setSubTab('resources')}
-          style={{
-            border: 'none',
-            background: subTab === 'resources' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Package size={14} color="#EFE6C9" /> Thiết bị & Kho
-        </button>
-
-        <button
-          onClick={() => setSubTab('calendar')}
-          style={{
-            border: 'none',
-            background: subTab === 'calendar' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Clock size={14} color="#EFE6C9" /> Lịch phòng
-        </button>
-
-        <button
-          onClick={() => setSubTab('crm')}
-          style={{
-            border: 'none',
-            background: subTab === 'crm' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Users size={14} color="#EFE6C9" /> CRM khách hàng
-        </button>
-
-        <button
-          onClick={() => setSubTab('followup')}
-          style={{
-            border: 'none',
-            background: subTab === 'followup' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <CheckCircle2 size={14} color="#EFE6C9" /> Follow-up
+          <Users size={16} color={subTab === 'workforce' ? '#FFFDF6' : '#EFE6C9'} />
+          Nhân Sự & Lịch Làm Việc
         </button>
 
         <button
@@ -272,36 +110,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'finance' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <DollarSign size={14} color="#EFE6C9" /> Tài chính
-        </button>
-
-        <button
-          onClick={() => setSubTab('analytics')}
-          style={{
-            border: 'none',
-            background: subTab === 'analytics' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <TrendingUp size={14} color="#EFE6C9" /> Phân tích & BI
+          <DollarSign size={16} color={subTab === 'finance' ? '#FFFDF6' : '#EFE6C9'} />
+          Doanh Thu & Tài Chính
         </button>
 
         <button
@@ -310,17 +130,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'portfolio' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Camera size={14} color="#EFE6C9" /> Portfolio & Concept CMS
+          <Camera size={16} color={subTab === 'portfolio' ? '#FFFDF6' : '#EFE6C9'} />
+          Portfolio & Concept CMS
         </button>
 
         {(user?.role === 'ADMIN' || isRootOwner) && (
@@ -331,14 +152,14 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
               background: 'rgba(255, 253, 246, 0.08)',
               border: '1px solid rgba(198, 164, 95, 0.4)',
               color: '#FFFDF6',
-              padding: '0.35rem 0.75rem',
+              padding: '0.4rem 0.85rem',
               borderRadius: '12px',
               fontWeight: 600,
               fontSize: '0.82rem',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              marginLeft: '0.2rem',
+              marginLeft: '0.4rem',
               transition: 'all 0.2s ease',
             }}
           >
@@ -357,43 +178,10 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           onUpdateStatus={onUpdateStatus}
           onAssignStaff={onAssignStaff}
           onNavigateTab={(tab) => {
-            if (tab === 'studio_calendar') setSubTab('calendar');
-            else if (tab === 'customer_crm') setSubTab('crm');
-            else if (tab === 'portfolio_cms') setSubTab('portfolio');
+            if (tab === 'workforce') setSubTab('workforce');
+            else if (tab === 'finance') setSubTab('finance');
+            else if (tab === 'portfolio_cms' || tab === 'portfolio') setSubTab('portfolio');
             else setSubTab('dashboard');
-          }}
-        />
-      )}
-
-      {subTab === 'operations' && (
-        <DailyOperationsBoard
-          onNavigateToStaff={() => setSubTab('workforce')}
-          onNavigateToResources={() => setSubTab('resources')}
-          onOpenBookingDetails={(id) => {
-            const b = bookings.find(item => item.id === id);
-            if (b) setPlannerBooking(b);
-          }}
-        />
-      )}
-
-      {subTab === 'tomorrow' && (
-        <TomorrowPrepBoard
-          onOpenBookingDetails={(id) => {
-            const b = bookings.find(item => item.id === id);
-            if (b) setPlannerBooking(b);
-          }}
-          onOpenPlanner={(id) => {
-            const b = bookings.find(item => item.id === id);
-            if (b) setPlannerBooking(b);
-          }}
-        />
-      )}
-
-      {subTab === 'ops_calendar' && (
-        <OperationsCalendar
-          onOpenBooking={(id) => {
-            const b = bookings.find(item => item.id === id);
-            if (b) setPlannerBooking(b);
           }}
         />
       )}
@@ -402,51 +190,17 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         <WorkforceScheduling />
       )}
 
-      {subTab === 'resources' && (
-        <ResourceInventory />
-      )}
-
-      {subTab === 'calendar' && (
-        <StudioCalendar
-          bookings={bookings}
-          studios={studios}
-          onOpenBooking={onOpenBooking}
-        />
-      )}
-
-      {subTab === 'crm' && (
-        <CustomerCRM
-          bookings={bookings}
-        />
-      )}
-
-      {subTab === 'followup' && (
-        <CrmFollowUpDashboard />
-      )}
-
       {subTab === 'finance' && (
         <FinancialLedgerDashboard
           bookings={bookings}
         />
       )}
 
-      {subTab === 'analytics' && (
-        <BusinessIntelligenceDashboard />
-      )}
-
       {subTab === 'portfolio' && (
         <PortfolioCMS />
-      )}
-
-      {plannerBooking && (
-        <BookingCrewAndResourcePlanner
-          booking={plannerBooking}
-          onClose={() => setPlannerBooking(null)}
-        />
       )}
     </RoleGuard>
   );
 };
 
 export default ManagementPage;
-

@@ -37,6 +37,12 @@
   box-sizing: border-box;
 }
 
+.mipa-story-card {
+  grid-column: span 6; /* Safe fallback: never collapse into 1-col strip */
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .story-card-wide,
 .story-card-feature {
   grid-column: span 8;
@@ -46,6 +52,7 @@
   grid-column: span 4;
 }
 
+.story-card-half,
 .story-card-balanced,
 .story-card-standard {
   grid-column: span 6;
@@ -131,10 +138,11 @@
   }
   .story-card-wide,
   .story-card-tall,
+  .story-card-half,
   .story-card-balanced,
   .story-card-feature,
   .story-card-standard {
-    grid-column: span 1;
+    grid-column: span 1 !important;
   }
 
   .concept-gallery-grid {
@@ -174,6 +182,7 @@
   .concept-card-standard,
   .story-card-wide,
   .story-card-tall,
+  .story-card-half,
   .story-card-balanced,
   .story-card-feature,
   .story-card-standard,

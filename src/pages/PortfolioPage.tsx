@@ -143,29 +143,36 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
         {/* 1. LOADING STATE (Editorial Skeleton Grid) */}
         {isLoading && (
           <div className="story-editorial-grid">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className={n === 1 ? 'mipa-story-card story-card-feature' : 'mipa-story-card story-card-half'}
-                style={{
-                  backgroundColor: '#FFFDF9',
-                  border: '1px solid rgba(140, 110, 83, 0.2)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div style={{ aspectRatio: '16/10', backgroundColor: 'rgba(140, 110, 83, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: '#8C6E53', fontSize: '0.8rem', letterSpacing: '0.1em' }}>Đang tải câu chuyện...</span>
+            {[0, 1, 2, 3].map((idx) => {
+              const cardClass = idx === 0 ? 'story-card-feature' : idx === 1 ? 'story-card-tall' : 'story-card-half';
+              const aspectRatio = idx === 1 ? '4/5' : '16/10';
+              return (
+                <div
+                  key={idx}
+                  className={`mipa-story-card ${cardClass}`}
+                  style={{
+                    backgroundColor: '#FFFDF9',
+                    border: '1px solid rgba(140, 110, 83, 0.2)',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minWidth: 0,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div style={{ aspectRatio, backgroundColor: 'rgba(140, 110, 83, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ color: '#8C6E53', fontSize: '0.8rem', letterSpacing: '0.1em' }}>Đang tải câu chuyện...</span>
+                  </div>
+                  <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ height: '12px', width: '30%', backgroundColor: 'rgba(140, 110, 83, 0.12)', borderRadius: '3px' }} />
+                    <div style={{ height: '22px', width: '65%', backgroundColor: 'rgba(140, 110, 83, 0.18)', borderRadius: '4px' }} />
+                    <div style={{ height: '14px', width: '90%', backgroundColor: 'rgba(140, 110, 83, 0.08)', borderRadius: '3px' }} />
+                  </div>
                 </div>
-                <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  <div style={{ height: '12px', width: '30%', backgroundColor: 'rgba(140, 110, 83, 0.12)', borderRadius: '3px' }} />
-                  <div style={{ height: '22px', width: '65%', backgroundColor: 'rgba(140, 110, 83, 0.18)', borderRadius: '4px' }} />
-                  <div style={{ height: '14px', width: '90%', backgroundColor: 'rgba(140, 110, 83, 0.08)', borderRadius: '3px' }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -217,18 +224,23 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
           </div>
         )}
 
-        {/* 4. READY STATE: Editorial Varied Rhythm Grid */}
+        {/* 4. READY STATE: Editorial Varied Rhythm Grid (8+4=12, 6+6=12) */}
         {!isLoading && !hasError && collections.length > 0 && (
           <div className="story-editorial-grid">
             {collections.map((col, index) => {
+              const cycle = index % 4;
               let cardClass = 'story-card-half';
               let aspectRatio = '16/10';
-              if (index % 5 === 0) {
+
+              if (cycle === 0) {
                 cardClass = 'story-card-feature';
                 aspectRatio = '16/10';
-              } else if (index % 5 === 1) {
+              } else if (cycle === 1) {
                 cardClass = 'story-card-tall';
                 aspectRatio = '4/5';
+              } else {
+                cardClass = 'story-card-half';
+                aspectRatio = '16/10';
               }
 
               const coverUrl = col.coverPhotoUrl || (col.photos && col.photos[0]?.url);
@@ -245,6 +257,9 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                     overflow: 'hidden',
                     border: '1px solid rgba(140, 110, 83, 0.2)',
                     transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
+                    minWidth: 0,
+                    width: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
                   {/* Visual Photography Frame */}

@@ -419,6 +419,7 @@ export interface PortfolioCollection {
   conceptName?: string;
   conceptSlug?: string;
   serviceId?: string;
+  category?: string;
   status: CollectionStatus;
   featured: boolean;
   coverPhotoId?: string;

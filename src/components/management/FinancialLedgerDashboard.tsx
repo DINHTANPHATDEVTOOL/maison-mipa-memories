@@ -43,6 +43,7 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
   // Filters
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [methodFilter, setMethodFilter] = useState<string>('');
+  const [periodFilter, setPeriodFilter] = useState<'ALL' | 'TODAY' | 'THIS_MONTH' | 'THIS_YEAR'>('ALL');
 
   // Modal "Xác nhận đã thu phần còn lại"
   const [showReceiptModal, setShowReceiptModal] = useState<boolean>(false);
@@ -147,16 +148,60 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
     }
   };
 
+  // Date and Revenue Calculations (Day, Month, Year)
+  const todayVn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date()); // YYYY-MM-DD
+  const monthVn = todayVn.slice(0, 7); // YYYY-MM
+  const yearVn = todayVn.slice(0, 4); // YYYY
+
+  // Calculate revenue from transactions
+  const revenueTodayFromTx = transactions
+    .filter(t => t.direction === 'IN' && (t.receivedAt || t.createdAt || '').slice(0, 10) === todayVn)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const revenueThisMonthFromTx = transactions
+    .filter(t => t.direction === 'IN' && (t.receivedAt || t.createdAt || '').slice(0, 7) === monthVn)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const revenueThisYearFromTx = transactions
+    .filter(t => t.direction === 'IN' && (t.receivedAt || t.createdAt || '').slice(0, 4) === yearVn)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Fallback calculations from bookings if ledger transactions are fresh
+  const bksRevenueToday = bookings
+    .filter(b => b.bookingDate === todayVn && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus))
+    .reduce((sum, b) => sum + (b.paymentStatus === 'FULLY_PAID' ? b.totalAmount : b.depositAmount), 0);
+
+  const bksRevenueThisMonth = bookings
+    .filter(b => (b.bookingDate || '').slice(0, 7) === monthVn && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus))
+    .reduce((sum, b) => sum + (b.paymentStatus === 'FULLY_PAID' ? b.totalAmount : b.depositAmount), 0);
+
+  const bksRevenueThisYear = bookings
+    .filter(b => (b.bookingDate || '').slice(0, 4) === yearVn && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus))
+    .reduce((sum, b) => sum + (b.paymentStatus === 'FULLY_PAID' ? b.totalAmount : b.depositAmount), 0);
+
+  const finalRevenueToday = revenueTodayFromTx > 0 ? revenueTodayFromTx : bksRevenueToday;
+  const finalRevenueMonth = revenueThisMonthFromTx > 0 ? revenueThisMonthFromTx : bksRevenueThisMonth;
+  const finalRevenueYear = revenueThisYearFromTx > 0 ? revenueThisYearFromTx : (bksRevenueThisYear > 0 ? bksRevenueThisYear : (summary?.actualCashReceived || 0));
+
+  // Filtered transactions for the table
+  const displayedTransactions = transactions.filter(t => {
+    const txDate = (t.receivedAt || t.createdAt || '').slice(0, 10);
+    if (periodFilter === 'TODAY' && txDate !== todayVn) return false;
+    if (periodFilter === 'THIS_MONTH' && !txDate.startsWith(monthVn)) return false;
+    if (periodFilter === 'THIS_YEAR' && !txDate.startsWith(yearVn)) return false;
+    return true;
+  });
+
   return (
     <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1.5rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <ShieldCheck size={15} color="#047857" /> SỔ QUỸ & TÀI CHÍNH NỘI BỘ (STAFF ONLY)
+            <ShieldCheck size={15} color="#047857" /> BÁO CÁO DOANH THU & SỔ QUỸ STUDIO
           </div>
           <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: '0.2rem 0 0 0', fontFamily: 'Cinzel, serif', fontWeight: 600 }}>
-            Quản Lý Thu Tiền & Sổ Quỹ Studio
+            Tổng Hợp Doanh Thu Theo Ngày, Tháng, Năm
           </h2>
         </div>
 
@@ -215,52 +260,70 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
         </div>
       </div>
 
-      {/* Financial Metric Cards */}
-      {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ backgroundColor: '#FFFFFF', padding: '1.2rem', borderRadius: '16px', border: '1px solid #EFE6C9' }}>
-            <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 600 }}>Giá Trị Booking Đã Chốt</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#604634', marginTop: '0.3rem' }}>
-              {summary.confirmedBookingValue.toLocaleString('vi-VN')}đ
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.2rem' }}>Tổng giá trị hợp đồng</div>
+      {/* Primary Revenue Cards: Ngày / Tháng / Năm / Quỹ Thực Tế */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.3rem', borderRadius: '16px', border: '1px solid #EFE6C9', boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>☀️</span> DOANH THU HÔM NAY (NGÀY)
           </div>
-
-          <div style={{ backgroundColor: '#ECFDF5', padding: '1.2rem', borderRadius: '16px', border: '1px solid #A7F3D0' }}>
-            <div style={{ fontSize: '0.78rem', color: '#047857', textTransform: 'uppercase', fontWeight: 600 }}>Thực Thu Thực Tế (Net Cash)</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#065F46', marginTop: '0.3rem' }}>
-              {summary.actualCashReceived.toLocaleString('vi-VN')}đ
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.2rem' }}>Tiền thực tế đã vào quỹ</div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#604634', marginTop: '0.4rem' }}>
+            {finalRevenueToday.toLocaleString('vi-VN')} đ
           </div>
-
-          <div style={{ backgroundColor: '#FFFFFF', padding: '1.2rem', borderRadius: '16px', border: '1px solid #EFE6C9' }}>
-            <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 600 }}>Tiền Cọc Đã Xác Nhận</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#604634', marginTop: '0.3rem' }}>
-              {summary.confirmedDeposits.toLocaleString('vi-VN')}đ
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.2rem' }}>Cọc giữ lịch studio</div>
-          </div>
-
-          <div style={{ backgroundColor: summary.outstandingBalance > 0 ? '#FFFBEB' : '#FFFFFF', padding: '1.2rem', borderRadius: '16px', border: `1px solid ${summary.outstandingBalance > 0 ? '#FDE68A' : '#EFE6C9'}` }}>
-            <div style={{ fontSize: '0.78rem', color: summary.outstandingBalance > 0 ? '#B45309' : '#8C6E53', textTransform: 'uppercase', fontWeight: 600 }}>Còn Phải Thu</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: summary.outstandingBalance > 0 ? '#92400E' : '#10B981', marginTop: '0.3rem' }}>
-              {summary.outstandingBalance.toLocaleString('vi-VN')}đ
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.2rem' }}>Số dư còn nợ</div>
-          </div>
-
-          <div style={{ backgroundColor: '#FFFFFF', padding: '1.2rem', borderRadius: '16px', border: '1px solid #EFE6C9' }}>
-            <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 600 }}>Hoàn Tiền (Refunds)</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#DC2626', marginTop: '0.3rem' }}>
-              {summary.totalRefunded.toLocaleString('vi-VN')}đ
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.2rem' }}>Đã hoàn cho khách hủy</div>
+          <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.25rem' }}>
+            Ngày: {todayVn}
           </div>
         </div>
-      )}
 
-      {/* Filter Row */}
+        <div style={{ backgroundColor: '#ECFDF5', padding: '1.3rem', borderRadius: '16px', border: '1px solid #A7F3D0', boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#047857', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>🗓️</span> DOANH THU THÁNG NÀY
+          </div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#065F46', marginTop: '0.4rem' }}>
+            {finalRevenueMonth.toLocaleString('vi-VN')} đ
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.25rem' }}>
+            Tháng {monthVn}
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.3rem', borderRadius: '16px', border: '1px solid #C6A45F', boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>📈</span> DOANH THU NĂM NAY
+          </div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#604634', marginTop: '0.4rem' }}>
+            {finalRevenueYear.toLocaleString('vi-VN')} đ
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.25rem' }}>
+            Năm tài chính {yearVn}
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: '#FFFDF6', padding: '1.3rem', borderRadius: '16px', border: '1px solid #EFE6C9', boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>💰</span> TỔNG CỌC & ĐÃ THU
+          </div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#604634', marginTop: '0.4rem' }}>
+            {(summary?.actualCashReceived || 0).toLocaleString('vi-VN')} đ
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.25rem' }}>
+            Tổng tiền đã vào quỹ studio
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: (summary?.outstandingBalance || 0) > 0 ? '#FFFBEB' : '#FFFFFF', padding: '1.3rem', borderRadius: '16px', border: `1px solid ${(summary?.outstandingBalance || 0) > 0 ? '#FDE68A' : '#EFE6C9'}`, boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
+          <div style={{ fontSize: '0.78rem', color: (summary?.outstandingBalance || 0) > 0 ? '#B45309' : '#8C6E53', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>⏳</span> DƯ NỢ CÒN PHẢI THU
+          </div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: (summary?.outstandingBalance || 0) > 0 ? '#92400E' : '#10B981', marginTop: '0.4rem' }}>
+            {(summary?.outstandingBalance || 0).toLocaleString('vi-VN')} đ
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.25rem' }}>
+            Chờ thu khi giao ảnh
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Row with Period Buttons */}
       <div style={{
         backgroundColor: '#FFFFFF',
         padding: '1rem 1.2rem',
@@ -269,37 +332,72 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
         display: 'flex',
         gap: '1rem',
         alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: '1.5rem',
         flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#604634', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Filter size={15} /> Lọc giao dịch:
-        </span>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="mipa-input"
-          style={{ height: '36px', minWidth: '160px' }}
-        >
-          <option value="">Tất cả loại giao dịch</option>
-          <option value="DEPOSIT">Đặt cọc (DEPOSIT)</option>
-          <option value="BALANCE">Thanh toán nốt (BALANCE)</option>
-          <option value="ADDITIONAL_CHARGE">Phụ phí (ADDITIONAL_CHARGE)</option>
-          <option value="REFUND">Hoàn tiền (REFUND)</option>
-          <option value="ADJUSTMENT">Điều chỉnh (ADJUSTMENT)</option>
-        </select>
+        {/* Quick Period Filter Buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginRight: '0.2rem' }}>
+            Xem doanh thu:
+          </span>
+          {[
+            { id: 'ALL', label: 'Tất Cả' },
+            { id: 'TODAY', label: '☀️ Hôm Nay' },
+            { id: 'THIS_MONTH', label: '🗓️ Tháng Này' },
+            { id: 'THIS_YEAR', label: '📈 Năm Nay' },
+          ].map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPeriodFilter(p.id as any)}
+              style={{
+                border: 'none',
+                background: periodFilter === p.id ? '#8C6E53' : '#F7F3EB',
+                color: periodFilter === p.id ? '#FFFDF6' : '#604634',
+                padding: '0.45rem 0.95rem',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
 
-        <select
-          value={methodFilter}
-          onChange={(e) => setMethodFilter(e.target.value)}
-          className="mipa-input"
-          style={{ height: '36px', minWidth: '160px' }}
-        >
-          <option value="">Tất cả hình thức</option>
-          <option value="BANK_TRANSFER">Chuyển khoản</option>
-          <option value="CASH">Tiền mặt</option>
-          <option value="OTHER">Khác</option>
-        </select>
+        {/* Dropdown Filters */}
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#604634', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Filter size={14} /> Loại:
+          </span>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="mipa-input"
+            style={{ height: '36px', minWidth: '150px' }}
+          >
+            <option value="">Tất cả loại giao dịch</option>
+            <option value="DEPOSIT">Đặt cọc (DEPOSIT)</option>
+            <option value="BALANCE">Thanh toán nốt (BALANCE)</option>
+            <option value="ADDITIONAL_CHARGE">Phụ phí (ADDITIONAL_CHARGE)</option>
+            <option value="REFUND">Hoàn tiền (REFUND)</option>
+            <option value="ADJUSTMENT">Điều chỉnh (ADJUSTMENT)</option>
+          </select>
+
+          <select
+            value={methodFilter}
+            onChange={(e) => setMethodFilter(e.target.value)}
+            className="mipa-input"
+            style={{ height: '36px', minWidth: '150px' }}
+          >
+            <option value="">Tất cả hình thức</option>
+            <option value="BANK_TRANSFER">Chuyển khoản</option>
+            <option value="CASH">Tiền mặt</option>
+            <option value="OTHER">Khác</option>
+          </select>
+        </div>
       </div>
 
       {/* Error state */}
@@ -324,10 +422,10 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
           <div style={{ textAlign: 'center', padding: '4rem 0', color: '#8C6E53' }}>
             Đang tải dữ liệu giao dịch...
           </div>
-        ) : transactions.length === 0 ? (
+        ) : displayedTransactions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '4rem 0', color: '#8C6E53' }}>
             <CreditCard size={36} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
-            <div style={{ fontSize: '1.05rem', fontWeight: 600, color: '#604634' }}>Chưa có giao dịch sổ quỹ nào</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 600, color: '#604634' }}>Không có giao dịch nào trong khoảng thời gian đã chọn</div>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -343,7 +441,7 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx) => (
+                {displayedTransactions.map((tx) => (
                   <tr
                     key={tx.id}
                     style={{ borderBottom: '1px solid #F3EDE2' }}

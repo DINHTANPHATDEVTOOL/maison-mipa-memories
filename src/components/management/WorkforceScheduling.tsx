@@ -9,6 +9,11 @@ import {
   RefreshCw,
   Sparkles,
   Search,
+  Clock,
+  Sun,
+  Sunset,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type {
   Employee,
@@ -22,6 +27,9 @@ import {
   requestStaffLeave,
   approveStaffLeave,
   rejectStaffLeave,
+  getStaffRegisteredShifts,
+  type StaffShiftRegistrationRecord,
+  SHIFT_CONFIGS,
 } from '../../services/staffSchedulingService';
 
 interface WorkforceSchedulingProps {
@@ -32,8 +40,10 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
   const [employees] = useState<Employee[]>(INITIAL_EMPLOYEES);
   const [_skills, setSkills] = useState<StaffSkill[]>([]);
   const [leaves, setLeaves] = useState<StaffLeaveRequest[]>([]);
+  const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
+  const [shiftWeekDate, setShiftWeekDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'ROSTER' | 'LEAVE'>('ROSTER');
+  const [activeTab, setActiveTab] = useState<'SHIFTS' | 'ROSTER' | 'LEAVE'>('SHIFTS');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
 
@@ -54,12 +64,14 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
     setLoading(true);
     setActionError(null);
     try {
-      const [skillsData, leavesData] = await Promise.all([
+      const [skillsData, leavesData, shiftsData] = await Promise.all([
         getStaffSkills(),
         getStaffLeaveRequests(),
+        getStaffRegisteredShifts(),
       ]);
       setSkills(skillsData);
       setLeaves(leavesData);
+      setRegisteredShifts(shiftsData);
     } catch (err: any) {
       console.error('Error loading workforce data:', err);
     } finally {
@@ -129,6 +141,29 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
     return matchesSearch && matchesRole;
   });
 
+  const getWeekDays = (baseDate: Date) => {
+    const curr = new Date(baseDate);
+    const day = curr.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const monday = new Date(curr.setDate(curr.getDate() + diffToMonday));
+
+    const days: { dateStr: string; label: string; dayName: string }[] = [];
+    const names = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      days.push({
+        dateStr,
+        label: `${d.getDate()}/${d.getMonth() + 1}`,
+        dayName: names[i],
+      });
+    }
+    return days;
+  };
+
+  const currentWeekDays = getWeekDays(shiftWeekDate);
+
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto', color: '#2C2420' }}>
       {/* Header Banner */}
@@ -144,10 +179,10 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
       }}>
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#8C6E53', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
-            <Sparkles size={14} color="#C6A45F" /> Quản Lý Đội Ngũ & Ca Làm Việc
+            <Sparkles size={14} color="#C6A45F" /> Quản Lý Đội Ngũ &amp; Ca Làm Việc
           </div>
           <h1 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.75rem', margin: '0.3rem 0 0', fontWeight: 700, color: '#2C2420' }}>
-            Workforce Scheduling — Lịch Trực & Phép Năm
+            Workforce Scheduling — Lịch Trực &amp; Phép Năm
           </h1>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', color: '#666' }}>
             Quản lý kỹ năng chuyên môn, lịch làm việc định kỳ tuần và kiểm soát xung đột nghỉ phép.
@@ -225,7 +260,25 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #E5DFD7' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #E5DFD7', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setActiveTab('SHIFTS')}
+          style={{
+            padding: '0.65rem 1.2rem',
+            border: 'none',
+            borderBottom: activeTab === 'SHIFTS' ? '2.5px solid #604634' : '2.5px solid transparent',
+            backgroundColor: 'transparent',
+            color: activeTab === 'SHIFTS' ? '#604634' : '#888',
+            fontWeight: 700,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+          }}
+        >
+          <Clock size={16} /> Lịch Đăng Ký Ca Thợ / Makeup ({registeredShifts.length})
+        </button>
         <button
           onClick={() => setActiveTab('ROSTER')}
           style={{
@@ -263,6 +316,140 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
           <Calendar size={16} /> Quản lý Nghỉ phép ({leaves.length})
         </button>
       </div>
+
+      {/* SHIFTS VIEW */}
+      {activeTab === 'SHIFTS' && (
+        <div>
+          {/* Week Navigation & Filters */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFDF6', border: '1px solid var(--mipa-beige)', borderRadius: '14px', padding: '0.8rem 1.2rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <button
+                onClick={() => {
+                  const d = new Date(shiftWeekDate);
+                  d.setDate(d.getDate() - 7);
+                  setShiftWeekDate(d);
+                }}
+                style={{ padding: '0.4rem 0.6rem', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', borderRadius: '8px', cursor: 'pointer', color: '#604634' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: '#604634', minWidth: '180px', textAlign: 'center' }}>
+                Tuần {currentWeekDays[0].label} — {currentWeekDays[6].label}/{currentWeekDays[6].dateStr.split('-')[0]}
+              </span>
+
+              <button
+                onClick={() => {
+                  const d = new Date(shiftWeekDate);
+                  d.setDate(d.getDate() + 7);
+                  setShiftWeekDate(d);
+                }}
+                style={{ padding: '0.4rem 0.6rem', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', borderRadius: '8px', cursor: 'pointer', color: '#604634' }}
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              <button
+                onClick={() => setShiftWeekDate(new Date())}
+                style={{ padding: '0.35rem 0.7rem', border: '1px solid var(--mipa-beige)', backgroundColor: '#FFFDF6', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', color: '#8C6E53' }}
+              >
+                Tuần Này
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.82rem', color: '#8C6E53', fontWeight: 600 }}>Lọc theo vai trò:</span>
+              {['ALL', 'PHOTOGRAPHER', 'MAKEUP', 'EDITOR'].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRoleFilter(r)}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--mipa-beige)',
+                    backgroundColor: roleFilter === r ? '#604634' : '#FAF8F5',
+                    color: roleFilter === r ? '#FFFDF6' : '#604634',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {r === 'ALL' ? 'Tất Cả' : r === 'PHOTOGRAPHER' ? '📷 Thợ Chụp' : r === 'MAKEUP' ? '💄 Make-up' : '🎨 Hậu Kỳ'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Shifts Matrix Table */}
+          <div className="mipa-card" style={{ padding: '1.2rem', borderRadius: '18px', backgroundColor: '#FFFDF6', border: '1px solid var(--mipa-beige)', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--mipa-beige)', textAlign: 'left', color: '#8C6E53' }}>
+                  <th style={{ padding: '0.8rem', minWidth: '220px' }}>Nhân Sự &amp; Chuyên Môn</th>
+                  {currentWeekDays.map((day) => {
+                    const isToday = new Date().toISOString().split('T')[0] === day.dateStr;
+                    return (
+                      <th key={day.dateStr} style={{ padding: '0.8rem', textAlign: 'center', minWidth: '120px', backgroundColor: isToday ? 'rgba(198, 164, 95, 0.15)' : 'transparent' }}>
+                        <div style={{ fontWeight: 700, color: isToday ? '#C6A45F' : '#604634' }}>{day.dayName}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#8C6E53' }}>{day.label}</div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEmployees.map((emp) => (
+                  <tr key={emp.id} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
+                    <td style={{ padding: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+                        <img
+                          src={emp.avatar || '/hero.png'}
+                          alt={emp.name}
+                          style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #C6A45F' }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#604634' }}>{emp.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#8C6E53', fontWeight: 600 }}>
+                            {emp.role === 'PHOTOGRAPHER' ? '📷 Nhiếp Ảnh Gia' : emp.role === 'MAKEUP' ? '💄 Makeup Artist' : emp.role}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {currentWeekDays.map((day) => {
+                      const dayShifts = registeredShifts.filter(
+                        s => s.employeeId === emp.id && s.shiftDate === day.dateStr
+                      );
+                      const hasMorning = dayShifts.some(s => s.shiftType === 'MORNING');
+                      const hasAfternoon = dayShifts.some(s => s.shiftType === 'AFTERNOON');
+
+                      return (
+                        <td key={day.dateStr} style={{ padding: '0.6rem', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'center' }}>
+                            {hasMorning && (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '6px', backgroundColor: '#FEFCE8', color: '#854D0E', border: '1px solid #FEF08A', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: '90px', justifyContent: 'center' }}>
+                                <Sun size={11} color="#EAB308" /> Sáng (08-13h)
+                              </span>
+                            )}
+                            {hasAfternoon && (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '6px', backgroundColor: '#FFF7ED', color: '#9A3412', border: '1px solid #FED7AA', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: '90px', justifyContent: 'center' }}>
+                                <Sunset size={11} color="#F97316" /> Chiều (13-19h)
+                              </span>
+                            )}
+                            {!hasMorning && !hasAfternoon && (
+                              <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>—</span>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'ROSTER' ? (
         <div>

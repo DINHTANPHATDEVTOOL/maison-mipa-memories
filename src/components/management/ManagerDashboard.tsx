@@ -7,7 +7,7 @@
 // - Google Drive delivery readiness toggle (#8 integration)
 // - Protected operations search (no public PII exposure)
 // ==============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FocusTrap } from '../ui/FocusTrap';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../../types';
 import { getOperationsInboxStats, getNextActionForBooking } from '../../utils/bookingStateMachine';
@@ -22,6 +22,13 @@ import {
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
 import { confirmBookingDeposit, updateBookingConsultation } from '../../services/bookingService';
+import {
+  determineShiftFromTime,
+  SHIFT_CONFIGS,
+  getStaffRegisteredShifts,
+  assignStaffAndSendEmailNotification,
+  type StaffShiftRegistrationRecord,
+} from '../../services/staffSchedulingService';
 import {
   checkInBooking,
   startBookingShoot,
@@ -67,6 +74,11 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedStaffRole, setSelectedStaffRole] = useState<string>('PHOTOGRAPHER');
+  const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
+
+  useEffect(() => {
+    getStaffRegisteredShifts().then(setRegisteredShifts).catch(console.error);
+  }, [assigningBooking]);
 
   // Manual Deposit Modal State
   const [depositModalBooking, setDepositModalBooking] = useState<Booking | null>(null);
@@ -193,12 +205,39 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     return matchesFilter && matchesSearch;
   });
 
-  const handleAssignSubmit = (e: React.FormEvent) => {
+  const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningBooking || !selectedEmployeeId) return;
+    const availableEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+    const assignedEmp = availableEmployees.find(emp => emp.id === selectedEmployeeId);
+
     onAssignStaff(assigningBooking.id, selectedEmployeeId, selectedStaffRole);
+
+    try {
+      await assignStaffAndSendEmailNotification({
+        bookingId: assigningBooking.id,
+        employeeId: selectedEmployeeId,
+        role: selectedStaffRole as any,
+        bookingDetails: {
+          bookingCode: assigningBooking.bookingCode,
+          customerName: assigningBooking.customerName,
+          customerPhone: assigningBooking.customerPhone,
+          shootDate: assigningBooking.bookingDate,
+          shootTime: assigningBooking.startTime,
+          packageName: assigningBooking.packageName,
+          serviceName: assigningBooking.serviceName,
+          studioName: assigningBooking.studioName,
+          notes: assigningBooking.customerNote,
+        },
+      });
+    } catch (err) {
+      console.warn('Could not dispatch staff email notification:', err);
+    }
+
+    setWorkflowNotice(`✓ Đã phân công ${assignedEmp?.name || 'nhân sự'} và tự động gửi email thông báo buổi chụp!`);
     setAssigningBooking(null);
     setSelectedEmployeeId('');
+    setTimeout(() => setWorkflowNotice(''), 4500);
   };
 
   const handleCheckIn = async (b: Booking) => {
@@ -988,8 +1027,22 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       {/* Assign Staff Modal */}
       {assigningBooking && (() => {
         const availableEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
-        const matchingEmployees = availableEmployees.filter(e => e.role === selectedStaffRole);
-        const otherEmployees = availableEmployees.filter(e => e.role !== selectedStaffRole);
+        const bookingDate = assigningBooking.bookingDate;
+        const bookingTime = assigningBooking.startTime;
+        const shiftType = determineShiftFromTime(bookingTime);
+        const shiftConfig = SHIFT_CONFIGS[shiftType];
+
+        // Find employees who registered for this shift on this date
+        const registeredIds = new Set(
+          registeredShifts
+            .filter(s => s.shiftDate === bookingDate && s.shiftType === shiftType)
+            .map(s => s.employeeId)
+        );
+
+        const matchingRoleEmployees = availableEmployees.filter(e => e.role === selectedStaffRole);
+        const registeredForShift = matchingRoleEmployees.filter(e => registeredIds.has(e.id));
+        const notRegisteredForShift = matchingRoleEmployees.filter(e => !registeredIds.has(e.id));
+        const otherRoleEmployees = availableEmployees.filter(e => e.role !== selectedStaffRole);
 
         return (
           <div
@@ -1013,7 +1066,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               aria-labelledby="assign-staff-modal-title"
               className="mipa-card"
               style={{
-                maxWidth: '500px',
+                maxWidth: '520px',
                 width: '100%',
                 padding: '2rem',
                 borderRadius: '20px',
@@ -1078,6 +1131,12 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div>
                   <strong style={{ color: '#43281C' }}>Lịch chụp:</strong> {assigningBooking.bookingDate} lúc {assigningBooking.startTime} ({assigningBooking.studioName || 'Studio MIPA'})
                 </div>
+                <div>
+                  <strong style={{ color: '#43281C' }}>Ca làm việc:</strong>{' '}
+                  <span style={{ color: shiftType === 'MORNING' ? '#B45309' : '#C2410C', fontWeight: 700 }}>
+                    ☀️ {shiftConfig.name} ({shiftConfig.timeRange})
+                  </span>
+                </div>
               </div>
 
               <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
@@ -1118,7 +1177,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     htmlFor="assign-staff-employee-select"
                     style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#604634', marginBottom: '0.4rem' }}
                   >
-                    Chọn nhân viên
+                    Chọn nhân viên điều phối
                   </label>
                   <select
                     id="assign-staff-employee-select"
@@ -1140,18 +1199,21 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     }}
                   >
                     <option value="">-- Chọn nhân viên phù hợp --</option>
-                    {matchingEmployees.length > 0 && (
+                    {matchingRoleEmployees.length > 0 && (
                       <optgroup label={`⭐ Đúng chuyên môn (${selectedStaffRole})`}>
-                        {matchingEmployees.map(emp => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.name} — {emp.role || 'Chuyên viên'} {emp.phone ? `• ${emp.phone}` : ''}
-                          </option>
-                        ))}
+                        {matchingRoleEmployees.map(emp => {
+                          const isRegistered = registeredIds.has(emp.id);
+                          return (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.name} — {emp.role || 'Chuyên viên'}{isRegistered ? ` [🟢 Đã Đăng Ký ${shiftConfig.name.toUpperCase()}]` : ` [Chưa đăng ký ${shiftConfig.name}]`} {emp.phone ? `• ${emp.phone}` : ''}
+                            </option>
+                          );
+                        })}
                       </optgroup>
                     )}
-                    {otherEmployees.length > 0 && (
+                    {otherRoleEmployees.length > 0 && (
                       <optgroup label="👥 Nhân sự studio khác (sẵn sàng điều phối)">
-                        {otherEmployees.map(emp => (
+                        {otherRoleEmployees.map(emp => (
                           <option key={emp.id} value={emp.id}>
                             {emp.name} — {emp.role || 'Staff'} {emp.phone ? `• ${emp.phone}` : ''}
                           </option>
@@ -1159,6 +1221,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                       </optgroup>
                     )}
                   </select>
+
+                  <div style={{ fontSize: '0.78rem', color: '#8C6E53', marginTop: '0.4rem', lineHeight: 1.4, backgroundColor: '#FFFDF6', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #EFE6C9' }}>
+                    ✉️ <strong>Hệ thống tự động:</strong> Khi chọn nhân viên, hệ thống sẽ gửi email thông báo chi tiết và tự động đồng bộ lịch chụp vào trang cá nhân của thợ/makeup.
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
@@ -1175,7 +1241,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                     className="btn-mipa-gold"
                     style={{ flex: 1, padding: '0.75rem', minHeight: '44px' }}
                   >
-                    Lưu Phân Công
+                    Lưu Phân Công &amp; Gửi Email
                   </button>
                 </div>
               </form>

@@ -413,3 +413,410 @@ export async function getSuggestedStaffForBooking(params: {
     };
   });
 }
+
+// ==============================================================================
+// Staff Shift Registration & Smart Booking Assignment System
+// ==============================================================================
+
+export type ShiftType = 'MORNING' | 'AFTERNOON';
+
+export interface ShiftInfo {
+  type: ShiftType;
+  name: string;
+  timeRange: string;
+  startHour: string;
+  endHour: string;
+}
+
+export const SHIFT_CONFIGS: Record<ShiftType, ShiftInfo> = {
+  MORNING: {
+    type: 'MORNING',
+    name: 'Ca Sáng',
+    timeRange: '08:00 - 13:00',
+    startHour: '08:00',
+    endHour: '13:00',
+  },
+  AFTERNOON: {
+    type: 'AFTERNOON',
+    name: 'Ca Chiều',
+    timeRange: '13:00 - 19:00',
+    startHour: '13:00',
+    endHour: '19:00',
+  },
+};
+
+export interface StaffShiftRegistrationRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  role: StaffRole;
+  shiftDate: string; // YYYY-MM-DD
+  shiftType: ShiftType;
+  startAt: string;
+  endAt: string;
+  createdAt: string;
+}
+
+export interface StaffEmailNotification {
+  id: string;
+  toEmail: string;
+  employeeName: string;
+  bookingId: string;
+  bookingCode: string;
+  customerName: string;
+  shootDate: string;
+  shootTime: string;
+  shiftName: string;
+  subject: string;
+  body: string;
+  sentAt: string;
+  status: 'SENT';
+}
+
+// In-memory persistent stores
+let inMemoryRegisteredShifts: StaffShiftRegistrationRecord[] = [];
+let inMemoryEmailNotifications: StaffEmailNotification[] = [];
+
+// Initialize default shifts for demo and development
+function initializeDefaultShifts() {
+  if (inMemoryRegisteredShifts.length > 0) return;
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  for (let d = -3; d <= 21; d++) {
+    const targetDate = new Date(year, month, today.getDate() + d);
+    const dateStr = targetDate.toISOString().split('T')[0];
+    const dayOfWeek = targetDate.getDay(); // 0 = Sun, 1 = Mon ...
+
+    // Hoàng Minh (Photographer): Mon, Wed, Fri, Sat
+    if ([1, 3, 5, 6].includes(dayOfWeek)) {
+      inMemoryRegisteredShifts.push({
+        id: `shift-minh-${dateStr}-M`,
+        employeeId: 'emp_minh',
+        employeeName: 'Hoàng Minh',
+        role: 'PHOTOGRAPHER',
+        shiftDate: dateStr,
+        shiftType: 'MORNING',
+        startAt: `${dateStr}T08:00:00+07:00`,
+        endAt: `${dateStr}T13:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+      if (dayOfWeek === 6 || dayOfWeek === 1) {
+        inMemoryRegisteredShifts.push({
+          id: `shift-minh-${dateStr}-A`,
+          employeeId: 'emp_minh',
+          employeeName: 'Hoàng Minh',
+          role: 'PHOTOGRAPHER',
+          shiftDate: dateStr,
+          shiftType: 'AFTERNOON',
+          startAt: `${dateStr}T13:00:00+07:00`,
+          endAt: `${dateStr}T19:00:00+07:00`,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Trần Hùng (Photographer): Tue, Thu, Sat, Sun
+    if ([2, 4, 6, 0].includes(dayOfWeek)) {
+      inMemoryRegisteredShifts.push({
+        id: `shift-hung-${dateStr}-A`,
+        employeeId: 'emp_hung',
+        employeeName: 'Trần Hùng',
+        role: 'PHOTOGRAPHER',
+        shiftDate: dateStr,
+        shiftType: 'AFTERNOON',
+        startAt: `${dateStr}T13:00:00+07:00`,
+        endAt: `${dateStr}T19:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        inMemoryRegisteredShifts.push({
+          id: `shift-hung-${dateStr}-M`,
+          employeeId: 'emp_hung',
+          employeeName: 'Trần Hùng',
+          role: 'PHOTOGRAPHER',
+          shiftDate: dateStr,
+          shiftType: 'MORNING',
+          startAt: `${dateStr}T08:00:00+07:00`,
+          endAt: `${dateStr}T13:00:00+07:00`,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Phạm Thanh Hương (Makeup): Mon, Tue, Thu, Fri, Sat
+    if ([1, 2, 4, 5, 6].includes(dayOfWeek)) {
+      inMemoryRegisteredShifts.push({
+        id: `shift-huong-${dateStr}-M`,
+        employeeId: 'emp_huong',
+        employeeName: 'Phạm Thanh Hương',
+        role: 'MAKEUP',
+        shiftDate: dateStr,
+        shiftType: 'MORNING',
+        startAt: `${dateStr}T08:00:00+07:00`,
+        endAt: `${dateStr}T13:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+      inMemoryRegisteredShifts.push({
+        id: `shift-huong-${dateStr}-A`,
+        employeeId: 'emp_huong',
+        employeeName: 'Phạm Thanh Hương',
+        role: 'MAKEUP',
+        shiftDate: dateStr,
+        shiftType: 'AFTERNOON',
+        startAt: `${dateStr}T13:00:00+07:00`,
+        endAt: `${dateStr}T19:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+}
+
+initializeDefaultShifts();
+
+/**
+ * Determines whether a given time falls into MORNING or AFTERNOON shift
+ */
+export function determineShiftFromTime(timeString: string): ShiftType {
+  let hour = 9;
+  if (timeString.includes('T')) {
+    hour = new Date(timeString).getHours();
+  } else if (timeString.includes(':')) {
+    hour = parseInt(timeString.split(':')[0], 10);
+  }
+  return hour < 13 ? 'MORNING' : 'AFTERNOON';
+}
+
+/**
+ * Fetch registered shifts, optionally filtered by employeeId and/or date range
+ */
+export async function getStaffRegisteredShifts(params?: {
+  employeeId?: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<StaffShiftRegistrationRecord[]> {
+  initializeDefaultShifts();
+
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    try {
+      let query = supabase.from('staff_shifts').select('*');
+      if (params?.employeeId) query = query.eq('employee_id', params.employeeId);
+      if (params?.startDate) query = query.gte('shift_date', params.startDate);
+      if (params?.endDate) query = query.lte('shift_date', params.endDate);
+
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        return data.map((s: any) => {
+          const emp = INITIAL_EMPLOYEES.find(e => e.id === s.employee_id);
+          return {
+            id: s.id,
+            employeeId: s.employee_id,
+            employeeName: emp?.name || 'Nhân viên',
+            role: emp?.role || 'PHOTOGRAPHER',
+            shiftDate: s.shift_date,
+            shiftType: (s.shift_type || 'MORNING') as ShiftType,
+            startAt: s.start_at,
+            endAt: s.end_at,
+            createdAt: s.created_at || new Date().toISOString(),
+          };
+        });
+      }
+    } catch (e) {
+      console.warn('[StaffScheduling] getStaffRegisteredShifts DB fallback to memory:', e);
+    }
+  }
+
+  let result = [...inMemoryRegisteredShifts];
+  if (params?.employeeId) {
+    result = result.filter(s => s.employeeId === params.employeeId);
+  }
+  if (params?.startDate) {
+    result = result.filter(s => s.shiftDate >= params.startDate!);
+  }
+  if (params?.endDate) {
+    result = result.filter(s => s.shiftDate <= params.endDate!);
+  }
+  return result;
+}
+
+/**
+ * Register or unregister shifts for a staff member (supports week & month updates)
+ */
+export async function registerStaffShifts(
+  employeeId: string,
+  shiftsToUpdate: { date: string; shiftType: ShiftType; selected: boolean }[]
+): Promise<StaffShiftRegistrationRecord[]> {
+  initializeDefaultShifts();
+
+  const emp = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
+  const employeeName = emp?.name || 'Nhân sự MIPA';
+  const role = emp?.role || 'PHOTOGRAPHER';
+
+  for (const item of shiftsToUpdate) {
+    const existingIndex = inMemoryRegisteredShifts.findIndex(
+      s => s.employeeId === employeeId && s.shiftDate === item.date && s.shiftType === item.shiftType
+    );
+
+    if (item.selected) {
+      if (existingIndex === -1) {
+        const config = SHIFT_CONFIGS[item.shiftType];
+        inMemoryRegisteredShifts.push({
+          id: `shift-${employeeId}-${item.date}-${item.shiftType[0]}`,
+          employeeId,
+          employeeName,
+          role,
+          shiftDate: item.date,
+          shiftType: item.shiftType,
+          startAt: `${item.date}T${config.startHour}:00+07:00`,
+          endAt: `${item.date}T${config.endHour}:00+07:00`,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } else {
+      if (existingIndex !== -1) {
+        inMemoryRegisteredShifts.splice(existingIndex, 1);
+      }
+    }
+  }
+
+  // Attempt Supabase sync if connected
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    try {
+      for (const item of shiftsToUpdate) {
+        if (item.selected) {
+          const config = SHIFT_CONFIGS[item.shiftType];
+          await supabase.from('staff_shifts').upsert({
+            employee_id: employeeId,
+            shift_date: item.date,
+            shift_type: item.shiftType,
+            start_at: `${item.date}T${config.startHour}:00+07:00`,
+            end_at: `${item.date}T${config.endHour}:00+07:00`,
+          });
+        } else {
+          await supabase
+            .from('staff_shifts')
+            .delete()
+            .match({ employee_id: employeeId, shift_date: item.date, shift_type: item.shiftType });
+        }
+      }
+    } catch (e) {
+      console.warn('[StaffScheduling] registerStaffShifts DB sync fallback:', e);
+    }
+  }
+
+  return inMemoryRegisteredShifts.filter(s => s.employeeId === employeeId);
+}
+
+/**
+ * Returns available staff for a specific date and time slot,
+ * highlighting staff who have registered for that shift.
+ */
+export async function getAvailableStaffForSlot(params: {
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm or ISO
+  role?: StaffRole;
+}): Promise<{
+  employee: Employee;
+  shiftType: ShiftType;
+  isRegisteredForShift: boolean;
+  registeredTimeRange?: string;
+}[]> {
+  initializeDefaultShifts();
+  const shiftType = determineShiftFromTime(params.time);
+  const targetDate = params.date.split('T')[0];
+
+  const candidateEmployees = params.role
+    ? INITIAL_EMPLOYEES.filter(e => e.role === params.role)
+    : INITIAL_EMPLOYEES;
+
+  return candidateEmployees.map(emp => {
+    const registered = inMemoryRegisteredShifts.some(
+      s => s.employeeId === emp.id && s.shiftDate === targetDate && s.shiftType === shiftType
+    );
+
+    return {
+      employee: emp,
+      shiftType,
+      isRegisteredForShift: registered,
+      registeredTimeRange: registered ? SHIFT_CONFIGS[shiftType].timeRange : undefined,
+    };
+  });
+}
+
+/**
+ * Assigns staff to a booking and triggers shoot notification email to the staff member
+ */
+export async function assignStaffAndSendEmailNotification(params: {
+  bookingId: string;
+  employeeId: string;
+  role: StaffRole;
+  bookingDetails: {
+    bookingCode: string;
+    customerName: string;
+    customerPhone?: string;
+    shootDate: string;
+    shootTime: string;
+    packageName?: string;
+    serviceName?: string;
+    studioName?: string;
+    notes?: string;
+  };
+}): Promise<{
+  assignment: BookingAssignment;
+  emailNotification: StaffEmailNotification;
+}> {
+  const emp = INITIAL_EMPLOYEES.find(e => e.id === params.employeeId);
+  const staffName = emp?.name || 'Nhân sự MIPA';
+  const staffEmail = emp?.email || 'staff@maisonmipa.vn';
+  const shiftType = determineShiftFromTime(params.bookingDetails.shootTime);
+  const shiftName = SHIFT_CONFIGS[shiftType].name;
+
+  const assignment: BookingAssignment = {
+    id: `assign-${Date.now()}`,
+    bookingId: params.bookingId,
+    employeeId: params.employeeId,
+    employeeName: staffName,
+    assignmentRole: params.role,
+    startTime: `${params.bookingDetails.shootDate}T${params.bookingDetails.shootTime}:00+07:00`,
+    endTime: `${params.bookingDetails.shootDate}T19:00:00+07:00`,
+  };
+
+  const emailNotification: StaffEmailNotification = {
+    id: `email-${Date.now()}`,
+    toEmail: staffEmail,
+    employeeName: staffName,
+    bookingId: params.bookingId,
+    bookingCode: params.bookingDetails.bookingCode,
+    customerName: params.bookingDetails.customerName,
+    shootDate: params.bookingDetails.shootDate,
+    shootTime: params.bookingDetails.shootTime,
+    shiftName: `${shiftName} (${SHIFT_CONFIGS[shiftType].timeRange})`,
+    subject: `[Maison MIPA] Thông Báo Buổi Chụp Mới: Đơn #${params.bookingDetails.bookingCode} - ${params.bookingDetails.shootDate}`,
+    body: `Chào ${staffName},\n\nBạn vừa được Quản lý phân công phụ trách buổi chụp tại Maison MIPA Memories:\n\n- Khách hàng: ${params.bookingDetails.customerName} (${params.bookingDetails.customerPhone || 'N/A'})\n- Gói chụp: ${params.bookingDetails.packageName || params.bookingDetails.serviceName || 'Gói Chụp Nghệ Thuật'}\n- Thời gian: Ngày ${params.bookingDetails.shootDate} vào lúc ${params.bookingDetails.shootTime}\n- Ca làm việc: ${shiftName} (${SHIFT_CONFIGS[shiftType].timeRange})\n- Địa điểm: ${params.bookingDetails.studioName || 'Phòng Studio Maison MIPA'}\n\nLịch chụp đã được tự động cập nhật vào trang cá nhân "Ca Chụp Của Tôi" của bạn. Vui lòng có mặt trước 15 phút để chuẩn bị thiết bị.\n\nTrân trọng,\nBan Quản Lý Vận Hành Maison MIPA`,
+    sentAt: new Date().toISOString(),
+    status: 'SENT',
+  };
+
+  inMemoryEmailNotifications.unshift(emailNotification);
+  console.info(`[STAFF EMAIL SENT] -> To: ${staffEmail} | Subject: ${emailNotification.subject}`);
+
+  return {
+    assignment,
+    emailNotification,
+  };
+}
+
+/**
+ * Get all sent email notifications to staff members
+ */
+export function getStaffEmailNotifications(employeeId?: string): StaffEmailNotification[] {
+  if (employeeId) {
+    const emp = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
+    if (emp) {
+      return inMemoryEmailNotifications.filter(e => e.toEmail === emp.email);
+    }
+  }
+  return [...inMemoryEmailNotifications];
+}

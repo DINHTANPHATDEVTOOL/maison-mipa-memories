@@ -965,6 +965,10 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
 // Manager & Admin Operations (CMS)
 // ==============================================================================
 
+// In-memory collections & concepts store for fallback / instant UI responsiveness
+let localCustomConcepts: Concept[] = [];
+let localCustomCollections: PortfolioCollection[] = [];
+
 /**
  * Gets all concepts (including inactive and non-bookable) for studio management
  */
@@ -979,7 +983,7 @@ export async function getAllConcepts(): Promise<Concept[]> {
       throw new Error(`Không thể tải toàn bộ concept: ${error.message}`);
     }
 
-    if (!data || data.length === 0) return [];
+    if (!data || data.length === 0) return [...localCustomConcepts];
 
     const coverPhotoIds = data
       .map((c) => c.cover_photo_id)
@@ -999,16 +1003,17 @@ export async function getAllConcepts(): Promise<Concept[]> {
       }
     }
 
-    return data.map((row) =>
+    const mapped = data.map((row) =>
       mapConceptRow(row, row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined)
     );
+    return [...localCustomConcepts, ...mapped];
   }
 
   if (isDemoModeEnabled()) {
-    return DEMO_CONCEPTS;
+    return [...localCustomConcepts, ...DEMO_CONCEPTS];
   }
 
-  return [];
+  return [...localCustomConcepts];
 }
 
 /**
@@ -1030,7 +1035,7 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
       throw new Error(`Không thể tải danh sách bộ sưu tập: ${error.message}`);
     }
 
-    return (data || []).map((item: any) => {
+    const mapped = (data || []).map((item: any) => {
       const col = mapCollectionRow(item, item.concepts);
       const photos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
         ? item.portfolio_photos.map(mapPhotoRow)
@@ -1041,6 +1046,12 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
       col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
       return col;
     });
+
+    let filteredCustom = [...localCustomCollections];
+    if (statusFilter && statusFilter !== 'ALL') {
+      filteredCustom = filteredCustom.filter(c => c.status === statusFilter);
+    }
+    return [...filteredCustom, ...mapped];
   }
 
   if (isDemoModeEnabled()) {
@@ -1048,14 +1059,19 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
     if (statusFilter && statusFilter !== 'ALL') {
       items = items.filter((c) => c.status === statusFilter);
     }
-    return items.map((c) => ({
+    const mapped = items.map((c) => ({
       ...c,
       photos: DEMO_PHOTOS.filter((p) => p.collectionId === c.id),
       photosCount: DEMO_PHOTOS.filter((p) => p.collectionId === c.id).length,
     }));
+    let filteredCustom = [...localCustomCollections];
+    if (statusFilter && statusFilter !== 'ALL') {
+      filteredCustom = filteredCustom.filter(c => c.status === statusFilter);
+    }
+    return [...filteredCustom, ...mapped];
   }
 
-  return [];
+  return [...localCustomCollections];
 }
 
 /**
@@ -1144,3 +1160,215 @@ export async function updatePhotoFocalPoint(
 
   throw new Error('Supabase not configured and demo mode disabled.');
 }
+
+/**
+ * Creates a new concept
+ */
+export async function createConcept(input: {
+  name: string;
+  slug?: string;
+  description?: string;
+  serviceId?: string;
+  coverPhotoUrl?: string;
+  active?: boolean;
+  bookable?: boolean;
+  displayOrder?: number;
+}): Promise<Concept> {
+  const slug = input.slug || input.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const id = `concept-${Date.now()}`;
+  const newConcept: Concept = {
+    id,
+    name: input.name,
+    slug,
+    description: input.description || '',
+    serviceId: input.serviceId || 'c0000000-0000-0000-0000-000000000001',
+    coverPhotoUrl: input.coverPhotoUrl || '/hero-couple.jpg',
+    active: input.active ?? true,
+    bookable: input.bookable ?? true,
+    displayOrder: input.displayOrder ?? 99,
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from('concepts').insert({
+        name: input.name,
+        slug,
+        description: input.description || null,
+        service_id: input.serviceId || null,
+        active: input.active ?? true,
+        bookable: input.bookable ?? true,
+        display_order: input.displayOrder ?? 99,
+      }).select().single();
+
+      if (!error && data) {
+        newConcept.id = data.id;
+      }
+    } catch (e) {
+      console.warn('[PortfolioService] createConcept DB error, using local state:', e);
+    }
+  }
+
+  localCustomConcepts.unshift(newConcept);
+  return newConcept;
+}
+
+/**
+ * Updates an existing concept
+ */
+export async function updateConcept(id: string, updates: Partial<Concept>): Promise<Concept> {
+  if (isSupabaseConfigured()) {
+    try {
+      const dbUpdates: any = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.serviceId !== undefined) dbUpdates.service_id = updates.serviceId;
+      if (updates.active !== undefined) dbUpdates.active = updates.active;
+      if (updates.bookable !== undefined) dbUpdates.bookable = updates.bookable;
+      if (updates.displayOrder !== undefined) dbUpdates.display_order = updates.displayOrder;
+
+      await supabase.from('concepts').update(dbUpdates).eq('id', id);
+    } catch (e) {
+      console.warn('[PortfolioService] updateConcept DB error:', e);
+    }
+  }
+
+  const existing = localCustomConcepts.find(c => c.id === id);
+  if (existing) {
+    Object.assign(existing, updates);
+    return existing;
+  }
+  const demo = DEMO_CONCEPTS.find(c => c.id === id);
+  if (demo) {
+    Object.assign(demo, updates);
+    return demo;
+  }
+  return { id, ...updates } as Concept;
+}
+
+/**
+ * Deletes a concept by ID
+ */
+export async function deleteConcept(id: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.from('concepts').delete().eq('id', id);
+    } catch (e) {
+      console.warn('[PortfolioService] deleteConcept DB error:', e);
+    }
+  }
+  localCustomConcepts = localCustomConcepts.filter(c => c.id !== id);
+  const demoIdx = DEMO_CONCEPTS.findIndex(c => c.id === id);
+  if (demoIdx !== -1) {
+    DEMO_CONCEPTS.splice(demoIdx, 1);
+  }
+  return true;
+}
+
+/**
+ * Creates a new portfolio collection
+ */
+export async function createCollection(input: {
+  title: string;
+  slug?: string;
+  description?: string;
+  category?: string;
+  conceptId?: string;
+  coverPhotoUrl?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  featured?: boolean;
+}): Promise<PortfolioCollection> {
+  const slug = input.slug || input.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const id = `col-${Date.now()}`;
+  const newCol: PortfolioCollection = {
+    id,
+    slug,
+    title: input.title,
+    description: input.description || '',
+    category: input.category || 'PORTRAIT',
+    conceptId: input.conceptId,
+    status: input.status || 'DRAFT',
+    featured: input.featured ?? false,
+    coverPhotoUrl: input.coverPhotoUrl || '/hero-bride.jpg',
+    photos: [],
+    photosCount: 0,
+    createdAt: new Date().toISOString(),
+    displayOrder: 1,
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from('portfolio_collections').insert({
+        title: input.title,
+        slug,
+        description: input.description || null,
+        concept_id: input.conceptId || null,
+        status: input.status || 'DRAFT',
+        featured: input.featured ?? false,
+        display_order: 1,
+      }).select().single();
+
+      if (!error && data) {
+        newCol.id = data.id;
+      }
+    } catch (e) {
+      console.warn('[PortfolioService] createCollection DB error, using local state:', e);
+    }
+  }
+
+  localCustomCollections.unshift(newCol);
+  return newCol;
+}
+
+/**
+ * Updates a portfolio collection
+ */
+export async function updateCollection(id: string, updates: Partial<PortfolioCollection>): Promise<PortfolioCollection> {
+  if (isSupabaseConfigured()) {
+    try {
+      const dbUpdates: any = { updated_at: new Date().toISOString() };
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.conceptId !== undefined) dbUpdates.concept_id = updates.conceptId;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+
+      await supabase.from('portfolio_collections').update(dbUpdates).eq('id', id);
+    } catch (e) {
+      console.warn('[PortfolioService] updateCollection DB error:', e);
+    }
+  }
+
+  const existing = localCustomCollections.find(c => c.id === id);
+  if (existing) {
+    Object.assign(existing, updates);
+    return existing;
+  }
+  const demo = DEMO_COLLECTIONS.find(c => c.id === id);
+  if (demo) {
+    Object.assign(demo, updates);
+    return demo;
+  }
+  return { id, ...updates } as PortfolioCollection;
+}
+
+/**
+ * Deletes a portfolio collection by ID
+ */
+export async function deleteCollection(id: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.from('portfolio_collections').delete().eq('id', id);
+    } catch (e) {
+      console.warn('[PortfolioService] deleteCollection DB error:', e);
+    }
+  }
+  localCustomCollections = localCustomCollections.filter(c => c.id !== id);
+  const demoIdx = DEMO_COLLECTIONS.findIndex(c => c.id === id);
+  if (demoIdx !== -1) {
+    DEMO_COLLECTIONS.splice(demoIdx, 1);
+  }
+  return true;
+}
+

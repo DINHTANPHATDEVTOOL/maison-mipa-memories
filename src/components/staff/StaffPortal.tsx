@@ -15,7 +15,8 @@ import { ReceptionistPortal } from './ReceptionistPortal';
 import { PhotographerPortal } from './PhotographerPortal';
 import { MakeupPortal } from './MakeupPortal';
 import { EditorPortal } from './EditorPortal';
-import { Camera, UserCheck, Sparkles, Palette, Shield } from 'lucide-react';
+import { StaffShiftRegistration } from './StaffShiftRegistration';
+import { Camera, UserCheck, Sparkles, Palette, Shield, Calendar } from 'lucide-react';
 
 interface StaffPortalProps {
   bookings: Booking[];
@@ -53,12 +54,13 @@ export const StaffPortal: React.FC<StaffPortalProps> = ({ bookings, onUpdateStat
             <Shield size={16} /> Chế độ xem theo vai trò chuyên môn (Quản lý/Admin):
           </div>
 
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
             {[
               { id: 'RECEPTIONIST' as StaffRole, label: 'Tiếp Tân', icon: UserCheck },
               { id: 'PHOTOGRAPHER' as StaffRole, label: 'Nhiếp Ảnh', icon: Camera },
               { id: 'MAKEUP' as StaffRole, label: 'Make-up', icon: Sparkles },
               { id: 'EDITOR' as StaffRole, label: 'Hậu Kỳ', icon: Palette },
+              { id: 'SHIFTS' as any, label: 'Đăng Ký Ca Làm', icon: Calendar },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -85,6 +87,10 @@ export const StaffPortal: React.FC<StaffPortalProps> = ({ bookings, onUpdateStat
       )}
 
       {/* Render Specific Workspace Based on Active Staff Role */}
+      {(activeRoleView as any) === 'SHIFTS' && (
+        <StaffShiftRegistration currentUser={user} targetRole={user?.staffRole || 'PHOTOGRAPHER'} />
+      )}
+
       {activeRoleView === 'RECEPTIONIST' && (
         <ReceptionistPortal
           bookings={bookings}

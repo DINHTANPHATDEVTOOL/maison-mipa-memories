@@ -13,16 +13,10 @@ import type { User, UserRole, StaffRole, UserStatus, AuditLog } from '../../type
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
-  adminSavePaymentSettings,
-  getActivePaymentSettings,
-  type BusinessBankConfig,
-} from '../../services/paymentSettingsService';
-import {
   Users,
   Lock,
   Unlock,
   Search,
-  CreditCard,
   Mail,
   FileText,
   User as UserIcon,
@@ -40,23 +34,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   usersList: propUsers,
 }) => {
   const { user: currentUser, isRootOwner } = useAuth();
-  const [adminTab, setAdminTab] = useState<'users' | 'bank' | 'email' | 'audit'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'email' | 'audit'>('users');
 
   // Real Users state
   const [users, setUsers] = useState<User[]>(propUsers || []);
   const [userSearch, setUserSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
-
-  // Bank & VietQR Settings Form state
-  const [bankSettings, setBankSettings] = useState<BusinessBankConfig | null>(null);
-  const [bankCode, setBankCode] = useState('VCB');
-  const [bankBin, setBankBin] = useState('970436');
-  const [bankName, setBankName] = useState('Vietcombank (Ngân hàng Ngoại Thương)');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [branch, setBranch] = useState('Chi nhánh TP.HCM');
-  const [qrTemplate, setQrTemplate] = useState('compact2');
-  const [bankSaveMsg, setBankSaveMsg] = useState('');
 
   // Audit Logs state
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -93,19 +76,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             staffRole: p.staff_role,
             status: p.status,
           })));
-        }
-
-        // Load bank settings
-        const currentBank = await getActivePaymentSettings();
-        if (currentBank && active) {
-          setBankSettings(currentBank);
-          setBankCode(currentBank.bankCode);
-          setBankBin(currentBank.bankBin);
-          setBankName(currentBank.bankName);
-          setAccountNumber(currentBank.accountNumber);
-          setAccountName(currentBank.accountName);
-          setBranch(currentBank.branch || '');
-          setQrTemplate(currentBank.qrTemplate || 'compact2');
         }
 
         // Load audit logs (DEF-D005: Use actor_user_id relationship and fallback without join)
@@ -186,34 +156,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  // Save Bank / VietQR settings
-  const handleSaveBankConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBankSaveMsg('');
-
-    if (accountNumber.trim() === '888866669999' && accountName.trim().toUpperCase() === 'MAISON MIPA MEMORIES') {
-      showNotice('Không thể lưu cấu hình placeholder giả định. Vui lòng nhập số tài khoản thật của studio.', 'error');
-      return;
-    }
-
-    try {
-      const saved = await adminSavePaymentSettings({
-        bankCode,
-        bankBin,
-        bankName,
-        accountNumber,
-        accountName,
-        branch,
-        qrTemplate,
-      });
-
-      setBankSettings(saved);
-      showNotice('✓ Cấu hình tài khoản nhận cọc VietQR đã được cập nhật thành công!');
-    } catch (err: any) {
-      showNotice(err.message || 'Lỗi lưu thông tin ngân hàng.', 'error');
-    }
-  };
-
   const filteredUsers = users.filter(u => {
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     const q = userSearch.trim().toLowerCase();
@@ -273,7 +215,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       <div style={{ display: 'flex', gap: '0.8rem', borderBottom: '1px solid var(--mipa-beige)', paddingBottom: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {[
           { id: 'users', label: 'Tài Khoản & Phân Quyền', icon: Users },
-          { id: 'bank', label: 'Tài Khoản VietQR', icon: CreditCard },
           { id: 'email', label: 'Cấu Hình Email', icon: Mail },
           { id: 'audit', label: 'Audit Logs', icon: FileText },
         ].map(tab => (
@@ -616,122 +557,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* TAB 2: BANK & VIETQR */}
-      {adminTab === 'bank' && (
-        <div className="mipa-card" style={{ maxWidth: '750px', padding: '2rem', borderRadius: '18px' }}>
-          <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CreditCard size={20} color="#8C6E53" /> Cấu Hình Tài Khoản Nhận Cọc VietQR
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: '#6E5F55', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-            Thông tin này sẽ được dùng để tạo mã VietQR động cho khách hàng thanh toán tiền cọc. Mọi thay đổi đều được ghi nhận vào Audit Log.
-          </p>
-
-          <form onSubmit={handleSaveBankConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                  Mã Ngân Hàng (Bank Code)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={bankCode}
-                  onChange={e => setBankCode(e.target.value.toUpperCase())}
-                  placeholder="VD: VCB, MB, TCB..."
-                  className="mipa-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                  Mã BIN Ngân Hàng (VietQR BIN)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={bankBin}
-                  onChange={e => setBankBin(e.target.value)}
-                  placeholder="VD: 970436..."
-                  className="mipa-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                Tên Ngân Hàng Đầy Đủ
-              </label>
-              <input
-                type="text"
-                required
-                value={bankName}
-                onChange={e => setBankName(e.target.value)}
-                placeholder="VD: Ngân hàng TMCP Ngoại Thương Việt Nam (Vietcombank)"
-                className="mipa-input"
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                  Số Tài Khoản
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={accountNumber}
-                  onChange={e => setAccountNumber(e.target.value)}
-                  placeholder="Số tài khoản ngân hàng thật..."
-                  className="mipa-input"
-                  style={{ width: '100%', fontWeight: 700 }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                  Tên Chủ Tài Khoản
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={accountName}
-                  onChange={e => setAccountName(e.target.value.toUpperCase())}
-                  placeholder="VD: CONG TY TNHH MAISON MIPA"
-                  className="mipa-input"
-                  style={{ width: '100%', fontWeight: 700 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>
-                Chi Nhánh (Tùy chọn)
-              </label>
-              <input
-                type="text"
-                value={branch}
-                onChange={e => setBranch(e.target.value)}
-                placeholder="VD: Chi nhánh TP.HCM"
-                className="mipa-input"
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn-mipa-gold"
-              style={{ padding: '0.75rem 2rem', fontWeight: 700, alignSelf: 'flex-start' }}
-            >
-              Lưu & Kích Hoạt Cấu Hình VietQR
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* TAB 3: EMAIL CONFIGURATION HEALTH */}
+      {/* TAB 2: EMAIL CONFIGURATION HEALTH */}
       {adminTab === 'email' && (
         <div className="mipa-card" style={{ maxWidth: '750px', padding: '2rem', borderRadius: '18px' }}>
           <h3 style={{ fontSize: '1.3rem', color: '#604634', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

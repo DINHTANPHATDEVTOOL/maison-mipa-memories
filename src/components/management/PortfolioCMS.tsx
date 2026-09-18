@@ -18,6 +18,12 @@ import {
   getAllCollections,
   publishPortfolioCollection,
   updatePhotoFocalPoint,
+  createConcept,
+  updateConcept,
+  deleteConcept,
+  createCollection,
+  updateCollection,
+  deleteCollection,
 } from '../../services/portfolioService';
 import {
   optimizeImageFile,
@@ -38,6 +44,10 @@ import {
   Image as ImageIcon,
   Check,
   RefreshCw,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react';
 
 export const PortfolioCMS: React.FC = () => {
@@ -55,6 +65,34 @@ export const PortfolioCMS: React.FC = () => {
 
   // Selected Collection for photo management
   const [activeCollection, setActiveCollection] = useState<PortfolioCollection | null>(null);
+
+  // Collection CRUD Modal State
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<PortfolioCollection | null>(null);
+  const [collectionFormData, setCollectionFormData] = useState({
+    title: '',
+    slug: '',
+    description: '',
+    category: 'PORTRAIT',
+    conceptId: '',
+    coverPhotoUrl: '',
+    status: 'DRAFT' as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
+    featured: false,
+  });
+
+  // Concept CRUD Modal State
+  const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
+  const [editingConcept, setEditingConcept] = useState<Concept | null>(null);
+  const [conceptFormData, setConceptFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    serviceId: 'c0000000-0000-0000-0000-000000000001',
+    coverPhotoUrl: '',
+    active: true,
+    bookable: true,
+    displayOrder: 1,
+  });
 
   // Photo Editor Modal State
   const [editingPhoto, setEditingPhoto] = useState<PortfolioPhoto | null>(null);
@@ -109,6 +147,136 @@ export const PortfolioCMS: React.FC = () => {
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       setErrorMessage(err.message);
+    }
+  };
+
+  // Collection CRUD Handlers
+  const openCreateCollectionModal = () => {
+    setEditingCollection(null);
+    setCollectionFormData({
+      title: '',
+      slug: '',
+      description: '',
+      category: 'PORTRAIT',
+      conceptId: concepts[0]?.id || '',
+      coverPhotoUrl: '/hero-couple.jpg',
+      status: 'DRAFT',
+      featured: false,
+    });
+    setIsCollectionModalOpen(true);
+  };
+
+  const openEditCollectionModal = (col: PortfolioCollection) => {
+    setEditingCollection(col);
+    setCollectionFormData({
+      title: col.title,
+      slug: col.slug,
+      description: col.description || '',
+      category: col.category || 'PORTRAIT',
+      conceptId: col.conceptId || '',
+      coverPhotoUrl: col.coverPhotoUrl || '',
+      status: col.status,
+      featured: !!col.featured,
+    });
+    setIsCollectionModalOpen(true);
+  };
+
+  const handleSaveCollection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!collectionFormData.title.trim()) {
+      setErrorMessage('Vui lòng nhập tiêu đề bộ sưu tập.');
+      return;
+    }
+    try {
+      if (editingCollection) {
+        await updateCollection(editingCollection.id, collectionFormData);
+        setSuccessMessage(`Đã cập nhật bộ sưu tập "${collectionFormData.title}" thành công.`);
+      } else {
+        await createCollection(collectionFormData);
+        setSuccessMessage(`Đã tạo mới bộ sưu tập "${collectionFormData.title}" thành công.`);
+      }
+      setIsCollectionModalOpen(false);
+      await loadData();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lỗi khi lưu bộ sưu tập.');
+    }
+  };
+
+  const handleDeleteCollection = async (col: PortfolioCollection) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa bộ sưu tập "${col.title}"?`)) return;
+    try {
+      await deleteCollection(col.id);
+      setSuccessMessage(`Đã xóa bộ sưu tập "${col.title}".`);
+      await loadData();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lỗi khi xóa bộ sưu tập.');
+    }
+  };
+
+  // Concept CRUD Handlers
+  const openCreateConceptModal = () => {
+    setEditingConcept(null);
+    setConceptFormData({
+      name: '',
+      slug: '',
+      description: '',
+      serviceId: 'c0000000-0000-0000-0000-000000000001',
+      coverPhotoUrl: '/studio.png',
+      active: true,
+      bookable: true,
+      displayOrder: (concepts.length || 0) + 1,
+    });
+    setIsConceptModalOpen(true);
+  };
+
+  const openEditConceptModal = (c: Concept) => {
+    setEditingConcept(c);
+    setConceptFormData({
+      name: c.name,
+      slug: c.slug,
+      description: c.description || '',
+      serviceId: c.serviceId || 'c0000000-0000-0000-0000-000000000001',
+      coverPhotoUrl: c.coverPhotoUrl || '',
+      active: c.active,
+      bookable: c.bookable,
+      displayOrder: c.displayOrder || 1,
+    });
+    setIsConceptModalOpen(true);
+  };
+
+  const handleSaveConcept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!conceptFormData.name.trim()) {
+      setErrorMessage('Vui lòng nhập tên Concept.');
+      return;
+    }
+    try {
+      if (editingConcept) {
+        await updateConcept(editingConcept.id, conceptFormData);
+        setSuccessMessage(`Đã cập nhật concept "${conceptFormData.name}" thành công.`);
+      } else {
+        await createConcept(conceptFormData);
+        setSuccessMessage(`Đã tạo mới concept "${conceptFormData.name}" thành công.`);
+      }
+      setIsConceptModalOpen(false);
+      await loadData();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lỗi khi lưu concept.');
+    }
+  };
+
+  const handleDeleteConcept = async (c: Concept) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa concept "${c.name}"?`)) return;
+    try {
+      await deleteConcept(c.id);
+      setSuccessMessage(`Đã xóa concept "${c.name}".`);
+      await loadData();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lỗi khi xóa concept.');
     }
   };
 
@@ -297,13 +465,22 @@ export const PortfolioCMS: React.FC = () => {
               ))}
             </div>
 
-            <button
-              onClick={loadData}
-              className="btn-mipa-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <RefreshCw size={14} /> Làm mới
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={openCreateCollectionModal}
+                className="btn-mipa-gold"
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Plus size={15} /> Thêm Bộ Sưu Tập
+              </button>
+              <button
+                onClick={loadData}
+                className="btn-mipa-secondary"
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <RefreshCw size={14} /> Làm mới
+              </button>
+            </div>
           </div>
 
           {/* Grid of Collections */}
@@ -393,14 +570,55 @@ export const PortfolioCMS: React.FC = () => {
                       </p>
                     </div>
 
-                    <div style={{ marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <button
-                        onClick={() => setActiveCollection(col)}
-                        className="btn-mipa-secondary"
-                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                      >
-                        <ImageIcon size={14} /> Quản lý ({col.photosCount || col.photos?.length || 0} ảnh)
-                      </button>
+                    <div style={{ marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button
+                          onClick={() => setActiveCollection(col)}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                          title="Quản lý ảnh & tiêu cự"
+                        >
+                          <ImageIcon size={13} /> {col.photosCount || col.photos?.length || 0} ảnh
+                        </button>
+                        <button
+                          onClick={() => openEditCollectionModal(col)}
+                          style={{
+                            border: '1px solid var(--mipa-beige)',
+                            backgroundColor: '#FFFDF6',
+                            color: '#604634',
+                            padding: '0.35rem 0.6rem',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                          }}
+                          title="Sửa thông tin bộ sưu tập"
+                        >
+                          <Pencil size={13} /> Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCollection(col)}
+                          style={{
+                            border: '1px solid #FECACA',
+                            backgroundColor: '#FEF2F2',
+                            color: '#DC2626',
+                            padding: '0.35rem 0.6rem',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                          }}
+                          title="Xóa bộ sưu tập"
+                        >
+                          <Trash2 size={13} /> Xóa
+                        </button>
+                      </div>
 
                       {canPublish && (
                         <button
@@ -409,9 +627,9 @@ export const PortfolioCMS: React.FC = () => {
                             border: 'none',
                             backgroundColor: col.status === 'PUBLISHED' ? '#FEE2E2' : '#EFE6C9',
                             color: col.status === 'PUBLISHED' ? '#DC2626' : '#604634',
-                            padding: '0.4rem 0.8rem',
+                            padding: '0.35rem 0.65rem',
                             borderRadius: '8px',
-                            fontSize: '0.8rem',
+                            fontSize: '0.78rem',
                             fontWeight: 600,
                             cursor: 'pointer',
                             display: 'flex',
@@ -419,8 +637,8 @@ export const PortfolioCMS: React.FC = () => {
                             gap: '0.3rem',
                           }}
                         >
-                          {col.status === 'PUBLISHED' ? <EyeOff size={14} /> : <Eye size={14} />}
-                          {col.status === 'PUBLISHED' ? 'Hạ bản nháp' : 'Xuất bản'}
+                          {col.status === 'PUBLISHED' ? <EyeOff size={13} /> : <Eye size={13} />}
+                          {col.status === 'PUBLISHED' ? 'Hạ nháp' : 'Xuất bản'}
                         </button>
                       )}
                     </div>
@@ -541,13 +759,22 @@ export const PortfolioCMS: React.FC = () => {
       {/* View: Concepts List */}
       {activeTab === 'concepts' && (
         <div className="mipa-card" style={{ padding: '1.5rem', borderRadius: '20px', backgroundColor: '#FFFDF6', border: '1px solid var(--mipa-beige)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-            <h3 style={{ fontSize: '1.3rem', color: '#604634', margin: 0 }}>
-              Danh Sách Concept Nghệ Thuật
-            </h3>
-            <span style={{ fontSize: '0.85rem', color: '#8C6E53' }}>
-              Booking sẽ kiểm tra giới hạn concepts_count authoritative theo gói chụp.
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.3rem', color: '#604634', margin: 0 }}>
+                Danh Sách Concept Nghệ Thuật
+              </h3>
+              <span style={{ fontSize: '0.85rem', color: '#8C6E53' }}>
+                Booking sẽ kiểm tra giới hạn concepts_count authoritative theo gói chụp.
+              </span>
+            </div>
+            <button
+              onClick={openCreateConceptModal}
+              className="btn-mipa-gold"
+              style={{ fontSize: '0.8rem', padding: '0.45rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Plus size={15} /> Thêm Mới Concept
+            </button>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -559,20 +786,21 @@ export const PortfolioCMS: React.FC = () => {
                   <th style={{ padding: '0.75rem' }}>Mô tả</th>
                   <th style={{ padding: '0.75rem' }}>Trạng thái</th>
                   <th style={{ padding: '0.75rem' }}>Mở đặt lịch</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'right' }}>Hành động</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   [1, 2, 3].map((i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
-                      <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#8C6E53' }}>
+                      <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#8C6E53' }}>
                         Đang tải danh mục concept...
                       </td>
                     </tr>
                   ))
                 ) : concepts.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '1.5rem', textAlign: 'center', color: '#8C6E53' }}>
+                    <td colSpan={6} style={{ padding: '1.5rem', textAlign: 'center', color: '#8C6E53' }}>
                       Chưa có concept nào.
                     </td>
                   </tr>
@@ -591,6 +819,48 @@ export const PortfolioCMS: React.FC = () => {
                         <span style={{ padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: c.bookable ? '#E0E7FF' : '#F3F4F6', color: c.bookable ? '#4338CA' : '#6B7280', fontWeight: 700 }}>
                           {c.bookable ? 'BOOKABLE' : 'CHỈ XEM'}
                         </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => openEditConceptModal(c)}
+                            style={{
+                              border: '1px solid var(--mipa-beige)',
+                              backgroundColor: '#FFFDF6',
+                              color: '#604634',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                            }}
+                            title="Sửa concept"
+                          >
+                            <Pencil size={12} /> Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConcept(c)}
+                            style={{
+                              border: '1px solid #FECACA',
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                            }}
+                            title="Xóa concept"
+                          >
+                            <Trash2 size={12} /> Xóa
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -763,6 +1033,336 @@ export const PortfolioCMS: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Collection Create / Edit */}
+      {isCollectionModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(44, 34, 30, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '600px',
+              width: '100%',
+              backgroundColor: '#FFFDF6',
+              borderRadius: '24px',
+              padding: '1.8rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+              border: '1px solid #C6A45F',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#604634' }}>
+                {editingCollection ? 'Chỉnh Sửa Bộ Sưu Tập' : 'Thêm Mới Bộ Sưu Tập'}
+              </h3>
+              <button
+                onClick={() => setIsCollectionModalOpen(false)}
+                style={{ border: 'none', background: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#8C6E53' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCollection} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  Tiêu đề bộ sưu tập *
+                </label>
+                <input
+                  type="text"
+                  value={collectionFormData.title}
+                  onChange={(e) => {
+                    const title = e.target.value;
+                    const autoSlug = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                    setCollectionFormData((prev) => ({
+                      ...prev,
+                      title,
+                      slug: editingCollection ? prev.slug : autoSlug,
+                    }));
+                  }}
+                  required
+                  placeholder="Ví dụ: Parisian Sunset Romance 2026"
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.9rem', color: '#333' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                    Đường dẫn (Slug)
+                  </label>
+                  <input
+                    type="text"
+                    value={collectionFormData.slug}
+                    onChange={(e) => setCollectionFormData({ ...collectionFormData, slug: e.target.value })}
+                    placeholder="parisian-sunset"
+                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                    Concept liên kết
+                  </label>
+                  <select
+                    value={collectionFormData.conceptId}
+                    onChange={(e) => setCollectionFormData({ ...collectionFormData, conceptId: e.target.value })}
+                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                  >
+                    <option value="">-- Chọn Concept --</option>
+                    {concepts.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  Mô tả bộ sưu tập
+                </label>
+                <textarea
+                  rows={3}
+                  value={collectionFormData.description}
+                  onChange={(e) => setCollectionFormData({ ...collectionFormData, description: e.target.value })}
+                  placeholder="Mô tả phong cách, ánh sáng, cảm hứng của bộ sưu tập..."
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  URL Ảnh Bìa Đại Diện
+                </label>
+                <input
+                  type="text"
+                  value={collectionFormData.coverPhotoUrl}
+                  onChange={(e) => setCollectionFormData({ ...collectionFormData, coverPhotoUrl: e.target.value })}
+                  placeholder="/hero-couple.jpg hoặc https://..."
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                    Trạng thái
+                  </label>
+                  <select
+                    value={collectionFormData.status}
+                    onChange={(e) => setCollectionFormData({ ...collectionFormData, status: e.target.value as any })}
+                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                  >
+                    <option value="DRAFT">Bản Nháp (DRAFT)</option>
+                    <option value="PUBLISHED">Đã Xuất Bản (PUBLISHED)</option>
+                    <option value="ARCHIVED">Lưu Trữ (ARCHIVED)</option>
+                  </select>
+                </div>
+
+                <div style={{ paddingTop: '1.2rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#604634' }}>
+                    <input
+                      type="checkbox"
+                      checked={collectionFormData.featured}
+                      onChange={(e) => setCollectionFormData({ ...collectionFormData, featured: e.target.checked })}
+                    />
+                    Đặt làm Nổi Bật (Featured)
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'flex-end', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCollectionModalOpen(false)}
+                  className="btn-mipa-secondary"
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="btn-mipa-gold"
+                  style={{ padding: '0.5rem 1.3rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Check size={16} /> {editingCollection ? 'Lưu Thay Đổi' : 'Tạo Bộ Sưu Tập'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Concept Create / Edit */}
+      {isConceptModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(44, 34, 30, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="mipa-card"
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              backgroundColor: '#FFFDF6',
+              borderRadius: '24px',
+              padding: '1.8rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+              border: '1px solid #C6A45F',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#604634' }}>
+                {editingConcept ? 'Chỉnh Sửa Concept Nghệ Thuật' : 'Thêm Mới Concept Nghệ Thuật'}
+              </h3>
+              <button
+                onClick={() => setIsConceptModalOpen(false)}
+                style={{ border: 'none', background: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#8C6E53' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveConcept} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  Tên Concept *
+                </label>
+                <input
+                  type="text"
+                  value={conceptFormData.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const autoSlug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                    setConceptFormData((prev) => ({
+                      ...prev,
+                      name,
+                      slug: editingConcept ? prev.slug : autoSlug,
+                    }));
+                  }}
+                  required
+                  placeholder="Ví dụ: Hoàng Hôn Santorini"
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.9rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                    Đường dẫn (Slug)
+                  </label>
+                  <input
+                    type="text"
+                    value={conceptFormData.slug}
+                    onChange={(e) => setConceptFormData({ ...conceptFormData, slug: e.target.value })}
+                    placeholder="hoang-hon-santorini"
+                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                    Thứ tự hiển thị
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={conceptFormData.displayOrder}
+                    onChange={(e) => setConceptFormData({ ...conceptFormData, displayOrder: parseInt(e.target.value) || 1 })}
+                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  Mô tả concept
+                </label>
+                <textarea
+                  rows={3}
+                  value={conceptFormData.description}
+                  onChange={(e) => setConceptFormData({ ...conceptFormData, description: e.target.value })}
+                  placeholder="Mô tả bối cảnh, ánh sáng, tone màu chủ đạo..."
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  URL Ảnh Minh Họa
+                </label>
+                <input
+                  type="text"
+                  value={conceptFormData.coverPhotoUrl}
+                  onChange={(e) => setConceptFormData({ ...conceptFormData, coverPhotoUrl: e.target.value })}
+                  placeholder="/studio.png hoặc https://..."
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1.5rem', padding: '0.5rem 0' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#604634' }}>
+                  <input
+                    type="checkbox"
+                    checked={conceptFormData.active}
+                    onChange={(e) => setConceptFormData({ ...conceptFormData, active: e.target.checked })}
+                  />
+                  Kích hoạt (Hiển thị)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#604634' }}>
+                  <input
+                    type="checkbox"
+                    checked={conceptFormData.bookable}
+                    onChange={(e) => setConceptFormData({ ...conceptFormData, bookable: e.target.checked })}
+                  />
+                  Mở cho khách đặt lịch (Bookable)
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'flex-end', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsConceptModalOpen(false)}
+                  className="btn-mipa-secondary"
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="btn-mipa-gold"
+                  style={{ padding: '0.5rem 1.3rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Check size={16} /> {editingConcept ? 'Lưu Thay Đổi' : 'Tạo Concept'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import type { Booking, User } from '../../types';
 import { Sparkles, CheckCircle2, Clock, Check, Calendar, AlertCircle } from 'lucide-react';
 import { getStaffTasks, updateStaffTask } from '../../services/bookingService';
+import { StaffShiftRegistration } from './StaffShiftRegistration';
 
 interface MakeupPortalProps {
   currentUser: User | null;
@@ -17,6 +18,8 @@ export const MakeupPortal: React.FC<MakeupPortalProps> = ({
   currentUser,
   bookings,
 }) => {
+  const [activeTab, setActiveTab] = useState<'TASKS' | 'SHIFTS'>('TASKS');
+
   // Assigned sessions for makeup
   const assignedShoots = bookings.filter(b => {
     if (!currentUser) return false;
@@ -40,7 +43,51 @@ export const MakeupPortal: React.FC<MakeupPortalProps> = ({
 
   return (
     <div style={{ maxWidth: '1150px', margin: '0 auto' }}>
-      <div className="mipa-card-gold" style={{ padding: '1.5rem 2rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Tab Switcher */}
+      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', backgroundColor: '#FFFDF6', padding: '0.35rem', borderRadius: '14px', border: '1px solid var(--mipa-beige)', width: 'fit-content' }}>
+        <button
+          onClick={() => setActiveTab('TASKS')}
+          style={{
+            padding: '0.5rem 1.2rem',
+            borderRadius: '10px',
+            border: 'none',
+            backgroundColor: activeTab === 'TASKS' ? '#604634' : 'transparent',
+            color: activeTab === 'TASKS' ? '#FFFDF6' : '#604634',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+          }}
+        >
+          <Sparkles size={16} /> Lịch Makeup Của Tôi ({assignedShoots.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('SHIFTS')}
+          style={{
+            padding: '0.5rem 1.2rem',
+            borderRadius: '10px',
+            border: 'none',
+            backgroundColor: activeTab === 'SHIFTS' ? '#604634' : 'transparent',
+            color: activeTab === 'SHIFTS' ? '#FFFDF6' : '#604634',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+          }}
+        >
+          <Calendar size={16} /> Đăng Ký Lịch Làm (Tuần &amp; Tháng)
+        </button>
+      </div>
+
+      {activeTab === 'SHIFTS' ? (
+        <StaffShiftRegistration currentUser={currentUser} targetRole="MAKEUP" />
+      ) : (
+        <>
+          <div className="mipa-card-gold" style={{ padding: '1.5rem 2rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 700 }}>
             MAKEUP & STYLING • CHUYÊN VIÊN TRANG ĐIỂM
@@ -131,6 +178,8 @@ export const MakeupPortal: React.FC<MakeupPortalProps> = ({
           })
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };
