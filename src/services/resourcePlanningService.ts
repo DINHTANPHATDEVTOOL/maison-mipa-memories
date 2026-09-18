@@ -4,6 +4,7 @@
 // ==============================================================================
 
 import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
+import { normalizeError } from '../utils/AppError';
 import type {
   ResourceCategory,
   StudioResource,
@@ -168,7 +169,7 @@ let inMemoryResources: StudioResource[] = [
 let inMemoryReservations: ResourceReservation[] = [];
 let inMemoryHandoffs: ResourceHandoff[] = [];
 let inMemoryIncidents: ResourceIncident[] = [];
-let inMemoryMaintenance: ResourceMaintenance[] = [];
+let _inMemoryMaintenance: ResourceMaintenance[] = [];
 
 /**
  * Fetch all resource categories
@@ -182,8 +183,7 @@ export async function getResourceCategories(): Promise<ResourceCategory[]> {
       .order('code', { ascending: true });
 
     if (error) {
-      console.warn('[ResourcePlanning] Error fetching categories:', error.message);
-      return DEFAULT_CATEGORIES;
+      throw normalizeError(error, 'getResourceCategories');
     }
 
     return (data || []).map(c => ({
@@ -228,8 +228,7 @@ export async function getStudioResources(params?: {
 
     const { data, error } = await query;
     if (error) {
-      console.warn('[ResourcePlanning] Error fetching resources:', error.message);
-      return inMemoryResources;
+      throw normalizeError(error, 'getStudioResources');
     }
 
     let items = (data || []).map(r => ({
@@ -298,8 +297,7 @@ export async function getBookingReservations(bookingId: string): Promise<Resourc
       .neq('status', 'CANCELLED');
 
     if (error) {
-      console.warn('[ResourcePlanning] Error fetching reservations:', error.message);
-      return inMemoryReservations.filter(r => r.bookingId === bookingId);
+      throw normalizeError(error, 'getBookingReservations');
     }
 
     return (data || []).map(r => ({
@@ -338,15 +336,15 @@ export async function reserveBookingResource(params: {
     });
 
     if (error) {
-      throw new Error(error.message);
+      throw normalizeError(error, 'reserveBookingResource');
     }
 
     const res = data as any;
     if (res && res.success === false) {
-      throw new Error(res.error || 'Đặt giữ thiết bị thất bại do trùng thời gian hoặc đã hết số lượng.');
+      throw normalizeError(new Error(res.error || 'Đặt giữ thiết bị thất bại do trùng thời gian hoặc đã hết số lượng.'), 'reserveBookingResource');
     }
 
-    const reservation = res.reservation;
+    const reservation = res.reservation || res;
     return {
       id: reservation.id,
       bookingId: reservation.booking_id,
@@ -393,29 +391,29 @@ export async function checkoutBookingResource(params: {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     const { data, error } = await supabase.rpc('checkout_booking_resource', {
       p_reservation_id: params.reservationId,
-      p_employee_id: params.employeeId,
+      p_received_by_staff: params.employeeId,
       p_condition_before: params.conditionBefore || 'EXCELLENT',
       p_notes: params.notes || null,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) throw normalizeError(error, 'checkoutBookingResource');
     const res = data as any;
     if (res && res.success === false) {
-      throw new Error(res.error || 'Bàn giao xuất kho thất bại.');
+      throw normalizeError(new Error(res.error || 'Bàn giao xuất kho thất bại.'), 'checkoutBookingResource');
     }
 
-    const handoff = res.handoff;
+    const handoff = res.handoff || res;
     return {
       id: handoff.id,
       reservationId: handoff.reservation_id,
       resourceId: handoff.resource_id,
       bookingId: handoff.booking_id,
-      employeeId: handoff.employee_id,
+      employeeId: handoff.employee_id || handoff.received_by_staff || params.employeeId,
       handoffType: 'CHECKOUT',
-      conditionState: handoff.condition_state,
-      actorId: handoff.actor_id,
+      conditionState: handoff.condition_state || params.conditionBefore || 'EXCELLENT',
+      actorId: handoff.actor_id || handoff.checked_out_by,
       notes: handoff.notes,
-      createdAt: handoff.created_at,
+      createdAt: handoff.created_at || new Date().toISOString(),
     };
   }
 
@@ -469,30 +467,31 @@ export async function returnBookingResource(params: {
     const { data, error } = await supabase.rpc('return_booking_resource', {
       p_reservation_id: params.reservationId,
       p_condition_after: params.conditionAfter || 'EXCELLENT',
+      p_damage_notes: params.damageDescription || null,
       p_is_damaged: params.isDamaged || false,
       p_damage_severity: params.damageSeverity || null,
       p_damage_description: params.damageDescription || null,
       p_notes: params.notes || null,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) throw normalizeError(error, 'returnBookingResource');
     const res = data as any;
     if (res && res.success === false) {
-      throw new Error(res.error || 'Thu hồi thiết bị thất bại.');
+      throw normalizeError(new Error(res.error || 'Thu hồi thiết bị thất bại.'), 'returnBookingResource');
     }
 
-    const handoff = res.handoff;
+    const handoff = res.handoff || res;
     return {
       id: handoff.id,
       reservationId: handoff.reservation_id,
       resourceId: handoff.resource_id,
       bookingId: handoff.booking_id,
-      employeeId: handoff.employee_id,
+      employeeId: handoff.employee_id || 'staff',
       handoffType: 'RETURN',
-      conditionState: handoff.condition_state,
-      actorId: handoff.actor_id,
+      conditionState: handoff.condition_state || params.conditionAfter || 'EXCELLENT',
+      actorId: handoff.actor_id || 'manager',
       notes: handoff.notes,
-      createdAt: handoff.created_at,
+      createdAt: handoff.created_at || new Date().toISOString(),
     };
   }
 
@@ -565,8 +564,7 @@ export async function getResourceIncidents(): Promise<ResourceIncident[]> {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.warn('[ResourcePlanning] Error fetching incidents:', error.message);
-      return inMemoryIncidents;
+      throw normalizeError(error, 'getResourceIncidents');
     }
 
     return (data || []).map(i => ({

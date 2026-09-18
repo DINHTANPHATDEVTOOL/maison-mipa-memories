@@ -13,6 +13,8 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "verify:schema": "node scripts/verify-production-schema.mjs",
+    "verify:db-contracts": "node scripts/verify-db-contracts.mjs",
+    "db:types:check": "node scripts/check-db-types-drift.mjs",
     "check:budget": "node scripts/check-bundle-budget.mjs",
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "preview": "vite preview"

@@ -8,6 +8,7 @@
 // - Protected operations search (no public PII exposure)
 // ==============================================================================
 import React, { useState } from 'react';
+import { FocusTrap } from '../ui/FocusTrap';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../../types';
 import { getOperationsInboxStats, getNextActionForBooking } from '../../utils/bookingStateMachine';
 import {
@@ -980,7 +981,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               if (e.target === e.currentTarget) setAssigningBooking(null);
             }}
           >
-            <div
+            <FocusTrap
+              onEscape={() => setAssigningBooking(null)}
+              aria-labelledby="assign-staff-modal-title"
               className="mipa-card"
               style={{
                 maxWidth: '500px',
@@ -998,7 +1001,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     ĐIỀU PHỐI NHÂN SỰ STUDIO
                   </div>
-                  <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                  <h3 id="assign-staff-modal-title" style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
                     Phân Công: #{assigningBooking.bookingCode}
                   </h3>
                 </div>
@@ -1149,7 +1152,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   </button>
                 </div>
               </form>
-            </div>
+            </FocusTrap>
           </div>
         );
       })()}
@@ -1172,7 +1175,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             if (e.target === e.currentTarget && !isConfirmingDeposit) setDepositModalBooking(null);
           }}
         >
-          <div
+          <FocusTrap
+            onEscape={() => !isConfirmingDeposit && setDepositModalBooking(null)}
+            aria-labelledby="deposit-modal-title"
             className="mipa-card"
             style={{
               maxWidth: '500px',
@@ -1189,7 +1194,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   XÁC NHẬN ĐÃ NHẬN CỌC
                 </div>
-                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                <h3 id="deposit-modal-title" style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
                   #{depositModalBooking.bookingCode} — {depositModalBooking.customerName}
                 </h3>
               </div>
@@ -1307,7 +1312,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
 
@@ -1329,7 +1334,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             if (e.target === e.currentTarget && !isUpdatingConsultation) setConsultationModalBooking(null);
           }}
         >
-          <div
+          <FocusTrap
+            onEscape={() => !isUpdatingConsultation && setConsultationModalBooking(null)}
+            aria-labelledby="consultation-modal-title"
             className="mipa-card"
             style={{
               maxWidth: '520px',
@@ -1346,7 +1353,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   TƯ VẤN & CHỐT ĐƠN CHỤP
                 </div>
-                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                <h3 id="consultation-modal-title" style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
                   #{consultationModalBooking.bookingCode} — {consultationModalBooking.customerName}
                 </h3>
               </div>
@@ -1460,7 +1467,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
 
@@ -1482,7 +1489,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             if (e.target === e.currentTarget && !workflowActionLoading) setRevisionModalBooking(null);
           }}
         >
-          <div
+          <FocusTrap
+            onEscape={() => !workflowActionLoading && setRevisionModalBooking(null)}
+            aria-labelledby="revision-modal-title"
             className="mipa-card"
             style={{
               maxWidth: '500px',
@@ -1499,7 +1508,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   YÊU CẦU CHỈNH SỬA LẠI (REVISION)
                 </div>
-                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
+                <h3 id="revision-modal-title" style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
                   #{revisionModalBooking.bookingCode} — {revisionModalBooking.customerName}
                 </h3>
               </div>
@@ -1562,7 +1571,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
 
@@ -1584,7 +1593,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             if (e.target === e.currentTarget && !workflowActionLoading) setReopenModalBooking(null);
           }}
         >
-          <div
+          <FocusTrap
+            onEscape={() => !workflowActionLoading && setReopenModalBooking(null)}
+            aria-labelledby="reopen-modal-title"
             className="mipa-card"
             style={{
               maxWidth: '500px',
@@ -1601,7 +1612,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   MỞ LẠI KHÂU CHỌN ẢNH (CHO KHÁCH)
                 </div>
-                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
+                <h3 id="reopen-modal-title" style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
                   #{reopenModalBooking.bookingCode} — {reopenModalBooking.customerName}
                 </h3>
               </div>
@@ -1668,7 +1679,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
 
@@ -1690,7 +1701,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             if (e.target === e.currentTarget && !workflowActionLoading) setBypassModalBooking(null);
           }}
         >
-          <div
+          <FocusTrap
+            onEscape={() => !workflowActionLoading && setBypassModalBooking(null)}
+            aria-labelledby="bypass-modal-title"
             className="mipa-card"
             style={{
               maxWidth: '500px',
@@ -1707,7 +1720,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   BỎ QUA KHÂU KHÁCH CHỌN ẢNH
                 </div>
-                <h3 style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
+                <h3 id="bypass-modal-title" style={{ margin: '0.2rem 0 0 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Playfair Display, serif' }}>
                   #{bypassModalBooking.bookingCode} — {bypassModalBooking.customerName}
                 </h3>
               </div>
@@ -1774,7 +1787,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
 

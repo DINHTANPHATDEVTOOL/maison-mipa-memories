@@ -40,6 +40,12 @@ jobs:
       - name: Run Unit & Integration Tests
         run: npm run test:run
 
+      - name: Verify Database Contracts
+        run: npm run verify:db-contracts
+
+      - name: Check Database Types Drift
+        run: npm run db:types:check
+
       - name: Install Playwright Chromium
         run: |
           sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome*

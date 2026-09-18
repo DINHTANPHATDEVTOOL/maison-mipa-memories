@@ -4,6 +4,7 @@
 // ==============================================================================
 
 import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
+import { normalizeError } from '../utils/AppError';
 import type {
   StaffSkill,
   StaffWorkingHours,
@@ -71,8 +72,7 @@ export async function getStaffSkills(): Promise<StaffSkill[]> {
       .order('category', { ascending: true });
 
     if (error) {
-      console.warn('[StaffScheduling] Failed to fetch skills, using fallback:', error.message);
-      return DEFAULT_SKILLS;
+      throw normalizeError(error, 'getStaffSkills');
     }
     return (data || []).map(s => ({
       id: s.id,
@@ -99,8 +99,7 @@ export async function getStaffWorkingHours(employeeId: string): Promise<StaffWor
       .order('day_of_week', { ascending: true });
 
     if (error) {
-      console.warn('[StaffScheduling] Failed to fetch working hours:', error.message);
-      return [];
+      throw normalizeError(error, 'getStaffWorkingHours');
     }
 
     return (data || []).map(w => ({
@@ -145,8 +144,7 @@ export async function getStaffLeaveRequests(employeeId?: string): Promise<StaffL
 
     const { data, error } = await query;
     if (error) {
-      console.warn('[StaffScheduling] Failed to fetch leave requests:', error.message);
-      return inMemoryLeaveRequests;
+      throw normalizeError(error, 'getStaffLeaveRequests');
     }
 
     return (data || []).map(r => ({
@@ -310,22 +308,22 @@ export async function assignBookingStaffV2(params: {
     });
 
     if (error) {
-      throw new Error(error.message);
+      throw normalizeError(error, 'assignBookingStaffV2');
     }
 
     const res = data as any;
     if (res && res.success === false) {
-      throw new Error(res.error || 'Phân công nhân viên thất bại do trùng lịch hoặc nhân viên không khả dụng.');
+      throw normalizeError(new Error(res.error || 'Phân công nhân viên thất bại do trùng lịch hoặc nhân viên không khả dụng.'), 'assignBookingStaffV2');
     }
 
     // Fetch the inserted assignment details
-    const assignment = res.assignment;
+    const assignment = res.assignment || res;
     return {
       id: assignment.id,
       bookingId: assignment.booking_id,
       employeeId: assignment.employee_id,
       employeeName: assignment.employee_name || 'Chuyên viên MIPA',
-      assignmentRole: assignment.assignment_role as StaffRole,
+      assignmentRole: (assignment.assignment_role || params.assignmentRole) as StaffRole,
       startTime: assignment.start_at,
       endTime: assignment.end_at,
     };
@@ -358,7 +356,38 @@ export async function getSuggestedStaffForBooking(params: {
   unavailabilityReason?: string;
   matchingSkills: string[];
 }[]> {
-  // Query all active employees of matching role
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data, error } = await supabase.rpc('get_available_staff_for_booking', {
+      p_booking_id: params.bookingId,
+      p_assignment_role: params.role,
+    });
+
+    if (error) {
+      throw normalizeError(error, 'getSuggestedStaffForBooking');
+    }
+
+    const staffList = (data as any[]) || [];
+    return staffList.map(s => ({
+      employee: {
+        id: s.employee_id,
+        name: s.full_name || s.employee_name || 'Chuyên viên MIPA',
+        phone: s.phone || '',
+        email: s.email || '',
+        role: (s.staff_role || s.role || params.role) as StaffRole,
+        avatar: s.avatar || '',
+        rating: s.rating ?? 5.0,
+        totalSessions: s.total_sessions ?? 0,
+        status: (s.status === 'ACTIVE' ? 'ACTIVE' : s.status === 'ON_LEAVE' ? 'ON_LEAVE' : 'OFF'),
+        skills: s.matching_skills || s.skills || [],
+        shiftSchedule: s.shift_schedule || {},
+      },
+      isAvailable: Boolean(s.is_available),
+      unavailabilityReason: s.unavailability_reason || undefined,
+      matchingSkills: s.matching_skills || s.skills || [],
+    }));
+  }
+
+  // In-memory demo/test fallback only
   const allEmployees = INITIAL_EMPLOYEES.filter(
     e => e.role === params.role || (params.role === 'PHOTOGRAPHER' && e.role === 'PHOTOGRAPHER')
   );

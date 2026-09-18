@@ -592,6 +592,8 @@ export interface Database {
           assignment_role: DatabaseStaffRole;
           start_at: string;
           end_at: string;
+          notes: string | null;
+          slot_index: number;
           created_at: string;
         };
         Insert: {
@@ -601,6 +603,8 @@ export interface Database {
           assignment_role: DatabaseStaffRole;
           start_at: string;
           end_at: string;
+          notes?: string | null;
+          slot_index?: number;
           created_at?: string;
         };
         Update: {
@@ -610,6 +614,8 @@ export interface Database {
           assignment_role?: DatabaseStaffRole;
           start_at?: string;
           end_at?: string;
+          notes?: string | null;
+          slot_index?: number;
           created_at?: string;
         };
         Relationships: [
@@ -2137,6 +2143,66 @@ export interface Database {
         };
         Relationships: [];
       };
+      google_drive_integrations: {
+        Row: {
+          id: string;
+          account_email: string | null;
+          root_folder_id: string | null;
+          refresh_token: string;
+          is_active: boolean;
+          connected_by: string | null;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_email?: string | null;
+          root_folder_id?: string | null;
+          refresh_token: string;
+          is_active?: boolean;
+          connected_by?: string | null;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          account_email?: string | null;
+          root_folder_id?: string | null;
+          refresh_token?: string;
+          is_active?: boolean;
+          connected_by?: string | null;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      google_drive_oauth_states: {
+        Row: {
+          state: string;
+          created_by: string | null;
+          redirect_uri: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          state: string;
+          created_by?: string | null;
+          redirect_uri: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          state?: string;
+          created_by?: string | null;
+          redirect_uri?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -2525,9 +2591,32 @@ export interface Database {
           p_booking_id: string;
           p_employee_id: string;
           p_assignment_role: string;
+          p_start_at?: string | null;
+          p_end_at?: string | null;
           p_notes?: string | null;
         };
-        Returns: unknown;
+        Returns: {
+          success: boolean;
+          assignment_id?: string;
+          booking_id?: string;
+          employee_id?: string;
+          role?: string;
+          assignment_role?: string;
+          start_at?: string;
+          end_at?: string;
+          notes?: string | null;
+          conflict_type?: string;
+          error?: string;
+          assignment?: {
+            id: string;
+            booking_id: string;
+            employee_id: string;
+            assignment_role: string;
+            start_at: string;
+            end_at: string;
+            notes?: string | null;
+          };
+        };
       };
       approve_staff_leave: {
         Args: {
@@ -2555,7 +2644,7 @@ export interface Database {
       checkout_booking_resource: {
         Args: {
           p_reservation_id: string;
-          p_employee_id: string;
+          p_received_by_staff: string;
           p_condition_before?: string | null;
           p_notes?: string | null;
         };
@@ -2565,12 +2654,29 @@ export interface Database {
         Args: {
           p_reservation_id: string;
           p_condition_after?: string | null;
+          p_damage_notes?: string | null;
           p_is_damaged?: boolean;
           p_damage_severity?: string | null;
           p_damage_description?: string | null;
           p_notes?: string | null;
         };
         Returns: unknown;
+      };
+      get_available_staff_for_booking: {
+        Args: {
+          p_booking_id: string;
+          p_assignment_role?: string | null;
+        };
+        Returns: {
+          employee_id: string;
+          full_name: string;
+          email: string;
+          staff_role: string;
+          status: string;
+          is_available: boolean;
+          unavailability_reason: string | null;
+          matching_skills: string[];
+        }[];
       };
       get_operations_calendar_events: {
         Args: {

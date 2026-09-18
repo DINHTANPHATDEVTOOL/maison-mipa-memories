@@ -62,4 +62,65 @@ test.describe('Maison MIPA — Accessibility Smoke Suite', () => {
       await expect(modalDialog).toBeHidden();
     }
   });
+
+  test('5. Account Portal (/account) has no serious accessibility violations', async ({ page }) => {
+    await page.goto('/account');
+    await page.waitForLoadState('networkidle');
+
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .disableRules(['color-contrast']) // Audited separately for Maison MIPA dark luxury theme
+      .analyze();
+
+    const seriousViolations = accessibilityScanResults.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical'
+    );
+
+    expect(seriousViolations).toEqual([]);
+  });
+
+  test('6. Management Portal (/management) has no serious accessibility violations', async ({ page }) => {
+    await page.goto('/management');
+    await page.waitForLoadState('networkidle');
+
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .disableRules(['color-contrast'])
+      .analyze();
+
+    const seriousViolations = accessibilityScanResults.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical'
+    );
+
+    expect(seriousViolations).toEqual([]);
+  });
+
+  test('7. Proof Selection Route has no serious accessibility violations', async ({ page }) => {
+    await page.goto('/booking/proofs?booking=test-qa');
+    await page.waitForLoadState('networkidle');
+
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .disableRules(['color-contrast'])
+      .analyze();
+
+    const seriousViolations = accessibilityScanResults.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical'
+    );
+
+    expect(seriousViolations).toEqual([]);
+  });
+
+  test('8. Operational Dialogs have accessible dialog semantics', async ({ page }) => {
+    await page.goto('/management');
+    await page.waitForLoadState('networkidle');
+
+    // Verify all active modals use role="dialog" and aria-modal="true"
+    const dialogs = page.locator('[role="dialog"]');
+    const count = await dialogs.count();
+    for (let i = 0; i < count; i++) {
+      const dialog = dialogs.nth(i);
+      await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    }
+  });
 });

@@ -30,6 +30,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260917000004_shoot_to_delivery_workflow.sql',
     '20260918000001_crm_business_intelligence.sql',
     '20260918000002_workforce_and_resource_operations.sql',
+    '20260918000003_production_contract_reconciliation.sql',
   ];
 
   const EXPECTED_TABLES = [
@@ -73,6 +74,11 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'booking_resource_handoffs',
     'resource_maintenance',
     'resource_incidents',
+    'booking_proof_images',
+    'booking_photo_selections',
+    'booking_deliveries',
+    'google_drive_integrations',
+    'google_drive_oauth_states',
   ];
 
   const EXPECTED_RPCS = [
@@ -112,6 +118,15 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     'return_booking_resource',
     'get_operations_calendar_events',
     'get_daily_operations_board',
+    'check_in_booking',
+    'start_booking_shoot',
+    'complete_booking_shoot',
+    'submit_photo_selection',
+    'reopen_photo_selection',
+    'complete_booking_editing',
+    'request_booking_revision',
+    'complete_booking',
+    'get_available_staff_for_booking',
   ];
 
   it('1. all migration files exist in sequential order', () => {

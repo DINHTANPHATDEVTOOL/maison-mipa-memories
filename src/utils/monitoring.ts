@@ -67,7 +67,7 @@ class MonitoringService implements MonitoringAdapter {
   }
 
   isMonitoringEnabled(): boolean {
-    return this.isEnabled;
+    return this.isEnabled && !(this.adapter instanceof NoopMonitoringAdapter);
   }
 
   captureException(error: unknown, context?: Record<string, any>): void {

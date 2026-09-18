@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FocusTrap } from '../ui/FocusTrap';
 import {
   Users,
   Calendar,
@@ -501,15 +502,19 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
           zIndex: 1000,
           padding: '1rem',
         }}>
-          <div style={{
-            backgroundColor: '#FFFDF6',
-            borderRadius: '14px',
-            maxWidth: '480px',
-            width: '100%',
-            padding: '1.75rem',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
-          }}>
-            <h3 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.25rem', margin: '0 0 1.25rem', color: '#2C2420' }}>
+          <FocusTrap
+            onEscape={() => setShowNewLeaveModal(false)}
+            aria-labelledby="leave-modal-title"
+            style={{
+              backgroundColor: '#FFFDF6',
+              borderRadius: '14px',
+              maxWidth: '480px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3 id="leave-modal-title" style={{ fontFamily: 'Cinzel, serif', fontSize: '1.25rem', margin: '0 0 1.25rem', color: '#2C2420' }}>
               Tạo Đơn Xin Nghỉ Phép
             </h3>
 
@@ -618,7 +623,7 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
     </div>
