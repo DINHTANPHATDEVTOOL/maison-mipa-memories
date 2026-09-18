@@ -171,7 +171,10 @@ export const StaffShiftRegistration: React.FC<StaffShiftRegistrationProps> = ({
         shiftsToUpdate.push({ date: dateStr, shiftType: 'AFTERNOON', selected: shifts.AFTERNOON });
       });
 
-      const updated = await registerStaffShifts(staffId, shiftsToUpdate);
+      const updated = await registerStaffShifts(staffId, shiftsToUpdate, {
+        employeeName: staffName,
+        role: currentUser?.staffRole || targetRole,
+      });
       setRegisteredShifts(updated);
       setSuccessMessage('✓ Đã lưu lịch làm việc thành công! Quản lý studio đã có thể điều phối lịch chụp cho bạn.');
       setTimeout(() => setSuccessMessage(null), 4000);

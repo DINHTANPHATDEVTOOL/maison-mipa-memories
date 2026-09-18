@@ -473,12 +473,66 @@ export interface StaffEmailNotification {
   status: 'SENT';
 }
 
-// In-memory persistent stores
+// LocalStorage key for cross-session and cross-tab persistence
+const LOCAL_STORAGE_SHIFTS_KEY = 'maison_mipa_registered_shifts';
+
+// In-memory fallback stores
 let inMemoryRegisteredShifts: StaffShiftRegistrationRecord[] = [];
 let inMemoryEmailNotifications: StaffEmailNotification[] = [];
 
+/**
+ * Reads registered shifts from localStorage (if in browser) or memory.
+ */
+export function getStoredRegisteredShifts(): StaffShiftRegistrationRecord[] {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          inMemoryRegisteredShifts = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('[StaffScheduling] Error reading shifts from localStorage:', e);
+    }
+  }
+  return inMemoryRegisteredShifts;
+}
+
+/**
+ * Persists registered shifts to memory and localStorage, and broadcasts an update event.
+ */
+export function persistStoredRegisteredShifts(shifts: StaffShiftRegistrationRecord[]) {
+  inMemoryRegisteredShifts = shifts;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_SHIFTS_KEY, JSON.stringify(shifts));
+      window.dispatchEvent(new CustomEvent('mipa_shifts_updated', { detail: { count: shifts.length } }));
+    } catch (e) {
+      console.warn('[StaffScheduling] Error saving shifts to localStorage:', e);
+    }
+  }
+}
+
 // Initialize default shifts for demo and development
 function initializeDefaultShifts() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          inMemoryRegisteredShifts = parsed;
+          return;
+        }
+      }
+    } catch {
+      // proceed to generate defaults
+    }
+  }
+
   if (inMemoryRegisteredShifts.length > 0) return;
 
   const today = new Date();
@@ -572,6 +626,14 @@ function initializeDefaultShifts() {
       });
     }
   }
+
+  if (typeof window !== 'undefined' && window.localStorage && inMemoryRegisteredShifts.length > 0) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_SHIFTS_KEY, JSON.stringify(inMemoryRegisteredShifts));
+    } catch {
+      // ignore
+    }
+  }
 }
 
 initializeDefaultShifts();
@@ -598,37 +660,55 @@ export async function getStaffRegisteredShifts(params?: {
   endDate?: string;
 }): Promise<StaffShiftRegistrationRecord[]> {
   initializeDefaultShifts();
+  const shifts = [...getStoredRegisteredShifts()];
 
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     try {
-      let query = supabase.from('staff_shifts').select('*');
-      if (params?.employeeId) query = query.eq('employee_id', params.employeeId);
-      if (params?.startDate) query = query.gte('shift_date', params.startDate);
-      if (params?.endDate) query = query.lte('shift_date', params.endDate);
-
+      let query = supabase.from('employees').select('id, name, staff_role, shift_schedule').eq('active', true);
+      if (params?.employeeId) {
+        query = query.eq('id', params.employeeId);
+      }
       const { data, error } = await query;
       if (!error && data && data.length > 0) {
-        return data.map((s: any) => {
-          const emp = INITIAL_EMPLOYEES.find(e => e.id === s.employee_id);
-          return {
-            id: s.id,
-            employeeId: s.employee_id,
-            employeeName: emp?.name || 'Nhân viên',
-            role: emp?.role || 'PHOTOGRAPHER',
-            shiftDate: s.shift_date,
-            shiftType: (s.shift_type || 'MORNING') as ShiftType,
-            startAt: s.start_at,
-            endAt: s.end_at,
-            createdAt: s.created_at || new Date().toISOString(),
-          };
+        let updated = false;
+        data.forEach((emp: any) => {
+          if (emp.shift_schedule && typeof emp.shift_schedule === 'object') {
+            Object.entries(emp.shift_schedule).forEach(([dateStr, shiftTypes]: [string, any]) => {
+              if (Array.isArray(shiftTypes)) {
+                shiftTypes.forEach((st: ShiftType) => {
+                  const exists = shifts.some(
+                    s => s.employeeId === emp.id && s.shiftDate === dateStr && s.shiftType === st
+                  );
+                  if (!exists && SHIFT_CONFIGS[st]) {
+                    const cfg = SHIFT_CONFIGS[st];
+                    shifts.push({
+                      id: `shift-${emp.id}-${dateStr}-${st[0]}`,
+                      employeeId: emp.id,
+                      employeeName: emp.name || 'Nhân sự MIPA',
+                      role: (emp.staff_role || 'PHOTOGRAPHER') as StaffRole,
+                      shiftDate: dateStr,
+                      shiftType: st,
+                      startAt: `${dateStr}T${cfg.startHour}:00+07:00`,
+                      endAt: `${dateStr}T${cfg.endHour}:00+07:00`,
+                      createdAt: new Date().toISOString(),
+                    });
+                    updated = true;
+                  }
+                });
+              }
+            });
+          }
         });
+        if (updated) {
+          persistStoredRegisteredShifts(shifts);
+        }
       }
     } catch (e) {
       console.warn('[StaffScheduling] getStaffRegisteredShifts DB fallback to memory:', e);
     }
   }
 
-  let result = [...inMemoryRegisteredShifts];
+  let result = [...shifts];
   if (params?.employeeId) {
     result = result.filter(s => s.employeeId === params.employeeId);
   }
@@ -646,43 +726,67 @@ export async function getStaffRegisteredShifts(params?: {
  */
 export async function registerStaffShifts(
   employeeId: string,
-  shiftsToUpdate: { date: string; shiftType: ShiftType; selected: boolean }[]
+  shiftsToUpdate: { date: string; shiftType: ShiftType; selected: boolean }[],
+  staffMetadata?: { employeeName?: string; role?: StaffRole }
 ): Promise<StaffShiftRegistrationRecord[]> {
   initializeDefaultShifts();
+  const currentShifts = [...getStoredRegisteredShifts()];
 
   const emp = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
-  const employeeName = emp?.name || 'Nhân sự MIPA';
-  const role = emp?.role || 'PHOTOGRAPHER';
+  const employeeName = staffMetadata?.employeeName || emp?.name || 'Nhân sự MIPA';
+  const role = staffMetadata?.role || emp?.role || 'PHOTOGRAPHER';
 
   for (const item of shiftsToUpdate) {
-    const existingIndex = inMemoryRegisteredShifts.findIndex(
+    const existingIndex = currentShifts.findIndex(
       s => s.employeeId === employeeId && s.shiftDate === item.date && s.shiftType === item.shiftType
     );
 
     if (item.selected) {
+      const config = SHIFT_CONFIGS[item.shiftType];
+      const record: StaffShiftRegistrationRecord = {
+        id: `shift-${employeeId}-${item.date}-${item.shiftType[0]}`,
+        employeeId,
+        employeeName,
+        role,
+        shiftDate: item.date,
+        shiftType: item.shiftType,
+        startAt: `${item.date}T${config.startHour}:00+07:00`,
+        endAt: `${item.date}T${config.endHour}:00+07:00`,
+        createdAt: new Date().toISOString(),
+      };
       if (existingIndex === -1) {
-        const config = SHIFT_CONFIGS[item.shiftType];
-        inMemoryRegisteredShifts.push({
-          id: `shift-${employeeId}-${item.date}-${item.shiftType[0]}`,
-          employeeId,
-          employeeName,
-          role,
-          shiftDate: item.date,
-          shiftType: item.shiftType,
-          startAt: `${item.date}T${config.startHour}:00+07:00`,
-          endAt: `${item.date}T${config.endHour}:00+07:00`,
-          createdAt: new Date().toISOString(),
-        });
+        currentShifts.push(record);
+      } else {
+        currentShifts[existingIndex] = record;
       }
     } else {
       if (existingIndex !== -1) {
-        inMemoryRegisteredShifts.splice(existingIndex, 1);
+        currentShifts.splice(existingIndex, 1);
       }
     }
   }
 
+  persistStoredRegisteredShifts(currentShifts);
+
   // Attempt Supabase sync if connected
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    try {
+      const employeeShifts = currentShifts.filter(s => s.employeeId === employeeId);
+      const scheduleMap: Record<string, ShiftType[]> = {};
+      employeeShifts.forEach(s => {
+        if (!scheduleMap[s.shiftDate]) scheduleMap[s.shiftDate] = [];
+        if (!scheduleMap[s.shiftDate].includes(s.shiftType)) {
+          scheduleMap[s.shiftDate].push(s.shiftType);
+        }
+      });
+      await supabase
+        .from('employees')
+        .update({ shift_schedule: scheduleMap })
+        .eq('id', employeeId);
+    } catch (e) {
+      console.warn('[StaffScheduling] registerStaffShifts DB sync fallback:', e);
+    }
+
     try {
       for (const item of shiftsToUpdate) {
         if (item.selected) {
@@ -701,12 +805,12 @@ export async function registerStaffShifts(
             .match({ employee_id: employeeId, shift_date: item.date, shift_type: item.shiftType });
         }
       }
-    } catch (e) {
-      console.warn('[StaffScheduling] registerStaffShifts DB sync fallback:', e);
+    } catch {
+      // table might not exist, handled safely
     }
   }
 
-  return inMemoryRegisteredShifts.filter(s => s.employeeId === employeeId);
+  return currentShifts.filter(s => s.employeeId === employeeId);
 }
 
 /**
@@ -726,13 +830,34 @@ export async function getAvailableStaffForSlot(params: {
   initializeDefaultShifts();
   const shiftType = determineShiftFromTime(params.time);
   const targetDate = params.date.split('T')[0];
+  const registeredShifts = getStoredRegisteredShifts();
+
+  // Combine INITIAL_EMPLOYEES with any dynamically registered employees
+  const dynamicEmployees: Employee[] = [...INITIAL_EMPLOYEES];
+  registeredShifts.forEach(s => {
+    if (!dynamicEmployees.some(e => e.id === s.employeeId)) {
+      dynamicEmployees.push({
+        id: s.employeeId,
+        name: s.employeeName,
+        email: `${s.employeeId}@maisonmipa.vn`,
+        phone: '',
+        role: s.role,
+        avatar: '/hero.png',
+        skills: [],
+        rating: 5.0,
+        totalSessions: 0,
+        status: 'ACTIVE',
+        shiftSchedule: {},
+      });
+    }
+  });
 
   const candidateEmployees = params.role
-    ? INITIAL_EMPLOYEES.filter(e => e.role === params.role)
-    : INITIAL_EMPLOYEES;
+    ? dynamicEmployees.filter(e => e.role === params.role)
+    : dynamicEmployees;
 
   return candidateEmployees.map(emp => {
-    const registered = inMemoryRegisteredShifts.some(
+    const registered = registeredShifts.some(
       s => s.employeeId === emp.id && s.shiftDate === targetDate && s.shiftType === shiftType
     );
 
@@ -763,13 +888,20 @@ export async function assignStaffAndSendEmailNotification(params: {
     studioName?: string;
     notes?: string;
   };
+  staffDetails?: {
+    name?: string;
+    email?: string;
+  };
 }): Promise<{
   assignment: BookingAssignment;
   emailNotification: StaffEmailNotification;
 }> {
+  const registeredShifts = getStoredRegisteredShifts();
+  const shiftRecord = registeredShifts.find(s => s.employeeId === params.employeeId);
   const emp = INITIAL_EMPLOYEES.find(e => e.id === params.employeeId);
-  const staffName = emp?.name || 'Nhân sự MIPA';
-  const staffEmail = emp?.email || 'staff@maisonmipa.vn';
+
+  const staffName = params.staffDetails?.name || emp?.name || shiftRecord?.employeeName || 'Nhân sự MIPA';
+  const staffEmail = params.staffDetails?.email || emp?.email || `${params.employeeId}@maisonmipa.vn`;
   const shiftType = determineShiftFromTime(params.bookingDetails.shootTime);
   const shiftName = SHIFT_CONFIGS[shiftType].name;
 
@@ -814,9 +946,8 @@ export async function assignStaffAndSendEmailNotification(params: {
 export function getStaffEmailNotifications(employeeId?: string): StaffEmailNotification[] {
   if (employeeId) {
     const emp = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
-    if (emp) {
-      return inMemoryEmailNotifications.filter(e => e.toEmail === emp.email);
-    }
+    const targetEmail = emp?.email || `${employeeId}@maisonmipa.vn`;
+    return inMemoryEmailNotifications.filter(e => e.toEmail === targetEmail || (emp && e.toEmail === emp.email));
   }
   return [...inMemoryEmailNotifications];
 }

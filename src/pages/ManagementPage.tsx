@@ -187,7 +187,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
       )}
 
       {subTab === 'workforce' && (
-        <WorkforceScheduling />
+        <WorkforceScheduling employees={employees} />
       )}
 
       {subTab === 'finance' && (

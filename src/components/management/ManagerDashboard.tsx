@@ -78,6 +78,16 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
   useEffect(() => {
     getStaffRegisteredShifts().then(setRegisteredShifts).catch(console.error);
+
+    const handleShiftsUpdate = () => {
+      getStaffRegisteredShifts().then(setRegisteredShifts).catch(console.error);
+    };
+    window.addEventListener('mipa_shifts_updated', handleShiftsUpdate);
+    window.addEventListener('storage', handleShiftsUpdate);
+    return () => {
+      window.removeEventListener('mipa_shifts_updated', handleShiftsUpdate);
+      window.removeEventListener('storage', handleShiftsUpdate);
+    };
   }, [assigningBooking]);
 
   // Manual Deposit Modal State
@@ -208,8 +218,11 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningBooking || !selectedEmployeeId) return;
-    const availableEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
-    const assignedEmp = availableEmployees.find(emp => emp.id === selectedEmployeeId);
+    const baseEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+    const assignedEmp = baseEmployees.find(emp => emp.id === selectedEmployeeId) ||
+      registeredShifts.find(s => s.employeeId === selectedEmployeeId);
+    const assignedName = (assignedEmp as any)?.name || (assignedEmp as any)?.employeeName;
+    const assignedEmail = (assignedEmp as any)?.email;
 
     onAssignStaff(assigningBooking.id, selectedEmployeeId, selectedStaffRole);
 
@@ -229,12 +242,16 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           studioName: assigningBooking.studioName,
           notes: assigningBooking.customerNote,
         },
+        staffDetails: {
+          name: assignedName,
+          email: assignedEmail,
+        },
       });
     } catch (err) {
       console.warn('Could not dispatch staff email notification:', err);
     }
 
-    setWorkflowNotice(`✓ Đã phân công ${assignedEmp?.name || 'nhân sự'} và tự động gửi email thông báo buổi chụp!`);
+    setWorkflowNotice(`✓ Đã phân công ${assignedName || 'nhân sự'} và tự động gửi email thông báo buổi chụp!`);
     setAssigningBooking(null);
     setSelectedEmployeeId('');
     setTimeout(() => setWorkflowNotice(''), 4500);
@@ -1026,7 +1043,25 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
       {/* Assign Staff Modal */}
       {assigningBooking && (() => {
-        const availableEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+        const baseEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+        const availableEmployees = [...baseEmployees];
+        registeredShifts.forEach(s => {
+          if (!availableEmployees.some(e => e.id === s.employeeId)) {
+            availableEmployees.unshift({
+              id: s.employeeId,
+              name: s.employeeName,
+              email: `${s.employeeId}@maisonmipa.vn`,
+              phone: '',
+              role: s.role,
+              avatar: '/hero.png',
+              skills: [],
+              rating: 5.0,
+              totalSessions: 0,
+              status: 'ACTIVE',
+              shiftSchedule: {},
+            });
+          }
+        });
         const bookingDate = assigningBooking.bookingDate;
         const bookingTime = assigningBooking.startTime;
         const shiftType = determineShiftFromTime(bookingTime);

@@ -130,6 +130,50 @@ describe('Staff Shift Scheduling & Email Dispatch Engine', () => {
     const allEmails = getStaffEmailNotifications('emp_minh');
     expect(allEmails.some(e => e.bookingCode === 'MIPA-SHIFT-999')).toBe(true);
   });
+
+  it('4b. registers shifts for a real photo account and verifies persistence and availability in candidate slot', async () => {
+    const realStaffId = '0d70aedd-bea5-4156-b8ff-fabd28d843ba';
+    const realStaffName = 'Phat Dinh Tan';
+    const shiftDate = '2026-10-20';
+
+    const registered = await registerStaffShifts(
+      realStaffId,
+      [
+        { date: shiftDate, shiftType: 'MORNING', selected: true },
+        { date: shiftDate, shiftType: 'AFTERNOON', selected: true },
+      ],
+      {
+        employeeName: realStaffName,
+        role: 'PHOTOGRAPHER',
+      }
+    );
+
+    expect(registered.length).toBe(2);
+    expect(registered[0].employeeName).toBe(realStaffName);
+    expect(registered[0].role).toBe('PHOTOGRAPHER');
+
+    // Retrieve via getStaffRegisteredShifts
+    const fetched = await getStaffRegisteredShifts({
+      employeeId: realStaffId,
+      startDate: shiftDate,
+      endDate: shiftDate,
+    });
+    expect(fetched.length).toBe(2);
+    expect(fetched.some(s => s.shiftType === 'MORNING')).toBe(true);
+    expect(fetched.some(s => s.shiftType === 'AFTERNOON')).toBe(true);
+
+    // Verify getAvailableStaffForSlot recognizes real photographer
+    const candidates = await getAvailableStaffForSlot({
+      date: shiftDate,
+      time: '09:00',
+      role: 'PHOTOGRAPHER',
+    });
+
+    const realCandidate = candidates.find(c => c.employee.id === realStaffId);
+    expect(realCandidate).toBeDefined();
+    expect(realCandidate?.employee.name).toBe(realStaffName);
+    expect(realCandidate?.isRegisteredForShift).toBe(true);
+  });
 });
 
 describe('Portfolio & Concept Collections CRUD Engine', () => {

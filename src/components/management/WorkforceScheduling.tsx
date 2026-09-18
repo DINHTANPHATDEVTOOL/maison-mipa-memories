@@ -31,13 +31,20 @@ import {
   type StaffShiftRegistrationRecord,
   SHIFT_CONFIGS,
 } from '../../services/staffSchedulingService';
+import { getEmployees } from '../../services/catalogService';
 
 interface WorkforceSchedulingProps {
+  employees?: Employee[];
   onOpenEmployeeDetails?: (employeeId: string) => void;
 }
 
-export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
-  const [employees] = useState<Employee[]>(INITIAL_EMPLOYEES);
+export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
+  employees: propEmployees,
+  onOpenEmployeeDetails: _onOpenEmployeeDetails,
+}) => {
+  const [employees, setEmployees] = useState<Employee[]>(
+    propEmployees && propEmployees.length > 0 ? propEmployees : INITIAL_EMPLOYEES
+  );
   const [_skills, setSkills] = useState<StaffSkill[]>([]);
   const [leaves, setLeaves] = useState<StaffLeaveRequest[]>([]);
   const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
@@ -64,14 +71,50 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
     setLoading(true);
     setActionError(null);
     try {
-      const [skillsData, leavesData, shiftsData] = await Promise.all([
-        getStaffSkills(),
-        getStaffLeaveRequests(),
-        getStaffRegisteredShifts(),
+      const [skillsData, leavesData, shiftsData, realEmployees] = await Promise.all([
+        getStaffSkills().catch(() => []),
+        getStaffLeaveRequests().catch(() => []),
+        getStaffRegisteredShifts().catch(() => []),
+        getEmployees().catch(() => []),
       ]);
       setSkills(skillsData);
       setLeaves(leavesData);
       setRegisteredShifts(shiftsData);
+
+      // Prioritize real employees from database or props
+      const baseEmployees = realEmployees.length > 0
+        ? realEmployees
+        : (propEmployees && propEmployees.length > 0 ? propEmployees : []);
+
+      const mergedList: Employee[] = [...baseEmployees];
+
+      // Supplement with INITIAL_EMPLOYEES if not already present
+      INITIAL_EMPLOYEES.forEach((initEmp) => {
+        if (!mergedList.some(e => e.id === initEmp.id || (e.email && e.email === initEmp.email))) {
+          mergedList.push(initEmp);
+        }
+      });
+
+      // Ensure any staff who registered shifts is included in the workforce list
+      shiftsData.forEach(shift => {
+        if (!mergedList.some(e => e.id === shift.employeeId)) {
+          mergedList.unshift({
+            id: shift.employeeId,
+            name: shift.employeeName,
+            email: `${shift.employeeId}@maisonmipa.vn`,
+            phone: '',
+            role: shift.role,
+            avatar: '/hero.png',
+            skills: [],
+            rating: 5.0,
+            totalSessions: 0,
+            status: 'ACTIVE',
+            shiftSchedule: {},
+          });
+        }
+      });
+
+      setEmployees(mergedList);
     } catch (err: any) {
       console.error('Error loading workforce data:', err);
     } finally {
@@ -81,7 +124,32 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = () => {
 
   useEffect(() => {
     loadData();
+
+    const handleUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('mipa_shifts_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('mipa_shifts_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
+
+  useEffect(() => {
+    if (propEmployees && propEmployees.length > 0) {
+      setEmployees(prev => {
+        const merged = [...propEmployees];
+        prev.forEach(p => {
+          if (!merged.some(m => m.id === p.id)) {
+            merged.push(p);
+          }
+        });
+        return merged;
+      });
+    }
+  }, [propEmployees]);
 
   const handleApproveLeave = async (leaveId: string) => {
     setProcessingLeaveId(leaveId);
