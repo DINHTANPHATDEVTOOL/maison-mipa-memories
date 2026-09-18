@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FocusTrap } from '../ui/FocusTrap';
 import {
   Camera,
   Search,
@@ -431,15 +432,19 @@ export const ResourceInventory: React.FC = () => {
           zIndex: 1000,
           padding: '1rem',
         }}>
-          <div style={{
-            backgroundColor: '#FFFDF6',
-            borderRadius: '14px',
-            maxWidth: '480px',
-            width: '100%',
-            padding: '1.75rem',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
-          }}>
-            <h3 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.25rem', margin: '0 0 1rem', color: '#2C2420' }}>
+          <FocusTrap
+            onEscape={() => setHandoffResource(null)}
+            aria-labelledby="handoff-modal-title"
+            style={{
+              backgroundColor: '#FFFDF6',
+              borderRadius: '14px',
+              maxWidth: '480px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3 id="handoff-modal-title" style={{ fontFamily: 'Cinzel, serif', fontSize: '1.25rem', margin: '0 0 1rem', color: '#2C2420' }}>
               {handoffType === 'CHECKOUT' ? 'Bàn Giao Xuất Kho Thiết Bị' : 'Thu Hồi & Hoàn Trả Thiết Bị'}
             </h3>
 
@@ -561,7 +566,7 @@ export const ResourceInventory: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
+          </FocusTrap>
         </div>
       )}
     </div>

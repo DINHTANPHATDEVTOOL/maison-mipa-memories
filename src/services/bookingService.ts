@@ -15,6 +15,7 @@ import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_SERVICES, INITIAL_ADDONS, I
 import { DEMO_CONCEPTS } from './portfolioService';
 import { calculatePricing, validatePromotion } from './pricingService';
 import { isIntervalOverlapping, timeToMinutes, minutesToTime } from './availabilityService';
+import { assignBookingStaffV2 } from './staffSchedulingService';
 
 export class BookingConflictError extends Error {
   constructor(message: string = 'Phòng studio đã có lịch đặt trong khoảng thời gian này. Vui lòng chọn khung giờ khác.') {
@@ -796,63 +797,12 @@ export async function assignBookingStaff(
   employeeId: string,
   assignmentRole: string = 'PHOTOGRAPHER'
 ): Promise<BookingAssignment> {
-  if (isSupabaseConfigured()) {
-    const { data: booking, error: bErr } = await supabase
-      .from('bookings')
-      .select('start_at, end_at')
-      .eq('id', bookingId)
-      .single();
-
-    if (bErr || !booking) throw new Error('Booking not found');
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, staff_role')
-      .eq('id', employeeId)
-      .maybeSingle();
-
-    let empName: string = profile?.full_name || '';
-    if (!empName) {
-      const { data: emp } = await supabase
-        .from('employees')
-        .select('name')
-        .eq('id', employeeId)
-        .maybeSingle();
-      empName = (emp?.name as string) || 'Chuyên Viên MIPA';
-    }
-
-    const role = (assignmentRole || profile?.staff_role || 'PHOTOGRAPHER') as any;
-
-    // Delete existing assignment for this booking and role to cleanly replace staff
-    await supabase
-      .from('booking_assignments')
-      .delete()
-      .eq('booking_id', bookingId)
-      .eq('assignment_role', role);
-
-    const { data, error } = await supabase
-      .from('booking_assignments')
-      .insert({
-        booking_id: bookingId,
-        employee_id: employeeId,
-        assignment_role: role,
-        start_at: booking.start_at,
-        end_at: booking.end_at,
-      })
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    return {
-      id: data.id,
-      bookingId: data.booking_id,
-      employeeId: data.employee_id,
-      employeeName: empName,
-      assignmentRole: data.assignment_role,
-      startTime: data.start_at,
-      endTime: data.end_at,
-    };
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    return assignBookingStaffV2({
+      bookingId,
+      employeeId,
+      assignmentRole,
+    });
   }
 
   // In-memory fallback

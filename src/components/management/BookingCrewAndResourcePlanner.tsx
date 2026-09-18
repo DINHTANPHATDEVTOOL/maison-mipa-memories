@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { FocusTrap } from '../ui/FocusTrap';
 import {
   Users,
   Camera,
@@ -131,18 +132,22 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
       zIndex: 1100,
       padding: '1rem',
     }}>
-      <div style={{
-        backgroundColor: '#FFFDF6',
-        borderRadius: '16px',
-        maxWidth: '800px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        padding: '2rem',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-        position: 'relative',
-        color: '#2C2420',
-      }}>
+      <FocusTrap
+        onEscape={onClose}
+        aria-labelledby="planner-modal-title"
+        style={{
+          backgroundColor: '#FFFDF6',
+          borderRadius: '16px',
+          maxWidth: '800px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          padding: '2rem',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+          position: 'relative',
+          color: '#2C2420',
+        }}
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -501,7 +506,7 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
             </form>
           </div>
         )}
-      </div>
+      </FocusTrap>
     </div>
   );
 };

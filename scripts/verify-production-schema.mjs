@@ -54,6 +54,31 @@ export const REQUIRED_TABLES = [
   'booking_deliveries',
   'google_drive_integrations',
   'google_drive_oauth_states',
+  // Shoot-to-delivery
+  'booking_proof_images',
+  'booking_photo_selections',
+  // CRM & BI
+  'customer_crm_profiles',
+  'crm_tags',
+  'crm_customer_tags',
+  'crm_interactions',
+  'crm_follow_up_tasks',
+  'booking_status_history',
+  'booking_financial_transactions',
+  // Workforce & Ops
+  'staff_skills',
+  'employee_skills',
+  'staff_working_hours',
+  'staff_leave_requests',
+  'staff_shifts',
+  'booking_crew_requirements',
+  // Resource Planning
+  'resource_categories',
+  'studio_resources',
+  'booking_resource_reservations',
+  'booking_resource_handoffs',
+  'resource_maintenance',
+  'resource_incidents',
 ];
 
 export const CONTRACT_CHECKS = [
@@ -74,6 +99,31 @@ export const CONTRACT_CHECKS = [
     table: 'audit_logs',
     columns: 'actor_id, actor_role',
     label: 'audit_logs.actor_columns (actor_id, actor_role)',
+  },
+  {
+    table: 'staff_skills',
+    columns: 'active',
+    label: 'staff_skills.active',
+  },
+  {
+    table: 'staff_working_hours',
+    columns: 'timezone',
+    label: 'staff_working_hours.timezone',
+  },
+  {
+    table: 'resource_categories',
+    columns: 'active, is_consumable',
+    label: 'resource_categories (active, is_consumable)',
+  },
+  {
+    table: 'studio_resources',
+    columns: 'next_maintenance_date, props_metadata',
+    label: 'studio_resources (next_maintenance_date, props_metadata)',
+  },
+  {
+    table: 'booking_assignments',
+    columns: 'notes, slot_index',
+    label: 'booking_assignments (notes, slot_index)',
   },
 ];
 
@@ -123,6 +173,115 @@ export const CORE_RPCS = [
     name: 'get_booking_delivery_secure',
     params: {
       p_booking_id: '00000000-0000-0000-0000-000000000000',
+    },
+  },
+  // Shoot-to-Delivery
+  {
+    name: 'check_in_booking',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'start_booking_shoot',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'complete_booking_shoot',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'submit_photo_selection',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'reopen_photo_selection',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000', p_reason: 'QA Audit' },
+  },
+  {
+    name: 'complete_booking_editing',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'request_booking_revision',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000', p_notes: 'QA Audit' },
+  },
+  {
+    name: 'complete_booking',
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  // CRM & BI
+  {
+    name: 'record_booking_payment_receipt',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_amount: 100000,
+      p_receipt_type: 'DEPOSIT',
+    },
+  },
+  { name: 'get_crm_customers', params: {} },
+  {
+    name: 'get_customer_360',
+    params: { p_customer_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  { name: 'get_crm_dashboard_summary', params: {} },
+  { name: 'get_booking_funnel_metrics', params: {} },
+  { name: 'get_service_performance', params: {} },
+  { name: 'get_concept_performance', params: {} },
+  { name: 'get_studio_utilization_metrics', params: {} },
+  // Workforce & Resource Operations
+  {
+    name: 'assign_booking_staff_v2',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_employee_id: '00000000-0000-0000-0000-000000000000',
+      p_assignment_role: 'PHOTOGRAPHER',
+    },
+  },
+  {
+    name: 'get_available_staff_for_booking',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_assignment_role: 'PHOTOGRAPHER',
+    },
+  },
+  {
+    name: 'approve_staff_leave',
+    params: { p_leave_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'reject_staff_leave',
+    params: { p_leave_id: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    name: 'reserve_booking_resource',
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_resource_id: '00000000-0000-0000-0000-000000000000',
+    },
+  },
+  {
+    name: 'checkout_booking_resource',
+    params: {
+      p_reservation_id: '00000000-0000-0000-0000-000000000000',
+      p_received_by_staff: '00000000-0000-0000-0000-000000000000',
+    },
+  },
+  {
+    name: 'return_booking_resource',
+    params: {
+      p_reservation_id: '00000000-0000-0000-0000-000000000000',
+    },
+  },
+  {
+    name: 'get_operations_calendar_events',
+    params: {
+      p_start_date: '2026-09-01',
+      p_end_date: '2026-09-30',
+    },
+  },
+  {
+    name: 'get_daily_operations_board',
+    params: {
+      p_target_date: '2026-09-18',
     },
   },
 ];
