@@ -140,7 +140,66 @@ export async function getCrmCustomers(
     });
 
     if (error) {
-      console.error('[CRM] get_crm_customers RPC error:', error);
+      console.warn('[CRM] get_crm_customers RPC error, attempting client derivation fallback:', error.message);
+      try {
+        const { data: profilesData } = await supabase.from('profiles').select('*').eq('role', 'CUSTOMER');
+        const { data: bookingsData } = await supabase.from('bookings').select('*');
+        if (profilesData && profilesData.length > 0) {
+          let derived: CrmCustomerListItem[] = profilesData.map((p: any) => {
+            const pBookings = (bookingsData || []).filter((b: any) => b.customer_id === p.id);
+            const confirmedBks = pBookings.filter((b: any) =>
+              ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.booking_status)
+            );
+            const completedBks = pBookings.filter((b: any) => ['DELIVERED', 'COMPLETED'].includes(b.booking_status));
+            const totalSpent = confirmedBks.reduce((sum: number, b: any) => sum + (Number(b.subtotal || 0) - Number(b.discount_total || 0)), 0);
+            const totalDeposit = confirmedBks.reduce((sum: number, b: any) => sum + Number(b.deposit_amount || 0), 0);
+            const outstanding = Math.max(0, totalSpent - totalDeposit);
+            let stage: any = 'NEW_INQUIRY';
+            if (completedBks.length >= 2) stage = 'VIP_REPEAT';
+            else if (completedBks.length === 1) stage = 'ACTIVE_POST_SHOOT';
+            else if (confirmedBks.length >= 1) stage = 'BOOKED_UPCOMING';
+            else if (pBookings.length >= 1) stage = 'LEAD_CONSULTING';
+
+            return {
+              id: p.id,
+              fullName: p.full_name || 'Khách hàng',
+              email: p.email || '',
+              phone: p.phone || '',
+              accountStatus: p.status || 'ACTIVE',
+              lifecycleStage: stage,
+              totalBookings: pBookings.length,
+              confirmedBookings: confirmedBks.length,
+              completedBookings: completedBks.length,
+              confirmedBookingValue: totalSpent,
+              actualCashReceived: totalDeposit,
+              outstandingBalance: outstanding,
+              tags: [],
+              overdueTasksCount: 0,
+              todayTasksCount: 0,
+            };
+          });
+
+          if (search) {
+            const s = search.toLowerCase();
+            derived = derived.filter(c => c.fullName.toLowerCase().includes(s) || c.email.toLowerCase().includes(s) || c.phone.includes(s));
+          }
+          if (lifecycle) {
+            derived = derived.filter(c => c.lifecycleStage === lifecycle);
+          }
+          if (repeatOnly) {
+            derived = derived.filter(c => c.completedBookings >= 2);
+          }
+
+          return {
+            totalCount: derived.length,
+            customers: derived.slice((page - 1) * pageSize, page * pageSize),
+            page,
+            pageSize,
+          };
+        }
+      } catch (fbErr) {
+        console.error('[CRM] Fallback failed:', fbErr);
+      }
       throw new Error(`Không thể tải danh sách khách hàng CRM: ${error.message}`);
     }
 

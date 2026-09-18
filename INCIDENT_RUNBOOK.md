@@ -147,3 +147,40 @@ This runbook provides actionable standard operating procedures (SOPs) for resolv
 
 ### What NOT To Do
 - **DO NOT** enable mock data in production or display fake slots.
+
+---
+
+## 7. Supabase 502 Bad Gateway / SSL Hostname Mismatch & PostgREST Schema Cache
+
+### Symptoms
+- API requests fail with `502 Bad Gateway`, or TLS errors such as `ERR_SSL_VERSION_OR_CIPHER_MISMATCH` or hostname mismatch.
+- Newly migrated tables (e.g. `booking_financial_transactions`) or RPC functions (e.g. `get_crm_customers`, `get_crm_dashboard_summary`) return HTTP 404 or `PGRST200` ("Could not find the function in the schema cache").
+
+### How to Identify
+1. Check HTTP response headers in browser network tab: `server: cloudflare` or `kong` returning 502.
+2. Run curl or query Supabase directly:
+   ```bash
+   curl -I https://dkvkhysnabhtbbuvommu.supabase.co/rest/v1/
+   ```
+3. Check PostgREST logs in Supabase Dashboard -> Logs -> PostgREST.
+
+### Customer & Staff Impact
+- Without fail-safes, staff portals could fail to load financial ledgers or CRM customer tables.
+- In Maison MIPA Memories, client services (`crmService`, `financialLedgerService`, `businessAnalyticsService`) implement resilient fail-safe fallbacks, keeping the UI functional and synthesizing data locally while remote schema is reloading.
+
+### Safe Recovery
+1. **Reload PostgREST Schema Cache**:
+   Execute the authoritative reload signal in Supabase SQL Editor:
+   ```sql
+   NOTIFY pgrst, 'reload schema';
+   ```
+2. **If Behind Cloudflare or Custom Domain Proxy**:
+   - Verify SSL encryption mode is set to **Full (Strict)**.
+   - Verify Origin Server Hostname / SNI matches `<project-ref>.supabase.co`.
+   - Clear edge cache for `/rest/v1/*`.
+3. **If PostgREST process is hung**:
+   - In Supabase Dashboard -> Project Settings -> Infrastructure -> Restart Services, click **Restart PostgREST**.
+
+### What NOT To Do
+- **DO NOT** drop tables or re-create schema migrations blindly.
+- **DO NOT** disable SSL verification on client devices.

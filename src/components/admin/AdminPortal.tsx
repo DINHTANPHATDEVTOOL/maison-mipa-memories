@@ -39,7 +39,7 @@ interface AdminPortalProps {
 export const AdminPortal: React.FC<AdminPortalProps> = ({
   usersList: propUsers,
 }) => {
-  const { isRootOwner } = useAuth();
+  const { user: currentUser, isRootOwner } = useAuth();
   const [adminTab, setAdminTab] = useState<'users' | 'bank' | 'email' | 'audit'>('users');
 
   // Real Users state
@@ -108,19 +108,32 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           setQrTemplate(currentBank.qrTemplate || 'compact2');
         }
 
-        // Load audit logs
-        const { data: logs, error: lErr } = await supabase
+        // Load audit logs (DEF-D005: Use actor_user_id relationship and fallback without join)
+        let logsData: any[] = [];
+        const { data: logsWithActor, error: lErr } = await supabase
           .from('audit_logs')
-          .select('*, profiles(full_name, role)')
+          .select('*, profiles:actor_user_id(full_name, role)')
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (!lErr && logs && active) {
-          setAuditLogs(logs.map((l: any) => ({
+        if (!lErr && logsWithActor && logsWithActor.length > 0) {
+          logsData = logsWithActor;
+        } else {
+          // Fallback without join if relationship isn't registered in PostgREST schema cache
+          const { data: rawLogs } = await supabase
+            .from('audit_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (rawLogs) logsData = rawLogs;
+        }
+
+        if (logsData.length > 0 && active) {
+          setAuditLogs(logsData.map((l: any) => ({
             id: l.id,
             timestamp: new Date(l.created_at).toLocaleString('vi-VN'),
             userId: l.actor_user_id || 'system',
-            userName: l.profiles?.full_name || 'Hệ thống',
+            userName: l.profiles?.full_name || (l.actor_user_id ? 'Quản trị viên' : 'Hệ thống'),
             userRole: l.profiles?.role || 'ADMIN',
             action: l.action,
             details: JSON.stringify(l.new_data || l.old_data || {}),
@@ -139,6 +152,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const handleUpdateUser = async (userId: string, newRole: UserRole, newStaffRole?: StaffRole, newStatus: UserStatus = 'ACTIVE') => {
     if (!isRootOwner) {
       showNotice('Truy cập bị từ chối: Chỉ Chủ Studio (Root Owner) mới có quyền phân bổ vai trò và thay đổi trạng thái tài khoản.', 'error');
+      return;
+    }
+
+    // DEF-D013: Prevent Root Owner from locking or disabling themselves
+    if (currentUser?.id === userId && (newStatus === 'SUSPENDED' || newStatus === 'DISABLED')) {
+      showNotice('Không thể tự khóa tài khoản Chủ Studio đang sử dụng.', 'error');
       return;
     }
 
@@ -396,6 +415,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     : 'ACTIVE';
 
                   const isSuspendedOrDisabled = validStatus === 'SUSPENDED' || validStatus === 'DISABLED';
+                  const isSelf = Boolean(
+                    currentUser && (
+                      currentUser.id === u.id ||
+                      (currentUser.email && u.email && currentUser.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+                    )
+                  );
 
                   return (
                     <tr key={u.id} style={{ borderBottom: '1px solid #F3EDE2' }}>
@@ -488,6 +513,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         {isRootOwner ? (
                           <select
                             value={validStatus}
+                            disabled={isSelf}
                             onChange={e => handleUpdateUser(u.id, validRole, u.staffRole, e.target.value as UserStatus)}
                             style={{
                               height: '38px',
@@ -498,7 +524,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               border: isSuspendedOrDisabled ? '1.5px solid #F87171' : '1.5px solid #86EFAC',
                               backgroundColor: isSuspendedOrDisabled ? '#FEF2F2' : '#F0FDF4',
                               color: isSuspendedOrDisabled ? '#DC2626' : '#15803D',
-                              cursor: 'pointer',
+                              cursor: isSelf ? 'not-allowed' : 'pointer',
+                              opacity: isSelf ? 0.75 : 1,
                               outline: 'none',
                               display: 'block',
                               width: '100%',
@@ -529,37 +556,53 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
                         {isRootOwner ? (
-                          <button
-                            onClick={() => handleUpdateUser(
-                              u.id,
-                              validRole,
-                              u.staffRole,
-                              validStatus === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED'
-                            )}
-                            style={{
-                              background: 'none',
-                              border: '1px solid #EFE6C9',
-                              borderRadius: '6px',
-                              padding: '0.35rem 0.7rem',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              color: validStatus === 'SUSPENDED' ? '#16A34A' : '#DC2626',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                            }}
-                          >
-                            {validStatus === 'SUSPENDED' ? (
-                              <>
-                                <Unlock size={14} /> Mở Khóa
-                              </>
-                            ) : (
-                              <>
-                                <Lock size={14} /> Khóa TK
-                              </>
-                            )}
-                          </button>
+                          isSelf ? (
+                            <span
+                              style={{
+                                fontSize: '0.78rem',
+                                color: '#B45309',
+                                fontWeight: 600,
+                                backgroundColor: '#FEF3C7',
+                                padding: '0.3rem 0.6rem',
+                                borderRadius: '6px',
+                                display: 'inline-block',
+                              }}
+                            >
+                              Tài khoản của bạn
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleUpdateUser(
+                                u.id,
+                                validRole,
+                                u.staffRole,
+                                isSuspendedOrDisabled ? 'ACTIVE' : 'SUSPENDED'
+                              )}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #EFE6C9',
+                                borderRadius: '6px',
+                                padding: '0.35rem 0.7rem',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: isSuspendedOrDisabled ? '#16A34A' : '#DC2626',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                              }}
+                            >
+                              {isSuspendedOrDisabled ? (
+                                <>
+                                  <Unlock size={14} /> Mở Khóa
+                                </>
+                              ) : (
+                                <>
+                                  <Lock size={14} /> Khóa TK
+                                </>
+                              )}
+                            </button>
+                          )
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Chỉ xem</span>
                         )}

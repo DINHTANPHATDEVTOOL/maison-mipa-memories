@@ -16,10 +16,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   bookings,
   onUpdateStatus,
 }) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 
-  // Receptionist focuses on today's scheduled arrivals and active sessions
-  const todaysBookings = bookings.filter(b => b.bookingDate === today || b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'CHECKED_IN');
+  // Receptionist focuses strictly on TODAY's scheduled arrivals and active sessions (DEF-D003)
+  const todaysBookings = bookings.filter(
+    b => b.bookingDate === today && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus)
+  );
 
   return (
     <div style={{ maxWidth: '1150px', margin: '0 auto' }}>

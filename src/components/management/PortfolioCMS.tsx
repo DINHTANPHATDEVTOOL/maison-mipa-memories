@@ -236,7 +236,7 @@ export const PortfolioCMS: React.FC = () => {
               gap: '0.4rem',
             }}
           >
-            <Layers size={15} /> Bộ Sưu Tập ({collections.length})
+            <Layers size={15} /> Bộ Sưu Tập ({isLoading ? '...' : collections.length})
           </button>
           <button
             onClick={() => { setActiveTab('concepts'); setActiveCollection(null); }}
@@ -254,7 +254,7 @@ export const PortfolioCMS: React.FC = () => {
               gap: '0.4rem',
             }}
           >
-            <Sparkles size={15} /> Danh Mục Concept ({concepts.length})
+            <Sparkles size={15} /> Danh Mục Concept ({isLoading ? '...' : concepts.length})
           </button>
         </div>
       </div>
@@ -307,96 +307,128 @@ export const PortfolioCMS: React.FC = () => {
           </div>
 
           {/* Grid of Collections */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {collections.map((col) => (
-              <div
-                key={col.id}
-                className="mipa-card"
-                style={{
-                  borderRadius: '18px',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  border: '1px solid var(--mipa-beige)',
-                  backgroundColor: '#FFFDF6',
-                }}
-              >
-                <div style={{ position: 'relative', height: '200px', backgroundColor: '#2C221E' }}>
-                  <img
-                    src={col.coverPhotoUrl || '/hero.png'}
-                    alt={col.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
-                    <span
-                      style={{
-                        padding: '0.25rem 0.6rem',
-                        borderRadius: '20px',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        backgroundColor: col.status === 'PUBLISHED' ? '#16A34A' : col.status === 'DRAFT' ? '#D97706' : '#6B7280',
-                        color: '#FFF',
-                      }}
-                    >
-                      {col.status}
-                    </span>
+          {isLoading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="mipa-card"
+                  style={{
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    backgroundColor: '#FFFDF6',
+                    border: '1px solid var(--mipa-beige)',
+                    minHeight: '340px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    animation: 'pulse 1.5s infinite ease-in-out',
+                  }}
+                >
+                  <div style={{ height: '200px', backgroundColor: '#EFE6C9', opacity: 0.6 }} />
+                  <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ height: '12px', width: '35%', backgroundColor: '#EFE6C9', borderRadius: '4px' }} />
+                    <div style={{ height: '20px', width: '75%', backgroundColor: '#E0D0B8', borderRadius: '4px' }} />
+                    <div style={{ height: '12px', width: '90%', backgroundColor: '#EFE6C9', borderRadius: '4px' }} />
                   </div>
-                  {col.featured && (
-                    <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
-                      <span style={{ backgroundColor: '#C6A45F', color: '#FFF', fontSize: '0.7rem', fontWeight: 700, padding: '0.25rem 0.6rem', borderRadius: '20px' }}>
-                        ★ FEATURED
-                      </span>
-                    </div>
-                  )}
                 </div>
-
-                <div style={{ padding: '1.2rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 700, textTransform: 'uppercase' }}>
-                      Concept: {col.conceptName || 'MIPA Studio'}
-                    </div>
-                    <h3 style={{ fontSize: '1.2rem', color: '#604634', margin: '0.3rem 0 0.5rem' }}>{col.title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#6E5F55', lineHeight: 1.4, margin: 0 }}>
-                      {col.description}
-                    </p>
-                  </div>
-
-                  <div style={{ marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button
-                      onClick={() => setActiveCollection(col)}
-                      className="btn-mipa-secondary"
-                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                    >
-                      <ImageIcon size={14} /> Quản lý ({col.photosCount || col.photos?.length || 0} ảnh)
-                    </button>
-
-                    {canPublish && (
-                      <button
-                        onClick={() => handleTogglePublish(col)}
+              ))}
+            </div>
+          ) : collections.length === 0 ? (
+            <div className="mipa-card" style={{ padding: '3rem', textAlign: 'center', borderRadius: '16px', color: '#8C6E53' }}>
+              Không tìm thấy bộ sưu tập nào phù hợp với bộ lọc hiện tại.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              {collections.map((col) => (
+                <div
+                  key={col.id}
+                  className="mipa-card"
+                  style={{
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: '1px solid var(--mipa-beige)',
+                    backgroundColor: '#FFFDF6',
+                  }}
+                >
+                  <div style={{ position: 'relative', height: '200px', backgroundColor: '#2C221E' }}>
+                    <img
+                      src={col.coverPhotoUrl || '/hero.png'}
+                      alt={col.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+                      <span
                         style={{
-                          border: 'none',
-                          backgroundColor: col.status === 'PUBLISHED' ? '#FEE2E2' : '#EFE6C9',
-                          color: col.status === 'PUBLISHED' ? '#DC2626' : '#604634',
-                          padding: '0.4rem 0.8rem',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '20px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          backgroundColor: col.status === 'PUBLISHED' ? '#16A34A' : col.status === 'DRAFT' ? '#D97706' : '#6B7280',
+                          color: '#FFF',
                         }}
                       >
-                        {col.status === 'PUBLISHED' ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {col.status === 'PUBLISHED' ? 'Hạ bản nháp' : 'Xuất bản'}
-                      </button>
+                        {col.status}
+                      </span>
+                    </div>
+                    {col.featured && (
+                      <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+                        <span style={{ backgroundColor: '#C6A45F', color: '#FFF', fontSize: '0.7rem', fontWeight: 700, padding: '0.25rem 0.6rem', borderRadius: '20px' }}>
+                          ★ FEATURED
+                        </span>
+                      </div>
                     )}
                   </div>
+
+                  <div style={{ padding: '1.2rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#8C6E53', fontWeight: 700, textTransform: 'uppercase' }}>
+                        Concept: {col.conceptName || 'MIPA Studio'}
+                      </div>
+                      <h3 style={{ fontSize: '1.2rem', color: '#604634', margin: '0.3rem 0 0.5rem' }}>{col.title}</h3>
+                      <p style={{ fontSize: '0.85rem', color: '#6E5F55', lineHeight: 1.4, margin: 0 }}>
+                        {col.description}
+                      </p>
+                    </div>
+
+                    <div style={{ marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setActiveCollection(col)}
+                        className="btn-mipa-secondary"
+                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                      >
+                        <ImageIcon size={14} /> Quản lý ({col.photosCount || col.photos?.length || 0} ảnh)
+                      </button>
+
+                      {canPublish && (
+                        <button
+                          onClick={() => handleTogglePublish(col)}
+                          style={{
+                            border: 'none',
+                            backgroundColor: col.status === 'PUBLISHED' ? '#FEE2E2' : '#EFE6C9',
+                            color: col.status === 'PUBLISHED' ? '#DC2626' : '#604634',
+                            padding: '0.4rem 0.8rem',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                          }}
+                        >
+                          {col.status === 'PUBLISHED' ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {col.status === 'PUBLISHED' ? 'Hạ bản nháp' : 'Xuất bản'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -530,23 +562,39 @@ export const PortfolioCMS: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {concepts.map((c) => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 600, color: '#604634' }}>{c.name}</td>
-                    <td style={{ padding: '0.75rem', color: '#8C6E53' }}><code>{c.slug}</code></td>
-                    <td style={{ padding: '0.75rem', color: '#6E5F55', maxWidth: '350px' }}>{c.description}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span style={{ padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: c.active ? '#DCFCE7' : '#FEE2E2', color: c.active ? '#15803D' : '#B91C1C', fontWeight: 700 }}>
-                        {c.active ? 'KÍCH HOẠT' : 'ẨN'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span style={{ padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: c.bookable ? '#E0E7FF' : '#F3F4F6', color: c.bookable ? '#4338CA' : '#6B7280', fontWeight: 700 }}>
-                        {c.bookable ? 'BOOKABLE' : 'CHỈ XEM'}
-                      </span>
+                {isLoading ? (
+                  [1, 2, 3].map((i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
+                      <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#8C6E53' }}>
+                        Đang tải danh mục concept...
+                      </td>
+                    </tr>
+                  ))
+                ) : concepts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '1.5rem', textAlign: 'center', color: '#8C6E53' }}>
+                      Chưa có concept nào.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  concepts.map((c) => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: '#604634' }}>{c.name}</td>
+                      <td style={{ padding: '0.75rem', color: '#8C6E53' }}><code>{c.slug}</code></td>
+                      <td style={{ padding: '0.75rem', color: '#6E5F55', maxWidth: '350px' }}>{c.description}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: c.active ? '#DCFCE7' : '#FEE2E2', color: c.active ? '#15803D' : '#B91C1C', fontWeight: 700 }}>
+                          {c.active ? 'KÍCH HOẠT' : 'ẨN'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: c.bookable ? '#E0E7FF' : '#F3F4F6', color: c.bookable ? '#4338CA' : '#6B7280', fontWeight: 700 }}>
+                          {c.bookable ? 'BOOKABLE' : 'CHỈ XEM'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

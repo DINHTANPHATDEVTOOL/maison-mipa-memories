@@ -19,9 +19,19 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
   bookings,
   onUpdateStatus,
 }) => {
-  // ABAC: Editor sees ONLY assigned editing bookings
+  // ABAC: Editor sees ONLY assigned editing bookings that are in post-production phase (DEF-D009)
+  const POST_PROD_STATUSES = [
+    'SHOOT_COMPLETED',
+    'AWAITING_SELECTION',
+    'EDITING',
+    'READY_FOR_REVIEW',
+    'DELIVERED',
+    'COMPLETED'
+  ];
+
   const assignedEdits = bookings.filter(b => {
     if (!currentUser) return false;
+    if (!POST_PROD_STATUSES.includes(b.bookingStatus)) return false;
     return b.assignments.some(
       a => (a.employeeId === currentUser.id || a.employeeName.toLowerCase().includes(currentUser.fullName.split(' ')[0].toLowerCase())) &&
            (a.assignmentRole === 'EDITOR' || a.assignmentRole === 'MANAGER' || a.assignmentRole === 'ADMIN')
@@ -110,16 +120,23 @@ export const EditorPortal: React.FC<EditorPortalProps> = ({
                 {/* Workflow Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
                   <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {/* Google Drive Upload Integration Button */}
-                    <a
-                      href={b.driveFolderUrl || 'https://drive.google.com'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-mipa-secondary"
-                      style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-                    >
-                      <FolderUp size={15} /> Mở Thư Mục Google Drive Upload Ảnh
-                    </a>
+                    {/* Google Drive Upload Integration Button (DEF-D016) */}
+                    {(() => {
+                      const driveLink = (b.driveFolderUrl && b.driveFolderUrl !== 'https://drive.google.com' && b.driveFolderUrl !== 'https://drive.google.com/')
+                        ? b.driveFolderUrl
+                        : `https://drive.google.com/drive/search?q=${encodeURIComponent(b.bookingCode)}`;
+                      return (
+                        <a
+                          href={driveLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+                        >
+                          <FolderUp size={15} /> Mở Thư Mục Google Drive ({b.bookingCode})
+                        </a>
+                      );
+                    })()}
                   </div>
 
                   <div>

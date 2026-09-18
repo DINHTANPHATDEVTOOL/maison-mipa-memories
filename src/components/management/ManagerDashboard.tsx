@@ -587,6 +587,29 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
                           ● {b.bookingStatus}
                         </span>
+                        {(() => {
+                          const todayVn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+                          const isOverdue = Boolean(b.bookingDate && b.bookingDate < todayVn && ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus));
+                          if (!isOverdue) return null;
+                          return (
+                            <span
+                              style={{
+                                backgroundColor: '#FEF2F2',
+                                color: '#DC2626',
+                                border: '1px solid #FCA5A5',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.2rem',
+                              }}
+                            >
+                              ⚠️ QUÁ HẠN
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
@@ -718,12 +741,16 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   <span style={{ color: '#8C6E53', fontWeight: 600 }}>Google Drive Delivery (#8):</span>
                   <div style={{ marginTop: '0.3rem' }}>
                     <a
-                      href={activeBookingTimeline.driveFolderUrl || 'https://drive.google.com'}
+                      href={
+                        (activeBookingTimeline.driveFolderUrl && activeBookingTimeline.driveFolderUrl !== 'https://drive.google.com' && activeBookingTimeline.driveFolderUrl !== 'https://drive.google.com/')
+                          ? activeBookingTimeline.driveFolderUrl
+                          : `https://drive.google.com/drive/search?q=${encodeURIComponent(activeBookingTimeline.bookingCode)}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'none' }}
                     >
-                      <FolderDown size={15} /> Thư mục Drive bàn giao ảnh
+                      <FolderDown size={15} /> Thư mục Drive bàn giao ảnh ({activeBookingTimeline.bookingCode})
                     </a>
                   </div>
                 </div>

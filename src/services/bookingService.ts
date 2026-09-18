@@ -237,6 +237,36 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
 /**
  * In-Memory Booking Engine for offline tests
  */
+/**
+ * Validates whether a booking slot falls within studio operating hours:
+ * - Weekday (Monday - Friday): 08:30 — 19:00
+ * - Weekend (Saturday - Sunday): 08:00 — 20:30
+ */
+export function isWithinOperatingHours(
+  bookingDate: string,
+  startTime: string,
+  endTime: string
+): { valid: boolean; reason?: string } {
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+
+  const dObj = new Date(bookingDate + 'T00:00:00+07:00');
+  const dayOfWeek = isNaN(dObj.getTime()) ? 1 : dObj.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const openingMinutes = isWeekend ? 8 * 60 : 8 * 60 + 30;
+  const closingMinutes = isWeekend ? 20 * 60 + 30 : 19 * 60;
+
+  if (startMinutes < openingMinutes || endMinutes > closingMinutes) {
+    const hoursDesc = isWeekend ? 'Cuối tuần: 08:00 - 20:30' : 'Ngày thường: 08:30 - 19:00';
+    return {
+      valid: false,
+      reason: `Khung giờ đã chọn (${startTime} - ${endTime}) nằm ngoài giờ mở cửa của studio (${hoursDesc}). Vui lòng chọn khung giờ trong giờ hoạt động.`,
+    };
+  }
+
+  return { valid: true };
+}
+
 export function createBookingInMemory(request: CreateBookingRequest): Booking {
   if (!request.serviceId || !request.packageId || !request.studioId) {
     throw new BookingValidationError('Vui lòng chọn đầy đủ Dịch vụ, Gói chụp và Phòng Studio.');
@@ -280,6 +310,12 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
   const startMinutes = timeToMinutes(request.timeSlot);
   const endMinutes = startMinutes + totalDuration;
   const endTimeStr = minutesToTime(endMinutes);
+
+  // DEF-D007: Operating hours validation (Weekday 08:30-19:00, Weekend 08:00-20:30)
+  const hoursCheck = isWithinOperatingHours(request.date, request.timeSlot, endTimeStr);
+  if (!hoursCheck.valid) {
+    throw new BookingValidationError(hoursCheck.reason!);
+  }
 
   // Anti-double-booking interval check against confirmed operational bookings
   // Multiple customers may submit consultation requests for the same preferred slot
@@ -898,15 +934,39 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     customerPhone: record.customer_phone || record.customerPhone || '',
     customerEmail: record.customer_email || record.customerEmail || '',
     serviceId: record.service_id || record.serviceId,
-    serviceName: record.service_name || record.serviceName || 'Dịch Vụ MIPA',
+    serviceName: (() => {
+      if (record.service_name && record.service_name !== 'Dịch Vụ MIPA') return record.service_name;
+      if (record.serviceName && record.serviceName !== 'Dịch Vụ MIPA') return record.serviceName;
+      if (record.services?.name) return record.services.name;
+      const sId = record.service_id || record.serviceId;
+      const uuid = SLUG_TO_UUID_MAP[sId] || sId;
+      const found = INITIAL_SERVICES.find(s => s.id === sId || s.slug === sId || s.id === uuid);
+      return found?.name || 'Dịch Vụ MIPA';
+    })(),
     packageId: record.package_id || record.packageId,
-    packageName: record.package_name || record.packageName || 'Gói Chụp MIPA',
+    packageName: (() => {
+      if (record.package_name && record.package_name !== 'Gói Chụp MIPA') return record.package_name;
+      if (record.packageName && record.packageName !== 'Gói Chụp MIPA') return record.packageName;
+      if (record.packages?.name) return record.packages.name;
+      const pId = record.package_id || record.packageId;
+      const uuid = SLUG_TO_UUID_MAP[pId] || pId;
+      const found = INITIAL_PACKAGES.find(p => p.id === pId || p.id === uuid);
+      return found?.name || 'Gói Chụp MIPA';
+    })(),
     packagePrice: Number(record.package_price || record.packagePrice || record.subtotal || 0),
     bookingDate,
     startTime,
     endTime,
-    studioId: record.studio_room_id || record.studioId || '',
-    studioName: record.studio_name || record.studioName || 'Phòng Studio MIPA',
+    studioId: record.studio_room_id || record.studio_id || record.studioId || '',
+    studioName: (() => {
+      if (record.studio_name && record.studio_name !== 'Phòng Studio MIPA') return record.studio_name;
+      if (record.studioName && record.studioName !== 'Phòng Studio MIPA') return record.studioName;
+      if (record.studio_rooms?.name) return record.studio_rooms.name;
+      const stId = record.studio_room_id || record.studio_id || record.studioId;
+      const uuid = SLUG_TO_UUID_MAP[stId] || stId;
+      const found = INITIAL_STUDIO_ROOMS.find(r => r.id === stId || r.code === stId || r.id === uuid);
+      return found?.name || 'Phòng Studio MIPA';
+    })(),
     addons: record.addons || [],
     conceptId: record.concept_id || record.conceptId,
     conceptIds: record.concept_ids || (record.concept_id ? [record.concept_id] : []),

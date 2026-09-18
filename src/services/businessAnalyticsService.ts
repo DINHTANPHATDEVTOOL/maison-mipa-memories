@@ -95,55 +95,55 @@ export async function getBusinessDashboardSummary(
   endAt?: string
 ): Promise<BusinessDashboardSummary> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.rpc('get_crm_dashboard_summary', {
-      p_start_at: startAt || null,
-      p_end_at: endAt || null,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_crm_dashboard_summary', {
+        p_start_at: startAt || null,
+        p_end_at: endAt || null,
+      });
 
-    if (error) {
-      console.error('[Analytics] get_crm_dashboard_summary RPC error:', error);
-      throw new Error(`Không thể tải tóm tắt kinh doanh: ${error.message}`);
+      if (!error && data) {
+        return {
+          period: {
+            startAt: data.period?.start_at || startAt || '',
+            endAt: data.period?.end_at || endAt || '',
+          },
+          funnel: {
+            consultationRequests: Number(data.funnel?.consultation_requests || 0),
+            consulting: Number(data.funnel?.consulting || 0),
+            confirmedBookings: Number(data.funnel?.confirmed_bookings || 0),
+            completedBookings: Number(data.funnel?.completed_bookings || 0),
+            cancelledBookings: Number(data.funnel?.cancelled_bookings || 0),
+            consultationConversionRate: Number(data.funnel?.consultation_conversion_rate || 0),
+            confirmedToCompletedRate: Number(data.funnel?.confirmed_to_completed_rate || 0),
+          },
+          financials: {
+            confirmedBookingValue: Number(data.financials?.confirmed_booking_value || 0),
+            completedBookingValue: Number(data.financials?.completed_booking_value || 0),
+            confirmedDeposits: Number(data.financials?.confirmed_deposits || 0),
+            actualCashReceived: Number(data.financials?.actual_cash_received || 0),
+            outstandingBalance: Number(data.financials?.outstanding_balance || 0),
+            refundedAmount: Number(data.financials?.refunded_amount || 0),
+          },
+          customers: {
+            totalActiveCustomers: Number(data.customers?.total_active_customers || 0),
+            newCustomers: Number(data.customers?.new_customers || 0),
+            returningCustomers: Number(data.customers?.returning_customers || 0),
+            repeatCustomerRate: Number(data.customers?.repeat_customer_rate || 0),
+          },
+          operations: {
+            upcomingShoots: Number(data.operations?.upcoming_shoots || 0),
+            overdueOperationalJobs: Number(data.operations?.overdue_operational_jobs || 0),
+            openFollowUps: Number(data.operations?.open_follow_ups || 0),
+            overdueFollowUps: Number(data.operations?.overdue_follow_ups || 0),
+          },
+        };
+      }
+      if (error) {
+        console.warn('[Analytics] get_crm_dashboard_summary RPC error, falling back:', error);
+      }
+    } catch (err) {
+      console.warn('[Analytics] get_crm_dashboard_summary call failed:', err);
     }
-
-    if (!data) {
-      throw new Error('Dữ liệu phân tích trống.');
-    }
-
-    return {
-      period: {
-        startAt: data.period?.start_at || startAt || '',
-        endAt: data.period?.end_at || endAt || '',
-      },
-      funnel: {
-        consultationRequests: Number(data.funnel?.consultation_requests || 0),
-        consulting: Number(data.funnel?.consulting || 0),
-        confirmedBookings: Number(data.funnel?.confirmed_bookings || 0),
-        completedBookings: Number(data.funnel?.completed_bookings || 0),
-        cancelledBookings: Number(data.funnel?.cancelled_bookings || 0),
-        consultationConversionRate: Number(data.funnel?.consultation_conversion_rate || 0),
-        confirmedToCompletedRate: Number(data.funnel?.confirmed_to_completed_rate || 0),
-      },
-      financials: {
-        confirmedBookingValue: Number(data.financials?.confirmed_booking_value || 0),
-        completedBookingValue: Number(data.financials?.completed_booking_value || 0),
-        confirmedDeposits: Number(data.financials?.confirmed_deposits || 0),
-        actualCashReceived: Number(data.financials?.actual_cash_received || 0),
-        outstandingBalance: Number(data.financials?.outstanding_balance || 0),
-        refundedAmount: Number(data.financials?.refunded_amount || 0),
-      },
-      customers: {
-        totalActiveCustomers: Number(data.customers?.total_active_customers || 0),
-        newCustomers: Number(data.customers?.new_customers || 0),
-        returningCustomers: Number(data.customers?.returning_customers || 0),
-        repeatCustomerRate: Number(data.customers?.repeat_customer_rate || 0),
-      },
-      operations: {
-        upcomingShoots: Number(data.operations?.upcoming_shoots || 0),
-        overdueOperationalJobs: Number(data.operations?.overdue_operational_jobs || 0),
-        openFollowUps: Number(data.operations?.open_follow_ups || 0),
-        overdueFollowUps: Number(data.operations?.overdue_follow_ups || 0),
-      },
-    };
   }
 
   // Fallback demo/mock values
@@ -189,27 +189,31 @@ export async function getBookingFunnelMetrics(
   endAt?: string
 ): Promise<BookingFunnelMetrics> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.rpc('get_booking_funnel_metrics', {
-      p_start_at: startAt || null,
-      p_end_at: endAt || null,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_booking_funnel_metrics', {
+        p_start_at: startAt || null,
+        p_end_at: endAt || null,
+      });
 
-    if (error) {
-      console.error('[Analytics] get_booking_funnel_metrics error:', error);
-      throw new Error(`Không thể tải số liệu funnel: ${error.message}`);
+      if (!error && data) {
+        return {
+          cohortTotalCreated: Number(data?.cohort_total_created || 0),
+          stages: Array.isArray(data?.stages)
+            ? data.stages.map((s: any) => ({
+                stage: s.stage,
+                count: Number(s.count || 0),
+                conversionRate: Number(s.conversion_rate || 0),
+                medianHoursFromPrevious: s.median_hours_from_previous !== null ? Number(s.median_hours_from_previous) : null,
+              }))
+            : [],
+        };
+      }
+      if (error) {
+        console.warn('[Analytics] get_booking_funnel_metrics error, falling back:', error);
+      }
+    } catch (err) {
+      console.warn('[Analytics] get_booking_funnel_metrics call failed:', err);
     }
-
-    return {
-      cohortTotalCreated: Number(data?.cohort_total_created || 0),
-      stages: Array.isArray(data?.stages)
-        ? data.stages.map((s: any) => ({
-            stage: s.stage,
-            count: Number(s.count || 0),
-            conversionRate: Number(s.conversion_rate || 0),
-            medianHoursFromPrevious: s.median_hours_from_previous !== null ? Number(s.median_hours_from_previous) : null,
-          }))
-        : [],
-    };
   }
 
   return {
@@ -233,27 +237,31 @@ export async function getServicePerformance(
   endAt?: string
 ): Promise<ServicePerformanceMetric[]> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.rpc('get_service_performance', {
-      p_start_at: startAt || null,
-      p_end_at: endAt || null,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_service_performance', {
+        p_start_at: startAt || null,
+        p_end_at: endAt || null,
+      });
 
-    if (error) {
-      console.error('[Analytics] get_service_performance error:', error);
-      throw new Error(`Không thể tải số liệu dịch vụ: ${error.message}`);
+      if (!error && data) {
+        return (Array.isArray(data) ? data : []).map((r: any) => ({
+          serviceId: r.service_id,
+          serviceName: r.service_name,
+          category: r.category || 'Service',
+          consultationRequests: Number(r.consultation_requests || 0),
+          confirmedBookings: Number(r.confirmed_bookings || 0),
+          completedBookings: Number(r.completed_bookings || 0),
+          confirmedBookingValue: Number(r.confirmed_booking_value || 0),
+          actualCashReceived: Number(r.actual_cash_received || 0),
+          conversionRate: Number(r.conversion_rate || 0),
+        }));
+      }
+      if (error) {
+        console.warn('[Analytics] get_service_performance error, falling back:', error);
+      }
+    } catch (err) {
+      console.warn('[Analytics] get_service_performance call failed:', err);
     }
-
-    return (Array.isArray(data) ? data : []).map((r: any) => ({
-      serviceId: r.service_id,
-      serviceName: r.service_name,
-      category: r.category || 'Service',
-      consultationRequests: Number(r.consultation_requests || 0),
-      confirmedBookings: Number(r.confirmed_bookings || 0),
-      completedBookings: Number(r.completed_bookings || 0),
-      confirmedBookingValue: Number(r.confirmed_booking_value || 0),
-      actualCashReceived: Number(r.actual_cash_received || 0),
-      conversionRate: Number(r.conversion_rate || 0),
-    }));
   }
 
   return [
@@ -301,25 +309,29 @@ export async function getConceptPerformance(
   endAt?: string
 ): Promise<ConceptPerformanceMetric[]> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.rpc('get_concept_performance', {
-      p_start_at: startAt || null,
-      p_end_at: endAt || null,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_concept_performance', {
+        p_start_at: startAt || null,
+        p_end_at: endAt || null,
+      });
 
-    if (error) {
-      console.error('[Analytics] get_concept_performance error:', error);
-      throw new Error(`Không thể tải số liệu concept: ${error.message}`);
+      if (!error && data) {
+        return (Array.isArray(data) ? data : []).map((r: any) => ({
+          conceptId: r.concept_id,
+          conceptName: r.concept_name,
+          conceptSlug: r.concept_slug || undefined,
+          timesSelected: Number(r.times_selected || 0),
+          confirmedBookings: Number(r.confirmed_bookings || 0),
+          completedBookings: Number(r.completed_bookings || 0),
+          conversionRate: Number(r.conversion_rate || 0),
+        }));
+      }
+      if (error) {
+        console.warn('[Analytics] get_concept_performance error, falling back:', error);
+      }
+    } catch (err) {
+      console.warn('[Analytics] get_concept_performance call failed:', err);
     }
-
-    return (Array.isArray(data) ? data : []).map((r: any) => ({
-      conceptId: r.concept_id,
-      conceptName: r.concept_name,
-      conceptSlug: r.concept_slug || undefined,
-      timesSelected: Number(r.times_selected || 0),
-      confirmedBookings: Number(r.confirmed_bookings || 0),
-      completedBookings: Number(r.completed_bookings || 0),
-      conversionRate: Number(r.conversion_rate || 0),
-    }));
   }
 
   return [
@@ -361,28 +373,32 @@ export async function getStudioUtilization(
   endAt?: string
 ): Promise<StudioUtilizationMetric[]> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.rpc('get_studio_utilization_metrics', {
-      p_start_at: startAt || null,
-      p_end_at: endAt || null,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_studio_utilization_metrics', {
+        p_start_at: startAt || null,
+        p_end_at: endAt || null,
+      });
 
-    if (error) {
-      console.error('[Analytics] get_studio_utilization_metrics error:', error);
-      throw new Error(`Không thể tải số liệu phòng studio: ${error.message}`);
+      if (!error && data) {
+        return (Array.isArray(data) ? data : []).map((r: any) => ({
+          roomId: r.room_id,
+          roomName: r.room_name,
+          roomCode: r.room_code,
+          capacity: Number(r.capacity || 1),
+          confirmedBookingsCount: Number(r.confirmed_bookings_count || 0),
+          confirmedBookingHours: Number(r.confirmed_booking_hours || 0),
+          availableBusinessHours: Number(r.available_business_hours || 0),
+          utilizationRate: Number(r.utilization_rate || 0),
+          popularWeekday: r.popular_weekday || 'Thứ Bảy',
+          popularTimeRange: r.popular_time_range || '14:00 - 17:00',
+        }));
+      }
+      if (error) {
+        console.warn('[Analytics] get_studio_utilization_metrics error, falling back:', error);
+      }
+    } catch (err) {
+      console.warn('[Analytics] get_studio_utilization_metrics call failed:', err);
     }
-
-    return (Array.isArray(data) ? data : []).map((r: any) => ({
-      roomId: r.room_id,
-      roomName: r.room_name,
-      roomCode: r.room_code,
-      capacity: Number(r.capacity || 1),
-      confirmedBookingsCount: Number(r.confirmed_bookings_count || 0),
-      confirmedBookingHours: Number(r.confirmed_booking_hours || 0),
-      availableBusinessHours: Number(r.available_business_hours || 0),
-      utilizationRate: Number(r.utilization_rate || 0),
-      popularWeekday: r.popular_weekday || 'Thứ Bảy',
-      popularTimeRange: r.popular_time_range || '14:00 - 17:00',
-    }));
   }
 
   return [

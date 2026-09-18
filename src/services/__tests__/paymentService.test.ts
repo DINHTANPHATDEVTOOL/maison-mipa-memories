@@ -159,7 +159,7 @@ describe('Authoritative Deposit Payment Service & State Transitions', () => {
         packageId: testPackage.id,
         studioId: testStudio.id,
         date: '2026-09-20',
-        timeSlot: '19:00',
+        timeSlot: '14:00',
         customerName: 'Nguyễn Bích Ngọc',
       });
 

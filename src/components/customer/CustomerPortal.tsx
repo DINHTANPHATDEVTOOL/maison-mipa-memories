@@ -453,20 +453,20 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                 {/* Customer Acknowledgements & Delivery Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem' }}>
                   <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {/* Schedule confirmation acknowledgement */}
+                    {/* Schedule confirmation acknowledgement (DEF-D012) */}
                     {b.bookingStatus === 'CONFIRMED' && !b.customerScheduleConfirmedAt && (
                       <button
                         onClick={() => handleAcknowledgeSchedule(b.id)}
                         className="btn-mipa-gold"
                         style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
                       >
-                        ✓ Xác Nhận Lịch Chụp Này
+                        ✓ Tôi Đã Nắm Rõ Giờ Hẹn Chụp
                       </button>
                     )}
 
                     {b.customerScheduleConfirmedAt && (
                       <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Check size={15} /> Bạn đã xác nhận lịch chụp
+                        <Check size={15} /> Bạn đã xác nhận sẽ tham gia đúng giờ
                       </span>
                     )}
 
@@ -498,55 +498,81 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       </button>
                     )}
 
-                    {/* Google Drive Final Delivery Button (Phase 16) */}
-                    {(b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && (b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl) ? (
-                      <a
-                        href={b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-mipa-gold"
-                        style={{
-                          fontSize: '0.88rem',
-                          padding: '0.5rem 1.2rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          backgroundColor: '#047857',
-                          color: '#FFFFFF',
-                          textDecoration: 'none',
-                          fontWeight: 700,
-                        }}
-                      >
-                        <FolderDown size={16} /> XEM ẢNH
-                      </a>
-                    ) : (
-                      b.bookingStatus !== 'AWAITING_SELECTION' && (
-                        <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
-                          ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
-                        </span>
-                      )
-                    )}
+                    {/* Google Drive Final Delivery Button (Phase 16, DEF-D016) */}
+                    {(() => {
+                      const rawUrl = b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl;
+                      const hasDelivery = (b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && Boolean(rawUrl);
+                      if (!hasDelivery) {
+                        return b.bookingStatus !== 'AWAITING_SELECTION' ? (
+                          <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                            ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
+                          </span>
+                        ) : null;
+                      }
+
+                      const finalLink = (rawUrl && rawUrl !== 'https://drive.google.com' && rawUrl !== 'https://drive.google.com/')
+                        ? rawUrl
+                        : `https://drive.google.com/drive/search?q=${encodeURIComponent(b.bookingCode)}`;
+
+                      return (
+                        <a
+                          href={finalLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-mipa-gold"
+                          style={{
+                            fontSize: '0.88rem',
+                            padding: '0.5rem 1.2rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            backgroundColor: '#047857',
+                            color: '#FFFFFF',
+                            textDecoration: 'none',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <FolderDown size={16} /> XEM ẢNH TRÊN DRIVE
+                        </a>
+                      );
+                    })()}
                   </div>
 
-                  {/* Reschedule / Cancel options */}
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {['CONSULTATION_REQUESTED', 'CONSULTING', 'PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED'].includes(b.bookingStatus) && (
-                      <>
-                        <button
-                          onClick={() => setRescheduleBooking(b)}
-                          className="btn-mipa-secondary"
-                          style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                        >
-                          Yêu cầu đổi lịch
-                        </button>
-                        <button
-                          onClick={() => setCancelBooking(b)}
-                          style={{ background: 'none', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}
-                        >
-                          Yêu cầu hủy
-                        </button>
-                      </>
-                    )}
+                  {/* Reschedule / Cancel options (DEF-D011: Hide on past dates) */}
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                    {(() => {
+                      const todayVn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+                      const isPast = Boolean(b.bookingDate && b.bookingDate < todayVn);
+                      const isEligibleStatus = ['CONSULTATION_REQUESTED', 'CONSULTING', 'PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED'].includes(b.bookingStatus);
+
+                      if (!isEligibleStatus) return null;
+
+                      if (isPast) {
+                        return (
+                          <span style={{ fontSize: '0.78rem', color: '#8C6E53', fontStyle: 'italic' }}>
+                            Đã qua ngày hẹn • Liên hệ hotline để đổi lịch
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <>
+                          <button
+                            onClick={() => setRescheduleBooking(b)}
+                            className="btn-mipa-secondary"
+                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                          >
+                            Yêu cầu đổi lịch
+                          </button>
+                          <button
+                            onClick={() => setCancelBooking(b)}
+                            style={{ background: 'none', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}
+                          >
+                            Yêu cầu hủy
+                          </button>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
