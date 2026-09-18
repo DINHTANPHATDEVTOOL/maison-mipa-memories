@@ -7,7 +7,9 @@ const maxPrice = packagePrices.length > 0 ? Math.max(...packagePrices) : 3990000
 export const SITE_CONFIG = {
   siteName: 'Maison MIPA Memories',
   legalName: 'Maison MIPA Memories Studio',
-  tagline: 'Capture the moment. Keep the memory.',
+  tagline: 'Nhà là nơi lưu giữ ký ức',
+  slogan: 'Maison MIPA Memories — Nhà là nơi lưu giữ ký ức',
+  brandStoryShort: 'Trong tiếng Pháp, Maison là Ngôi Nhà. Chúng tôi tin rằng mỗi bức ảnh là một mảnh ghép của tổ ấm — nơi tình yêu, nụ cười và những rung cảm chân thật nhất được trân trọng và lưu giữ vẹn nguyên cùng năm tháng.',
   domain: 'https://maisonmipa.io.vn',
   canonicalBase: 'https://maisonmipa.io.vn',
   

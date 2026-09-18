@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // ==============================================================================
-// Maison MIPA Memories — DB Contract Verification Script
+// Maison MIPA Memories — DB Contract Verification Script V4
+// Single-sources from src/contracts/databaseContract.json.
 // Validates chronological SQL migrations against the database contract manifest
 // and generated TypeScript database types.
 // ==============================================================================
@@ -14,10 +15,21 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const migrationsDir = path.join(rootDir, 'supabase', 'migrations');
 const databaseTypesPath = path.join(rootDir, 'src', 'types', 'database.ts');
+const contractManifestPath = path.join(rootDir, 'src', 'contracts', 'databaseContract.json');
 
-console.log('--- MAISON MIPA DATABASE CONTRACT VERIFICATION ---');
+console.log('--- MAISON MIPA DATABASE CONTRACT VERIFICATION V4 ---');
 
-// 1. Read all migrations in chronological order
+// 1. Read Single Source of Truth Manifest
+if (!fs.existsSync(contractManifestPath)) {
+  console.error(`❌ Contract manifest not found at: ${contractManifestPath}`);
+  process.exit(1);
+}
+
+const manifest = JSON.parse(fs.readFileSync(contractManifestPath, 'utf-8'));
+console.log(`Loaded canonical contract manifest version: ${manifest.version}`);
+console.log(`Targeting ${manifest.tables.length} tables and ${manifest.rpcs.length} RPCs.`);
+
+// 2. Read all migrations in chronological order
 const migrationFiles = fs.readdirSync(migrationsDir)
   .filter(f => f.endsWith('.sql'))
   .sort();
@@ -48,35 +60,15 @@ for (const file of migrationFiles) {
   }
 }
 
-const REQUIRED_RPCS = [
-  {
-    name: 'assign_booking_staff_v2',
-    requiredParams: ['p_booking_id', 'p_employee_id', 'p_assignment_role', 'p_notes'],
-  },
-  {
-    name: 'checkout_booking_resource',
-    requiredParams: ['p_reservation_id', 'p_received_by_staff'],
-    forbiddenParams: ['p_employee_id'],
-  },
-  {
-    name: 'return_booking_resource',
-    requiredParams: ['p_reservation_id', 'p_condition_after'],
-  },
-  {
-    name: 'get_available_staff_for_booking',
-    requiredParams: ['p_booking_id'],
-  },
-];
-
-for (const rpc of REQUIRED_RPCS) {
-  // Check SQL has function definition
+// 3. Verify RPC Contracts against Manifest
+for (const rpc of manifest.rpcs) {
   const paramsList = latestRpcDefinitions.get(rpc.name);
   if (!paramsList) {
-    errors.push(`RPC [${rpc.name}] is missing from SQL migrations.`);
+    errors.push(`RPC [${rpc.name}] from contract manifest is missing from SQL migrations.`);
   } else {
-    for (const param of rpc.requiredParams) {
-      if (!paramsList.includes(param)) {
-        errors.push(`RPC [${rpc.name}] in SQL is missing required parameter [${param}]. Found params: (${paramsList.trim()})`);
+    for (const arg of rpc.expectedArgs) {
+      if (!paramsList.includes(arg.name)) {
+        errors.push(`RPC [${rpc.name}] in SQL is missing expected parameter [${arg.name}]. Found params: (${paramsList.trim()})`);
       }
     }
     if (rpc.forbiddenParams) {
@@ -90,52 +82,66 @@ for (const rpc of REQUIRED_RPCS) {
 
   // Check TypeScript DB types has matching RPC
   if (!dbTypesContent.includes(`${rpc.name}: {`)) {
-    errors.push(`RPC [${rpc.name}] is missing from src/types/database.ts.`);
+    errors.push(`RPC [${rpc.name}] is missing from src/types/database.ts Functions interface.`);
   } else {
-    for (const param of rpc.requiredParams) {
-      if (!dbTypesContent.includes(param)) {
-        errors.push(`RPC [${rpc.name}] parameter [${param}] is missing from src/types/database.ts.`);
+    for (const arg of rpc.expectedArgs) {
+      if (!dbTypesContent.includes(arg.name)) {
+        errors.push(`RPC [${rpc.name}] parameter [${arg.name}] is missing from src/types/database.ts.`);
       }
     }
     if (rpc.forbiddenParams) {
-      // Ensure forbidden parameter does not appear under this RPC in types
-      const rpcBlockRegex = new RegExp(`${rpc.name}:\\s*{[\\s\\S]*?Returns:`, 'g');
+      const rpcBlockRegex = new RegExp(`${rpc.name}:\\s*{[\\s\\S]*?Returns:`, 'i');
       const typeMatch = rpcBlockRegex.exec(dbTypesContent);
-      if (typeMatch && typeMatch[0].includes('p_employee_id:')) {
-        errors.push(`RPC [${rpc.name}] in src/types/database.ts contains deprecated parameter [p_employee_id] instead of [p_received_by_staff].`);
+      for (const forbidden of rpc.forbiddenParams) {
+        if (typeMatch && typeMatch[0].includes(`${forbidden}:`)) {
+          errors.push(`RPC [${rpc.name}] in src/types/database.ts contains forbidden parameter [${forbidden}].`);
+        }
       }
     }
   }
 }
 
-// 3. Table Column Contracts Check
-const REQUIRED_COLUMNS = [
-  { table: 'staff_skills', column: 'active' },
-  { table: 'staff_working_hours', column: 'timezone' },
-  { table: 'resource_categories', column: 'active' },
-  { table: 'resource_categories', column: 'is_consumable' },
-  { table: 'studio_resources', column: 'next_maintenance_date' },
-  { table: 'studio_resources', column: 'props_metadata' },
-  { table: 'booking_assignments', column: 'notes' },
-  { table: 'booking_assignments', column: 'slot_index' },
-];
+// 4. Verify Table Column Contracts against Manifest
+for (const tableContract of manifest.tables) {
+  const tableName = tableContract.name;
+  const tableBlockRegex = new RegExp(`['"]?${tableName}['"]?:\\s*{[\\s\\S]*?Relationships:`, 'i');
+  const tableMatch = tableBlockRegex.exec(dbTypesContent);
+  const tableBlock = tableMatch ? tableMatch[0] : '';
 
-for (const col of REQUIRED_COLUMNS) {
-  // Check if column exists in table definition or ALTER TABLE ADD COLUMN
-  const addColRegex = new RegExp(`(?:ALTER\\s+TABLE\\s+(?:public\\.)?${col.table}\\s+ADD\\s+COLUMN(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+${col.column}|CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+(?:public\\.)?${col.table}\\s*\\([\\s\\S]*?${col.column}\\s+)`, 'i');
-  if (!addColRegex.test(combinedSql)) {
-    errors.push(`Table column [${col.table}.${col.column}] is missing from SQL migrations.`);
+  if (!tableBlock) {
+    errors.push(`Table [${tableName}] is missing from src/types/database.ts.`);
   }
 
-  // Check TypeScript DB types
-  const tableBlockRegex = new RegExp(`${col.table}:\\s*{[\\s\\S]*?Relationships:`, 'g');
-  const typeMatch = tableBlockRegex.exec(dbTypesContent);
-  if (!typeMatch || !typeMatch[0].includes(`${col.column}:`)) {
-    errors.push(`Table column [${col.table}.${col.column}] is missing from src/types/database.ts.`);
+  for (const col of tableContract.requiredColumns) {
+    // Check if column exists in table definition or ALTER TABLE ADD COLUMN in SQL
+    const addColRegex = new RegExp(`(?:ALTER\\s+TABLE\\s+(?:public\\.)?${tableName}\\s+ADD\\s+COLUMN(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+${col}|CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+(?:public\\.)?${tableName}\\s*\\([\\s\\S]*?${col}\\s+)`, 'i');
+    if (!addColRegex.test(combinedSql)) {
+      errors.push(`Table column [${tableName}.${col}] is missing from SQL migrations.`);
+    }
+
+    // Check TypeScript DB types
+    if (tableBlock && !tableBlock.includes(`${col}:`) && !tableBlock.includes(`${col}?:`)) {
+      errors.push(`Table column [${tableName}.${col}] is missing from src/types/database.ts.`);
+    }
   }
 }
 
-// 4. Output Results
+// 5. Verify Foreign Key Embedded Relations
+const relationChecks = [
+  { table: 'staff_leave_requests', fkColumn: 'employee_id', targetTable: 'profiles' },
+  { table: 'booking_assignments', fkColumn: 'employee_id', targetTable: 'profiles' },
+  { table: 'booking_resource_reservations', fkColumn: 'resource_id', targetTable: 'studio_resources' },
+  { table: 'booking_resource_handoffs', fkColumn: 'reservation_id', targetTable: 'booking_resource_reservations' },
+];
+
+for (const rel of relationChecks) {
+  const fkPattern = new RegExp(`${rel.fkColumn}\\s+UUID[\\s\\S]*?REFERENCES\\s+(?:public\\.)?${rel.targetTable}\\(id\\)`, 'i');
+  if (!fkPattern.test(combinedSql)) {
+    errors.push(`Foreign key relationship on table [${rel.table}.${rel.fkColumn} -> ${rel.targetTable}(id)] missing from SQL.`);
+  }
+}
+
+// 6. Output Results
 if (errors.length > 0) {
   console.error('\n❌ DATABASE CONTRACT VERIFICATION FAILED with errors:');
   for (const err of errors) {
@@ -144,8 +150,10 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('✅ ALL DATABASE CONTRACTS VERIFIED SUCCESSFULLY!');
-console.log(`  - 25 SQL migrations verified`);
-console.log(`  - All canonical RPC signatures matched: assign_booking_staff_v2, checkout_booking_resource, return_booking_resource, get_available_staff_for_booking`);
-console.log(`  - All reconciled table columns present across SQL and TypeScript database types.`);
+console.log('✅ ALL DATABASE CONTRACTS VERIFIED SUCCESSFULLY FROM SINGLE MANIFEST!');
+console.log(`  - Migrations verified: ${migrationFiles.length} SQL migrations`);
+console.log(`  - Manifest version: ${manifest.version}`);
+console.log(`  - Tables audited: ${manifest.tables.length}`);
+console.log(`  - Canonical RPCs validated: ${manifest.rpcs.map(r => r.name).join(', ')}`);
+console.log(`  - Embedded relations verified: staff_leave_requests, booking_assignments, resources`);
 process.exit(0);

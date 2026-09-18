@@ -31,6 +31,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260918000001_crm_business_intelligence.sql',
     '20260918000002_workforce_and_resource_operations.sql',
     '20260918000003_production_contract_reconciliation.sql',
+    '20260918000004_full_ui_logic_regression_hardening.sql',
   ];
 
   const EXPECTED_TABLES = [

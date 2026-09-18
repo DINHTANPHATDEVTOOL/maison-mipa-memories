@@ -49,7 +49,7 @@ export const HomePricingPreview: React.FC = () => {
   if (isLoading) {
     return (
       <section style={{ padding: '5rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
-        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Đang tải bảng giá dịch vụ...</div>
+        <div style={{ color: '#70533C', fontSize: '0.9rem' }}>Đang tải bảng giá dịch vụ...</div>
       </section>
     );
   }
@@ -57,7 +57,7 @@ export const HomePricingPreview: React.FC = () => {
   if (hasError) {
     return (
       <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
-        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Không thể tải bảng giá vào lúc này.</div>
+        <div style={{ color: '#70533C', fontSize: '0.9rem' }}>Không thể tải bảng giá vào lúc này.</div>
       </section>
     );
   }
@@ -106,7 +106,7 @@ export const HomePricingPreview: React.FC = () => {
                 fontSize: '0.72rem',
                 letterSpacing: '0.22em',
                 textTransform: 'uppercase',
-                color: '#8C6E53',
+                color: '#70533C',
                 fontWeight: 600,
                 marginBottom: '0.75rem',
               }}
@@ -148,7 +148,7 @@ export const HomePricingPreview: React.FC = () => {
               fontSize: '0.92rem',
               fontWeight: 500,
               textDecoration: 'none',
-              borderBottom: '1px solid #8C6E53',
+              borderBottom: '1px solid #70533C',
               paddingBottom: '3px',
             }}
           >
@@ -179,7 +179,7 @@ export const HomePricingPreview: React.FC = () => {
                     fontWeight: isActive ? 600 : 400,
                     color: isActive ? '#29231F' : '#604634',
                     backgroundColor: isActive ? '#FAF8F3' : 'transparent',
-                    border: isActive ? '1px solid #8C6E53' : '1px solid rgba(140, 110, 83, 0.2)',
+                    border: isActive ? '1px solid #70533C' : '1px solid rgba(140, 110, 83, 0.2)',
                     borderRadius: '4px',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
@@ -202,7 +202,7 @@ export const HomePricingPreview: React.FC = () => {
               borderRadius: '4px',
               border: '1px solid rgba(140, 110, 83, 0.2)',
               textAlign: 'center',
-              color: '#8C6E53',
+              color: '#70533C',
               fontSize: '0.92rem',
             }}
           >
@@ -225,7 +225,7 @@ export const HomePricingPreview: React.FC = () => {
                   >
                     {pkg.name}
                   </h3>
-                  <div style={{ fontSize: '0.85rem', color: '#8C6E53' }}>
+                  <div style={{ fontSize: '0.85rem', color: '#70533C' }}>
                     {pkg.features && pkg.features.length > 0
                       ? pkg.features.slice(0, 2).join(' • ')
                       : 'Chi tiết quyền lợi hiển thị theo gói'}
@@ -234,7 +234,7 @@ export const HomePricingPreview: React.FC = () => {
 
                 {/* Column 2: Duration & Concepts */}
                 <div>
-                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600 }}>
                     THỜI LƯỢNG
                   </div>
                   <div style={{ fontSize: '0.95rem', color: '#29231F', fontWeight: 500 }}>
@@ -244,7 +244,7 @@ export const HomePricingPreview: React.FC = () => {
 
                 {/* Column 3: Retouched Photos */}
                 <div>
-                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600 }}>
                     HẬU KỲ CHUYÊN SÂU
                   </div>
                   <div style={{ fontSize: '0.95rem', color: '#29231F', fontWeight: 500 }}>
@@ -254,7 +254,7 @@ export const HomePricingPreview: React.FC = () => {
 
                 {/* Column 4: Price */}
                 <div>
-                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600 }}>
                     GIÁ TRỌN GÓI
                   </div>
                   <div style={{ fontSize: '1.35rem', color: '#29231F', fontWeight: 600 }}>

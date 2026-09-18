@@ -202,7 +202,7 @@ export const ResourceInventory: React.FC = () => {
         alignItems: 'center',
         boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
       }}>
-        <form onSubmit={handleSearch} style={{ flex: '1', minWidth: '260px', display: 'flex', gap: '0.5rem' }}>
+        <form onSubmit={handleSearch} style={{ flex: '1', minWidth: 'min(100%, 200px)', display: 'flex', gap: '0.5rem' }}>
           <div style={{ position: 'relative', width: '100%' }}>
             <Search size={16} color="#888" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input

@@ -110,7 +110,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
             marginBottom: '0.75rem',
           }}
         >
-          SELECTED STORIES / BỘ ẢNH
+          SELECTED STORIES / BỘ ẢNH &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
         </span>
         <h1
           style={{
@@ -122,19 +122,19 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
             margin: '0 0 1rem 0',
           }}
         >
-          Bộ sưu tập hình ảnh & câu chuyện
+          Bộ Sưu Tập Ký Ức & Câu Chuyện Tổ Ấm
         </h1>
         <p
           style={{
             fontSize: '1.05rem',
-            lineHeight: 1.65,
+            lineHeight: 1.7,
             color: '#604634',
             maxWidth: '680px',
             margin: '0 auto',
             fontWeight: 300,
           }}
         >
-          Mỗi bộ ảnh là một lát cắt cuộc sống, lưu giữ khoảnh khắc chân phương của từng vị khách ghé thăm Maison MIPA.
+          Mỗi bức ảnh là một mảnh ghép của tổ ấm, nơi tình yêu, nụ cười và những rung cảm chân phương nhất của từng vị khách ghé thăm Maison MIPA được trân trọng và lưu giữ vĩnh cửu.
         </p>
       </header>
 

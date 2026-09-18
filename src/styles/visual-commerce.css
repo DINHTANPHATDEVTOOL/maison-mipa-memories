@@ -239,7 +239,7 @@
   font-size: 0.76rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #8C6E53;
+  color: #70533C;
   font-weight: 600;
   margin-bottom: 0.75rem;
 }
@@ -325,13 +325,13 @@
   color: #29231F;
   font-weight: 600;
   text-decoration: none;
-  border-bottom: 1px solid #8C6E53;
+  border-bottom: 1px solid #70533C;
   padding-bottom: 2px;
   transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
 
 .vc-text-link:hover {
-  color: #8C6E53;
+  color: #70533C;
   border-color: #29231F;
 }
 

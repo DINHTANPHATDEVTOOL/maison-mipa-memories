@@ -82,7 +82,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         padding: '0 1rem',
         textAlign: 'center',
       }}>
-        <div className="editorial-overline" style={{ marginBottom: '0.8rem' }}>
+        <div className="editorial-overline" style={{ marginBottom: '0.8rem', color: '#E0C287' }}>
           MAISON MIPA / ĐẶT LỊCH
         </div>
         <h1 className="editorial-heading" style={{

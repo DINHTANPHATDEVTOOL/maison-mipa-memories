@@ -158,7 +158,7 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
             marginBottom: '0.75rem',
           }}
         >
-          DANH MỤC CONCEPT
+          MAISON MIPA MEMORIES &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
         </span>
         <h1
           style={{
@@ -170,19 +170,19 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
             margin: '0 0 1rem 0',
           }}
         >
-          Ý tưởng & không gian ánh sáng
+          Concept Nghệ Thuật & Không Gian Ký Ức
         </h1>
         <p
           style={{
             fontSize: '1.05rem',
-            lineHeight: 1.6,
+            lineHeight: 1.65,
             color: '#604634',
             maxWidth: '720px',
             margin: 0,
             fontWeight: 300,
           }}
         >
-          Khám phá các concept được định hình phong cách tại studio. Lựa chọn concept yêu thích và đặt lịch trực tuyến nhanh chóng.
+          Mỗi concept tại Maison MIPA được lấy cảm hứng từ những khoảnh khắc đời thường thiêng liêng nhất trong một tổ ấm — từ góc ban công đón nắng mai, phòng khách ấm cúng đến những nốt lặng đầy thi vị của tình yêu.
         </p>
       </header>
 

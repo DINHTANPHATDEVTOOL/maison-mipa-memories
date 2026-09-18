@@ -113,16 +113,19 @@ export async function getStaffWorkingHours(employeeId: string): Promise<StaffWor
     }));
   }
 
-  // Fallback: standard 09:00 - 18:00, day off on Monday
-  return Array.from({ length: 7 }, (_, i) => ({
-    id: `hours-${employeeId}-${i}`,
-    employeeId,
-    dayOfWeek: i,
-    startTime: '09:00',
-    endTime: '18:00',
-    isDayOff: i === 1, // Monday off by default for studio
-    timezone: 'Asia/Ho_Chi_Minh',
-  }));
+  // Fallback: standard 09:00 - 18:00, day off on Monday (ISO DOW: 1 = Monday, ..., 7 = Sunday)
+  return Array.from({ length: 7 }, (_, i) => {
+    const dow = i + 1; // 1 = Monday ... 7 = Sunday
+    return {
+      id: `hours-${employeeId}-${dow}`,
+      employeeId,
+      dayOfWeek: dow,
+      startTime: '09:00',
+      endTime: '18:00',
+      isDayOff: dow === 1, // Monday off by default for studio
+      timezone: 'Asia/Ho_Chi_Minh',
+    };
+  });
 }
 
 /**
@@ -134,7 +137,7 @@ export async function getStaffLeaveRequests(employeeId?: string): Promise<StaffL
       .from('staff_leave_requests')
       .select(`
         *,
-        employees:employee_id (name)
+        profiles:employee_id (id, full_name, email)
       `)
       .order('created_at', { ascending: false });
 
@@ -150,7 +153,7 @@ export async function getStaffLeaveRequests(employeeId?: string): Promise<StaffL
     return (data || []).map(r => ({
       id: r.id,
       employeeId: r.employee_id,
-      employeeName: (r.employees as any)?.name || 'Nhân viên MIPA',
+      employeeName: (r as any)?.profiles?.full_name || (r as any)?.employees?.name || 'Nhân viên MIPA',
       leaveType: r.leave_type as any,
       startAt: r.start_at,
       endAt: r.end_at,

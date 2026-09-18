@@ -88,7 +88,7 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
             marginBottom: '0.75rem',
           }}
         >
-          EDITORIAL MAGAZINE / CẨM NANG
+          MAISON MIPA MEMORIES &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
         </span>
         <h1
           style={{
@@ -100,19 +100,19 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
             margin: '0 0 1rem 0',
           }}
         >
-          Kinh nghiệm & phong cách nhiếp ảnh
+          Kinh Nghiệm & Chuẩn Bị Cho Buổi Chụp
         </h1>
         <p
           style={{
             fontSize: '1.05rem',
-            lineHeight: 1.65,
+            lineHeight: 1.7,
             color: '#604634',
             maxWidth: '680px',
             margin: '0 auto',
             fontWeight: 300,
           }}
         >
-          Những chia sẻ chân thành từ Maison MIPA giúp bạn chuẩn bị trọn vẹn nhất cho buổi chụp ảnh nghệ thuật.
+          Những chia sẻ chân thành từ Maison MIPA giúp bạn và người thân cảm thấy tự nhiên, an yên như ở chính ngôi nhà của mình trước ống kính nghệ thuật.
         </p>
       </header>
 

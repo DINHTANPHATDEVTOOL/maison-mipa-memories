@@ -14,9 +14,7 @@ import {
   DEFAULT_ATELIER_ARTWORKS,
   LIGHTING_PRESETS,
 } from './atelier/atelierConfig';
-const AtelierCanvas = React.lazy(() =>
-  import('./atelier/AtelierCanvas').then((m) => ({ default: m.AtelierCanvas }))
-);
+
 import { AtelierControls } from './atelier/AtelierControls';
 import { ArtworkInspection } from './atelier/ArtworkInspection';
 
@@ -169,72 +167,48 @@ const HERO_FILMSTRIP_ITEMS = [
               background: currentLighting.bgGradient,
             }}
           >
-            {webglAvailable ? (
-              <React.Suspense
-                fallback={
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: currentLighting.bgGradient,
-                    }}
-                  >
-                    <img
-                      src="/hero-couple.jpg"
-                      alt="Maison MIPA Atelier"
-                      style={{
-                        maxWidth: '480px',
-                        width: '75%',
-                        opacity: 0.8,
-                        borderRadius: '8px',
-                        boxShadow: '0 12px 30px rgba(0,0,0,0.12)',
-                      }}
-                    />
-                  </div>
-                }
-              >
-                <AtelierCanvas
-                  cameraMode={cameraMode}
-                  lightingPreset={currentLighting}
-                  artworks={artworks}
-                  activeArtworkId={selectedArtwork?.id || artworks[0]?.id || ''}
-                  onSelectArtwork={handleSelectArtwork}
-                  reducedMotion={prefersReduced}
-                  onWebGLFailure={() => setWebglAvailable(false)}
-                />
-              </React.Suspense>
-            ) : (
-              /* Graceful Fallback for Non-WebGL / Low-Power Devices */
+            {/* High Performance Editorial Photographic Viewport */}
+            <div
+              data-testid="atelier-fallback-view"
+              className="atelier-fallback-box"
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: currentLighting.bgGradient,
+                padding: '2rem 1.5rem',
+                textAlign: 'center',
+                position: 'relative',
+              }}
+            >
               <div
-                data-testid="atelier-fallback-view"
-                className="atelier-fallback-box"
+                className="atelier-fallback-card"
+                style={{
+                  maxWidth: '540px',
+                  width: '90%',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: '0 20px 45px rgba(0,0,0,0.18)',
+                  marginBottom: '1.25rem',
+                  border: '1px solid rgba(198, 164, 95, 0.3)',
+                }}
               >
-                <div className="atelier-fallback-card">
-                  <img
-                    src="/hero-couple.jpg"
-                    alt="Maison MIPA Atelier"
-                    style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
-                <h3 className="atelier-fallback-title">
-                  MAISON MIPA / ATELIER
-                </h3>
-                <p className="atelier-fallback-desc">
-                  Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp & tinh tế.
-                </p>
+                <img
+                  src={selectedArtwork?.imageUrl || (artworks && artworks[0]?.imageUrl) || '/hero-couple.jpg'}
+                  alt={selectedArtwork?.title || "Maison MIPA Atelier"}
+                  style={{ width: '100%', maxHeight: '360px', objectFit: 'cover', display: 'block' }}
+                />
               </div>
-            )}
-
-            {/* Floating Guidance Badge (hides upon real interaction) */}
-            {!hasInteracted && (
-              <div className="hero-guidance-badge">
-                <Compass size={14} style={{ color: '#8C6347' }} />
-                <span>{isMobile ? 'Chạm để tương tác góc nhìn 3D' : 'Rê chuột để cảm nhận chiều sâu 3D'}</span>
-              </div>
-            )}
+              <h3 className="atelier-fallback-title" style={{ margin: '0 0 0.35rem 0', color: '#FAF8F3', fontFamily: 'var(--editorial-font-heading, serif)', fontSize: '1.35rem', letterSpacing: '0.08em' }}>
+                MAISON MIPA / ATELIER
+              </h3>
+              <p className="atelier-fallback-desc" style={{ margin: 0, color: 'rgba(250, 248, 243, 0.8)', fontSize: '0.9rem', maxWidth: '440px' }}>
+                Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp & tinh tế.
+              </p>
+            </div>
           </div>
 
           {/* Floating Editorial Card on the Right (Mockup Exact Match) */}

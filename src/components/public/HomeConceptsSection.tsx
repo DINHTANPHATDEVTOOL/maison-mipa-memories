@@ -95,7 +95,7 @@ export const HomeConceptsSection: React.FC = () => {
                 fontSize: '0.72rem',
                 letterSpacing: '0.22em',
                 textTransform: 'uppercase',
-                color: '#8C6E53',
+                color: '#70533C',
                 fontWeight: 600,
                 marginBottom: '0.75rem',
               }}
@@ -137,7 +137,7 @@ export const HomeConceptsSection: React.FC = () => {
               fontSize: '0.92rem',
               fontWeight: 500,
               textDecoration: 'none',
-              borderBottom: '1px solid #8C6E53',
+              borderBottom: '1px solid #70533C',
               paddingBottom: '3px',
               transition: 'color 0.2s ease, border-color 0.2s ease',
             }}
@@ -220,7 +220,7 @@ export const HomeConceptsSection: React.FC = () => {
                       fontSize: '0.8rem',
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
-                      color: '#8C6E53',
+                      color: '#70533C',
                       fontWeight: 600,
                       marginBottom: '0.45rem',
                     }}
@@ -287,7 +287,7 @@ export const HomeConceptsSection: React.FC = () => {
                         to={`/booking?concept=${concept.slug}`}
                         style={{
                           fontSize: '0.92rem',
-                          color: '#8C6E53',
+                          color: '#70533C',
                           fontWeight: 500,
                           textDecoration: 'underline',
                           textUnderlineOffset: '3px',

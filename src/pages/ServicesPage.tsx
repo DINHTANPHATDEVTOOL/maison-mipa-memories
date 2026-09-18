@@ -109,7 +109,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
             marginBottom: '0.75rem',
           }}
         >
-          MAISON MIPA / DỊCH VỤ
+          MAISON MIPA / DỊCH VỤ &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
         </span>
         <h1
           style={{
@@ -126,14 +126,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
         <p
           style={{
             fontSize: '1.05rem',
-            lineHeight: 1.65,
+            lineHeight: 1.7,
             color: '#604634',
             maxWidth: '680px',
             margin: '0 auto',
             fontWeight: 300,
           }}
         >
-          Mỗi dịch vụ tại Maison MIPA được định hình với bối cảnh ánh sáng tự nhiên và phong cách xử lý ảnh nhẹ nhàng, lưu giữ cảm xúc chân thật của bạn.
+          Mỗi gói dịch vụ tại Maison MIPA được thiết kế để gìn giữ những dấu mốc thiêng liêng nhất của cuộc đời bạn — từ tình yêu đôi lứa, chân dung cá nhân đến nụ cười đầm ấm của cả gia đình trong ngôi nhà ký ức.
         </p>
       </header>
 

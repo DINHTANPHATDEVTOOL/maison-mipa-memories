@@ -48,7 +48,7 @@ export const HomeConsultationCtaSection: React.FC<HomeConsultationCtaSectionProp
             marginBottom: '1rem',
           }}
         >
-          BẮT ĐẦU CÙNG MAISON MIPA
+          MAISON MIPA MEMORIES &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
         </span>
 
         <h2
@@ -61,20 +61,20 @@ export const HomeConsultationCtaSection: React.FC<HomeConsultationCtaSectionProp
             margin: '0 0 1.25rem 0',
           }}
         >
-          Bạn đã có ý tưởng cho buổi chụp?
+          Cùng Maison MIPA Viết Tiếp Ký Ức Cho Tổ Ấm Của Bạn
         </h2>
 
         <p
           style={{
             fontSize: '1.05rem',
-            lineHeight: 1.65,
-            color: 'rgba(255, 253, 249, 0.8)',
+            lineHeight: 1.7,
+            color: 'rgba(255, 253, 249, 0.85)',
             margin: '0 auto 2.5rem auto',
-            maxWidth: '620px',
+            maxWidth: '640px',
             fontWeight: 300,
           }}
         >
-          Đội ngũ Maison MIPA sẵn sàng lắng nghe và đồng hành cùng bạn từ việc lựa chọn concept, trang phục cho đến từng khung hình hoàn hảo nhất.
+          Mỗi buổi chụp tại Maison MIPA là một lần trở về &ldquo;ngôi nhà thứ hai&rdquo; — ấm áp, an yên và đong đầy tình cảm. Hãy cùng chúng tôi nâng niu những khoảnh khắc quý giá nhất bên những người bạn yêu thương.
         </p>
 
         {/* Real Action Triggers */}

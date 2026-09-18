@@ -158,7 +158,8 @@ export const OperationsCalendar: React.FC<OperationsCalendarProps> = ({ onOpenBo
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '1.25rem',
+        flexWrap: 'wrap',
+        gap: '1rem',
         marginBottom: '1.25rem',
         padding: '0.75rem 1rem',
         backgroundColor: '#FFFDF6',

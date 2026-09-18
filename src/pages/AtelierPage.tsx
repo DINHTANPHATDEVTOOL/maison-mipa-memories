@@ -173,7 +173,7 @@ export const AtelierPage: React.FC<AtelierPageProps> = ({ onOpenBooking }) => {
               marginBottom: '0.75rem',
             }}
           >
-            TRẢI NGHIỆM TRỰC TIẾP TẠI STUDIO
+            MAISON MIPA MEMORIES &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
           </span>
           <h2
             style={{
@@ -184,17 +184,17 @@ export const AtelierPage: React.FC<AtelierPageProps> = ({ onOpenBooking }) => {
               marginBottom: '1rem',
             }}
           >
-            Hiện thực hóa bộ ảnh của riêng bạn
+            Trở Về Ngôi Nhà Kỷ Niệm Cùng Maison MIPA
           </h2>
           <p
             style={{
               fontSize: '0.95rem',
-              lineHeight: 1.6,
-              color: 'rgba(250, 248, 243, 0.75)',
+              lineHeight: 1.65,
+              color: 'rgba(250, 248, 243, 0.82)',
               marginBottom: '2rem',
             }}
           >
-            Maison MIPA chào đón bạn đến trải nghiệm không gian ánh sáng tự nhiên và dịch vụ chụp ảnh trọn gói tại Sài Gòn.
+            Maison MIPA thân mời bạn ghé thăm không gian ngập tràn ánh sáng tự nhiên tại Sài Gòn — nơi mọi cảm xúc chân thật của tổ ấm được trân trọng và lưu giữ vĩnh cửu.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <button

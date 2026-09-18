@@ -1018,7 +1018,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         {/* Header Bar */}
         <div className="booking-wizard-header">
           <div>
-            <span className="editorial-overline" style={{ marginBottom: '0.2rem' }}>
+            <span className="editorial-overline" style={{ marginBottom: '0.2rem', color: '#70533C' }}>
               MAISON MIPA / ĐẶT LỊCH
             </span>
             <h3
@@ -1101,7 +1101,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         >
           {selectedService && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600, textTransform: 'uppercase' }}>
                 DỊCH VỤ:
               </span>
               <strong style={{ color: '#29231F' }}>{selectedService.name}</strong>
@@ -1111,7 +1111,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {selectedConcepts.length > 0 && selectedConcepts[0] && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span style={{ color: 'rgba(140, 110, 83, 0.35)' }}>•</span>
-              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600, textTransform: 'uppercase' }}>
                 CONCEPT:
               </span>
               <strong style={{ color: '#29231F' }}>{selectedConcepts[0].name}</strong>
@@ -1121,11 +1121,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           {selectedPackage && !packageMismatchError && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span style={{ color: 'rgba(140, 110, 83, 0.35)' }}>•</span>
-              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 600, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600, textTransform: 'uppercase' }}>
                 GÓI CHỤP:
               </span>
               <strong style={{ color: '#29231F' }}>{selectedPackage.name}</strong>
-              <span style={{ color: '#8C6E53' }}>({selectedPackage.price.toLocaleString('vi-VN')} đ)</span>
+              <span style={{ color: '#70533C' }}>({selectedPackage.price.toLocaleString('vi-VN')} đ)</span>
             </div>
           )}
         </div>

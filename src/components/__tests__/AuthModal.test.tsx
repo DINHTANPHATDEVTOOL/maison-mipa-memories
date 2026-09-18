@@ -32,7 +32,7 @@ describe('AuthModal Component', () => {
 
   it('renders modal header and tabs when isOpen is true', () => {
     renderWithAuth(<AuthModal {...defaultProps} />);
-    expect(screen.getByText(/MAISON MIPA MEMORIES AUTH/i)).toBeInTheDocument();
+    expect(screen.getByText('MAISON MIPA MEMORIES')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^ĐĂNG NHẬP$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ĐĂNG KÝ NHANH/i })).toBeInTheDocument();
   });

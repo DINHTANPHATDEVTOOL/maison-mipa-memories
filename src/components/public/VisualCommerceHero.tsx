@@ -284,7 +284,7 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
             >
               MAISON MIPA MEMORIES
             </span>
-            Những câu chuyện được giữ lại bằng ánh sáng.
+            Nhà Là Nơi Lưu Giữ Ký Ức.
           </h1>
 
           {/* Supporting Line */}
@@ -293,14 +293,14 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
             style={{
               fontFamily: 'var(--editorial-font-body, "Be Vietnam Pro", sans-serif)',
               fontSize: 'clamp(0.95rem, 1.8vw, 1.15rem)',
-              lineHeight: 1.6,
-              color: 'rgba(255, 253, 249, 0.82)',
+              lineHeight: 1.65,
+              color: 'rgba(255, 253, 249, 0.88)',
               margin: '0 0 2rem 0',
-              maxWidth: '560px',
+              maxWidth: '580px',
               fontWeight: 300,
             }}
           >
-            Studio nhiếp ảnh phong cách Pháp ấm áp và tinh tế tại Sài Gòn. Lưu giữ trọn vẹn cảm xúc chân thật qua từng khung hình.
+            Trong tiếng Pháp, &ldquo;Maison&rdquo; là Ngôi Nhà. Chúng tôi tin rằng mỗi bức ảnh là một mảnh ghép của tổ ấm — nơi tình yêu, nụ cười và những rung cảm chân thật nhất được trân trọng và giữ lại vẹn nguyên cùng năm tháng.
           </p>
 
           {/* Two Clear CTAs */}

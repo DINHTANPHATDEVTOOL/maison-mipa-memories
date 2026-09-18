@@ -29,16 +29,16 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     await page.getByRole('button', { name: /Đăng nhập/i }).click();
 
     // Verify Auth Modal is displayed
-    const authHeader = page.locator('text=MAISON MIPA MEMORIES AUTH');
-    await expect(authHeader).toBeVisible();
-    await expect(page.locator('text=Welcome Back ♡ Đăng Nhập')).toBeVisible();
+    const authHeader = page.locator('text=MAISON MIPA MEMORIES');
+    await expect(authHeader.first()).toBeVisible();
+    await expect(page.locator('text=Chào Mừng Trở Lại')).toBeVisible();
 
     // Switch to Register tab
-    await page.getByRole('button', { name: /ĐĂNG KÝ NHANH/i }).click();
+    await page.getByRole('button', { name: /ĐĂNG KÝ/i }).click();
     await expect(page.getByPlaceholder('Nguyễn Văn A')).toBeVisible();
 
     // Switch back to Login tab inside modal
-    await page.locator('div[style*="z-index: 3000"]').getByRole('button', { name: 'ĐĂNG NHẬP', exact: true }).click();
+    await page.locator('.mipa-auth-tabs').getByRole('button', { name: /ĐĂNG NHẬP/i }).click();
     await expect(page.getByPlaceholder(/Nhập email/i)).toBeVisible();
   });
 
@@ -112,12 +112,12 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
   test('5. Deep link trực tiếp vào /portfolio và refresh không bị 404', async ({ page }) => {
     await page.goto('/portfolio');
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Hình Ảnh/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập/i })).toBeVisible();
 
     // Refresh page
     await page.reload();
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập Hình Ảnh/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Bộ Sưu Tập/i })).toBeVisible();
   });
 
   test('6. Deep link trực tiếp vào /dich-vu/couple và refresh không bị 404', async ({ page }) => {
@@ -269,10 +269,10 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // Mở Auth Modal
     await page.getByRole('button', { name: /Đăng nhập/i }).click();
-    await expect(page.locator('text=MAISON MIPA MEMORIES AUTH')).toBeVisible();
+    await expect(page.locator('text=MAISON MIPA MEMORIES').first()).toBeVisible();
 
-    // Chuyển sang tab Đăng Ký Nhanh
-    await page.getByRole('button', { name: /ĐĂNG KÝ NHANH/i }).click();
+    // Chuyển sang tab Đăng Ký
+    await page.getByRole('button', { name: /ĐĂNG KÝ/i }).click();
     await expect(page.getByPlaceholder('Nguyễn Văn A')).toBeVisible();
 
     // Nhập thông tin đăng ký

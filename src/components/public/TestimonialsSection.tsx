@@ -32,7 +32,7 @@ export const TestimonialsSection: React.FC = () => {
           “Buổi chụp tại Maison MIPA đem lại cho chúng mình cảm giác thư thái như đang ở một góc ban công Paris. Từng bức ảnh đều lưu giữ trọn vẹn sự dịu dàng và ánh mắt của hai đứa.”
         </blockquote>
 
-        <div style={{ marginTop: '1.2rem', fontSize: '0.88rem', fontWeight: 600, color: '#8C6E53' }}>
+        <div style={{ marginTop: '1.2rem', fontSize: '0.88rem', fontWeight: 600, color: '#70533C' }}>
           Ngọc Mai & Hoàng Long — Parisian Romance Session
         </div>
       </div>

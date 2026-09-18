@@ -4,6 +4,7 @@
 // ==============================================================================
 
 import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
+import { normalizeError } from '../utils/AppError';
 import type {
   Booking,
   DailyOperationsBoardData,
@@ -46,8 +47,10 @@ export async function getDailyOperationsBoardData(targetDate?: string): Promise<
     });
 
     if (error) {
-      console.warn('[StudioOperations] Failed to fetch board via RPC, falling back to query:', error.message);
-    } else if (data) {
+      throw normalizeError(error, 'getDailyOperationsBoardData');
+    }
+
+    if (data) {
       const res = data as any;
       return {
         todayShoots: (res.todayShoots || []) as Booking[],
@@ -117,7 +120,7 @@ export async function getTomorrowPrepBoardData(): Promise<TomorrowPrepItem[]> {
           id,
           assignment_role,
           employee_id,
-          employees:employee_id (name)
+          profiles:employee_id (id, full_name, email)
         ),
         booking_resource_reservations (
           id,
@@ -130,7 +133,11 @@ export async function getTomorrowPrepBoardData(): Promise<TomorrowPrepItem[]> {
       .in('booking_status', ['CONFIRMED', 'CHECKED_IN'])
       .order('start_at', { ascending: true });
 
-    if (!error && bookings) {
+    if (error) {
+      throw normalizeError(error, 'getTomorrowPrepBoardData');
+    }
+
+    if (bookings) {
       return (bookings as any[]).map((b: any) => {
         const assignments = (b.booking_assignments as any[]) || [];
         const reservations = (b.booking_resource_reservations as any[]) || [];
@@ -165,9 +172,9 @@ export async function getTomorrowPrepBoardData(): Promise<TomorrowPrepItem[]> {
           studioReady,
           studioName: 'Studio Room',
           photographerReady,
-          photographerName: photo?.employees?.name,
+          photographerName: (photo?.profiles as any)?.full_name || (photo?.employees as any)?.name || undefined,
           makeupReady,
-          makeupName: makeup?.employees?.name,
+          makeupName: (makeup?.profiles as any)?.full_name || (makeup?.employees as any)?.name || undefined,
           equipmentReady,
           reservedEquipmentCount: reservations.length,
           propsReady,
@@ -202,14 +209,14 @@ export async function getTomorrowPrepBoardData(): Promise<TomorrowPrepItem[]> {
       studioReady: true,
       studioName: b.studioName,
       photographerReady,
-      photographerName: photographerReady ? photo?.employeeName || 'Nguyễn Minh Quân' : undefined,
-      makeupReady: true,
-      makeupName: makeup?.employeeName || 'Đỗ Thảo Trang',
+      photographerName: photo?.employeeName,
+      makeupReady: Boolean(makeup),
+      makeupName: makeup?.employeeName,
       equipmentReady,
-      reservedEquipmentCount: equipmentReady ? 3 : 0,
+      reservedEquipmentCount: 2,
       propsReady: true,
       customerAckReady: true,
-      driveReady: Boolean(b.driveFolderUrl),
+      driveReady: true,
       driveFolderUrl: b.driveFolderUrl,
       isAllGreen,
     };
@@ -230,8 +237,10 @@ export async function getOperationsCalendarEvents(
     });
 
     if (error) {
-      console.warn('[StudioOperations] Error fetching calendar events:', error.message);
-    } else if (data) {
+      throw normalizeError(error, 'getOperationsCalendarEvents');
+    }
+
+    if (data) {
       return (data as any[]).map(e => ({
         id: e.id,
         title: e.title,

@@ -39,7 +39,7 @@ export const HomeServicesSection: React.FC = () => {
   if (isLoading) {
     return (
       <section style={{ padding: '5rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
-        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Đang tải danh mục dịch vụ...</div>
+        <div style={{ color: '#70533C', fontSize: '0.9rem' }}>Đang tải danh mục dịch vụ...</div>
       </section>
     );
   }
@@ -47,7 +47,7 @@ export const HomeServicesSection: React.FC = () => {
   if (hasError) {
     return (
       <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
-        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Không thể tải danh mục dịch vụ vào lúc này.</div>
+        <div style={{ color: '#70533C', fontSize: '0.9rem' }}>Không thể tải danh mục dịch vụ vào lúc này.</div>
       </section>
     );
   }
@@ -55,7 +55,7 @@ export const HomeServicesSection: React.FC = () => {
   if (services.length === 0) {
     return (
       <section style={{ padding: '4rem 1.5rem', backgroundColor: '#FFFDF9', textAlign: 'center' }}>
-        <div style={{ color: '#8C6E53', fontSize: '0.9rem' }}>Hiện chưa có dịch vụ nào được công bố.</div>
+        <div style={{ color: '#70533C', fontSize: '0.9rem' }}>Hiện chưa có dịch vụ nào được công bố.</div>
       </section>
     );
   }
@@ -95,7 +95,7 @@ export const HomeServicesSection: React.FC = () => {
                 fontSize: '0.72rem',
                 letterSpacing: '0.22em',
                 textTransform: 'uppercase',
-                color: '#8C6E53',
+                color: '#70533C',
                 fontWeight: 600,
                 marginBottom: '0.75rem',
               }}
@@ -137,7 +137,7 @@ export const HomeServicesSection: React.FC = () => {
               fontSize: '0.92rem',
               fontWeight: 500,
               textDecoration: 'none',
-              borderBottom: '1px solid #8C6E53',
+              borderBottom: '1px solid #70533C',
               paddingBottom: '3px',
             }}
           >
@@ -254,7 +254,7 @@ export const HomeServicesSection: React.FC = () => {
                       alignItems: 'center',
                       gap: '0.35rem',
                       fontSize: '0.85rem',
-                      color: '#8C6E53',
+                      color: '#70533C',
                       fontWeight: 500,
                       textDecoration: 'none',
                     }}

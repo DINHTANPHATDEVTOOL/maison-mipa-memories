@@ -37,6 +37,7 @@ export const CrmFollowUpDashboard: React.FC = () => {
     priority: 'NORMAL',
   });
   const [saving, setSaving] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
@@ -86,8 +87,9 @@ export const CrmFollowUpDashboard: React.FC = () => {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.dueAt) return;
+    if (!form.title.trim()) return;
     setSaving(true);
+    setFormError(null);
     try {
       await createFollowUpTask({
         customerId: form.customerId || 'cust-direct',
@@ -106,7 +108,7 @@ export const CrmFollowUpDashboard: React.FC = () => {
       });
       await loadTasks();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi tạo nhiệm vụ');
+      setFormError(err.message || 'Lỗi khi tạo nhiệm vụ');
     } finally {
       setSaving(false);
     }
@@ -389,6 +391,25 @@ export const CrmFollowUpDashboard: React.FC = () => {
               <h3 style={{ margin: '0 0 1rem 0', color: '#604634', fontSize: '1.2rem', fontFamily: 'Cinzel, serif' }}>
                 Thêm Nhiệm Vụ Follow-up
               </h3>
+
+              {formError && (
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  style={{
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FCA5A5',
+                    color: '#991B1B',
+                    padding: '0.6rem 0.9rem',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    marginBottom: '0.75rem',
+                  }}
+                >
+                  {formError}
+                </div>
+              )}
+
               <form onSubmit={handleCreateTask} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#604634', marginBottom: '0.3rem' }}>

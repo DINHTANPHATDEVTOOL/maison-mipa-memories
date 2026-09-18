@@ -20,32 +20,45 @@ export const Footer: React.FC = () => {
       }}>
         {/* Brand Col */}
         <div>
-          <div style={{
-            fontFamily: 'var(--mipa-font-heading)',
-            fontSize: '1.75rem',
-            letterSpacing: '0.08em',
-            marginBottom: '0.4rem',
-            color: '#FFFDF9',
-          }}>
-            MAISON MIPA
-          </div>
-          <div style={{
-            fontSize: '0.75rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: '#B89B62',
-            marginBottom: '1.25rem',
-          }}>
-            Memories Studio • Sài Gòn
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '0.8rem' }}>
+            <img
+              src="/logo-transparent-256.png"
+              alt="Maison MIPA Memories Logo"
+              style={{
+                width: '44px',
+                height: '44px',
+                objectFit: 'contain',
+                filter: 'brightness(1.15)',
+              }}
+            />
+            <div>
+              <div style={{
+                fontFamily: 'var(--mipa-font-heading)',
+                fontSize: '1.45rem',
+                letterSpacing: '0.06em',
+                color: '#FFFDF9',
+                lineHeight: 1.1,
+              }}>
+                MAISON MIPA
+              </div>
+              <div style={{
+                fontSize: '0.72rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: '#B89B62',
+              }}>
+                Nhà Là Nơi Lưu Giữ Ký Ức
+              </div>
+            </div>
           </div>
           <p style={{
             fontSize: '0.88rem',
             lineHeight: 1.7,
-            color: 'rgba(255, 253, 249, 0.65)',
-            maxWidth: '300px',
+            color: 'rgba(255, 253, 249, 0.75)',
+            maxWidth: '320px',
             margin: 0,
           }}>
-            Studio chụp ảnh phong cách Pháp ấm áp và tự nhiên tại Sài Gòn. Lưu giữ những khoảnh khắc chân thật và nguyên bản nhất.
+            Maison MIPA Memories — Nhà là nơi lưu giữ ký ức. Không gian nhiếp ảnh nghệ thuật phong cách Pháp ấm áp và tinh tế tại Sài Gòn.
           </p>
         </div>
 

@@ -120,7 +120,7 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
         }}
       >
         <span className="vc-overline" style={{ display: 'block', marginBottom: '0.75rem' }}>
-          CHI PHÍ MINH BẠCH
+          CHI PHÍ MINH BẠCH &bull; NHÀ LÀ NƠI LƯU GIỮ KÝ ỨC
         </span>
         <h1
           className="vc-display"
@@ -129,16 +129,17 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
             margin: '0 0 1rem 0',
           }}
         >
-          Bảng giá dịch vụ chụp ảnh
+          Bảng Giá Dịch Vụ Chụp Ảnh
         </h1>
         <p
           className="vc-copy"
           style={{
             maxWidth: '680px',
             margin: '0 auto',
+            lineHeight: 1.65,
           }}
         >
-          Chi tiết quyền lợi được hiển thị theo từng gói chụp và dịch vụ tương ứng.
+          Maison MIPA Memories — Nhà là nơi lưu giữ ký ức. Biểu phí niêm yết rõ ràng, minh định, không phát sinh chi phí ẩn. Chúng tôi dành trọn sự nâng niu để mỗi trải nghiệm chụp ảnh của bạn tại ngôi nhà Maison MIPA đều trọn vẹn và an tâm tuyệt đối.
         </p>
       </header>
 

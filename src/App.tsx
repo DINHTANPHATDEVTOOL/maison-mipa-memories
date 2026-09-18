@@ -170,21 +170,25 @@ function AppContent() {
     setIsAuthModalOpen(false);
   };
 
+  const [appError, setAppError] = useState<string | null>(null);
+
   const handleBookingSuccess = useCallback((newBooking: Booking) => {
     setBookings(prev => [newBooking, ...prev.filter(b => b.id !== newBooking.id)]);
   }, []);
 
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingStatus, note?: string) => {
     try {
+      setAppError(null);
       const updated = await updateBookingStatus(bookingId, newStatus, note);
       setBookings(prev => prev.map(b => (b.id === bookingId || b.bookingCode === bookingId ? updated : b)));
     } catch (err: any) {
-      alert(`Không thể cập nhật trạng thái: ${err.message}`);
+      setAppError(`Không thể cập nhật trạng thái: ${err.message}`);
     }
   };
 
   const handleAssignStaff = async (bookingId: string, employeeId: string, role?: string) => {
     try {
+      setAppError(null);
       const asg = await assignBookingStaff(bookingId, employeeId, role);
       setBookings(prev => prev.map(b => {
         if (b.id === bookingId || b.bookingCode === bookingId) {
@@ -197,7 +201,7 @@ function AppContent() {
         return b;
       }));
     } catch (err: any) {
-      alert(`Không thể phân công nhân viên: ${err.message}`);
+      setAppError(`Không thể phân công nhân viên: ${err.message}`);
     }
   };
 
@@ -252,6 +256,42 @@ function AppContent() {
         onOpenAuthModal={handleOpenAuthModal}
         onLogout={handleLogout}
       />
+
+      {appError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          style={{
+            backgroundColor: '#7F1D1D',
+            color: '#FEF2F2',
+            padding: '0.75rem 1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.9rem',
+            borderBottom: '1px solid #B91C1C',
+            zIndex: 99999,
+          }}
+        >
+          <span>{appError}</span>
+          <button
+            onClick={() => setAppError(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#FEF2F2',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              lineHeight: 1,
+              padding: '0 0.5rem',
+            }}
+            aria-label="Đóng thông báo lỗi"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Main Presentation Body */}
       <main id="main-content" tabIndex={-1} className="mipa-public-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', outline: 'none' }}>

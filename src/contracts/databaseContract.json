@@ -1,0 +1,200 @@
+{
+  "version": "20260918-v4",
+  "tables": [
+    {
+      "name": "profiles",
+      "requiredColumns": ["id", "email", "full_name", "role", "staff_role", "status"]
+    },
+    {
+      "name": "services",
+      "requiredColumns": ["id", "slug", "name", "active", "display_order"]
+    },
+    {
+      "name": "packages",
+      "requiredColumns": ["id", "service_id", "slug", "name", "price", "active"]
+    },
+    {
+      "name": "addons",
+      "requiredColumns": ["id", "slug", "name", "price", "duration_minutes", "category", "active"]
+    },
+    {
+      "name": "studio_rooms",
+      "requiredColumns": ["id", "slug", "name", "active"]
+    },
+    {
+      "name": "employees",
+      "requiredColumns": ["id", "staff_role", "skills", "rating", "total_sessions", "active"]
+    },
+    {
+      "name": "promotions",
+      "requiredColumns": ["id", "code", "discount_percent", "discount_amount", "min_order", "max_discount", "usage_count", "usage_limit", "start_at", "end_at", "active"]
+    },
+    {
+      "name": "bookings",
+      "requiredColumns": [
+        "id", "booking_code", "customer_id", "service_id", "package_id", "studio_room_id",
+        "booking_status", "start_at", "end_at", "deposit_amount", "deposit_confirmed_at",
+        "editing_due_at", "delivery_due_at", "crew_status", "resource_status"
+      ]
+    },
+    {
+      "name": "booking_assignments",
+      "requiredColumns": ["id", "booking_id", "employee_id", "assignment_role", "start_at", "end_at", "notes", "slot_index"]
+    },
+    {
+      "name": "booking_proof_images",
+      "requiredColumns": ["id", "booking_id", "drive_file_id", "file_name", "preview_url", "active"]
+    },
+    {
+      "name": "booking_photo_selections",
+      "requiredColumns": ["id", "booking_id", "proof_image_id", "selected_by", "selected_at", "notes"]
+    },
+    {
+      "name": "customer_crm_profiles",
+      "requiredColumns": ["customer_id", "crm_owner_id", "lifecycle_stage", "first_contact_at", "last_contact_at"]
+    },
+    {
+      "name": "crm_interactions",
+      "requiredColumns": ["id", "customer_id", "actor_id", "interaction_type", "channel", "summary", "occurred_at"]
+    },
+    {
+      "name": "crm_follow_up_tasks",
+      "requiredColumns": ["id", "customer_id", "title", "due_at", "status"]
+    },
+    {
+      "name": "booking_financial_transactions",
+      "requiredColumns": ["id", "booking_id", "transaction_type", "amount", "recorded_by"]
+    },
+    {
+      "name": "staff_skills",
+      "requiredColumns": ["id", "code", "name", "category", "active"]
+    },
+    {
+      "name": "employee_skills",
+      "requiredColumns": ["employee_id", "skill_id"]
+    },
+    {
+      "name": "staff_working_hours",
+      "requiredColumns": ["id", "employee_id", "day_of_week", "start_time", "end_time", "is_day_off", "timezone"]
+    },
+    {
+      "name": "staff_leave_requests",
+      "requiredColumns": ["id", "employee_id", "leave_type", "start_at", "end_at", "status"]
+    },
+    {
+      "name": "staff_shifts",
+      "requiredColumns": ["id", "employee_id", "start_at", "end_at", "shift_type"]
+    },
+    {
+      "name": "booking_crew_requirements",
+      "requiredColumns": ["id", "role", "quantity"]
+    },
+    {
+      "name": "resource_categories",
+      "requiredColumns": ["id", "code", "name", "active", "is_consumable"]
+    },
+    {
+      "name": "studio_resources",
+      "requiredColumns": [
+        "id", "category_id", "asset_code", "name", "is_serialized", "quantity_total",
+        "quantity_available", "current_location", "condition", "status", "cleaning_status",
+        "next_maintenance_date", "props_metadata"
+      ]
+    },
+    {
+      "name": "booking_resource_reservations",
+      "requiredColumns": ["id", "booking_id", "resource_id", "quantity", "reserved_from", "reserved_until", "status"]
+    },
+    {
+      "name": "booking_resource_handoffs",
+      "requiredColumns": ["id", "reservation_id", "resource_id", "booking_id", "checked_out_at", "received_by_staff", "condition_before"]
+    },
+    {
+      "name": "resource_maintenance",
+      "requiredColumns": ["id", "resource_id", "maintenance_type", "scheduled_at", "status"]
+    },
+    {
+      "name": "resource_incidents",
+      "requiredColumns": ["id", "resource_id", "booking_id", "reported_by", "severity", "description"]
+    }
+  ],
+  "rpcs": [
+    {
+      "name": "assign_booking_staff_v2",
+      "expectedArgs": [
+        { "name": "p_booking_id", "required": true },
+        { "name": "p_employee_id", "required": true },
+        { "name": "p_assignment_role", "required": true },
+        { "name": "p_start_at", "required": false },
+        { "name": "p_end_at", "required": false },
+        { "name": "p_notes", "required": false }
+      ]
+    },
+    {
+      "name": "checkout_booking_resource",
+      "expectedArgs": [
+        { "name": "p_reservation_id", "required": true },
+        { "name": "p_received_by_staff", "required": true },
+        { "name": "p_condition_before", "required": false },
+        { "name": "p_notes", "required": false }
+      ],
+      "forbiddenParams": ["p_employee_id"]
+    },
+    {
+      "name": "return_booking_resource",
+      "expectedArgs": [
+        { "name": "p_reservation_id", "required": true },
+        { "name": "p_condition_after", "required": false },
+        { "name": "p_damage_notes", "required": false },
+        { "name": "p_is_damaged", "required": false },
+        { "name": "p_damage_severity", "required": false },
+        { "name": "p_damage_description", "required": false },
+        { "name": "p_notes", "required": false },
+        { "name": "p_returned_by_staff", "required": false }
+      ]
+    },
+    {
+      "name": "get_available_staff_for_booking",
+      "expectedArgs": [
+        { "name": "p_booking_id", "required": true },
+        { "name": "p_assignment_role", "required": false }
+      ]
+    },
+    {
+      "name": "approve_staff_leave",
+      "expectedArgs": [
+        { "name": "p_leave_id", "required": true },
+        { "name": "p_manager_note", "required": false }
+      ]
+    },
+    {
+      "name": "reject_staff_leave",
+      "expectedArgs": [
+        { "name": "p_leave_id", "required": true },
+        { "name": "p_manager_note", "required": false }
+      ]
+    },
+    {
+      "name": "reserve_booking_resource",
+      "expectedArgs": [
+        { "name": "p_booking_id", "required": true },
+        { "name": "p_resource_id", "required": true },
+        { "name": "p_quantity", "required": false },
+        { "name": "p_notes", "required": false }
+      ]
+    },
+    {
+      "name": "get_operations_calendar_events",
+      "expectedArgs": [
+        { "name": "p_start_at", "required": true },
+        { "name": "p_end_at", "required": true }
+      ]
+    },
+    {
+      "name": "get_daily_operations_board",
+      "expectedArgs": [
+        { "name": "p_target_date", "required": false }
+      ]
+    }
+  ]
+}

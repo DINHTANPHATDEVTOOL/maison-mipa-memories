@@ -32,7 +32,7 @@ export const MaisonExperienceSection: React.FC = () => {
     <section style={{ padding: '4rem 1rem', backgroundColor: '#FAF8F5', borderTop: '1px solid var(--mipa-beige)', borderBottom: '1px solid var(--mipa-beige)' }}>
       <div style={{ maxWidth: '1350px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 3rem' }}>
-          <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#8C6E53', fontWeight: 700 }}>
+          <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#70533C', fontWeight: 700 }}>
             TRẢI NGHIỆM MAISON MIPA
           </div>
           <h2 style={{ fontSize: 'clamp(1.8rem, 4.5vw, 2.8rem)', color: '#604634', marginTop: '0.4rem', marginBottom: '0.8rem', fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
@@ -73,7 +73,7 @@ export const MaisonExperienceSection: React.FC = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  <Icon size={22} color="#8C6E53" />
+                  <Icon size={22} color="#70533C" />
                 </div>
                 <h3 style={{ fontSize: '1.2rem', color: '#604634', margin: 0, fontFamily: 'var(--mipa-font-heading)', fontWeight: 700 }}>
                   {item.title}

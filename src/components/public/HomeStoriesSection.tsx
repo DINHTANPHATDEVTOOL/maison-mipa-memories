@@ -71,12 +71,12 @@ export const HomeStoriesSection: React.FC = () => {
                 fontSize: '0.72rem',
                 letterSpacing: '0.22em',
                 textTransform: 'uppercase',
-                color: '#8C6E53',
+                color: '#70533C',
                 fontWeight: 600,
                 marginBottom: '0.75rem',
               }}
             >
-              SELECTED STORIES / BỘ ẢNH
+              SELECTED STORIES / KÝ ỨC TỔ ẤM
             </span>
             <h2
               style={{
@@ -88,7 +88,7 @@ export const HomeStoriesSection: React.FC = () => {
                 margin: '0 0 0.75rem 0',
               }}
             >
-              Những câu chuyện được kể lại
+              Những Câu Chuyện Được Kể Bằng Tình Yêu
             </h2>
             <p
               style={{
@@ -99,7 +99,7 @@ export const HomeStoriesSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Mỗi bộ ảnh ghi dấu những khoảnh khắc chân thực, giàu cảm xúc và được chăm chút tỉ mỉ trong từng khung hình.
+              Mỗi bộ ảnh tại Maison MIPA là một cuốn nhật ký chân thực về tổ ấm — nơi những nụ cười, cái ôm và ánh mắt yêu thương được trân trọng và gìn giữ vĩnh cửu.
             </p>
           </div>
 
@@ -113,7 +113,7 @@ export const HomeStoriesSection: React.FC = () => {
               fontSize: '0.92rem',
               fontWeight: 500,
               textDecoration: 'none',
-              borderBottom: '1px solid #8C6E53',
+              borderBottom: '1px solid #70533C',
               paddingBottom: '3px',
             }}
           >
@@ -195,7 +195,7 @@ export const HomeStoriesSection: React.FC = () => {
                       fontSize: '0.8rem',
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
-                      color: '#8C6E53',
+                      color: '#70533C',
                       fontWeight: 600,
                       marginBottom: '0.45rem',
                     }}

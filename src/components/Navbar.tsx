@@ -37,39 +37,21 @@ export interface NavbarProps {
   onLogout: () => void;
 }
 
-// Bespoke Luxury Studio Monogram Emblem
-export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 34 }) => (
-  <svg
+// Official Maison MIPA Studio Emblem
+export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 36 }) => (
+  <img
+    src="/logo-transparent-256.png"
+    alt="Maison MIPA Memories Logo"
     width={size}
     height={size}
-    viewBox="0 0 44 44"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ flexShrink: 0, display: 'block' }}
-  >
-    <defs>
-      <linearGradient id="mipaEmblemBg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#8C6E53" />
-        <stop offset="100%" stopColor="#4A3525" />
-      </linearGradient>
-      <linearGradient id="mipaGoldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#F5E6C8" />
-        <stop offset="50%" stopColor="#C6A45F" />
-        <stop offset="100%" stopColor="#8C6E53" />
-      </linearGradient>
-    </defs>
-    <circle cx="22" cy="22" r="21" fill="url(#mipaEmblemBg)" stroke="url(#mipaGoldAccent)" strokeWidth="1.5" />
-    <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(239, 230, 201, 0.35)" strokeWidth="0.75" strokeDasharray="2 1" />
-    <path d="M14 16 L22 11 L30 16" stroke="rgba(198, 164, 95, 0.4)" strokeWidth="0.8" fill="none" />
-    <path
-      d="M14 29 V18 L18.5 24.5 L22 20 L25.5 24.5 L30 18 V29"
-      stroke="#FFFDF6"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="22" cy="14" r="1.5" fill="#EFE6C9" />
-  </svg>
+    style={{
+      width: size,
+      height: size,
+      objectFit: 'contain',
+      flexShrink: 0,
+      display: 'block',
+    }}
+  />
 );
 
 // Bespoke Luxury User Monogram Avatar Badge
@@ -379,14 +361,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div
               style={{
                 fontSize: '0.62rem',
-                letterSpacing: '0.22em',
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: '#8C6E53',
-                fontWeight: 500,
+                color: '#543D2B',
+                fontWeight: 600,
                 whiteSpace: 'nowrap',
               }}
             >
-              Memories Studio
+              Nhà Là Nơi Lưu Giữ Ký Ức
             </div>
           </div>
         </Link>

@@ -153,23 +153,29 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
   // Filter bookings strictly by authenticated user's ID
   const customerBookings = user ? bookings.filter(b => b.customerId === user.id) : [];
 
+  const [actionError, setActionError] = useState<string>('');
+
   const handleAcknowledgeSchedule = async (bookingId: string) => {
     try {
+      setActionError('');
       await acknowledgeCustomerSchedule(bookingId);
       setActionNotice('✓ Đã xác nhận đồng ý lịch chụp với studio.');
       setTimeout(() => setActionNotice(''), 4000);
     } catch (err: any) {
-      alert(`Không thể xác nhận lịch: ${err.message}`);
+      setActionError(`Không thể xác nhận lịch: ${err.message}`);
+      setTimeout(() => setActionError(''), 5000);
     }
   };
 
   const handleAcknowledgeShoot = async (bookingId: string) => {
     try {
+      setActionError('');
       await acknowledgeCustomerShoot(bookingId);
       setActionNotice('✓ Đã xác nhận hoàn thành buổi chụp cùng nhiếp ảnh gia.');
       setTimeout(() => setActionNotice(''), 4000);
     } catch (err: any) {
-      alert(`Không thể xác nhận buổi chụp: ${err.message}`);
+      setActionError(`Không thể xác nhận buổi chụp: ${err.message}`);
+      setTimeout(() => setActionError(''), 5000);
     }
   };
 
@@ -178,6 +184,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
     if (!rescheduleBooking || !rescheduleDate || !rescheduleSlot) return;
 
     try {
+      setActionError('');
       await requestBookingReschedule(rescheduleBooking.id, rescheduleDate, rescheduleSlot, rescheduleReason);
       setRescheduleBooking(null);
       setRescheduleDate('');
@@ -186,7 +193,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
       setActionNotice('✓ Đã gửi yêu cầu đổi lịch tới bộ phận điều phối studio.');
       setTimeout(() => setActionNotice(''), 5000);
     } catch (err: any) {
-      alert(`Lỗi gửi yêu cầu: ${err.message}`);
+      setActionError(`Lỗi gửi yêu cầu đổi lịch: ${err.message}`);
+      setTimeout(() => setActionError(''), 5000);
     }
   };
 
@@ -195,13 +203,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
     if (!cancelBooking) return;
 
     try {
+      setActionError('');
       await requestBookingCancel(cancelBooking.id, cancelReason);
       setCancelBooking(null);
       setCancelReason('');
       setActionNotice('✓ Đã gửi yêu cầu hủy lịch tới quản lý studio.');
       setTimeout(() => setActionNotice(''), 5000);
     } catch (err: any) {
-      alert(`Lỗi gửi yêu cầu: ${err.message}`);
+      setActionError(`Lỗi gửi yêu cầu hủy: ${err.message}`);
+      setTimeout(() => setActionError(''), 5000);
     }
   };
 
@@ -273,6 +283,28 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
           gap: '0.5rem',
         }}>
           <Check size={18} /> {actionNotice}
+        </div>
+      )}
+
+      {actionError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          style={{
+            padding: '1rem 1.5rem',
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '12px',
+            color: '#991B1B',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <AlertCircle size={18} /> {actionError}
         </div>
       )}
 

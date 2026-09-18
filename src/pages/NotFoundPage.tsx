@@ -43,7 +43,7 @@ export const NotFoundPage: React.FC = () => {
           Trang Không Tồn Tại
         </h1>
         <p style={{
-          color: '#6E5F55',
+          color: '#4A3E36',
           fontSize: '0.95rem',
           lineHeight: 1.6,
           marginBottom: '2rem',
