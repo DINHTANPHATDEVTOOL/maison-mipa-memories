@@ -28,8 +28,8 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title="Cẩm Nang Chụp Ảnh & Phong Cách | Maison MIPA Memories"
-        description="Cẩm nang nhiếp ảnh nghệ thuật tại Maison MIPA: Gợi ý trang phục và kinh nghiệm chuẩn bị cho buổi chụp."
+        title="Cẩm Nang Chuẩn Bị & Phong Cách Chụp Ảnh | Tiệm Ảnh Maison MIPA Memories"
+        description="Cẩm nang hướng dẫn chuẩn bị trang phục, phối tone màu và kinh nghiệm tạo dáng tự nhiên cho các buổi chụp ảnh chân dung, kỷ yếu, couple tại Tiệm ảnh Maison MIPA."
         canonicalPath="/cam-nang"
         noIndex={true}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}

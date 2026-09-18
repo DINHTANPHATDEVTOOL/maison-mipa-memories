@@ -14,8 +14,8 @@ export const NotFoundPage: React.FC = () => {
       textAlign: 'center',
     }}>
       <SeoHead
-        title="404 - Không Tìm Thấy Trang | Maison MIPA Memories"
-        description="Trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển."
+        title="404 — Không Tìm Thấy Trang | Tiệm Ảnh Maison MIPA Memories"
+        description="Trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển trên hệ thống Tiệm ảnh Maison MIPA Memories."
         noIndex={true}
       />
       <div className="mipa-card" style={{

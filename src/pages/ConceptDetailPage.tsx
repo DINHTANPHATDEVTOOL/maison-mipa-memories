@@ -92,11 +92,22 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
     loadConceptDetail();
   }, [loadConceptDetail]);
 
-  // 1. LOADING STATE
+  // 1. LOADING STATE (Editorial Skeleton)
   if (isLoading) {
     return (
-      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF8F3' }}>
-        <div style={{ color: '#8C6E53', fontSize: '0.95rem' }}>Đang tải thông tin concept...</div>
+      <div style={{ minHeight: '85vh', backgroundColor: '#FAF8F3', paddingBottom: '6rem' }}>
+        <div style={{ maxWidth: '1350px', margin: '0 auto', padding: '1.5rem 1.5rem 0' }}>
+          <div style={{ height: '14px', width: '180px', backgroundColor: 'rgba(140, 110, 83, 0.15)', borderRadius: '3px', marginBottom: '2rem' }} />
+          <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto 3rem' }}>
+            <div style={{ height: '14px', width: '120px', backgroundColor: 'rgba(140, 110, 83, 0.15)', borderRadius: '3px', margin: '0 auto 1rem' }} />
+            <div style={{ height: '42px', width: '60%', backgroundColor: 'rgba(140, 110, 83, 0.2)', borderRadius: '4px', margin: '0 auto 1.2rem' }} />
+            <div style={{ height: '18px', width: '80%', backgroundColor: 'rgba(140, 110, 83, 0.1)', borderRadius: '3px', margin: '0 auto 0.5rem' }} />
+            <div style={{ height: '18px', width: '65%', backgroundColor: 'rgba(140, 110, 83, 0.1)', borderRadius: '3px', margin: '0 auto' }} />
+          </div>
+          <div style={{ aspectRatio: '16/9', maxHeight: '550px', backgroundColor: 'rgba(140, 110, 83, 0.08)', borderRadius: '6px', border: '1px solid rgba(140, 110, 83, 0.15)', marginBottom: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#8C6E53', fontSize: '0.9rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Đang chuẩn bị không gian ảnh...</span>
+          </div>
+        </div>
       </div>
     );
   }

@@ -113,12 +113,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   // Form State
-  const [selectedService, setSelectedService] = useState<ServiceCategory | null>(demoMode ? INITIAL_SERVICES[0] : null);
-  const [selectedPackage, setSelectedPackage] = useState<PackageItem | null>(demoMode ? INITIAL_PACKAGES[1] : null);
+  const [selectedService, setSelectedService] = useState<ServiceCategory | null>(
+    demoMode && presentation !== 'PAGE' ? INITIAL_SERVICES[0] : null
+  );
+  const [selectedPackage, setSelectedPackage] = useState<PackageItem | null>(
+    demoMode && presentation !== 'PAGE' ? INITIAL_PACKAGES[1] : null
+  );
   const [selectedDate, setSelectedDate] = useState<string>(getInitialBookingDate);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedStudio, setSelectedStudio] = useState<StudioRoom | null>(demoMode ? INITIAL_STUDIO_ROOMS[0] : null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+  const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; email?: string }>({});
 
   // Availability State
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>(() =>
@@ -134,10 +139,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Customer details (pre-filled from authenticated user if available)
-  const [customerName, setCustomerName] = useState<string>(user?.fullName || '');
-  const [customerPhone, setCustomerPhone] = useState<string>(user?.phone || '');
-  const [customerEmail, setCustomerEmail] = useState<string>(user?.email || '');
+  // Customer details (pre-filled from authenticated user if available, or demo modal defaults)
+  const [customerName, setCustomerName] = useState<string>(
+    user?.fullName || (demoMode && presentation !== 'PAGE' ? 'Nguyễn Minh Anh' : '')
+  );
+  const [customerPhone, setCustomerPhone] = useState<string>(
+    user?.phone || (demoMode && presentation !== 'PAGE' ? '0908123456' : '')
+  );
+  const [customerEmail, setCustomerEmail] = useState<string>(
+    user?.email || (demoMode && presentation !== 'PAGE' ? 'minhanh.nguyen@gmail.com' : '')
+  );
   const [occasion, setOccasion] = useState<string>('Kỷ niệm');
   const [customerNote, setCustomerNote] = useState<string>('');
   const [voucherCode, setVoucherCode] = useState<string>('');
@@ -249,7 +260,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       // 2. Concept param validation
       if (initialConceptSlug) {
-        const foundConcept = cncs.find(c => (c.slug === initialConceptSlug || c.id === initialConceptSlug) && c.active && c.bookable) || null;
+        let foundConcept = cncs.find(c => (c.slug === initialConceptSlug || c.id === initialConceptSlug) && c.active && c.bookable) || null;
+        if (!foundConcept) {
+          foundConcept = cncs.find(c => (initialConceptSlug.startsWith(c.slug) || c.slug.startsWith(initialConceptSlug)) && c.active && c.bookable) || null;
+        }
         if (!foundConcept) {
           setErrorMessage('Concept được chọn không tồn tại hoặc đã ngừng cung cấp.');
           targetConcept = null;
@@ -268,12 +282,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       }
 
       // 4. Flexible cross-service concepts:
-      // Authoritative DB contract allows concept selection across services as long as active and bookable.
-      // Do not reject targetConcept if targetConcept.serviceId != targetService.id.
-
-      // If no explicit service param and no concept derived service, default to first available
-      if (!initialServiceId && !targetService && srvs.length > 0) {
-        targetService = srvs[0];
+      if (initialServiceId) {
+        targetService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId) || null;
+      } else if (demoMode && presentation !== 'PAGE') {
+        targetService = srvs[0] || null;
       }
       setSelectedService(targetService);
 
@@ -297,12 +309,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           setSelectedPackage(null);
           setStep(2);
         }
-      } else if (targetService) {
+      } else if (demoMode && presentation !== 'PAGE' && targetService) {
         const matching = pkgs.filter(p => !p.serviceId || p.serviceId === targetService.id);
         setSelectedPackage(matching.find(p => p.recommended) || matching[0] || null);
         setPackageMismatchError(null);
       } else {
+        // DEF-001: Do NOT auto-select package when opening booking without package parameter
         setSelectedPackage(null);
+        setPackageMismatchError(null);
       }
 
       // 6. Concept selection (strictly empty unless explicit initialConceptSlug is provided)
@@ -583,35 +597,33 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     const matching = packages.filter(p => !p.serviceId || p.serviceId === serviceId);
     if (matching.length > 0) {
       setSelectedPackage(prev => {
+        // Preserve user's manual package selection if it belongs to current service
         if (prev && matching.some(p => p.id === prev.id)) return prev;
-        return matching.find(p => p.recommended) || matching[0];
+        if (demoMode && presentation !== 'PAGE') {
+          return matching.find(p => p.recommended) || matching[0];
+        }
+        // DEF-001: Do not auto-select if user hasn't made a choice yet
+        return null;
       });
     } else {
       setSelectedPackage(null);
     }
-  }, [selectedService, packages, packageMismatchError]);
+  }, [selectedService, packages, packageMismatchError, demoMode, presentation]);
 
-  // Available concepts: all active && bookable concepts.
-  // Order for UX:
-  // 1. Same-service concepts
-  // 2. Universal concepts
-  // 3. Other service concepts
+  // TC-045: Filter concepts strictly matching selected service or universal concepts
   const availableConcepts = useMemo(() => {
     const activeBookable = concepts.filter(c => c.active && c.bookable);
     if (!selectedService) return activeBookable;
     const sameService: Concept[] = [];
     const universal: Concept[] = [];
-    const otherService: Concept[] = [];
     for (const c of activeBookable) {
       if (c.serviceId === selectedService.id) {
         sameService.push(c);
       } else if (!c.serviceId) {
         universal.push(c);
-      } else {
-        otherService.push(c);
       }
     }
-    return [...sameService, ...universal, ...otherService];
+    return sameService.length > 0 ? [...sameService, ...universal] : activeBookable;
   }, [selectedService, concepts]);
 
   // Keep selectedConcepts synchronized with active & bookable concepts
@@ -663,8 +675,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedTimeSlot('');
         userSlotChoiceClearedRef.current = true;
       } else if (!selectedTimeSlot && !draftSlotRejectedRef.current && !userSlotChoiceClearedRef.current) {
-        const firstAvail = slots.find(s => s.status === 'AVAILABLE');
-        setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
+        // DEF-002: Require user to explicitly choose a time slot on /booking
+        if (demoMode && presentation !== 'PAGE') {
+          const firstAvail = slots.find(s => s.status === 'AVAILABLE');
+          setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
+        }
       }
       return;
     }
@@ -687,8 +702,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedTimeSlot('');
         userSlotChoiceClearedRef.current = true;
       } else if (!selectedTimeSlot && !draftSlotRejectedRef.current && !userSlotChoiceClearedRef.current) {
-        const firstAvail = slots.find(s => s.status === 'AVAILABLE');
-        setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
+        // DEF-002: Require user to explicitly choose a time slot on /booking
+        if (demoMode && presentation !== 'PAGE') {
+          const firstAvail = slots.find(s => s.status === 'AVAILABLE');
+          setSelectedTimeSlot(firstAvail ? firstAvail.time : '');
+        }
       }
     } catch (err: any) {
       if (currentRequestId !== availabilityRequestIdRef.current) return;
@@ -873,6 +891,43 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       setStep(3);
       return;
     }
+
+    // DEF-003, TC-052, TC-053, TC-054: Validate required customer info BEFORE auth check
+    const errors: { name?: string; phone?: string; email?: string } = {};
+    const trimmedName = customerName.trim();
+    if (!trimmedName) {
+      errors.name = 'Vui lòng nhập họ và tên của bạn.';
+    }
+
+    const trimmedPhone = customerPhone.trim().replace(/\s+/g, '');
+    const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
+    if (!trimmedPhone) {
+      errors.phone = 'Vui lòng nhập số điện thoại liên hệ.';
+    } else if (!phoneRegex.test(trimmedPhone)) {
+      errors.phone = 'Số điện thoại không hợp lệ (cần 10 chữ số, ví dụ 0901234567).';
+    }
+
+    const trimmedEmail = customerEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!trimmedEmail) {
+      errors.email = 'Vui lòng nhập địa chỉ email của bạn.';
+    } else if (!emailRegex.test(trimmedEmail)) {
+      errors.email = 'Địa chỉ email không đúng định dạng (ví dụ: name@example.com).';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      setErrorMessage('Vui lòng điền đầy đủ và chính xác các thông tin liên hệ bắt buộc.');
+      if (errors.name) {
+        document.getElementById('booking-customer-name')?.focus();
+      } else if (errors.phone) {
+        document.getElementById('booking-customer-phone')?.focus();
+      } else if (errors.email) {
+        document.getElementById('booking-customer-email')?.focus();
+      }
+      return;
+    }
+    setFormErrors({});
 
     // Check slot availability locally before advancing
     const initialSlot = availableSlots.find(s => s.time === selectedTimeSlot);
@@ -1858,12 +1913,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     type="text"
                     required
                     aria-required="true"
+                    aria-invalid={Boolean(formErrors.name)}
                     value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }));
+                    }}
                     className="mipa-input"
                     placeholder="Họ và tên"
-                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
+                    style={{
+                      borderRadius: '4px',
+                      border: formErrors.name ? '1px solid #DC2626' : '1px solid var(--editorial-divider)',
+                    }}
                   />
+                  {formErrors.name && (
+                    <div style={{ color: '#DC2626', fontSize: '0.78rem', marginTop: '0.3rem', fontWeight: 500 }}>
+                      {formErrors.name}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="booking-customer-phone" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Số điện thoại *</label>
@@ -1872,16 +1939,29 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     type="tel"
                     required
                     aria-required="true"
+                    aria-invalid={Boolean(formErrors.phone)}
                     aria-describedby="booking-phone-hint"
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value);
+                      if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: undefined }));
+                    }}
                     className="mipa-input"
                     placeholder="Số điện thoại"
-                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
+                    style={{
+                      borderRadius: '4px',
+                      border: formErrors.phone ? '1px solid #DC2626' : '1px solid var(--editorial-divider)',
+                    }}
                   />
-                  <div id="booking-phone-hint" style={{ fontSize: '0.75rem', color: 'var(--editorial-text-muted)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <ShieldCheck size={13} color="var(--editorial-brown-accent)" /> Studio sẽ liên hệ xác nhận qua số điện thoại này.
-                  </div>
+                  {formErrors.phone ? (
+                    <div style={{ color: '#DC2626', fontSize: '0.78rem', marginTop: '0.3rem', fontWeight: 500 }}>
+                      {formErrors.phone}
+                    </div>
+                  ) : (
+                    <div id="booking-phone-hint" style={{ fontSize: '0.75rem', color: 'var(--editorial-text-muted)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <ShieldCheck size={13} color="var(--editorial-brown-accent)" /> Tiệm ảnh sẽ liên hệ xác nhận qua số điện thoại này.
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="booking-customer-email" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Email *</label>
@@ -1890,12 +1970,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     type="email"
                     required
                     aria-required="true"
+                    aria-invalid={Boolean(formErrors.email)}
                     value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerEmail(e.target.value);
+                      if (formErrors.email) setFormErrors(prev => ({ ...prev, email: undefined }));
+                    }}
                     className="mipa-input"
                     placeholder="Email"
-                    style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
+                    style={{
+                      borderRadius: '4px',
+                      border: formErrors.email ? '1px solid #DC2626' : '1px solid var(--editorial-divider)',
+                    }}
                   />
+                  {formErrors.email && (
+                    <div style={{ color: '#DC2626', fontSize: '0.78rem', marginTop: '0.3rem', fontWeight: 500 }}>
+                      {formErrors.email}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="booking-occasion" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Dịp chụp hình</label>
@@ -2214,15 +2306,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       return;
                     }
                     if (!selectedStudio) {
-                      setErrorMessage('Vui lòng chọn không gian studio để tiếp tục.');
+                      setErrorMessage('Vui lòng chọn không gian phòng chụp để tiếp tục.');
                       return;
                     }
                     if (isLoadingSlots) {
                       setErrorMessage('Đang kiểm tra lịch khả dụng. Vui lòng đợi trong giây lát...');
                       return;
                     }
-                    if (!selectedTimeSlot) {
-                      setErrorMessage('Vui lòng chọn một khung giờ chụp ảnh còn trống.');
+                    if (!selectedTimeSlot || selectedTimeSlot.trim() === '') {
+                      setErrorMessage('Vui lòng chọn một khung giờ chụp ảnh còn trống trước khi tiếp tục.');
                       return;
                     }
                     const currentSlot = availableSlots.find(s => s.time === selectedTimeSlot);

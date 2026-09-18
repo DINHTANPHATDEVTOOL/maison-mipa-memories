@@ -19,17 +19,17 @@ export interface SeoHeadProps {
 }
 
 export const SeoHead: React.FC<SeoHeadProps> = ({
-  title = `${SITE_CONFIG.siteName} | Studio Chụp Ảnh & Đặt Lịch Online`,
-  description = `${SITE_CONFIG.siteName} – studio chụp ảnh phong cách Pháp ấm áp & tinh tế. Đặt lịch chụp Couple, Portrait, Family, Graduation trực tuyến nhanh chóng.`,
-  canonicalPath = '/',
+  title = `${SITE_CONFIG.siteName} | Tiệm Ảnh & Đặt Lịch Online`,
+  description = `${SITE_CONFIG.siteName} – Nhà là nơi lưu giữ ký ức. Tiệm ảnh phong cách ấm áp & tinh tế tại Sài Gòn. Chụp Chân Dung, Kỷ Yếu & Tốt Nghiệp, Áo Dài, Đồ Án, Couple, Lễ Tết & Giáng Sinh.`,
+  canonicalPath,
   ogImage = SITE_CONFIG.assets.defaultOgImage,
   ogType = 'website',
   noIndex = false,
-  keywords = 'Maison MIPA, Maison MIPA Memories, studio chụp ảnh, chụp ảnh couple, chụp ảnh gia đình, chụp ảnh nghệ thuật, studio sài gòn, đặt lịch chụp ảnh online',
+  keywords = 'Maison MIPA, Maison MIPA Memories, Nhà là nơi lưu giữ ký ức, tiệm ảnh chụp hình, chụp ảnh chân dung, chụp ảnh kỷ yếu, chụp áo dài, chụp đồ án, chụp couple, chụp tết, chụp giáng sinh, tiệm ảnh sài gòn',
   jsonLd,
 }) => {
-  const canonicalUrl = getCanonicalUrl(canonicalPath);
-  const robotsDirective = noIndex ? 'noindex, nofollow' : 'index, follow';
+  const canonicalUrl = canonicalPath ? getCanonicalUrl(canonicalPath) : undefined;
+  const robotsDirective = noIndex ? 'noindex, follow' : 'index, follow';
 
   return (
     <Helmet>
@@ -40,11 +40,11 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
       {keywords && <meta name="keywords" content={keywords} />}
       <meta name="robots" content={robotsDirective} />
       <meta name="googlebot" content={robotsDirective} />
-      <link rel="canonical" href={canonicalUrl} />
+      {!noIndex && canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={ogType} />
-      <meta property="og:url" content={canonicalUrl} />
+      {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={ogImage} />
@@ -53,7 +53,7 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
 
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={canonicalUrl} />
+      {canonicalUrl && <meta name="twitter:url" content={canonicalUrl} />}
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />

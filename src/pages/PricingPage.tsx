@@ -60,8 +60,8 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title="Bảng Giá Dịch Vụ Chụp Ảnh | Maison MIPA Memories"
-        description="Bảng giá dịch vụ chụp ảnh nghệ thuật minh bạch tại Maison MIPA Memories. Chi phí rõ ràng theo từng gói chụp và dịch vụ."
+        title="Bảng Giá Gói Chụp Ảnh Trọn Gói Minh Bạch | Tiệm Ảnh Maison MIPA Memories"
+        description="Bảng giá dịch vụ chụp ảnh nghệ thuật minh bạch tại Tiệm ảnh Maison MIPA Memories. Chi phí trọn gói rõ ràng theo từng concept, thời lượng chụp và số lượng ảnh hậu kỳ bàn giao."
         canonicalPath="/bang-gia"
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />

@@ -50,8 +50,8 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title="Bộ Ảnh & Câu Chuyện | Maison MIPA Memories"
-        description="Khám phá các bộ ảnh thực tế tại Maison MIPA Memories: Những câu chuyện tình yêu, gia đình, chân dung được kể lại bằng ánh sáng và cảm xúc tự nhiên."
+        title="Bộ Sưu Tập Ký Ức & Câu Chuyện Thực Tế | Tiệm Ảnh Maison MIPA Memories"
+        description="Bộ sưu tập ký ức và câu chuyện thực tế tại Tiệm ảnh Maison MIPA Memories: Những khung hình tình yêu, tổ ấm gia đình, kỷ yếu thanh xuân và chân dung nghệ thuật được kể lại bằng cảm xúc tự nhiên."
         canonicalPath="/portfolio"
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
@@ -140,10 +140,32 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
 
       {/* Content Area */}
       <main style={{ maxWidth: '1350px', margin: '0 auto', padding: '0 1.5rem' }}>
-        {/* 1. LOADING STATE */}
+        {/* 1. LOADING STATE (Editorial Skeleton Grid) */}
         {isLoading && (
-          <div style={{ padding: '6rem 1.5rem', textAlign: 'center', color: '#8C6E53', fontSize: '0.95rem' }}>
-            Đang tải danh mục câu chuyện...
+          <div className="story-editorial-grid">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={n === 1 ? 'mipa-story-card story-card-feature' : 'mipa-story-card story-card-half'}
+                style={{
+                  backgroundColor: '#FFFDF9',
+                  border: '1px solid rgba(140, 110, 83, 0.2)',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div style={{ aspectRatio: '16/10', backgroundColor: 'rgba(140, 110, 83, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#8C6E53', fontSize: '0.8rem', letterSpacing: '0.1em' }}>Đang tải câu chuyện...</span>
+                </div>
+                <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div style={{ height: '12px', width: '30%', backgroundColor: 'rgba(140, 110, 83, 0.12)', borderRadius: '3px' }} />
+                  <div style={{ height: '22px', width: '65%', backgroundColor: 'rgba(140, 110, 83, 0.18)', borderRadius: '4px' }} />
+                  <div style={{ height: '14px', width: '90%', backgroundColor: 'rgba(140, 110, 83, 0.08)', borderRadius: '3px' }} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

@@ -50,11 +50,20 @@ describe('BookingWizard Component', () => {
   it('completes booking happy path and triggers onBookingSuccess callback with CONSULTATION_REQUESTED', async () => {
     renderWithAuth(<BookingWizard {...defaultProps} />);
 
-    // Advance through steps 1 to 5
-    for (let i = 1; i <= 5; i++) {
+    // Advance through steps 1 to 4
+    for (let i = 1; i <= 4; i++) {
       const nextBtn = screen.getByRole('button', { name: /Tiếp Theo/i });
       fireEvent.click(nextBtn);
     }
+
+    // Step 5: Fill valid customer info (DEF-003 validation compliance)
+    fireEvent.change(screen.getByPlaceholderText('Họ và tên'), { target: { value: 'Nguyễn Văn A' } });
+    fireEvent.change(screen.getByPlaceholderText('Số điện thoại'), { target: { value: '0901234567' } });
+    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'customer@example.com' } });
+
+    // Advance to Step 6
+    const submitBtn = screen.getByRole('button', { name: /Tiếp Theo/i });
+    fireEvent.click(submitBtn);
 
     // Step 6: Consultation request submitted
     expect(screen.getByText(/Bước 6\/6/i)).toBeInTheDocument();

@@ -89,8 +89,8 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title="Danh Mục Concept Chụp Ảnh Nghệ Thuật | Maison MIPA Memories"
-        description="Khám phá toàn bộ concept chụp ảnh độc bản tại Maison MIPA Memories: Chân dung, Couple, Wedding, Gia đình với ánh sáng tự nhiên và bối cảnh tinh tế."
+        title="Danh Mục Concept Chụp Ảnh Độc Bản | Tiệm Ảnh Maison MIPA Memories"
+        description="Khám phá toàn bộ concept chụp ảnh độc bản tại Tiệm ảnh Maison MIPA Memories: Chân dung, Kỷ yếu & Tốt nghiệp, Áo dài, Đồ án, Couple, Lễ Tết & Giáng Sinh với ánh sáng tự nhiên tinh tế."
         canonicalPath="/concept"
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />

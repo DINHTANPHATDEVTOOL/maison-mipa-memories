@@ -536,7 +536,36 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
           </h2>
         </div>
 
-        {srvPackages.length === 0 ? (
+        {isLoading ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                style={{
+                  backgroundColor: '#FFFDF9',
+                  border: '1px solid rgba(140, 110, 83, 0.15)',
+                  borderRadius: '4px',
+                  padding: '2rem 1.75rem',
+                  minHeight: '260px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.8rem',
+                }}
+              >
+                <div style={{ height: '12px', width: '35%', backgroundColor: 'rgba(140, 110, 83, 0.12)', borderRadius: '3px' }} />
+                <div style={{ height: '26px', width: '70%', backgroundColor: 'rgba(140, 110, 83, 0.18)', borderRadius: '4px' }} />
+                <div style={{ height: '36px', width: '45%', backgroundColor: 'rgba(140, 110, 83, 0.15)', borderRadius: '4px', marginTop: '0.5rem' }} />
+                <div style={{ height: '48px', width: '100%', backgroundColor: 'rgba(140, 110, 83, 0.08)', borderRadius: '4px', marginTop: 'auto' }} />
+              </div>
+            ))}
+          </div>
+        ) : srvPackages.length === 0 ? (
           <div
             style={{
               padding: '3rem 1.5rem',

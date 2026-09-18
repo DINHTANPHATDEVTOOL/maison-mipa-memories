@@ -57,16 +57,18 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     // 2. Open Booking Wizard
     await page.getByRole('button', { name: /ĐẶT LỊCH/i }).first().click();
 
-    // Step 1: Services
+    // Step 1: Services (DEF-001: user actively selects a service)
     await expect(page.locator('text=Bước 1/6')).toBeVisible();
+    await page.locator('.booking-card-option').first().click();
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
 
     // Step 2: Packages
     await expect(page.locator('text=Bước 2/6')).toBeVisible();
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
 
-    // Step 3: Date and Time
+    // Step 3: Date and Time (DEF-002: select an available slot)
     await expect(page.locator('text=Bước 3/6')).toBeVisible();
+    await page.locator('button').filter({ hasText: /\d{2}:\d{2}/ }).first().click();
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
 
     // Step 4: Add-ons
@@ -249,6 +251,18 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
     // Step 1 -> 5
     for (let i = 1; i <= 5; i++) {
       await expect(page.locator(`text=Bước ${i}/6`)).toBeVisible();
+      if (i === 1) {
+        await page.locator('.booking-card-option').first().click();
+      } else if (i === 3) {
+        await page.locator('button').filter({ hasText: /\d{2}:\d{2}/ }).first().click();
+      } else if (i === 5) {
+        const nameInput = page.getByPlaceholder('Họ và tên');
+        if (await nameInput.isVisible()) {
+          await nameInput.fill('Nguyễn Minh Anh');
+          await page.getByPlaceholder('Số điện thoại').fill('0908123456');
+          await page.getByPlaceholder('Email').fill('minhanh.nguyen@gmail.com');
+        }
+      }
       await page.getByRole('button', { name: /Tiếp Theo/i }).click();
     }
 

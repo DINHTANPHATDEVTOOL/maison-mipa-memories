@@ -49,8 +49,8 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title="Dịch Vụ Chụp Ảnh Nghệ Thuật | Maison MIPA Memories"
-        description="Khám phá các dịch vụ chụp ảnh phong cách Pháp tinh tế tại Maison MIPA Memories: Couple, Chân dung cá nhân, Gia đình, Em bé và Nghệ thuật."
+        title="Dịch Vụ Chụp Ảnh Nghệ Thuật & Kỷ Niệm | Tiệm Ảnh Maison MIPA Memories"
+        description="Khám phá các dịch vụ chụp ảnh phong cách ấm áp & tinh tế tại Tiệm ảnh Maison MIPA Memories: Couple tình yêu, Chân dung cá nhân, Gia đình & Em bé, Kỷ yếu & Tốt nghiệp thanh xuân."
         canonicalPath="/dich-vu"
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />

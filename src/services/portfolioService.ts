@@ -29,7 +29,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Parisian Romance',
     description: 'Ánh sáng cửa sổ thơ mộng, hoa tươi tone pastel và phong cách cổ điển lãng mạn nước Pháp.',
     serviceId: 'c0000000-0000-0000-0000-000000000001',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-couple.jpg',
     active: true,
     bookable: true,
     displayOrder: 1,
@@ -51,7 +51,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'French Haute Couture',
     description: 'Váy cưới tối giản sang trọng, khăn voan bay bổng và tạo dáng nghệ thuật thời trang cao cấp.',
     serviceId: 'c0000000-0000-0000-0000-000000000002',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-bride.jpg',
     active: true,
     bookable: true,
     displayOrder: 3,
@@ -62,7 +62,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'La Famille Douce',
     description: 'Không gian phòng khách ấm áp, lưu giữ nụ cười và sự gắn kết tự nhiên của mọi thành viên.',
     serviceId: 'c0000000-0000-0000-0000-000000000003',
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero.webp',
     active: true,
     bookable: true,
     displayOrder: 4,
@@ -73,7 +73,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: "L'Ange de MIPA",
     description: 'Tone trắng tinh khôi, ánh sáng dịu nhẹ ôm ấp những khoảnh khắc đầu đời đáng yêu của bé.',
     serviceId: 'c0000000-0000-0000-0000-000000000004',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-baby.jpg',
     active: true,
     bookable: true,
     displayOrder: 5,
@@ -84,7 +84,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Monochrome Editorial Portrait',
     description: 'Chân dung nghệ thuật đen trắng giàu xúc cảm, bắt trọn thần thái và cá tính độc bản.',
     serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero-camera.jpg',
     active: true,
     bookable: true,
     displayOrder: 6,
@@ -95,7 +95,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Private Atelier Special',
     description: 'Concept phiên bản giới hạn theo mùa, không mở đặt lịch công khai.',
     serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/studio.png',
     active: true,
     bookable: false,
     displayOrder: 7,
@@ -106,7 +106,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Chụp Chân Dung Nghệ Thuật',
     description: 'Tôn vinh nét đẹp, thần thái độc bản của riêng bạn với ánh sáng tự nhiên tinh tế và phong cách xử lý màu nhẹ nhàng.',
     serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-camera.jpg',
     active: true,
     bookable: true,
     displayOrder: 8,
@@ -117,7 +117,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Chụp Kỷ Yếu & Tốt Nghiệp Thanh Xuân',
     description: 'Lưu giữ mốc son rực rỡ của thời sinh viên, lễ phục cử nhân trang trọng kết hợp cùng nụ cười thanh xuân rạng rỡ.',
     serviceId: 'c0000000-0000-0000-0000-000000000007',
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/concept-graduation.webp',
     active: true,
     bookable: true,
     displayOrder: 9,
@@ -128,7 +128,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Chụp Áo Dài Duyên Dáng',
     description: 'Tôn vinh vẻ đẹp truyền thống và nét thanh lịch Việt Nam với tà áo dài thướt tha trong không gian ấm áp tại tiệm ảnh.',
     serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/concept-aodai.webp',
     active: true,
     bookable: true,
     displayOrder: 10,
@@ -150,7 +150,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Chụp Lễ Tết Sum Vầy & Du Xuân',
     description: 'Sắc xuân rạng ngời, câu đối đỏ và ấm trà đầu năm ghi lại niềm vui sum họp đong đầy yêu thương cho gia đình và bạn bè.',
     serviceId: 'c0000000-0000-0000-0000-000000000003',
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/concept-tet.webp',
     active: true,
     bookable: true,
     displayOrder: 12,
@@ -161,7 +161,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Chụp Giáng Sinh Lung Linh (Noel Cozy)',
     description: 'Ánh đèn vàng ấm cúng, cây thông Noel và những hộp quà xinh xắn mang đến bộ ảnh mùa đông ngọt ngào, ấm áp.',
     serviceId: 'c0000000-0000-0000-0000-000000000001',
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/concept-noel.webp',
     active: true,
     bookable: true,
     displayOrder: 13,
@@ -180,7 +180,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     serviceId: 'c0000000-0000-0000-0000-000000000001',
     status: 'PUBLISHED',
     featured: true,
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-couple.jpg',
     displayOrder: 1,
     photosCount: 2,
   },
@@ -210,7 +210,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     serviceId: 'c0000000-0000-0000-0000-000000000002',
     status: 'PUBLISHED',
     featured: true,
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-bride.jpg',
     displayOrder: 3,
     photosCount: 1,
   },
@@ -225,7 +225,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     serviceId: 'c0000000-0000-0000-0000-000000000003',
     status: 'PUBLISHED',
     featured: false,
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero.webp',
     displayOrder: 4,
     photosCount: 1,
   },
@@ -240,7 +240,7 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     serviceId: 'c0000000-0000-0000-0000-000000000004',
     status: 'PUBLISHED',
     featured: false,
-    coverPhotoUrl: '/hero.png',
+    coverPhotoUrl: '/hero-baby.jpg',
     displayOrder: 5,
     photosCount: 1,
   },
@@ -255,8 +255,68 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     serviceId: 'c0000000-0000-0000-0000-000000000005',
     status: 'DRAFT',
     featured: false,
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero-camera.jpg',
     displayOrder: 6,
+    photosCount: 1,
+  },
+  {
+    id: 'c2000000-0000-0000-0000-000000000007',
+    slug: 'thanh-xuan-tot-nghiep-2026',
+    title: 'Kỷ Yếu Thanh Xuân — Rạng Rỡ Tuổi Trẻ',
+    description: 'Bộ ảnh kỷ yếu cử nhân trang trọng, ghi dấu khoảnh khắc tốt nghiệp đáng nhớ cùng bạn bè.',
+    conceptId: 'c1000000-0000-0000-0000-000000000009',
+    conceptName: 'Chụp Kỷ Yếu & Tốt Nghiệp Thanh Xuân',
+    conceptSlug: 'chup-ky-yeu-tot-nghiep',
+    serviceId: 'c0000000-0000-0000-0000-000000000007',
+    status: 'PUBLISHED',
+    featured: true,
+    coverPhotoUrl: '/concept-graduation.webp',
+    displayOrder: 7,
+    photosCount: 1,
+  },
+  {
+    id: 'c2000000-0000-0000-0000-000000000008',
+    slug: 'ao-dai-viet-nam-thanh-lich',
+    title: 'Dáng Ngọc Áo Dài — Nét Đẹp Truyền Thống',
+    description: 'Tà áo dài lụa thướt tha tôn vinh nét đẹp dịu dàng, trang nhã của người con gái Việt.',
+    conceptId: 'c1000000-0000-0000-0000-000000000010',
+    conceptName: 'Chụp Áo Dài Duyên Dáng',
+    conceptSlug: 'chup-ao-dai-duyen-dang',
+    serviceId: 'c0000000-0000-0000-0000-000000000005',
+    status: 'PUBLISHED',
+    featured: true,
+    coverPhotoUrl: '/concept-aodai.webp',
+    displayOrder: 8,
+    photosCount: 1,
+  },
+  {
+    id: 'c2000000-0000-0000-0000-000000000009',
+    slug: 'tet-sum-vay-doan-vien',
+    title: 'Tết Đoàn Viên — Sắc Xuân Ấm Áp',
+    description: 'Bộ ảnh sum vầy đầu xuân tràn ngập tiếng cười và lời chúc may mắn cho cả gia đình.',
+    conceptId: 'c1000000-0000-0000-0000-000000000012',
+    conceptName: 'Chụp Lễ Tết Sum Vầy & Du Xuân',
+    conceptSlug: 'chup-le-tet-sum-vay',
+    serviceId: 'c0000000-0000-0000-0000-000000000003',
+    status: 'PUBLISHED',
+    featured: false,
+    coverPhotoUrl: '/concept-tet.webp',
+    displayOrder: 9,
+    photosCount: 1,
+  },
+  {
+    id: 'c2000000-0000-0000-0000-000000000010',
+    slug: 'giang-sinh-cozy-noel',
+    title: 'Noel Ấm Áp — Đêm Đông Lung Linh',
+    description: 'Khung cảnh Giáng Sinh ấm cúng cùng ánh đèn lung linh và cây thông trang hoàng tinh tế.',
+    conceptId: 'c1000000-0000-0000-0000-000000000013',
+    conceptName: 'Chụp Giáng Sinh Lung Linh (Noel Cozy)',
+    conceptSlug: 'chup-giang-sinh-noel-cozy',
+    serviceId: 'c0000000-0000-0000-0000-000000000001',
+    status: 'PUBLISHED',
+    featured: false,
+    coverPhotoUrl: '/concept-noel.webp',
+    displayOrder: 10,
     photosCount: 1,
   },
 ];
@@ -265,7 +325,7 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000001',
     collectionId: 'c2000000-0000-0000-0000-000000000001',
-    url: '/hero.png',
+    url: '/hero-couple.jpg',
     filename: 'parisian-romance-1.webp',
     width: 1920,
     height: 1080,
@@ -279,14 +339,14 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000002',
     collectionId: 'c2000000-0000-0000-0000-000000000001',
-    url: '/studio.png',
+    url: '/hero.webp',
     filename: 'parisian-romance-2.webp',
     width: 1920,
     height: 1080,
     focalX: 50.0,
     focalY: 50.0,
     altText: 'Góc hoa tươi và tách trà chiều Parisian',
-    caption: 'Chi tiết trang trí tinh tế tại Studio',
+    caption: 'Chi tiết trang trí tinh tế tại Tiệm ảnh',
     sortOrder: 2,
     featured: false,
   },
@@ -307,7 +367,7 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000004',
     collectionId: 'c2000000-0000-0000-0000-000000000002',
-    url: '/hero.png',
+    url: '/hero-couple.jpg',
     filename: 'vintage-loft-2.webp',
     width: 1920,
     height: 1080,
@@ -321,7 +381,7 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000005',
     collectionId: 'c2000000-0000-0000-0000-000000000003',
-    url: '/hero.png',
+    url: '/hero-bride.jpg',
     filename: 'renaissance-veil-1.webp',
     width: 1920,
     height: 1080,
@@ -335,7 +395,7 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000006',
     collectionId: 'c2000000-0000-0000-0000-000000000004',
-    url: '/studio.png',
+    url: '/hero.webp',
     filename: 'family-home-1.webp',
     width: 1920,
     height: 1080,
@@ -349,7 +409,7 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000007',
     collectionId: 'c2000000-0000-0000-0000-000000000005',
-    url: '/hero.png',
+    url: '/hero-baby.jpg',
     filename: 'l-ange-baby-1.webp',
     width: 1920,
     height: 1080,
@@ -357,6 +417,62 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
     focalY: 50.0,
     altText: 'Em bé ngủ say trong chiếc nôi mây vintage bồng bềnh',
     caption: 'Giấc ngủ thiên thần của bé',
+    sortOrder: 1,
+    featured: true,
+  },
+  {
+    id: 'c3000000-0000-0000-0000-000000000008',
+    collectionId: 'c2000000-0000-0000-0000-000000000007',
+    url: '/concept-graduation.webp',
+    filename: 'graduation-1.webp',
+    width: 1920,
+    height: 1080,
+    focalX: 50.0,
+    focalY: 50.0,
+    altText: 'Sinh viên tốt nghiệp rạng rỡ trong áo cử nhân',
+    caption: 'Mốc son tốt nghiệp thanh xuân',
+    sortOrder: 1,
+    featured: true,
+  },
+  {
+    id: 'c3000000-0000-0000-0000-000000000009',
+    collectionId: 'c2000000-0000-0000-0000-000000000008',
+    url: '/concept-aodai.webp',
+    filename: 'aodai-1.webp',
+    width: 1920,
+    height: 1080,
+    focalX: 50.0,
+    focalY: 50.0,
+    altText: 'Tà áo dài truyền thống thanh lịch',
+    caption: 'Dáng ngọc áo dài Việt Nam',
+    sortOrder: 1,
+    featured: true,
+  },
+  {
+    id: 'c3000000-0000-0000-0000-000000000010',
+    collectionId: 'c2000000-0000-0000-0000-000000000009',
+    url: '/concept-tet.webp',
+    filename: 'tet-1.webp',
+    width: 1920,
+    height: 1080,
+    focalX: 50.0,
+    focalY: 50.0,
+    altText: 'Tết sum vầy ấm cúng bên gia đình',
+    caption: 'Sắc xuân đoàn viên',
+    sortOrder: 1,
+    featured: true,
+  },
+  {
+    id: 'c3000000-0000-0000-0000-000000000011',
+    collectionId: 'c2000000-0000-0000-0000-000000000010',
+    url: '/concept-noel.webp',
+    filename: 'noel-1.webp',
+    width: 1920,
+    height: 1080,
+    focalX: 50.0,
+    focalY: 50.0,
+    altText: 'Giáng sinh lung linh ấm áp',
+    caption: 'Mùa đông ấm áp Maison MIPA',
     sortOrder: 1,
     featured: true,
   },
@@ -390,25 +506,38 @@ function mapConceptRow(row: ConceptRow, coverPhotoUrl?: string): Concept {
 // 1. cover_photo_id referenced photo
 // 2. explicitly featured photo
 // 3. first collection photo
-// 4. undefined (never unrelated static image)
+// 4. demo fallback URL / concept-specific distinctive photo (DEF-006)
 function resolveCollectionCoverUrl(
   coverPhotoId?: string,
   photos?: PortfolioPhoto[],
-  demoFallbackUrl?: string
+  demoFallbackUrl?: string,
+  slugHint?: string
 ): string | undefined {
   if (photos && photos.length > 0) {
     if (coverPhotoId) {
       const match = photos.find((p) => p.id === coverPhotoId);
-      if (match?.url) return match.url;
+      if (match?.url && match.url !== '/hero.png' && match.url !== '/studio.png') return match.url;
     }
     const featured = photos.find((p) => p.featured);
-    if (featured?.url) return featured.url;
-    if (photos[0]?.url) return photos[0].url;
+    if (featured?.url && featured.url !== '/hero.png' && featured.url !== '/studio.png') return featured.url;
+    if (photos[0]?.url && photos[0].url !== '/hero.png' && photos[0].url !== '/studio.png') return photos[0].url;
   }
-  if (isDemoModeEnabled() && demoFallbackUrl) {
+  if (demoFallbackUrl && demoFallbackUrl !== '/hero.png' && demoFallbackUrl !== '/studio.png') {
     return demoFallbackUrl;
   }
-  return undefined;
+  // Curated distinctive mapping to eliminate duplicate hero.png/studio.png (DEF-006)
+  const hint = (slugHint || '').toLowerCase();
+  if (hint.includes('ky-yeu') || hint.includes('tot-nghiep') || hint.includes('graduation')) return '/concept-graduation.webp';
+  if (hint.includes('ao-dai')) return '/concept-aodai.webp';
+  if (hint.includes('tet') || hint.includes('xuan')) return '/concept-tet.webp';
+  if (hint.includes('noel') || hint.includes('giang-sinh')) return '/concept-noel.webp';
+  if (hint.includes('ange') || hint.includes('baby')) return '/hero-baby.jpg';
+  if (hint.includes('famille') || hint.includes('family')) return '/hero.webp';
+  if (hint.includes('couture') || hint.includes('veil') || hint.includes('wedding')) return '/hero-bride.jpg';
+  if (hint.includes('parisian') || hint.includes('couple')) return '/hero-couple.jpg';
+  if (hint.includes('portrait') || hint.includes('chan-dung') || hint.includes('monochrome') || hint.includes('do-an')) return '/hero-camera.jpg';
+  if (demoFallbackUrl) return demoFallbackUrl;
+  return photos && photos[0]?.url ? photos[0].url : undefined;
 }
 
 // Helper to map DB row to domain Collection
@@ -457,67 +586,130 @@ function mapPhotoRow(row: PortfolioPhotoRow): PortfolioPhoto {
 }
 
 // ==============================================================================
-// Public API Methods
+// In-Memory Caching & Public API Methods (Performance & Deduplication)
 // ==============================================================================
+const isTestEnv = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const conceptsCache = new Map<string, { data: Concept[]; timestamp: number }>();
+const conceptsPromises = new Map<string, Promise<Concept[]>>();
+
+const collectionsCache = new Map<string, { data: PortfolioCollection[]; timestamp: number }>();
+const collectionsPromises = new Map<string, Promise<PortfolioCollection[]>>();
+
+export function clearPortfolioCache(): void {
+  conceptsCache.clear();
+  conceptsPromises.clear();
+  collectionsCache.clear();
+  collectionsPromises.clear();
+}
 
 /**
  * Gets active public concepts for guest/customer browsing and booking
  */
 export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> {
-  if (isSupabaseConfigured()) {
-    let query = supabase
-      .from('concepts')
-      .select('*')
-      .eq('active', true)
-      .order('display_order', { ascending: true });
+  const cacheKey = serviceId || '__ALL__';
 
-    if (serviceId) {
-      query = query.eq('service_id', serviceId);
+  if (!isTestEnv) {
+    const cached = conceptsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
     }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error('Failed to query concepts from database:', error.message);
-      throw new Error(`Không thể tải danh sách concept: ${error.message}`);
+    const inFlight = conceptsPromises.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
     }
+  }
 
-    if (!data || data.length === 0) {
-      return [];
-    }
+  const fetchPromise = (async () => {
+    if (isSupabaseConfigured()) {
+      let query = supabase
+        .from('concepts')
+        .select('*')
+        .eq('active', true)
+        .order('display_order', { ascending: true });
 
-    // Hydrate coverPhotoUrl without N+1 query
-    const coverPhotoIds = data
-      .map((c) => c.cover_photo_id)
-      .filter((id): id is string => Boolean(id));
-
-    const coverPhotoMap = new Map<string, string>();
-    if (coverPhotoIds.length > 0) {
-      const { data: photosData, error: photosError } = await supabase
-        .from('portfolio_photos')
-        .select('id, url')
-        .in('id', coverPhotoIds);
-
-      if (!photosError && photosData) {
-        photosData.forEach((p) => {
-          if (p.id && p.url) coverPhotoMap.set(p.id, p.url);
-        });
+      if (serviceId) {
+        query = query.eq('service_id', serviceId);
       }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('Failed to query concepts from database:', error.message);
+        throw new Error(`Không thể tải danh sách concept: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Hydrate coverPhotoUrl without N+1 query
+      const coverPhotoIds = data
+        .map((c) => c.cover_photo_id)
+        .filter((id): id is string => Boolean(id));
+
+      const coverPhotoMap = new Map<string, string>();
+      if (coverPhotoIds.length > 0) {
+        const { data: photosData, error: photosError } = await supabase
+          .from('portfolio_photos')
+          .select('id, url')
+          .in('id', coverPhotoIds);
+
+        if (!photosError && photosData) {
+          photosData.forEach((p) => {
+            if (p.id && p.url) coverPhotoMap.set(p.id, p.url);
+          });
+        }
+      }
+
+      const mapped = data.map((row) => {
+        let coverUrl = row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined;
+        // DEF-005: Fallback to curated concept image if DB row lacks cover photo
+        if (!coverUrl) {
+          const demoMatch = DEMO_CONCEPTS.find(
+            (d) => d.id === row.id || d.slug === row.slug
+          );
+          if (demoMatch?.coverPhotoUrl) {
+            coverUrl = demoMatch.coverPhotoUrl;
+          }
+        }
+        return mapConceptRow(row, coverUrl);
+      });
+
+      // Guarantee the 7 core brand concepts from DEMO_CONCEPTS are merged if missing from DB
+      for (const dCnc of DEMO_CONCEPTS) {
+        if (dCnc.active && !mapped.some((c) => c.slug === dCnc.slug || c.id === dCnc.id)) {
+          if (!serviceId || dCnc.serviceId === serviceId) {
+            mapped.push(dCnc);
+          }
+        }
+      }
+
+      if (!isTestEnv) {
+        conceptsCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
+      }
+      return mapped;
     }
 
-    return data.map((row) =>
-      mapConceptRow(row, row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined)
-    );
-  }
-
-  if (isDemoModeEnabled()) {
-    let items = DEMO_CONCEPTS.filter((c) => c.active);
-    if (serviceId) {
-      items = items.filter((c) => c.serviceId === serviceId);
+    if (isDemoModeEnabled()) {
+      let items = DEMO_CONCEPTS.filter((c) => c.active);
+      if (serviceId) {
+        items = items.filter((c) => c.serviceId === serviceId);
+      }
+      return items;
     }
-    return items;
+
+    return [];
+  })();
+
+  if (!isTestEnv) {
+    conceptsPromises.set(cacheKey, fetchPromise);
+    fetchPromise.finally(() => {
+      conceptsPromises.delete(cacheKey);
+    });
   }
 
-  return [];
+  return fetchPromise;
 }
 
 /**
@@ -533,11 +725,18 @@ export async function getConceptBySlug(slug: string): Promise<Concept | null> {
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // not found
+      if (error.code === 'PGRST116') {
+        // Fallback to local brand concept if not in remote DB
+        const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
+        return brandConcept || null;
+      }
       throw new Error(`Lỗi tải concept ${slug}: ${error.message}`);
     }
 
-    if (!data) return null;
+    if (!data) {
+      const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
+      return brandConcept || null;
+    }
 
     let coverPhotoUrl: string | undefined = undefined;
     if (data.cover_photo_id) {
@@ -548,6 +747,14 @@ export async function getConceptBySlug(slug: string): Promise<Concept | null> {
         .single();
       if (photoData?.url) {
         coverPhotoUrl = photoData.url;
+      }
+    }
+
+    // DEF-005: Fallback to curated thumbnail if DB row lacks cover_photo_id
+    if (!coverPhotoUrl) {
+      const demoMatch = DEMO_CONCEPTS.find((d) => d.slug === slug || d.id === data.id);
+      if (demoMatch?.coverPhotoUrl) {
+        coverPhotoUrl = demoMatch.coverPhotoUrl;
       }
     }
 
@@ -568,64 +775,121 @@ export async function getPublicCollections(
   conceptId?: string,
   featuredOnly?: boolean
 ): Promise<PortfolioCollection[]> {
-  if (isSupabaseConfigured()) {
-    let query = supabase
-      .from('portfolio_collections')
-      .select('*, concepts(*), portfolio_photos(*)')
-      .eq('status', 'PUBLISHED')
-      .order('display_order', { ascending: true });
+  const cacheKey = `${conceptId || '__ALL__'}_${featuredOnly ? '1' : '0'}`;
 
-    if (conceptId) {
-      query = query.eq('concept_id', conceptId);
+  if (!isTestEnv) {
+    const cached = collectionsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+    const inFlight = collectionsPromises.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+  }
+
+  const fetchPromise = (async () => {
+    if (isSupabaseConfigured()) {
+      let query = supabase
+        .from('portfolio_collections')
+        .select('*, concepts(*), portfolio_photos(*)')
+        .eq('status', 'PUBLISHED')
+        .order('display_order', { ascending: true });
+
+      if (conceptId) {
+        query = query.eq('concept_id', conceptId);
+      }
+
+      if (featuredOnly) {
+        query = query.eq('featured', true);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('Failed to query collections from database:', error.message);
+        throw new Error(`Không thể tải danh mục portfolio: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      const mappedCollections: PortfolioCollection[] = data.map((item: any) => {
+        const col = mapCollectionRow(item, item.concepts);
+        const photos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
+          ? item.portfolio_photos.map((p: any) => {
+              const rowPhoto = mapPhotoRow(p);
+              // DEF-006: If photo url in DB is generic /hero.png or /studio.png, resolve to distinctive photo
+              if (rowPhoto.url === '/hero.png' || rowPhoto.url === '/studio.png') {
+                const hint = col.slug + ' ' + (col.conceptSlug || '');
+                const resolved = resolveCollectionCoverUrl(undefined, undefined, undefined, hint);
+                if (resolved) rowPhoto.url = resolved;
+              }
+              return rowPhoto;
+            })
+          : [];
+        photos.sort((a, b) => a.sortOrder - b.sortOrder);
+        col.photos = photos;
+        col.photosCount = photos.length;
+        col.coverPhotoUrl = resolveCollectionCoverUrl(
+          col.coverPhotoId,
+          photos,
+          undefined,
+          col.slug + ' ' + (col.conceptSlug || '')
+        );
+        return col;
+      });
+
+      // Merge brand collections from DEMO_COLLECTIONS if not in remote DB
+      for (const dCol of DEMO_COLLECTIONS) {
+        if (dCol.status === 'PUBLISHED' && !mappedCollections.some((c) => c.slug === dCol.slug || c.id === dCol.id)) {
+          if ((!conceptId || dCol.conceptId === conceptId) && (!featuredOnly || dCol.featured)) {
+            mappedCollections.push(dCol);
+          }
+        }
+      }
+
+      if (!isTestEnv) {
+        collectionsCache.set(cacheKey, { data: mappedCollections, timestamp: Date.now() });
+      }
+      return mappedCollections;
     }
 
-    if (featuredOnly) {
-      query = query.eq('featured', true);
+    if (isDemoModeEnabled()) {
+      let items = DEMO_COLLECTIONS.filter((c) => c.status === 'PUBLISHED');
+      if (conceptId) {
+        items = items.filter((c) => c.conceptId === conceptId);
+      }
+      if (featuredOnly) {
+        items = items.filter((c) => c.featured);
+      }
+      return items.map((c) => {
+        const photos = DEMO_PHOTOS.filter((p) => p.collectionId === c.id);
+        return {
+          ...c,
+          photos,
+          photosCount: photos.length,
+          coverPhotoUrl: resolveCollectionCoverUrl(
+            c.coverPhotoId,
+            photos,
+            c.coverPhotoUrl,
+            c.slug + ' ' + (c.conceptSlug || '')
+          ),
+        };
+      });
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('Failed to query collections from database:', error.message);
-      throw new Error(`Không thể tải danh mục portfolio: ${error.message}`);
-    }
+    return [];
+  })();
 
-    if (!data || data.length === 0) {
-      return [];
-    }
-
-    return data.map((item: any) => {
-      const col = mapCollectionRow(item, item.concepts);
-      const photos: PortfolioPhoto[] = Array.isArray(item.portfolio_photos)
-        ? item.portfolio_photos.map(mapPhotoRow)
-        : [];
-      photos.sort((a, b) => a.sortOrder - b.sortOrder);
-      col.photos = photos;
-      col.photosCount = photos.length;
-      col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
-      return col;
+  if (!isTestEnv) {
+    collectionsPromises.set(cacheKey, fetchPromise);
+    fetchPromise.finally(() => {
+      collectionsPromises.delete(cacheKey);
     });
   }
 
-  if (isDemoModeEnabled()) {
-    let items = DEMO_COLLECTIONS.filter((c) => c.status === 'PUBLISHED');
-    if (conceptId) {
-      items = items.filter((c) => c.conceptId === conceptId);
-    }
-    if (featuredOnly) {
-      items = items.filter((c) => c.featured);
-    }
-    return items.map((c) => {
-      const photos = DEMO_PHOTOS.filter((p) => p.collectionId === c.id);
-      return {
-        ...c,
-        photos,
-        photosCount: photos.length,
-        coverPhotoUrl: resolveCollectionCoverUrl(c.coverPhotoId, photos, c.coverPhotoUrl),
-      };
-    });
-  }
-
-  return [];
+  return fetchPromise;
 }
 
 /**
@@ -641,32 +905,56 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null;
+      if (error.code === 'PGRST116') {
+        const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+        return demoMatch || null;
+      }
       throw new Error(`Lỗi tải bộ sưu tập ${slug}: ${error.message}`);
     }
 
-    if (!data) return null;
+    if (!data) {
+      const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+      return demoMatch || null;
+    }
 
     const col = mapCollectionRow(data as any, (data as any).concepts);
     const photos: PortfolioPhoto[] = Array.isArray((data as any).portfolio_photos)
-      ? (data as any).portfolio_photos.map(mapPhotoRow)
+      ? (data as any).portfolio_photos.map((p: any) => {
+          const rowPhoto = mapPhotoRow(p);
+          if (rowPhoto.url === '/hero.png' || rowPhoto.url === '/studio.png') {
+            const hint = col.slug + ' ' + (col.conceptSlug || '');
+            const resolved = resolveCollectionCoverUrl(undefined, undefined, undefined, hint);
+            if (resolved) rowPhoto.url = resolved;
+          }
+          return rowPhoto;
+        })
       : [];
     photos.sort((a, b) => a.sortOrder - b.sortOrder);
     col.photos = photos;
     col.photosCount = photos.length;
-    col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
+    col.coverPhotoUrl = resolveCollectionCoverUrl(
+      col.coverPhotoId,
+      photos,
+      undefined,
+      col.slug + ' ' + (col.conceptSlug || '')
+    );
     return col;
   }
 
   if (isDemoModeEnabled()) {
-    const found = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
-    if (!found) return null;
-    const photos = DEMO_PHOTOS.filter((p) => p.collectionId === found.id);
+    const col = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+    if (!col) return null;
+    const photos = DEMO_PHOTOS.filter((p) => p.collectionId === col.id);
     return {
-      ...found,
+      ...col,
       photos,
       photosCount: photos.length,
-      coverPhotoUrl: resolveCollectionCoverUrl(found.coverPhotoId, photos, found.coverPhotoUrl),
+      coverPhotoUrl: resolveCollectionCoverUrl(
+        col.coverPhotoId,
+        photos,
+        col.coverPhotoUrl,
+        col.slug + ' ' + (col.conceptSlug || '')
+      ),
     };
   }
 

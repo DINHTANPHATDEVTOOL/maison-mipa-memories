@@ -41,8 +41,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   return (
     <div style={{ backgroundColor: 'var(--editorial-bg)', minHeight: '80vh', paddingBottom: '4rem' }}>
       <SeoHead
-        title="Đặt lịch chụp ảnh trực tuyến 24/7 | Maison MIPA Memories"
-        description="Đặt lịch chụp ảnh trực tuyến nhanh chóng tại Maison MIPA Memories. Lựa chọn concept, gói chụp, dịch vụ bổ sung và thanh toán cọc an toàn."
+        title="Đặt Lịch Chụp Ảnh Trực Tuyến 24/7 | Tiệm Ảnh Maison MIPA Memories"
+        description="Đặt lịch chụp ảnh trực tuyến nhanh chóng tại Tiệm ảnh Maison MIPA Memories: Lựa chọn concept, gói chụp, khung giờ và thanh toán cọc bảo đảm an toàn."
         canonicalPath="/booking"
         noIndex={true}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
