@@ -6,10 +6,10 @@ const maxPrice = packagePrices.length > 0 ? Math.max(...packagePrices) : 3990000
 
 export const SITE_CONFIG = {
   siteName: 'Maison MIPA Memories',
-  legalName: 'Maison MIPA Memories Studio',
+  legalName: 'Tiệm Ảnh Maison MIPA Memories',
   tagline: 'Nhà là nơi lưu giữ ký ức',
   slogan: 'Maison MIPA Memories — Nhà là nơi lưu giữ ký ức',
-  brandStoryShort: 'Trong tiếng Pháp, Maison là Ngôi Nhà. Chúng tôi tin rằng mỗi bức ảnh là một mảnh ghép của tổ ấm — nơi tình yêu, nụ cười và những rung cảm chân thật nhất được trân trọng và lưu giữ vẹn nguyên cùng năm tháng.',
+  brandStoryShort: 'Trong tiếng Pháp, Maison là Ngôi Nhà. Tiệm ảnh Maison MIPA Memories tin rằng mỗi bức ảnh là một mảnh ghép của tổ ấm — nơi tình yêu, nụ cười và những rung cảm chân thật nhất được trân trọng và lưu giữ vẹn nguyên cùng năm tháng.',
   domain: 'https://maisonmipa.io.vn',
   canonicalBase: 'https://maisonmipa.io.vn',
   
@@ -47,7 +47,8 @@ export const SITE_CONFIG = {
 
   // Social & Web profiles
   social: {
-    facebook: 'https://facebook.com/maisonmipa',
+    facebook: 'https://web.facebook.com/share/1Dja1oVznW/?mibextid=wwXIfr&_rdc=1&_rdr',
+    tiktok: 'https://www.tiktok.com/@maison_mipa?_r=1&_t=ZS-99pWbFD4WAO',
     instagram: 'https://instagram.com/maisonmipa',
     zalo: 'https://zalo.me/0966616546',
   },

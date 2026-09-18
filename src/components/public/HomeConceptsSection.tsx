@@ -123,7 +123,7 @@ export const HomeConceptsSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Mỗi concept tại Maison MIPA được xây dựng tỉ mỉ về bối cảnh, ánh sáng và bảng màu để tôn vinh trọn vẹn cảm xúc riêng của bạn.
+              Mỗi concept tại tiệm ảnh Maison MIPA được xây dựng tỉ mỉ về bối cảnh, ánh sáng và phục trang để tôn vinh trọn vẹn cảm xúc chân thật nhất của bạn.
             </p>
           </div>
 
@@ -144,6 +144,56 @@ export const HomeConceptsSection: React.FC = () => {
           >
             Xem tất cả concept <ArrowRight size={15} />
           </Link>
+        </div>
+
+        {/* Curated Concept Quick Navigation Tags */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.6rem',
+            marginBottom: '2.5rem',
+          }}
+        >
+          {[
+            { label: 'Chân Dung Nghệ Thuật', to: '/concept' },
+            { label: 'Kỷ Yếu & Tốt Nghiệp', to: '/concept' },
+            { label: 'Áo Dài Duyên Dáng', to: '/concept' },
+            { label: 'Chụp Đồ Án Tốt Nghiệp', to: '/concept' },
+            { label: 'Couple & Kỷ Niệm', to: '/concept' },
+            { label: 'Lễ Tết Sum Vầy', to: '/concept' },
+            { label: 'Giáng Sinh Ấm Áp', to: '/concept' },
+          ].map((tag, idx) => (
+            <Link
+              key={idx}
+              to={tag.to}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0.45rem 1rem',
+                borderRadius: '20px',
+                backgroundColor: '#FFFDF9',
+                border: '1px solid rgba(140, 110, 83, 0.25)',
+                color: '#604634',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#604634';
+                e.currentTarget.style.color = '#FFFDF9';
+                e.currentTarget.style.borderColor = '#604634';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#FFFDF9';
+                e.currentTarget.style.color = '#604634';
+                e.currentTarget.style.borderColor = 'rgba(140, 110, 83, 0.25)';
+              }}
+            >
+              ✦ {tag.label}
+            </Link>
+          ))}
         </div>
 
         {/* Asymmetric Editorial Grid with Responsive Class */}

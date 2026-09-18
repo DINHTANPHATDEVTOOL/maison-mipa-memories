@@ -61,7 +61,7 @@ export const HomeConsultationCtaSection: React.FC<HomeConsultationCtaSectionProp
             margin: '0 0 1.25rem 0',
           }}
         >
-          Cùng Maison MIPA Viết Tiếp Ký Ức Cho Tổ Ấm Của Bạn
+          Cùng Tiệm Ảnh Maison MIPA Viết Tiếp Ký Ức Cho Tổ Ấm Của Bạn
         </h2>
 
         <p
@@ -74,7 +74,7 @@ export const HomeConsultationCtaSection: React.FC<HomeConsultationCtaSectionProp
             fontWeight: 300,
           }}
         >
-          Mỗi buổi chụp tại Maison MIPA là một lần trở về &ldquo;ngôi nhà thứ hai&rdquo; — ấm áp, an yên và đong đầy tình cảm. Hãy cùng chúng tôi nâng niu những khoảnh khắc quý giá nhất bên những người bạn yêu thương.
+          Mỗi buổi chụp tại tiệm ảnh Maison MIPA là một lần trở về &ldquo;ngôi nhà thứ hai&rdquo; — ấm áp, an yên và đong đầy tình cảm. Hãy cùng chúng tôi nâng niu những khoảnh khắc quý giá nhất bên những người bạn yêu thương.
         </p>
 
         {/* Real Action Triggers */}
@@ -135,6 +135,58 @@ export const HomeConsultationCtaSection: React.FC<HomeConsultationCtaSectionProp
             }}
           >
             <PhoneCall size={17} /> Hotline: {SITE_CONFIG.contact.hotline}
+          </a>
+        </div>
+
+        {/* Social Connect Quick Badges */}
+        <div
+          style={{
+            marginTop: '2.25rem',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '1.25rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: '0.88rem', color: 'rgba(255, 253, 249, 0.7)' }}>
+            Nhắn tin tư vấn trực tiếp cùng Tiệm qua:
+          </span>
+          <a
+            href={SITE_CONFIG.social.facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: '#D4AF37',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+              borderBottom: '1px solid rgba(212, 175, 55, 0.45)',
+              paddingBottom: '2px',
+            }}
+          >
+            Fanpage Facebook →
+          </a>
+          <a
+            href={SITE_CONFIG.social.tiktok}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: '#D4AF37',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+              borderBottom: '1px solid rgba(212, 175, 55, 0.45)',
+              paddingBottom: '2px',
+            }}
+          >
+            Kênh TikTok Tiệm Ảnh →
           </a>
         </div>
       </div>

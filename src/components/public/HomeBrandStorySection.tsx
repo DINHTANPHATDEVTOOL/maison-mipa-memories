@@ -88,7 +88,7 @@ export const HomeBrandStorySection: React.FC = () => {
               </p>
 
               <p style={{ margin: 0 }}>
-                Maison MIPA ra đời giữa lòng Sài Gòn với ước mong tạo dựng một chốn dừng chân an yên, mộc mạc và tĩnh tại. Khi bước qua cánh cửa studio, bạn sẽ không cảm thấy áp lực của những buổi chụp hình công nghiệp gượng gạo. Nơi đây ngập tràn ánh sáng tự nhiên rót qua từng khung rèm lụa, hương trà thảo mộc thoang thoảng và sự ân cần, kiên nhẫn của những người nghệ sĩ nhiếp ảnh trân quý cảm xúc thật.
+                Maison MIPA ra đời giữa lòng Sài Gòn với ước mong tạo dựng một chốn dừng chân an yên, mộc mạc và tĩnh tại. Khi bước qua cánh cửa tiệm ảnh, bạn sẽ không cảm thấy áp lực của những buổi chụp hình công nghiệp gượng gạo. Nơi đây ngập tràn ánh sáng tự nhiên rót qua từng khung rèm lụa, hương trà thảo mộc thoang thoảng và sự ân cần, kiên nhẫn của những người thợ ảnh trân quý cảm xúc thật.
               </p>
 
               <p style={{ margin: 0 }}>
@@ -250,7 +250,7 @@ export const HomeBrandStorySection: React.FC = () => {
                     fontWeight: 600,
                   }}
                 >
-                  Maison MIPA Memories &bull; Studio Ánh Sáng Tự Nhiên Sài Gòn
+                  Maison MIPA Memories &bull; Tiệm Ảnh Ánh Sáng Tự Nhiên Sài Gòn
                 </div>
               </div>
             </div>

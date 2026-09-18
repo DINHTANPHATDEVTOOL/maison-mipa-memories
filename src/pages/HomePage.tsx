@@ -24,8 +24,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenBooking }) => {
   return (
     <>
       <SeoHead
-        title={`${SITE_CONFIG.siteName} — Nhà Là Nơi Lưu Giữ Ký Ức | Studio Nhiếp Ảnh Phong Cách Pháp`}
-        description="Maison MIPA Memories – Nhà là nơi lưu giữ ký ức. Studio chụp ảnh phong cách Pháp ấm áp & tinh tế tại Sài Gòn. Khám phá concept chụp ảnh, bảng giá trọn gói minh bạch và đặt lịch trực tuyến."
+        title="Tiệm Ảnh Maison MIPA Memories — Nhà Là Nơi Lưu Giữ Ký Ức"
+        description="Maison MIPA Memories – Nhà là nơi lưu giữ ký ức. Tiệm ảnh phong cách ấm áp & tinh tế tại Sài Gòn. Chụp Chân Dung, Kỷ Yếu & Tốt Nghiệp, Áo Dài, Đồ Án, Couple, Lễ Tết & Giáng Sinh."
         canonicalPath="/"
         jsonLd={generateStudioLocalBusinessSchema()}
       />

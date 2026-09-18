@@ -282,7 +282,7 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
                 fontFamily: 'var(--editorial-font-body, "Be Vietnam Pro", sans-serif)',
               }}
             >
-              MAISON MIPA MEMORIES
+              TIỆM ẢNH MAISON MIPA MEMORIES
             </span>
             Nhà Là Nơi Lưu Giữ Ký Ức.
           </h1>
@@ -300,7 +300,7 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
               fontWeight: 300,
             }}
           >
-            Trong tiếng Pháp, &ldquo;Maison&rdquo; là Ngôi Nhà. Chúng tôi tin rằng mỗi bức ảnh là một mảnh ghép của tổ ấm — nơi tình yêu, nụ cười và những rung cảm chân thật nhất được trân trọng và giữ lại vẹn nguyên cùng năm tháng.
+            Trong tiếng Pháp, &ldquo;Maison&rdquo; là Ngôi Nhà. Tiệm ảnh Maison MIPA tin rằng mỗi bức ảnh là một mảnh ghép của tổ ấm — nơi tình yêu, nụ cười và những rung cảm chân thật nhất được trân trọng và giữ lại vẹn nguyên cùng năm tháng.
           </p>
 
           {/* Two Clear CTAs */}

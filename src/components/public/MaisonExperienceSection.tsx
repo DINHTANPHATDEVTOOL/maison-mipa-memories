@@ -39,7 +39,7 @@ export const MaisonExperienceSection: React.FC = () => {
             Hành Trình Lưu Giữ Kỷ Niệm
           </h2>
           <p style={{ color: '#6E5F55', fontSize: '1rem', lineHeight: 1.6 }}>
-            Mỗi buổi chụp tại Maison MIPA không chỉ là tạo ra những bức ảnh đẹp, mà là một kỷ niệm thư thái và đáng nhớ.
+            Mỗi buổi chụp tại tiệm ảnh Maison MIPA không chỉ là tạo ra những bức ảnh đẹp, mà là một kỷ niệm thư thái và đáng nhớ.
           </p>
         </div>
 

@@ -112,7 +112,7 @@ export const HomeServicesSection: React.FC = () => {
                 margin: '0 0 0.75rem 0',
               }}
             >
-              Danh mục chụp tại Maison
+              Danh mục chụp tại tiệm ảnh Maison
             </h2>
             <p
               style={{
@@ -123,7 +123,7 @@ export const HomeServicesSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Các dịch vụ chụp ảnh được định hình chỉn chu cho từng nhu cầu: từ chân dung cá nhân, khoảnh khắc lứa đôi đến gia đình.
+              Các gói chụp ảnh được thiết kế chuyên biệt cho từng dấu mốc: Chân dung, Kỷ yếu & Tốt nghiệp, Áo dài truyền thống, Chụp đồ án, Couple lãng mạn đến Lễ Tết & Giáng sinh ấm cúng.
             </p>
           </div>
 
