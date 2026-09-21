@@ -14,18 +14,12 @@ max_rows = 1000
 
 # ------------------------------------------------------------------------------
 # Edge Functions Configuration:
-# - payment-webhook: verify_jwt = false
-#   payOS calls directly from external server without Supabase user JWT.
-#   Security is enforced inside handler via HMAC-SHA256 checksum with PAYOS_CHECKSUM_KEY.
-# - create-payos-link: verify_jwt = true
+# - create-payos-link: verify_jwt = true (LEGACY)
 #   Requires authenticated customer/manager session.
 #   Authoritative amount is fetched directly from database.
 # - send-email: verify_jwt = true
 #   Private function for backend notification outbox worker / service role only.
 # ------------------------------------------------------------------------------
-
-[functions.payment-webhook]
-verify_jwt = false
 
 [functions.create-payos-link]
 verify_jwt = true

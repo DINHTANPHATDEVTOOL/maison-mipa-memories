@@ -119,7 +119,6 @@ Hệ thống sử dụng các Edge Functions server-side đảm bảo an toàn s
 - `supabase/functions/verify-otp/`: Xác thực OTP, khóa challenge sau 5 lần nhập sai, kiểm tra hạn 5 phút và chống dùng lại mã đã tiêu thụ.
 - `supabase/functions/send-email/`: Gửi email xác nhận đặt lịch & thông tin ca chụp khi đơn được xác nhận cọc.
 - `supabase/functions/drive-delivery/`: Tự động khởi tạo thư mục Google Drive workspace cho khách hàng.
-- `supabase/functions/payment-webhook/` (LEGACY): Cổng webhook thanh toán cũ. Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
 
 Thiết lập secrets trên Supabase:
 ```bash

@@ -192,15 +192,14 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     expect(migration2).toContain('EXCLUDE USING gist');
   });
 
-  it('8. Edge Function configuration in config.toml configures payment-webhook without JWT gate', () => {
+  it('8. Edge Function configuration in config.toml configures active functions', () => {
     const configToml = fs.readFileSync(path.resolve(__dirname, '../../../supabase/config.toml'), 'utf-8');
 
-    expect(configToml).toContain('[functions.payment-webhook]');
-    expect(configToml).toContain('verify_jwt = false');
-    expect(configToml).toContain('[functions.create-payos-link]');
-    expect(configToml).toContain('verify_jwt = true');
+    expect(configToml).not.toContain('[functions.payment-webhook]');
     expect(configToml).toContain('[functions.send-email]');
     expect(configToml).toContain('verify_jwt = true');
+    expect(configToml).toContain('[functions.request-otp]');
+    expect(configToml).toContain('verify_jwt = false');
   });
 
   it('9. migration 5 drops legacy 11-argument create_booking before defining 12-argument function', () => {
