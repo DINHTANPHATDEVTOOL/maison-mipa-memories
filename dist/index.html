@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/logo-256.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-rh="true">Tiệm Ảnh Maison MIPA Memories — Nhà Là Nơi Lưu Giữ Ký Ức</title>
+  <meta data-rh="true" name="description"
+    content="Maison MIPA Memories – Nhà là nơi lưu giữ ký ức. Tiệm ảnh phong cách ấm áp & tinh tế tại Sài Gòn. Chụp Chân Dung, Kỷ Yếu & Tốt Nghiệp, Áo Dài, Đồ Án, Couple, Lễ Tết & Giáng Sinh." />
+  <meta data-rh="true" name="keywords"
+    content="Maison MIPA, Maison MIPA Memories, Nhà là nơi lưu giữ ký ức, tiệm ảnh chụp hình, chụp ảnh chân dung, chụp ảnh kỷ yếu, chụp áo dài, chụp đồ án, chụp couple, chụp tết, chụp giáng sinh, tiệm ảnh sài gòn" />
+  <meta data-rh="true" name="robots" content="index, follow" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://maisonmipa.io.vn/" />
+  <meta property="og:title" content="Tiệm Ảnh Maison MIPA Memories — Nhà Là Nơi Lưu Giữ Ký Ức" />
+  <meta property="og:description"
+    content="Maison MIPA Memories – Nhà là nơi lưu giữ ký ức. Tiệm ảnh phong cách ấm áp & tinh tế tại Sài Gòn. Chụp Chân Dung, Kỷ Yếu & Tốt Nghiệp, Áo Dài, Đồ Án, Couple, Lễ Tết & Giáng Sinh." />
+  <meta property="og:image" content="https://maisonmipa.io.vn/hero.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://maisonmipa.io.vn/" />
+  <meta name="twitter:title" content="Tiệm Ảnh Maison MIPA Memories — Nhà Là Nơi Lưu Giữ Ký Ức" />
+  <meta name="twitter:description"
+    content="Maison MIPA Memories – Nhà là nơi lưu giữ ký ức. Tiệm ảnh phong cách ấm áp & tinh tế tại Sài Gòn." />
+  <meta name="twitter:image" content="https://maisonmipa.io.vn/hero.png" />
+
+  <!-- Schema.org JSON-LD for Google LocalBusiness -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "PhotographicStudio",
+      "name": "Maison MIPA Memories",
+      "image": "https://maisonmipa.io.vn/hero.png",
+      "url": "https://maisonmipa.io.vn/",
+      "telephone": "+84966616546",
+      "priceRange": "890000VND - 7990000VND",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "88 Phan Sào Nam, Phường 11",
+        "addressLocality": "TP. Hồ Chí Minh",
+        "addressRegion": "Hồ Chí Minh",
+        "postalCode": "700000",
+        "addressCountry": "VN"
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "08:00",
+        "closes": "21:00"
+      }
+    }
+  </script>
+
+  <!-- Critical Preloads (Dynamic Custom Hero Detection) -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('maison_mipa_site_assets_cache');
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          var heroUrl = parsed && parsed.home_hero_banner && parsed.home_hero_banner.imageUrl;
+          if (heroUrl && heroUrl !== '/hero.png') {
+            var l = document.createElement('link');
+            l.rel = 'preload';
+            l.as = 'image';
+            l.href = heroUrl;
+            l.fetchPriority = 'high';
+            document.head.appendChild(l);
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preload" as="image" href="/hero-800w.webp" type="image/webp" media="(max-width: 768px)"
+    fetchpriority="high" />
+  <link rel="preload" as="image" href="/hero.webp" type="image/webp" media="(min-width: 769px)" fetchpriority="high" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap"
+    rel="stylesheet">
+
+  <!-- Critical Inline Styles for Luxury Atelier Preloader (Zero-latency) -->
+  <style id="mipa-preloader-css">
+    #mipa-preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 999999;
+      background-color: #15110E;
+      background-image: radial-gradient(circle at 50% 45%, rgba(198, 164, 95, 0.12) 0%, rgba(34, 26, 21, 0.95) 45%, #15110E 80%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.75s, transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+      overflow: hidden;
+    }
+
+    #mipa-preloader.loaded {
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(1.03);
+      pointer-events: none;
+    }
+
+    .mipa-preloader-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      animation: mipaPreloaderFadeIn 0.8s ease-out forwards;
+      padding: 2rem;
+    }
+
+    .mipa-preloader-medallion {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(44, 34, 28, 0.9) 0%, rgba(21, 17, 14, 0.98) 100%);
+      border: 1px solid rgba(198, 164, 95, 0.4);
+      box-shadow: 0 0 35px rgba(198, 164, 95, 0.22), inset 0 0 15px rgba(198, 164, 95, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: mipaAuraPulse 3s ease-in-out infinite;
+    }
+
+    .mipa-preloader-medallion::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1px dashed rgba(198, 164, 95, 0.25);
+      animation: mipaSpinSlow 24s linear infinite;
+    }
+
+    .mipa-preloader-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: 0.35em;
+      color: #FBF6EE;
+      text-transform: uppercase;
+      margin-top: 1.5rem;
+      text-indent: 0.35em;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    .mipa-preloader-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-top: 0.35rem;
+    }
+
+    .mipa-preloader-line {
+      width: 28px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(198, 164, 95, 0.6), transparent);
+    }
+
+    .mipa-preloader-subtitle {
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5em;
+      color: #C6A45F;
+      text-transform: uppercase;
+      text-indent: 0.5em;
+    }
+
+    .mipa-preloader-slogan {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 15px;
+      color: #D1C4B7;
+      margin-top: 0.65rem;
+      letter-spacing: 0.06em;
+    }
+
+    .mipa-preloader-track {
+      width: 140px;
+      height: 2px;
+      background: rgba(198, 164, 95, 0.12);
+      border-radius: 99px;
+      margin-top: 1.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mipa-preloader-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 45%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, transparent, #C6A45F, #FFFDF6, #C6A45F, transparent);
+      animation: mipaGoldSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .mipa-preloader-status {
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      color: #8C7A6D;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-top: 0.85rem;
+      text-indent: 0.25em;
+    }
+
+    @keyframes mipaPreloaderFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes mipaAuraPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 35px rgba(198, 164, 95, 0.18), inset 0 0 15px rgba(198, 164, 95, 0.12);
+        border-color: rgba(198, 164, 95, 0.35);
+      }
+
+      50% {
+        box-shadow: 0 0 50px rgba(198, 164, 95, 0.38), inset 0 0 20px rgba(198, 164, 95, 0.25);
+        border-color: rgba(224, 194, 135, 0.7);
+      }
+    }
+
+    @keyframes mipaSpinSlow {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes mipaGoldSweep {
+      0% {
+        transform: translateX(-120%);
+      }
+
+      100% {
+        transform: translateX(320%);
+      }
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-0OGnXSlz.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-CbXtAM7H.js">
+  <link rel="modulepreload" crossorigin href="/assets/lucide-vendor-VEN-QsUQ.js">
+  <link rel="modulepreload" crossorigin href="/assets/react-vendor-PbgT2Vvj.js">
+  <link rel="modulepreload" crossorigin href="/assets/SeoHead-CgOjGt3R.js">
+  <link rel="modulepreload" crossorigin href="/assets/supabase-BwmHyBq1.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-IFSmvhoD.css">
+</head>
+
+<body>
+  <!-- MIPA Haute Horlogerie / Editorial Parisian Preloader (Zero-latency critical HTML) -->
+  <div id="mipa-preloader" aria-hidden="true">
+    <div class="mipa-preloader-inner">
+      <div class="mipa-preloader-medallion">
+        <img
+          src="/logo-transparent-256.png"
+          alt="Maison MIPA Memories Logo"
+          width="48"
+          height="48"
+          style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(198, 164, 95, 0.45));"
+        />
+      </div>
+      <div class="mipa-preloader-title">MAISON MIPA</div>
+      <div class="mipa-preloader-badge">
+        <span class="mipa-preloader-line"></span>
+        <span class="mipa-preloader-subtitle">MEMORIES</span>
+        <span class="mipa-preloader-line"></span>
+      </div>
+      <p class="mipa-preloader-slogan">Nhà là nơi lưu giữ ký ức</p>
+      <div class="mipa-preloader-track">
+        <div class="mipa-preloader-bar"></div>
+      </div>
+      <span class="mipa-preloader-status">Atelier de Photographie</span>
+    </div>
+  </div>
+
+  <div id="root">
+    <!--
+    Semantic fallback content for crawlers / prerender fallback.
+    Nội dung phải đồng nhất với website thực tế.
+    Dịch vụ, concept, bộ sưu tập và bảng giá chi tiết được lấy động từ hệ thống.
+  -->
+    <article style="
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    ">
+      <header>
+        <h1>Maison MIPA Memories — Tiệm Ảnh &amp; Concept Photography</h1>
+
+        <p>
+          <em>Capture the moment. Keep the memory.</em>
+        </p>
+
+        <p>
+          Maison MIPA Memories là tiệm ảnh chuyên lưu giữ những khoảnh khắc
+          tự nhiên, tình cảm và mang dấu ấn riêng qua các bộ ảnh được xây dựng
+          theo concept chỉn chu và phong cách hình ảnh tinh tế.
+        </p>
+      </header>
+
+      <section>
+        <h2>Dịch Vụ Chụp Ảnh Tại Maison MIPA Memories</h2>
+
+        <ul>
+          <li>
+            <strong>Ảnh cá nhân &amp; Portrait:</strong>
+            Bộ ảnh chân dung dành cho cá nhân với concept, trang phục và
+            phong cách hình ảnh được lựa chọn theo cá tính riêng.
+          </li>
+
+          <li>
+            <strong>Couple &amp; Anniversary:</strong>
+            Lưu giữ những khoảnh khắc tự nhiên và tình cảm dành cho các cặp đôi,
+            kỷ niệm ngày yêu và những dịp đặc biệt.
+          </li>
+
+          <li>
+            <strong>Family &amp; Baby:</strong>
+            Những bộ ảnh gia đình, mẹ và bé hoặc các cột mốc đáng nhớ được
+            thực hiện theo phong cách gần gũi và ấm áp.
+          </li>
+
+          <li>
+            <strong>Graduation:</strong>
+            Ghi lại những khoảnh khắc thanh xuân và dấu mốc tốt nghiệp cùng
+            bạn bè, người thân hoặc bộ ảnh cá nhân.
+          </li>
+
+          <li>
+            <strong>Concept Photography:</strong>
+            Các bộ sưu tập concept theo mùa, áo dài, Giáng Sinh, Tết và
+            những chủ đề đặc biệt được Maison MIPA Memories cập nhật thường xuyên.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Khám Phá Các Bộ Sưu Tập</h2>
+
+        <p>
+          Maison MIPA Memories xây dựng nhiều bộ sưu tập hình ảnh và concept
+          khác nhau để khách hàng có thể tham khảo trước khi gửi yêu cầu tư vấn.
+        </p>
+
+        <p>
+          Hình ảnh, concept, nội dung bộ sưu tập và thông tin dịch vụ trên
+          website được cập nhật thường xuyên để phản ánh các sản phẩm hiện có
+          của Maison MIPA Memories.
+        </p>
+      </section>
+
+      <section>
+        <h2>Gói Chụp &amp; Bảng Giá</h2>
+
+        <p>
+          Các gói chụp có thể bao gồm thời lượng chụp, số lượng concept,
+          số lượng ảnh chỉnh sửa, makeup, styling và các dịch vụ bổ sung tùy
+          theo từng lựa chọn.
+        </p>
+
+        <p>
+          Bảng giá và quyền lợi chi tiết của từng gói được cập nhật trực tiếp
+          trên website Maison MIPA Memories.
+        </p>
+      </section>
+
+      <section>
+        <h2>Quy Trình Đặt Lịch</h2>
+
+        <ol>
+          <li>Khám phá dịch vụ và bộ sưu tập concept.</li>
+          <li>Chọn gói chụp và thời gian mong muốn.</li>
+          <li>Gửi yêu cầu tư vấn cho Maison MIPA Memories.</li>
+          <li>Nhân viên liên hệ để xác nhận concept và lịch chụp.</li>
+          <li>Xác nhận đặt cọc và hoàn tất lịch hẹn.</li>
+          <li>Thực hiện buổi chụp và nhận ảnh sau khi hoàn thiện.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Maison MIPA Memories</h2>
+
+        <p>
+          Mỗi bộ ảnh không chỉ là những tấm hình, mà là một câu chuyện và
+          một khoảng thời gian đáng nhớ được lưu giữ lại.
+        </p>
+
+        <p>
+          <a href="https://maisonmipa.io.vn/">
+            Khám phá Maison MIPA Memories và gửi yêu cầu tư vấn chụp ảnh.
+          </a>
+        </p>
+      </section>
+    </article>
+  </div>
+  <!-- Noscript Fallback -->
+  <noscript>
+    <div style="padding: 2rem; text-align: center; color: #604634;">
+      <h2>Website yêu cầu JavaScript để trải nghiệm ứng dụng đặt lịch tương tác.</h2>
+      <p>Vui lòng bật JavaScript trên trình duyệt của bạn hoặc liên hệ hotline: 0966 616 546.</p>
+    </div>
+  </noscript>
+
+  <!-- Safety Failsafe for Preloader -->
+  <script>
+    (function () {
+      if (navigator.webdriver) {
+        var p = document.getElementById('mipa-preloader');
+        if (p && p.parentNode) p.parentNode.removeChild(p);
+      }
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          var p = document.getElementById('mipa-preloader');
+          if (p && !p.classList.contains('loaded')) {
+            p.classList.add('loaded');
+            setTimeout(function () { if (p.parentNode) p.parentNode.removeChild(p); }, 400);
+          }
+        }, 500);
+      });
+    })();
+  </script>
+
+</body>
+
+</html>
