@@ -67,18 +67,190 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap"
     rel="stylesheet">
+
+  <!-- Critical Inline Styles for Luxury Atelier Preloader (Zero-latency) -->
+  <style id="mipa-preloader-css">
+    #mipa-preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 999999;
+      background-color: #15110E;
+      background-image: radial-gradient(circle at 50% 45%, rgba(198, 164, 95, 0.12) 0%, rgba(34, 26, 21, 0.95) 45%, #15110E 80%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.75s, transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+      overflow: hidden;
+    }
+    #mipa-preloader.loaded {
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(1.03);
+      pointer-events: none;
+    }
+    .mipa-preloader-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      animation: mipaPreloaderFadeIn 0.8s ease-out forwards;
+      padding: 2rem;
+    }
+    .mipa-preloader-medallion {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(44, 34, 28, 0.9) 0%, rgba(21, 17, 14, 0.98) 100%);
+      border: 1px solid rgba(198, 164, 95, 0.4);
+      box-shadow: 0 0 35px rgba(198, 164, 95, 0.22), inset 0 0 15px rgba(198, 164, 95, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: mipaAuraPulse 3s ease-in-out infinite;
+    }
+    .mipa-preloader-medallion::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1px dashed rgba(198, 164, 95, 0.25);
+      animation: mipaSpinSlow 24s linear infinite;
+    }
+    .mipa-preloader-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: 0.35em;
+      color: #FBF6EE;
+      text-transform: uppercase;
+      margin-top: 1.5rem;
+      text-indent: 0.35em;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    }
+    .mipa-preloader-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-top: 0.35rem;
+    }
+    .mipa-preloader-line {
+      width: 28px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(198, 164, 95, 0.6), transparent);
+    }
+    .mipa-preloader-subtitle {
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5em;
+      color: #C6A45F;
+      text-transform: uppercase;
+      text-indent: 0.5em;
+    }
+    .mipa-preloader-slogan {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 15px;
+      color: #D1C4B7;
+      margin-top: 0.65rem;
+      letter-spacing: 0.06em;
+    }
+    .mipa-preloader-track {
+      width: 140px;
+      height: 2px;
+      background: rgba(198, 164, 95, 0.12);
+      border-radius: 99px;
+      margin-top: 1.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .mipa-preloader-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 45%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, transparent, #C6A45F, #FFFDF6, #C6A45F, transparent);
+      animation: mipaGoldSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    .mipa-preloader-status {
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      color: #8C7A6D;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-top: 0.85rem;
+      text-indent: 0.25em;
+    }
+    @keyframes mipaPreloaderFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes mipaAuraPulse {
+      0%, 100% {
+        box-shadow: 0 0 35px rgba(198, 164, 95, 0.18), inset 0 0 15px rgba(198, 164, 95, 0.12);
+        border-color: rgba(198, 164, 95, 0.35);
+      }
+      50% {
+        box-shadow: 0 0 50px rgba(198, 164, 95, 0.38), inset 0 0 20px rgba(198, 164, 95, 0.25);
+        border-color: rgba(224, 194, 135, 0.7);
+      }
+    }
+    @keyframes mipaSpinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes mipaGoldSweep {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(320%); }
+    }
+  </style>
 </head>
 
 <body>
+  <!-- MIPA Haute Horlogerie / Editorial Parisian Preloader (Zero-latency critical HTML) -->
+  <div id="mipa-preloader" aria-hidden="true">
+    <div class="mipa-preloader-inner">
+      <div class="mipa-preloader-medallion">
+        <svg width="36" height="36" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 24C16.8954 24 16 24.8954 16 26V42C16 43.1046 16.8954 44 18 44H46C47.1046 44 48 43.1046 48 42V26C48 24.8954 47.1046 24 46 24H39.5L37.5 20H26.5L24.5 24H18Z" fill="#2C221C" stroke="#C6A45F" stroke-width="2.5" stroke-linejoin="round"/>
+          <circle cx="32" cy="34" r="8" fill="#15110E" stroke="#C6A45F" stroke-width="2.5"/>
+          <circle cx="32" cy="34" r="4" fill="#C6A45F"/>
+          <circle cx="30.5" cy="32.5" r="1.2" fill="#FFFDF6"/>
+          <circle cx="42" cy="28" r="1.5" fill="#EFE6C9"/>
+        </svg>
+      </div>
+      <h1 class="mipa-preloader-title">MAISON MIPA</h1>
+      <div class="mipa-preloader-badge">
+        <span class="mipa-preloader-line"></span>
+        <span class="mipa-preloader-subtitle">MEMORIES</span>
+        <span class="mipa-preloader-line"></span>
+      </div>
+      <p class="mipa-preloader-slogan">Nhà là nơi lưu giữ ký ức</p>
+      <div class="mipa-preloader-track">
+        <div class="mipa-preloader-bar"></div>
+      </div>
+      <span class="mipa-preloader-status">Atelier de Photographie</span>
+    </div>
+  </div>
+
   <div id="root">
-    <!-- Prerendered Semantic Body Content for Search Engine Crawlers & Social Bots -->
-    <article style="padding: 2rem; max-width: 800px; margin: 0 auto; font-family: sans-serif; color: #2C221E;">
-      <h1>Maison MIPA Memories — Studio Chụp Ảnh &amp; Đặt Lịch Online</h1>
+    <!-- Prerendered Semantic Body Content for Search Engine Crawlers & Social Bots (Preserved for SEO, visually hidden for humans) -->
+    <article style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">
+      <h2>Maison MIPA Memories — Studio Chụp Ảnh &amp; Đặt Lịch Online</h2>
       <p><em>Capture the moment. Keep the memory.</em></p>
       <p>Những khoảnh khắc chân thật, ngọt ngào &amp; ấm áp nhất của cuộc sống xứng đáng được lưu giữ mãi mãi trong
         không gian Studio Châu Âu tinh tế tại Maison MIPA Memories.</p>
 
-      <h2>Các Dịch Vụ Chụp Ảnh Chủ Đạo</h2>
+      <h3>Các Dịch Vụ Chụp Ảnh Chủ Đạo</h3>
       <ul>
         <li><strong>Couple &amp; Anniversary:</strong> Bộ ảnh đôi ngọt ngào trong không gian studio Pháp riêng tư.</li>
         <li><strong>Personal Portrait &amp; Editorial:</strong> Chân dung cá nhân thần thái, ánh sáng chuẩn nghệ thuật.
@@ -87,7 +259,7 @@
         <li><strong>Graduation &amp; Concept:</strong> Bộ ảnh kỷ niệm thanh xuân phong cách hiện đại.</li>
       </ul>
 
-      <h2>Gói Bảng Giá Trọn Gói Minh Bạch</h2>
+      <h3>Gói Bảng Giá Trọn Gói Minh Bạch</h3>
       <ul>
         <li><strong>MIPA Basic:</strong> 1.290.000đ — 1 Concept trang trí Studio, file gốc chất lượng cao, 10 ảnh chỉnh sửa.</li>
         <li><strong>MIPA Signature (Khuyên Dùng):</strong> 2.490.000đ — 2 Concept độc quyền, Makeup &amp; Làm tóc chuyên nghiệp, 20 ảnh chỉnh sửa.</li>
@@ -106,6 +278,21 @@
       <p>Vui lòng bật JavaScript trên trình duyệt của bạn hoặc liên hệ hotline: 0966 616 546.</p>
     </div>
   </noscript>
+
+  <!-- Safety Failsafe for Preloader -->
+  <script>
+    (function() {
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var p = document.getElementById('mipa-preloader');
+          if (p && !p.classList.contains('loaded')) {
+            p.classList.add('loaded');
+            setTimeout(function() { if (p.parentNode) p.parentNode.removeChild(p); }, 800);
+          }
+        }, 1200);
+      });
+    })();
+  </script>
 
   <script type="module" src="/src/main.tsx"></script>
 </body>

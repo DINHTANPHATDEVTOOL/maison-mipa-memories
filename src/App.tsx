@@ -298,21 +298,30 @@ function AppContent() {
         <PageTransition>
           {/* Real URL Router Routes */}
           <Suspense fallback={
-          <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8C6E53' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                border: '3px solid #EFE6C9',
-                borderTopColor: '#8C6E53',
-                animation: 'spin 0.8s linear infinite',
-                margin: '0 auto 1rem',
-              }} />
-              <span>Đang tải nội dung...</span>
+            <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  border: '2px solid rgba(198, 164, 95, 0.2)',
+                  borderTopColor: '#C6A45F',
+                  animation: 'spin 0.8s linear infinite',
+                  margin: '0 auto 1rem',
+                  boxShadow: '0 0 15px rgba(198, 164, 95, 0.15)',
+                }} />
+                <span style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontStyle: 'italic',
+                  fontSize: '15px',
+                  color: '#D1C4B7',
+                  letterSpacing: '0.05em',
+                }}>
+                  Đang chuẩn bị không gian nghệ thuật...
+                </span>
+              </div>
             </div>
-          </div>
-        }>
+          }>
           <RouteErrorBoundary>
             <Routes>
             {/* Public Routes */}
@@ -518,6 +527,20 @@ function AppContent() {
 }
 
 export function App() {
+  useEffect(() => {
+    // Gracefully dismiss initial HTML atelier preloader
+    const preloader = document.getElementById('mipa-preloader');
+    if (preloader) {
+      preloader.classList.add('loaded');
+      const timer = setTimeout(() => {
+        if (preloader.parentNode) {
+          preloader.parentNode.removeChild(preloader);
+        }
+      }, 750);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <HelmetProvider>
