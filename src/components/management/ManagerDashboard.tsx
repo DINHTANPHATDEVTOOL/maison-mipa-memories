@@ -21,6 +21,7 @@ import {
   Check,
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
+import { isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
 import { confirmBookingDeposit, updateBookingConsultation } from '../../services/bookingService';
 import {
   determineShiftFromTime,
@@ -223,7 +224,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     setIsAssigningStaff(true);
     setAssignStaffError('');
 
-    const baseEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+    const baseEmployees = employees.length > 0
+      ? employees
+      : (!isSupabaseConfigured() && isDemoModeEnabled() ? INITIAL_EMPLOYEES : []);
     const assignedEmp = baseEmployees.find(emp => emp.id === selectedEmployeeId) ||
       registeredShifts.find(s => s.employeeId === selectedEmployeeId);
     const assignedName = (assignedEmp as any)?.name || (assignedEmp as any)?.employeeName || 'Nhân sự';
@@ -1053,7 +1056,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
       {/* Assign Staff Modal */}
       {assigningBooking && (() => {
-        const baseEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
+        const baseEmployees = employees.length > 0
+          ? employees
+          : (!isSupabaseConfigured() && isDemoModeEnabled() ? INITIAL_EMPLOYEES : []);
         const availableEmployees = [...baseEmployees];
         registeredShifts.forEach(s => {
           if (!availableEmployees.some(e => e.id === s.employeeId)) {

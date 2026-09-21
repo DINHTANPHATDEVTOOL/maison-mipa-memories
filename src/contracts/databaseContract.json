@@ -6,6 +6,10 @@
       "requiredColumns": ["id", "email", "full_name", "role", "staff_role", "status"]
     },
     {
+      "name": "site_assets",
+      "requiredColumns": ["id", "page", "label", "image_url"]
+    },
+    {
       "name": "services",
       "requiredColumns": ["id", "slug", "name", "active", "display_order"]
     },

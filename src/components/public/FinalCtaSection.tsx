@@ -4,11 +4,12 @@
 // by quiet darkroom space, then on scroll expands to fullscreen (100vw x 100vh) as the
 // centered invitation copy and booking button reveal themselves.
 // ==============================================================================
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 interface FinalCtaSectionProps {
   onOpenBooking: () => void;
@@ -17,12 +18,21 @@ interface FinalCtaSectionProps {
 export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
+  const { getAssetUrl } = useSiteAssets();
+  const ctaBannerUrl = getAssetUrl('home_cta_banner', '/hero.png');
 
   const sectionRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const ctaBtnRef = useRef<HTMLDivElement>(null);
+
+  // Imperative sync when admin changes CTA banner asset
+  useEffect(() => {
+    if (imageRef.current && ctaBannerUrl) {
+      imageRef.current.src = ctaBannerUrl;
+    }
+  }, [ctaBannerUrl]);
 
   // Signature Moment #7: Enter the Frame Photographic Expansion
   useGsapContext(() => {
@@ -127,9 +137,10 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({ onOpenBooking 
           }}
         >
           <img
+            key={ctaBannerUrl}
             ref={imageRef}
-            src="/hero.png"
-            alt="Maison MIPA không gian studio"
+            src={ctaBannerUrl}
+            alt="Maison MIPA Memories — Không gian studio sẵn sàng đón bạn"
             loading="lazy"
             style={{
               position: 'absolute',

@@ -282,7 +282,7 @@ BEGIN
     WHERE slr.status = 'APPROVED'
       AND tstzrange(slr.start_at, slr.end_at, '[)') && tstzrange(v_start, v_end, '[)')
   ),
-  overlaps AS (
+  booking_conflicts AS (
     SELECT 
       ba.employee_id,
       b.booking_code
@@ -325,7 +325,7 @@ BEGIN
     -- Precedence: Leave > Shifts > Overlap > Working Hours
     CASE 
       WHEN l.employee_id IS NOT NULL THEN false
-      WHEN o.employee_id IS NOT NULL THEN false
+      WHEN bc.employee_id IS NOT NULL THEN false
       WHEN sh.employee_id IS NOT NULL THEN true
       WHEN wh.employee_id IS NOT NULL AND wh.is_day_off = true THEN false
       WHEN wh.employee_id IS NOT NULL AND (v_start_time < wh.start_time OR v_end_time > wh.end_time) THEN false
@@ -333,7 +333,7 @@ BEGIN
     END AS is_available,
     CASE 
       WHEN l.employee_id IS NOT NULL THEN 'Có lịch nghỉ phép đã duyệt'
-      WHEN o.employee_id IS NOT NULL THEN 'Đã có ca chụp trùng giờ: ' || o.booking_code
+      WHEN bc.employee_id IS NOT NULL THEN 'Đã có ca chụp trùng giờ: ' || bc.booking_code
       WHEN wh.employee_id IS NOT NULL AND wh.is_day_off = true THEN 'Ngày nghỉ định kỳ'
       WHEN wh.employee_id IS NOT NULL AND (v_start_time < wh.start_time OR v_end_time > wh.end_time) THEN 'Ngoài khung giờ làm việc tiêu chuẩn'
       ELSE NULL
@@ -341,7 +341,7 @@ BEGIN
     COALESCE(sa.skills, ARRAY[]::TEXT[]) AS matching_skills
   FROM emp_pool ep
   LEFT JOIN leaves l ON l.employee_id = ep.id
-  LEFT JOIN overlaps o ON o.employee_id = ep.id
+  LEFT JOIN booking_conflicts bc ON bc.employee_id = ep.id
   LEFT JOIN shifts sh ON sh.employee_id = ep.id
   LEFT JOIN working_hours wh ON wh.employee_id = ep.id
   LEFT JOIN skills_agg sa ON sa.employee_id = ep.id
@@ -699,7 +699,7 @@ GRANT EXECUTE ON FUNCTION public.get_available_staff_for_booking(UUID, TEXT) TO 
 GRANT EXECUTE ON FUNCTION public.checkout_booking_resource(UUID, UUID, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.return_booking_resource(UUID, TEXT, TEXT, BOOLEAN, TEXT, TEXT, TEXT, UUID) TO authenticated;
 
-COMMENT ON FUNCTION public.assign_booking_staff_v2 IS 'Assigns staff to booking with strict customer exclusion and staff role qualification';
-COMMENT ON FUNCTION public.get_available_staff_for_booking IS 'Authoritative staff availability with working hours (ISO DOW 1..7) and shift schedules';
-COMMENT ON FUNCTION public.checkout_booking_resource IS 'Checks out booking resource with strict state machine (RESERVED only) and serialized vs quantity accounting';
-COMMENT ON FUNCTION public.return_booking_resource IS 'Returns booking resource with strict state machine (CHECKED_OUT only), active handoff requirement, and isolated damage accounting';
+COMMENT ON FUNCTION public.assign_booking_staff_v2(UUID, UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT) IS 'Assigns staff to booking with strict customer exclusion and staff role qualification';
+COMMENT ON FUNCTION public.get_available_staff_for_booking(UUID, TEXT) IS 'Authoritative staff availability with working hours (ISO DOW 1..7) and shift schedules';
+COMMENT ON FUNCTION public.checkout_booking_resource(UUID, UUID, TEXT, TEXT) IS 'Checks out booking resource with strict state machine (RESERVED only) and serialized vs quantity accounting';
+COMMENT ON FUNCTION public.return_booking_resource(UUID, TEXT, TEXT, BOOLEAN, TEXT, TEXT, TEXT) IS 'Returns booking resource with strict state machine (CHECKED_OUT only), active handoff requirement, and isolated damage accounting';

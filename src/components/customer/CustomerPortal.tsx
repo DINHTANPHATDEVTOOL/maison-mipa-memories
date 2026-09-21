@@ -7,7 +7,7 @@
 // - Reschedule & cancellation requests
 // - Google Drive delivery integration point ("Lấy ảnh")
 // ==============================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Booking } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +17,7 @@ import {
   requestBookingReschedule,
   requestBookingCancel,
 } from '../../services/bookingService';
+import { uploadUserAvatar, removeUserAvatarFile } from '../../services/userAvatarService';
 import { CustomerProofGallery } from './CustomerProofGallery';
 import {
   Calendar,
@@ -33,6 +34,9 @@ import {
   Save,
   Send,
   CheckCircle,
+  Trash2,
+  Loader2,
+  Upload,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -56,11 +60,83 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
   const [profileErrorMsg, setProfileErrorMsg] = useState('');
 
+  // Avatar management state
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarSuccessMsg, setAvatarSuccessMsg] = useState('');
+  const [avatarErrorMsg, setAvatarErrorMsg] = useState('');
+
   // Password reset via email state
   const [isSendingPasswordEmail, setIsSendingPasswordEmail] = useState(false);
   const [passwordEmailSuccess, setPasswordEmailSuccess] = useState('');
   const [passwordEmailError, setPasswordEmailError] = useState('');
   const [countdown, setCountdown] = useState<number>(0);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    setAvatarErrorMsg('');
+    setAvatarSuccessMsg('');
+    setIsUploadingAvatar(true);
+
+    try {
+      const { url } = await uploadUserAvatar(file, user.id, user.avatar);
+      const res = await updateProfile({
+        fullName: editFullName.trim() || user.fullName || 'Người dùng MIPA',
+        phone: editPhone.trim() || user.phone || '',
+        avatar: url,
+      });
+
+      if (res.success) {
+        setAvatarSuccessMsg('✓ Đã cập nhật ảnh đại diện mới thành công!');
+        setTimeout(() => setAvatarSuccessMsg(''), 4000);
+      } else {
+        setAvatarErrorMsg(res.error || 'Không thể cập nhật ảnh đại diện.');
+      }
+    } catch (err: any) {
+      setAvatarErrorMsg(err.message || 'Lỗi khi tải ảnh đại diện lên.');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user?.id) return;
+
+    setAvatarErrorMsg('');
+    setAvatarSuccessMsg('');
+    setIsUploadingAvatar(true);
+
+    try {
+      if (user.avatar) {
+        await removeUserAvatarFile(user.avatar);
+      }
+
+      const res = await updateProfile({
+        fullName: editFullName.trim() || user.fullName || 'Người dùng MIPA',
+        phone: editPhone.trim() || user.phone || '',
+        avatar: null,
+      });
+
+      if (res.success) {
+        setAvatarSuccessMsg('✓ Đã xóa ảnh đại diện thành công. Ảnh đại diện hiện đang để trống.');
+        setTimeout(() => setAvatarSuccessMsg(''), 4000);
+      } else {
+        setAvatarErrorMsg(res.error || 'Không thể xóa ảnh đại diện.');
+      }
+    } catch (err: any) {
+      setAvatarErrorMsg(err.message || 'Lỗi khi xóa ảnh đại diện.');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -655,6 +731,178 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
               }}>
                 <AlertCircle size={18} color="#DC2626" />
                 <span>{profileErrorMsg}</span>
+              </div>
+            )}
+
+            {/* AVATAR MANAGEMENT SECTION */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.25rem',
+              padding: '1.2rem 1.4rem',
+              backgroundColor: '#FFFDF9',
+              border: '1px solid #EFE6C9',
+              borderRadius: '16px',
+              marginBottom: '1.4rem',
+              flexWrap: 'wrap',
+            }}>
+              {/* Avatar Preview */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{
+                  width: '88px',
+                  height: '88px',
+                  borderRadius: '50%',
+                  border: '3px solid #C6A45F',
+                  boxShadow: '0 4px 14px rgba(198, 164, 95, 0.22)',
+                  overflow: 'hidden',
+                  backgroundColor: '#FAF8F3',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.fullName || 'Ảnh đại diện'}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#8C6E53',
+                      gap: '0.15rem',
+                    }}>
+                      <UserIcon size={34} color="#C6A45F" />
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#8C6E53', letterSpacing: '0.5px' }}>TRỐNG</span>
+                    </div>
+                  )}
+                </div>
+
+                {isUploadingAvatar && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Loader2 size={24} color="#8C6E53" style={{ animation: 'spin 0.8s linear infinite' }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Avatar Actions & Help */}
+              <div style={{ flex: 1, minWidth: '220px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#604634', marginBottom: '0.2rem' }}>
+                  Ảnh Đại Diện Tài Khoản
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#8C6E53', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                  {user?.avatar
+                    ? 'Bạn có thể đổi sang ảnh khác hoặc xóa để để trống ảnh đại diện.'
+                    : 'Chưa có ảnh đại diện. Tải ảnh mới để hiển thị trên toàn hệ thống Maison MIPA.'}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    style={{ display: 'none' }}
+                    onChange={handleAvatarFileChange}
+                  />
+
+                  <button
+                    type="button"
+                    disabled={isUploadingAvatar}
+                    onClick={() => avatarInputRef.current?.click()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.45rem 0.95rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      borderRadius: '8px',
+                      border: '1.5px solid #C6A45F',
+                      backgroundColor: '#C6A45F',
+                      color: '#FFFFFF',
+                      cursor: isUploadingAvatar ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 6px rgba(198, 164, 95, 0.25)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <Camera size={15} />
+                    {user?.avatar ? 'Đổi ảnh khác' : 'Tải ảnh đại diện'}
+                  </button>
+
+                  {user?.avatar && (
+                    <button
+                      type="button"
+                      disabled={isUploadingAvatar}
+                      onClick={handleRemoveAvatar}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        borderRadius: '8px',
+                        border: '1px solid #FECACA',
+                        backgroundColor: '#FEF2F2',
+                        color: '#DC2626',
+                        cursor: isUploadingAvatar ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Xóa ảnh
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {avatarSuccessMsg && (
+              <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #86EFAC',
+                borderRadius: '10px',
+                color: '#166534',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <CheckCircle size={18} color="#16A34A" />
+                <span>{avatarSuccessMsg}</span>
+              </div>
+            )}
+
+            {avatarErrorMsg && (
+              <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '10px',
+                color: '#991B1B',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <AlertCircle size={18} color="#DC2626" />
+                <span>{avatarErrorMsg}</span>
               </div>
             )}
 

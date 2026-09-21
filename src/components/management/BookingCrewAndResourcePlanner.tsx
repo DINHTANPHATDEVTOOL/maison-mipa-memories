@@ -9,19 +9,21 @@ import {
   Sparkles,
   ShieldAlert,
 } from 'lucide-react';
-import type { Booking, BookingAssignment, ResourceReservation, StudioResource, StaffRole } from '../../types';
-import { INITIAL_EMPLOYEES } from '../../mockData';
+import type { Booking, BookingAssignment, ResourceReservation, StudioResource, StaffRole, Employee } from '../../types';
+import { getEmployees } from '../../services/catalogService';
 import { assignBookingStaffV2 } from '../../services/staffSchedulingService';
 import { getStudioResources, getBookingReservations, reserveBookingResource } from '../../services/resourcePlanningService';
 
 interface BookingCrewAndResourcePlannerProps {
   booking: Booking;
+  employees?: Employee[];
   onClose: () => void;
   onUpdated?: () => void;
 }
 
 export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlannerProps> = ({
   booking,
+  employees: propEmployees,
   onClose,
   onUpdated,
 }) => {
@@ -29,13 +31,16 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
   const [assignments, setAssignments] = useState<BookingAssignment[]>(booking.assignments || []);
   const [reservations, setReservations] = useState<ResourceReservation[]>([]);
   const [availableResources, setAvailableResources] = useState<StudioResource[]>([]);
+  const [employeeList, setEmployeeList] = useState<Employee[]>(propEmployees || []);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Staff assignment form
   const [selectedStaffRole, setSelectedStaffRole] = useState<StaffRole>('PHOTOGRAPHER');
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(INITIAL_EMPLOYEES[0]?.id || '');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(
+    propEmployees && propEmployees.length > 0 ? propEmployees[0].id : ''
+  );
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // Resource reservation form
@@ -46,12 +51,17 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
     setLoading(true);
     setErrorMsg(null);
     try {
-      const [resv, allRes] = await Promise.all([
+      const [resv, allRes, realEmps] = await Promise.all([
         getBookingReservations(booking.id),
         getStudioResources({ status: 'AVAILABLE' }),
+        (!propEmployees || propEmployees.length === 0) ? getEmployees().catch(() => []) : Promise.resolve(propEmployees),
       ]);
       setReservations(resv);
       setAvailableResources(allRes);
+      if (realEmps && realEmps.length > 0) {
+        setEmployeeList(realEmps);
+        setSelectedEmployeeId((prev) => prev || realEmps[0].id);
+      }
       if (allRes.length > 0) {
         setSelectedResourceId(allRes[0].id);
       }
@@ -60,10 +70,19 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
     } finally {
       setLoading(false);
     }
-  }, [booking.id]);
+  }, [booking.id, propEmployees]);
 
   useEffect(() => {
     loadData();
+
+    const handleUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('mipa_staff_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('mipa_staff_updated', handleUpdate);
+    };
   }, [loadData]);
 
   const handleAssignStaff = async (e: React.FormEvent) => {
@@ -392,7 +411,7 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
                     onChange={e => setSelectedEmployeeId(e.target.value)}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1C7BD', backgroundColor: '#FFF' }}
                   >
-                    {INITIAL_EMPLOYEES.map(emp => (
+                    {employeeList.map(emp => (
                       <option key={emp.id} value={emp.id}>{emp.name} ({emp.role})</option>
                     ))}
                   </select>

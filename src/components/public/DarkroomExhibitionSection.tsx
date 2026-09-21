@@ -4,10 +4,11 @@
 // Depth of Field: Background giant phrase moves slow, floating centerpiece photo moves
 // faster, stationary minimal caption sits foreground. Followed by curated exhibition frames.
 // ==============================================================================
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 interface ExhibitionFrame {
   id: string;
@@ -47,12 +48,22 @@ const EXHIBITION_FRAMES: ExhibitionFrame[] = [
 
 export const DarkroomExhibitionSection: React.FC = () => {
   const navigate = useNavigate();
+  const { getAssetUrl } = useSiteAssets();
+  const darkroomCenterUrl = getAssetUrl('home_atelier_showcase', '/studio.png');
+  const darkroomImgRef = useRef<HTMLImageElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const bgTypographyRef = useRef<HTMLDivElement>(null);
   const floatingPhotoRef = useRef<HTMLDivElement>(null);
   const stationaryCaptionRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const prefersReduced = useReducedMotion();
+
+  // Imperative sync when admin changes asset
+  useEffect(() => {
+    if (darkroomImgRef.current && darkroomCenterUrl) {
+      darkroomImgRef.current.src = darkroomCenterUrl;
+    }
+  }, [darkroomCenterUrl]);
 
   // Signature Moment #6: Depth-of-field Parallax & Darkroom Transition
   useGsapContext(() => {
@@ -246,7 +257,9 @@ export const DarkroomExhibitionSection: React.FC = () => {
           }}
         >
           <img
-            src="/hero.png"
+            key={darkroomCenterUrl}
+            ref={darkroomImgRef}
+            src={darkroomCenterUrl}
             alt="Maison MIPA Không gian phòng tối triển lãm"
             loading="lazy"
             className="transition-transform duration-700 ease-out group-hover:scale-[1.02]"

@@ -12,6 +12,7 @@ import type { ServiceCategory } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
+import { useSiteAssets } from '../context/SiteAssetContext';
 
 interface ServicesPageProps {
   onOpenBooking: () => void;
@@ -19,6 +20,7 @@ interface ServicesPageProps {
 
 export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
+  const { getAssetUrl } = useSiteAssets();
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -228,25 +230,28 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                     }}
                   >
                     <Link to={`/dich-vu/${serviceSlug}`} style={{ display: 'block', width: '100%', height: '100%' }}>
-                      {srv.image ? (
-                        <img
-                          src={srv.image}
-                          alt={srv.name}
-                          loading="lazy"
-                          decoding="async"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            display: 'block',
-                          }}
-                        />
-                      ) : (
-                        <EditorialImagePlaceholder
-                          aspectRatio="16/11"
-                          caption={srv.name}
-                        />
-                      )}
+                      {(() => {
+                        const displayImage = getAssetUrl(`service_${serviceSlug}`, srv.image);
+                        return displayImage ? (
+                          <img
+                            src={displayImage}
+                            alt={srv.name}
+                            loading="lazy"
+                            decoding="async"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                          />
+                        ) : (
+                          <EditorialImagePlaceholder
+                            aspectRatio="16/11"
+                            caption={srv.name}
+                          />
+                        );
+                      })()}
                     </Link>
 
                     {/* Verified badge only */}

@@ -8,11 +8,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getConceptBySlug, getPublicCollections } from '../services/portfolioService';
 import { getServices, getPackages } from '../services/catalogService';
-import type { Concept, ServiceCategory, PackageItem } from '../types';
+import type { Concept, ServiceCategory, PackageItem, PortfolioPhoto } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
-import { ChevronRight, Home, Calendar, ArrowRight, Check, RotateCcw } from 'lucide-react';
+import { ChevronRight, Home, Calendar, ArrowRight, Check, RotateCcw, Maximize2 } from 'lucide-react';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
+import { DarkroomLightbox } from '../components/public/DarkroomLightbox';
 
 interface ConceptDetailPageProps {
   onOpenBooking: () => void;
@@ -26,6 +27,7 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
   const [relatedService, setRelatedService] = useState<ServiceCategory | null>(null);
   const [relatedPackages, setRelatedPackages] = useState<PackageItem[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<{ url: string; altText: string }[]>([]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [notFound, setNotFound] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -173,6 +175,23 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
     { name: concept.name, url: getCanonicalUrl(`/concept/${concept.slug}`) },
   ];
 
+  const lightboxPhotos: PortfolioPhoto[] = concept
+    ? galleryPhotos.map((p, idx) => ({
+        id: `concept-photo-${idx}`,
+        collectionId: concept.id,
+        url: p.url,
+        filename: `concept-${concept.slug}-${idx}.webp`,
+        width: 1920,
+        height: 1080,
+        focalX: 50,
+        focalY: 50,
+        altText: p.altText || `${concept.name} — Ảnh ${idx + 1}`,
+        caption: p.altText || `${concept.name} — Ảnh ${idx + 1}`,
+        sortOrder: idx,
+        featured: idx === 0,
+      }))
+    : [];
+
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', paddingBottom: '6rem' }}>
       <SeoHead
@@ -247,20 +266,59 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
               borderRadius: '2px',
               overflow: 'hidden',
               backgroundColor: '#EDE7DC',
+              cursor: concept.coverPhotoUrl ? 'zoom-in' : 'default',
             }}
+            onClick={() => {
+              if (concept.coverPhotoUrl && lightboxPhotos.length > 0) {
+                const coverIdx = galleryPhotos.findIndex((p) => p.url === concept.coverPhotoUrl);
+                setActivePhotoIndex(coverIdx >= 0 ? coverIdx : 0);
+              }
+            }}
+            title={concept.coverPhotoUrl ? 'Nhấp để phóng to ảnh' : undefined}
           >
             {concept.coverPhotoUrl ? (
-              <img
-                src={concept.coverPhotoUrl}
-                alt={concept.name}
-                fetchPriority="high"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
+              <>
+                <img
+                  src={concept.coverPhotoUrl}
+                  alt={concept.name}
+                  fetchPriority="high"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    transition: 'transform 0.45s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '0.85rem',
+                    right: '0.85rem',
+                    padding: '0.4rem 0.8rem',
+                    backgroundColor: 'rgba(21, 17, 14, 0.72)',
+                    color: '#FFFDF9',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 500,
+                    letterSpacing: '0.04em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    backdropFilter: 'blur(6px)',
+                    pointerEvents: 'none',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                  }}
+                >
+                  <Maximize2 size={13} /> Phóng to
+                </div>
+              </>
             ) : (
               <EditorialImagePlaceholder
                 aspectRatio="16/11"
@@ -382,34 +440,47 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
             >
               HÌNH ẢNH CONCEPT
             </span>
-            <h2
-              style={{
-                fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
-                fontSize: '2.2rem',
-                fontWeight: 500,
-                color: '#29231F',
-                margin: 0,
-              }}
-            >
-              Góc nhìn & bối cảnh
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <h2
+                style={{
+                  fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                  fontSize: '2.2rem',
+                  fontWeight: 500,
+                  color: '#29231F',
+                  margin: 0,
+                }}
+              >
+                Góc nhìn & bối cảnh
+              </h2>
+              <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontStyle: 'italic' }}>
+                Nhấp vào hình ảnh để phóng to xem chi tiết
+              </span>
+            </div>
           </div>
 
           <div className="concept-gallery-grid">
             {galleryPhotos.map((photo, idx) => {
-              const itemClass = idx === 0 ? 'gallery-item-wide' : 'gallery-item-half';
-              const aspect = idx === 0 ? '21/9' : '4/5';
+              const isOnlyTwo = galleryPhotos.length === 2;
+              const itemClass = !isOnlyTwo && idx === 0 ? 'gallery-item-wide' : 'gallery-item-half';
+              const aspect = !isOnlyTwo && idx === 0 ? '21/9' : '4/5';
 
               return (
                 <div
                   key={idx}
-                  className={itemClass}
+                  className={`concept-gallery-card ${itemClass}`}
                   style={{
-                    borderRadius: '2px',
-                    overflow: 'hidden',
-                    backgroundColor: '#EDE7DC',
                     aspectRatio: aspect,
                   }}
+                  onClick={() => setActivePhotoIndex(idx)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setActivePhotoIndex(idx);
+                    }
+                  }}
+                  aria-label={`Phóng to xem ${photo.altText || `Ảnh ${idx + 1}`}`}
                 >
                   <img
                     src={photo.url}
@@ -421,8 +492,30 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
                       height: '100%',
                       objectFit: 'cover',
                       display: 'block',
+                      transition: 'transform 0.45s ease',
                     }}
                   />
+                  <div className="gallery-zoom-overlay">
+                    <span style={{ color: '#FFFDF9', fontSize: '0.85rem', fontWeight: 500 }}>
+                      {photo.altText}
+                    </span>
+                    <span
+                      style={{
+                        padding: '0.35rem 0.65rem',
+                        backgroundColor: 'rgba(21, 17, 14, 0.8)',
+                        color: '#FAF8F3',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        backdropFilter: 'blur(4px)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                      }}
+                    >
+                      <Maximize2 size={12} /> Phóng to
+                    </span>
+                  </div>
                 </div>
               );
             })}
@@ -544,6 +637,17 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Accessible Darkroom Lightbox for Concept Gallery */}
+      {activePhotoIndex !== null && lightboxPhotos.length > 0 && (
+        <DarkroomLightbox
+          photos={lightboxPhotos}
+          currentIndex={activePhotoIndex}
+          collectionTitle={concept.name}
+          onClose={() => setActivePhotoIndex(null)}
+          onSelectIndex={(index) => setActivePhotoIndex(index)}
+        />
       )}
     </div>
   );

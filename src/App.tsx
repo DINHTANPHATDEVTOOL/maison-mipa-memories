@@ -15,6 +15,7 @@ import { getBookings, updateBookingStatus, assignBookingStaff, subscribeBookings
 import { getStudioRooms, getEmployees } from './services/catalogService';
 import { isSupabaseConfigured, isDemoModeEnabled } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SiteAssetProvider, useSiteAssets } from './context/SiteAssetContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/auth/AuthModal';
@@ -54,8 +55,38 @@ import { FilmGrainOverlay } from './components/public/FilmGrainOverlay';
 
 function AppContent() {
   const { user: currentUser, role: currentRole, logout } = useAuth();
+  const { loading: assetsLoading } = useSiteAssets();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Gracefully dismiss initial HTML atelier preloader once assets are ready (or after safe timeout)
+  useEffect(() => {
+    const preloader = document.getElementById('mipa-preloader');
+    if (!preloader) return;
+
+    let timer: any;
+    const dismissPreloader = () => {
+      preloader.classList.add('loaded');
+      timer = setTimeout(() => {
+        if (preloader.parentNode) {
+          preloader.parentNode.removeChild(preloader);
+        }
+      }, typeof navigator !== 'undefined' && navigator.webdriver ? 0 : 350);
+    };
+
+    if (!assetsLoading) {
+      dismissPreloader();
+    } else {
+      const fallbackTimer = setTimeout(dismissPreloader, 600);
+      return () => {
+        clearTimeout(fallbackTimer);
+        if (timer) clearTimeout(timer);
+      };
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [assetsLoading]);
 
   const useMockFallback = !isSupabaseConfigured() && isDemoModeEnabled();
 
@@ -122,9 +153,28 @@ function AppContent() {
       }
     });
 
+    // Auto-update employees whenever staff or role changes occur
+    const handleStaffUpdate = async () => {
+      try {
+        const updatedEmployees = await getEmployees();
+        if (active) {
+          setEmployees(updatedEmployees);
+        }
+      } catch (err) {
+        console.warn('Failed to re-fetch employees on staff update event:', err);
+      }
+    };
+
+    window.addEventListener('mipa_staff_updated', handleStaffUpdate);
+    window.addEventListener('mipa_role_updated', handleStaffUpdate);
+    window.addEventListener('storage', handleStaffUpdate);
+
     return () => {
       active = false;
       unsubscribe();
+      window.removeEventListener('mipa_staff_updated', handleStaffUpdate);
+      window.removeEventListener('mipa_role_updated', handleStaffUpdate);
+      window.removeEventListener('storage', handleStaffUpdate);
     };
   }, [currentUser?.id, currentRole]);
 
@@ -527,27 +577,15 @@ function AppContent() {
 }
 
 export function App() {
-  useEffect(() => {
-    // Gracefully dismiss initial HTML atelier preloader
-    const preloader = document.getElementById('mipa-preloader');
-    if (preloader) {
-      preloader.classList.add('loaded');
-      const timer = setTimeout(() => {
-        if (preloader.parentNode) {
-          preloader.parentNode.removeChild(preloader);
-        }
-      }, typeof navigator !== 'undefined' && navigator.webdriver ? 0 : 350);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
   return (
     <ErrorBoundary>
       <HelmetProvider>
         <BrowserRouter>
           <AuthProvider>
-            <OfflineBanner />
-            <AppContent />
+            <SiteAssetProvider>
+              <OfflineBanner />
+              <AppContent />
+            </SiteAssetProvider>
           </AuthProvider>
         </BrowserRouter>
       </HelmetProvider>

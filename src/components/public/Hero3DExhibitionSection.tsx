@@ -17,6 +17,7 @@ import {
 
 import { AtelierControls } from './atelier/AtelierControls';
 import { ArtworkInspection } from './atelier/ArtworkInspection';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 interface Hero3DExhibitionSectionProps {
   onOpenBooking: (conceptSlug?: string) => void;
@@ -28,6 +29,7 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
   artworks: propArtworks,
 }) => {
   const prefersReduced = useReducedMotion();
+  const { getAssetUrl } = useSiteAssets();
 
   // State
   const [cameraMode, setCameraMode] = useState<AtelierCameraMode>('WIDE');
@@ -95,51 +97,51 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
     if (!hasInteracted) setHasInteracted(true);
   };
 
-// Curated filmstrip data matching user mockup
-const HERO_FILMSTRIP_ITEMS = [
-  {
-    id: 'film-1',
-    title: 'Nàng Thơ Paris',
-    category: 'Cô dâu',
-    imageUrl: '/hero-bride.jpg',
-    artworkIndex: 1,
-  },
-  {
-    id: 'film-2',
-    title: 'Nụ Cười Tuổi Thơ',
-    category: 'Em bé',
-    imageUrl: '/hero-baby.jpg',
-    artworkIndex: 2,
-  },
-  {
-    id: 'film-3',
-    title: 'Nghệ Thuật Cổ Điển',
-    category: 'Máy ảnh',
-    imageUrl: '/hero-camera.jpg',
-    artworkIndex: 0,
-  },
-  {
-    id: 'film-4',
-    title: 'Hôn Lễ Vượt Thời Gian',
-    category: 'Couple',
-    imageUrl: '/hero-couple.jpg',
-    artworkIndex: 0,
-  },
-  {
-    id: 'film-5',
-    title: 'Không Gian Atelier',
-    category: 'Studio',
-    imageUrl: '/studio.png',
-    artworkIndex: 0,
-  },
-  {
-    id: 'film-6',
-    title: 'Ký Ức Nghệ Thuật',
-    category: 'Nghệ thuật',
-    imageUrl: '/hero.png',
-    artworkIndex: 1,
-  },
-];
+  // Curated filmstrip data matching user mockup
+  const filmstripItems = useMemo(() => [
+    {
+      id: 'film-1',
+      title: 'Nàng Thơ Paris',
+      category: 'Cô dâu',
+      imageUrl: getAssetUrl('atelier_room_1', '/hero-bride.jpg'),
+      artworkIndex: 1,
+    },
+    {
+      id: 'film-2',
+      title: 'Nụ Cười Tuổi Thơ',
+      category: 'Em bé',
+      imageUrl: getAssetUrl('atelier_room_2', '/hero-baby.jpg'),
+      artworkIndex: 2,
+    },
+    {
+      id: 'film-3',
+      title: 'Nghệ Thuật Cổ Điển',
+      category: 'Máy ảnh',
+      imageUrl: getAssetUrl('atelier_room_3', '/hero-camera.jpg'),
+      artworkIndex: 0,
+    },
+    {
+      id: 'film-4',
+      title: 'Hôn Lễ Vượt Thời Gian',
+      category: 'Couple',
+      imageUrl: getAssetUrl('home_hero_banner', '/hero-couple.jpg'),
+      artworkIndex: 0,
+    },
+    {
+      id: 'film-5',
+      title: 'Không Gian Atelier',
+      category: 'Studio',
+      imageUrl: getAssetUrl('home_atelier_showcase', '/studio.png'),
+      artworkIndex: 0,
+    },
+    {
+      id: 'film-6',
+      title: 'Ký Ức Nghệ Thuật',
+      category: 'Nghệ thuật',
+      imageUrl: getAssetUrl('home_curatorial_banner', '/hero.png'),
+      artworkIndex: 1,
+    },
+  ], [getAssetUrl]);
 
   return (
     <section
@@ -197,7 +199,7 @@ const HERO_FILMSTRIP_ITEMS = [
                 }}
               >
                 <img
-                  src={selectedArtwork?.imageUrl || (artworks && artworks[0]?.imageUrl) || '/hero-couple.jpg'}
+                  src={selectedArtwork?.imageUrl || (artworks && artworks[0]?.imageUrl) || getAssetUrl('atelier_room_1', '/hero-couple.jpg')}
                   alt={selectedArtwork?.title || "Maison MIPA Atelier"}
                   style={{ width: '100%', maxHeight: '360px', objectFit: 'cover', display: 'block' }}
                 />
@@ -253,7 +255,7 @@ const HERO_FILMSTRIP_ITEMS = [
         {artworks.length > 0 && (
           <div className="hero-filmstrip-wrapper">
             <div className="hero-filmstrip-grid">
-              {HERO_FILMSTRIP_ITEMS.map((item) => (
+              {filmstripItems.map((item) => (
                 <div
                   key={item.id}
                   className="hero-filmstrip-card"

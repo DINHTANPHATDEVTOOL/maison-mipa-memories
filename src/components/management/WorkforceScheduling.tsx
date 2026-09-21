@@ -32,6 +32,7 @@ import {
   SHIFT_CONFIGS,
 } from '../../services/staffSchedulingService';
 import { getEmployees } from '../../services/catalogService';
+import { supabase, isDemoModeEnabled, isSupabaseConfigured } from '../../lib/supabase';
 
 interface WorkforceSchedulingProps {
   employees?: Employee[];
@@ -40,32 +41,60 @@ interface WorkforceSchedulingProps {
 
 export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
   employees: propEmployees,
-  onOpenEmployeeDetails: _onOpenEmployeeDetails,
+  onOpenEmployeeDetails,
 }) => {
-  const [employees, setEmployees] = useState<Employee[]>(
-    propEmployees && propEmployees.length > 0 ? propEmployees : INITIAL_EMPLOYEES
-  );
-  const [_skills, setSkills] = useState<StaffSkill[]>([]);
-  const [leaves, setLeaves] = useState<StaffLeaveRequest[]>([]);
-  const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
   const [shiftWeekDate, setShiftWeekDate] = useState<Date>(new Date());
-  const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'SHIFTS' | 'ROSTER' | 'LEAVE'>('SHIFTS');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
 
-  // Leave approval state
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [processingLeaveId, setProcessingLeaveId] = useState<string | null>(null);
+  // Workforce data state
+  const [employees, setEmployees] = useState<Employee[]>(
+    propEmployees && propEmployees.length > 0
+      ? propEmployees
+      : (!isSupabaseConfigured() && isDemoModeEnabled() ? INITIAL_EMPLOYEES : [])
+  );
+  const [leaves, setLeaves] = useState<StaffLeaveRequest[]>([]);
+  const [_skills, setSkills] = useState<StaffSkill[]>([]);
+  const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // New leave modal state
+  // Action status state
+  const [processingLeaveId, setProcessingLeaveId] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Leave creation modal state
   const [showNewLeaveModal, setShowNewLeaveModal] = useState<boolean>(false);
   const [newLeaveEmployeeId, setNewLeaveEmployeeId] = useState<string>(INITIAL_EMPLOYEES[0]?.id || '');
   const [newLeaveType, setNewLeaveType] = useState<'ANNUAL' | 'SICK' | 'PERSONAL' | 'UNPAID' | 'OTHER'>('ANNUAL');
   const [newLeaveStart, setNewLeaveStart] = useState<string>('2026-09-22T08:00');
   const [newLeaveEnd, setNewLeaveEnd] = useState<string>('2026-09-22T18:00');
   const [newLeaveReason, setNewLeaveReason] = useState<string>('');
+
+  // Helper for deduplicating employees by ID, normalized Email, or normalized Name
+  const deduplicateEmployees = (list: Employee[]): Employee[] => {
+    const unique: Employee[] = [];
+    const seenIds = new Set<string>();
+    const seenEmails = new Set<string>();
+    const seenNames = new Set<string>();
+
+    for (const emp of list) {
+      const cleanId = emp.id?.trim();
+      const cleanEmail = emp.email?.trim().toLowerCase();
+      const cleanName = emp.name?.trim().toLowerCase();
+
+      if (cleanId && seenIds.has(cleanId)) continue;
+      if (cleanEmail && seenEmails.has(cleanEmail)) continue;
+      if (cleanName && seenNames.has(cleanName)) continue;
+
+      if (cleanId) seenIds.add(cleanId);
+      if (cleanEmail) seenEmails.add(cleanEmail);
+      if (cleanName) seenNames.add(cleanName);
+      unique.push(emp);
+    }
+    return unique;
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -88,16 +117,20 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
 
       const mergedList: Employee[] = [...baseEmployees];
 
-      // Supplement with INITIAL_EMPLOYEES if not already present
-      INITIAL_EMPLOYEES.forEach((initEmp) => {
-        if (!mergedList.some(e => e.id === initEmp.id || (e.email && e.email === initEmp.email))) {
-          mergedList.push(initEmp);
-        }
-      });
+      // Only fallback to INITIAL_EMPLOYEES in offline demo mode if no real employees exist
+      if (mergedList.length === 0 && !isSupabaseConfigured() && isDemoModeEnabled()) {
+        mergedList.push(...INITIAL_EMPLOYEES);
+      }
 
-      // Ensure any staff who registered shifts is included in the workforce list
+      // Ensure any staff who registered shifts is included in the workforce list without duplicating
       shiftsData.forEach(shift => {
-        if (!mergedList.some(e => e.id === shift.employeeId)) {
+        const cleanShiftName = shift.employeeName?.trim().toLowerCase();
+        const exists = mergedList.some(e =>
+          e.id === shift.employeeId ||
+          (cleanShiftName && e.name && e.name.trim().toLowerCase() === cleanShiftName)
+        );
+
+        if (!exists) {
           mergedList.unshift({
             id: shift.employeeId,
             name: shift.employeeName,
@@ -114,7 +147,7 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
         }
       });
 
-      setEmployees(mergedList);
+      setEmployees(deduplicateEmployees(mergedList));
     } catch (err: any) {
       console.error('Error loading workforce data:', err);
     } finally {
@@ -130,23 +163,40 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
     };
 
     window.addEventListener('mipa_shifts_updated', handleUpdate);
+    window.addEventListener('mipa_staff_updated', handleUpdate);
+    window.addEventListener('mipa_role_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
+
+    let channel: any = null;
+    if (isSupabaseConfigured()) {
+      try {
+        channel = supabase
+          .channel('workforce_scheduling_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, handleUpdate)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleUpdate)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_shifts' }, handleUpdate)
+          .subscribe();
+      } catch (e) {
+        console.warn('Supabase realtime channel subscription error in WorkforceScheduling:', e);
+      }
+    }
+
     return () => {
       window.removeEventListener('mipa_shifts_updated', handleUpdate);
+      window.removeEventListener('mipa_staff_updated', handleUpdate);
+      window.removeEventListener('mipa_role_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
   useEffect(() => {
     if (propEmployees && propEmployees.length > 0) {
       setEmployees(prev => {
-        const merged = [...propEmployees];
-        prev.forEach(p => {
-          if (!merged.some(m => m.id === p.id)) {
-            merged.push(p);
-          }
-        });
-        return merged;
+        const combined = [...propEmployees, ...prev];
+        return deduplicateEmployees(combined);
       });
     }
   }, [propEmployees]);

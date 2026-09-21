@@ -34,10 +34,13 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260918000004_full_ui_logic_regression_hardening.sql',
     '20260918000005_fix_crm_bi_finance_rpc_signatures.sql',
     '20260921000001_dynamic_portfolio_asset_management.sql',
+    '20260921000002_site_media_and_custom_concepts.sql',
+    '20260921000003_restrict_site_assets_to_root_owner.sql',
   ];
 
   const EXPECTED_TABLES = [
     'profiles',
+    'site_assets',
     'services',
     'packages',
     'addons',

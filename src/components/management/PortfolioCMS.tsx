@@ -37,6 +37,7 @@ import {
   clampFocalPoint,
   type CropAspectRatio,
 } from '../../utils/imageOptimizer';
+import { uploadDirectAssetFile } from '../../services/siteAssetService';
 import { useAuth } from '../../context/AuthContext';
 import {
   CheckCircle2,
@@ -118,8 +119,47 @@ export const PortfolioCMS: React.FC = () => {
   const [replacingPhotoId, setReplacingPhotoId] = useState<string | null>(null);
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Direct Cover Upload States for Concept & Collection
+  const [isUploadingConceptCover, setIsUploadingConceptCover] = useState<boolean>(false);
+  const [isUploadingCollectionCover, setIsUploadingCollectionCover] = useState<boolean>(false);
+  const conceptCoverInputRef = useRef<HTMLInputElement>(null);
+  const collectionCoverInputRef = useRef<HTMLInputElement>(null);
+
   const activeCollectionRef = useRef<PortfolioCollection | null>(null);
   activeCollectionRef.current = activeCollection;
+
+  // Handlers for direct cover file upload
+  const handleConceptCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingConceptCover(true);
+      setErrorMessage(null);
+      const res = await uploadDirectAssetFile(file, 'concepts', conceptFormData.slug || 'concept');
+      setConceptFormData(prev => ({ ...prev, coverPhotoUrl: res.url }));
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lỗi khi tải ảnh concept lên.');
+    } finally {
+      setIsUploadingConceptCover(false);
+      if (conceptCoverInputRef.current) conceptCoverInputRef.current.value = '';
+    }
+  };
+
+  const handleCollectionCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingCollectionCover(true);
+      setErrorMessage(null);
+      const res = await uploadDirectAssetFile(file, 'collections', collectionFormData.slug || 'collection');
+      setCollectionFormData(prev => ({ ...prev, coverPhotoUrl: res.url }));
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lỗi khi tải ảnh bộ sưu tập lên.');
+    } finally {
+      setIsUploadingCollectionCover(false);
+      if (collectionCoverInputRef.current) collectionCoverInputRef.current.value = '';
+    }
+  };
 
   // Load initial CMS data
   const loadData = useCallback(async () => {
@@ -1477,16 +1517,60 @@ export const PortfolioCMS: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
-                  URL Ảnh Bìa Đại Diện
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>
+                  Ảnh Bìa Đại Diện (Tải trực tiếp từ máy)
                 </label>
-                <input
-                  type="text"
-                  value={collectionFormData.coverPhotoUrl}
-                  onChange={(e) => setCollectionFormData({ ...collectionFormData, coverPhotoUrl: e.target.value })}
-                  placeholder="/hero-couple.jpg hoặc https://..."
-                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
-                />
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  {collectionFormData.coverPhotoUrl ? (
+                    <div style={{ position: 'relative', width: '110px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--mipa-beige)', flexShrink: 0 }}>
+                      <img
+                        src={collectionFormData.coverPhotoUrl}
+                        alt="Preview bìa"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ width: '110px', height: '80px', borderRadius: '8px', border: '1px dashed var(--mipa-beige)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBF9F5', color: '#8C6E53', fontSize: '0.75rem', textAlign: 'center', padding: '0.5rem', flexShrink: 0 }}>
+                      Chưa có ảnh bìa
+                    </div>
+                  )}
+
+                  <div style={{ flex: 1 }}>
+                    <input
+                      ref={collectionCoverInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/avif"
+                      onChange={handleCollectionCoverFileChange}
+                      style={{ display: 'none' }}
+                      id="collection-cover-file-input"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingCollectionCover}
+                      onClick={() => collectionCoverInputRef.current?.click()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.6rem 1.1rem',
+                        borderRadius: '8px',
+                        backgroundColor: '#604634',
+                        color: '#FAF8F5',
+                        fontWeight: 600,
+                        fontSize: '0.82rem',
+                        border: 'none',
+                        cursor: isUploadingCollectionCover ? 'not-allowed' : 'pointer',
+                        opacity: isUploadingCollectionCover ? 0.7 : 1,
+                      }}
+                    >
+                      <Upload size={15} />
+                      {isUploadingCollectionCover ? 'Đang nén & tải lên...' : (collectionFormData.coverPhotoUrl ? 'Chọn ảnh khác từ máy' : 'Tải ảnh từ máy tính')}
+                    </button>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.73rem', color: '#8C6E53' }}>
+                      Tự động nén WebP chuẩn triển lãm & lưu trữ bảo mật trên đám mây.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
@@ -1645,16 +1729,60 @@ export const PortfolioCMS: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
-                  URL Ảnh Minh Họa
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>
+                  Ảnh Đại Diện Concept (Tải trực tiếp từ máy)
                 </label>
-                <input
-                  type="text"
-                  value={conceptFormData.coverPhotoUrl}
-                  onChange={(e) => setConceptFormData({ ...conceptFormData, coverPhotoUrl: e.target.value })}
-                  placeholder="/studio.png hoặc https://..."
-                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
-                />
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  {conceptFormData.coverPhotoUrl ? (
+                    <div style={{ position: 'relative', width: '110px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--mipa-beige)', flexShrink: 0 }}>
+                      <img
+                        src={conceptFormData.coverPhotoUrl}
+                        alt="Preview concept"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ width: '110px', height: '80px', borderRadius: '8px', border: '1px dashed var(--mipa-beige)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBF9F5', color: '#8C6E53', fontSize: '0.75rem', textAlign: 'center', padding: '0.5rem', flexShrink: 0 }}>
+                      Chưa có ảnh
+                    </div>
+                  )}
+
+                  <div style={{ flex: 1 }}>
+                    <input
+                      ref={conceptCoverInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/avif"
+                      onChange={handleConceptCoverFileChange}
+                      style={{ display: 'none' }}
+                      id="concept-cover-file-input"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingConceptCover}
+                      onClick={() => conceptCoverInputRef.current?.click()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.6rem 1.1rem',
+                        borderRadius: '8px',
+                        backgroundColor: '#604634',
+                        color: '#FAF8F5',
+                        fontWeight: 600,
+                        fontSize: '0.82rem',
+                        border: 'none',
+                        cursor: isUploadingConceptCover ? 'not-allowed' : 'pointer',
+                        opacity: isUploadingConceptCover ? 0.7 : 1,
+                      }}
+                    >
+                      <Upload size={15} />
+                      {isUploadingConceptCover ? 'Đang nén & tải lên...' : (conceptFormData.coverPhotoUrl ? 'Chọn ảnh khác từ máy' : 'Tải ảnh từ máy tính')}
+                    </button>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.73rem', color: '#8C6E53' }}>
+                      Tự động nén WebP chuẩn triển lãm & lưu trữ bảo mật trên đám mây.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '1.5rem', padding: '0.5rem 0' }}>

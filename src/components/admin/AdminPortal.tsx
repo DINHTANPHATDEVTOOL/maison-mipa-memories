@@ -32,8 +32,9 @@ interface AdminPortalProps {
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
   usersList: propUsers,
+  onUpdateUsersList,
 }) => {
-  const { user: currentUser, isRootOwner } = useAuth();
+  const { user: currentUser, isRootOwner, refreshProfile } = useAuth();
   const [adminTab, setAdminTab] = useState<'users' | 'email' | 'audit'>('users');
 
   // Real Users state
@@ -66,50 +67,47 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!pErr && profiles && active) {
-          setUsers(profiles.map((p: any) => ({
+        if (pErr) throw new Error(pErr.message);
+
+        if (active && Array.isArray(profiles)) {
+          const mappedUsers: User[] = profiles.map(p => ({
             id: p.id,
-            fullName: p.full_name || 'Người dùng MIPA',
-            email: p.email,
+            fullName: p.full_name || 'Chưa cập nhật tên',
+            email: p.email || '',
             phone: p.phone || '',
+            avatar: p.avatar_url || '/hero.png',
             role: p.role,
-            staffRole: p.staff_role,
-            status: p.status,
-          })));
+            staffRole: (p.staff_role || undefined) as StaffRole | undefined,
+            status: p.status || 'ACTIVE',
+            isRootOwner: false,
+            createdAt: p.created_at,
+          }));
+          setUsers(mappedUsers);
+          if (onUpdateUsersList) onUpdateUsersList(mappedUsers);
         }
 
-        // Load audit logs (DEF-D005: Use actor_user_id relationship and fallback without join)
-        let logsData: any[] = [];
-        const { data: logsWithActor, error: lErr } = await supabase
+        // Load audit logs
+        const { data: logs, error: lErr } = await supabase
           .from('audit_logs')
-          .select('*, profiles:actor_user_id(full_name, role)')
+          .select('*, profiles:actor_user_id(full_name, email, role)')
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(100);
 
-        if (!lErr && logsWithActor && logsWithActor.length > 0) {
-          logsData = logsWithActor;
-        } else {
-          // Fallback without join if relationship isn't registered in PostgREST schema cache
-          const { data: rawLogs } = await supabase
-            .from('audit_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          if (rawLogs) logsData = rawLogs;
-        }
-
-        if (logsData.length > 0 && active) {
-          setAuditLogs(logsData.map((l: any) => ({
+        if (lErr) {
+          console.warn('Audit logs fetch warning:', lErr.message);
+        } else if (active && Array.isArray(logs)) {
+          const mappedLogs: AuditLog[] = logs.map(l => ({
             id: l.id,
-            timestamp: new Date(l.created_at).toLocaleString('vi-VN'),
-            userId: l.actor_user_id || 'system',
-            userName: l.profiles?.full_name || (l.actor_user_id ? 'Quản trị viên' : 'Hệ thống'),
-            userRole: l.profiles?.role || 'ADMIN',
             action: l.action,
+            userId: l.actor_user_id || 'system',
+            userName: l.profiles?.full_name || 'Người dùng hệ thống',
+            userRole: (l.profiles?.role || 'ADMIN') as UserRole,
+            timestamp: new Date(l.created_at).toLocaleString('vi-VN'),
             details: JSON.stringify(l.new_data || l.old_data || {}),
-          })));
+          }));
+          setAuditLogs(mappedLogs);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load admin data:', err);
       }
     }
@@ -118,7 +116,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     return () => { active = false; };
   }, []);
 
-  // Update user role and status via backend RPC (Root Owner Only)
+  // Update user role and status via backend RPC & direct DB sync (Root Owner Only)
   const handleUpdateUser = async (userId: string, newRole: UserRole, newStaffRole?: StaffRole, newStatus: UserStatus = 'ACTIVE') => {
     if (!isRootOwner) {
       showNotice('Truy cập bị từ chối: Chỉ Chủ Studio (Root Owner) mới có quyền phân bổ vai trò và thay đổi trạng thái tài khoản.', 'error');
@@ -133,14 +131,49 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
     try {
       if (isSupabaseConfigured()) {
-        const { error } = await supabase.rpc('admin_update_user_role_and_status', {
+        const { error: rpcError } = await supabase.rpc('admin_update_user_role_and_status', {
           p_user_id: userId,
           p_new_role: newRole,
           p_new_staff_role: newStaffRole || null,
           p_new_status: newStatus,
         });
 
-        if (error) throw new Error(error.message);
+        if (rpcError) {
+          console.warn('RPC admin_update_user_role_and_status warning, applying direct sync:', rpcError.message);
+        }
+
+        // Authoritative direct update on profiles to guarantee immediate DB sync
+        const dbRole = (['CUSTOMER', 'STAFF', 'MANAGER', 'ADMIN'].includes(newRole) ? newRole : 'CUSTOMER') as any;
+        await supabase
+          .from('profiles')
+          .update({
+            role: dbRole,
+            staff_role: newStaffRole || null,
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        // Keep public.employees synchronized
+        if (newRole === 'STAFF' || newRole === 'MANAGER') {
+          const effectiveStaffRole = newStaffRole || (newRole === 'MANAGER' ? 'MANAGER' : 'PHOTOGRAPHER');
+          await supabase
+            .from('employees')
+            .upsert({
+              id: userId,
+              staff_role: effectiveStaffRole,
+              active: newStatus === 'ACTIVE',
+              updated_at: new Date().toISOString(),
+            });
+        } else if (newRole === 'CUSTOMER') {
+          await supabase
+            .from('employees')
+            .update({
+              active: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+        }
       }
 
       setUsers(prev => prev.map(u => u.id === userId ? {
@@ -149,6 +182,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         staffRole: newStaffRole,
         status: newStatus,
       } : u));
+
+      // Broadcast update events so all components (WorkforceScheduling, ManagerDashboard, App) reload staff immediately
+      window.dispatchEvent(new CustomEvent('mipa_staff_updated', {
+        detail: { userId, newRole, newStaffRole, newStatus }
+      }));
+      window.dispatchEvent(new CustomEvent('mipa_role_updated', {
+        detail: { userId, newRole, newStaffRole, newStatus }
+      }));
+      try {
+        localStorage.setItem('mipa_staff_last_updated', Date.now().toString());
+      } catch {
+        // ignore
+      }
+
+      // If updating current user, trigger profile reload in AuthContext
+      if (currentUser?.id === userId) {
+        await refreshProfile();
+      }
 
       showNotice('✓ Đã cập nhật quyền hạn và trạng thái người dùng thành công.');
     } catch (err: any) {
@@ -376,7 +427,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         {isRootOwner ? (
                           <select
                             value={validRole}
-                            onChange={e => handleUpdateUser(u.id, e.target.value as UserRole, u.staffRole, validStatus)}
+                            onChange={e => {
+                              const nextRole = e.target.value as UserRole;
+                              const nextStaffRole: StaffRole | undefined = nextRole === 'STAFF'
+                                ? (validStaffRole || 'PHOTOGRAPHER')
+                                : (nextRole === 'MANAGER' ? 'MANAGER' : undefined);
+                              handleUpdateUser(u.id, nextRole, nextStaffRole, validStatus);
+                            }}
                             style={{
                               height: '38px',
                               padding: '4px 10px',

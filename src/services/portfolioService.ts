@@ -493,7 +493,7 @@ function mapConceptRow(row: ConceptRow, coverPhotoUrl?: string): Concept {
     name: row.name,
     description: row.description || '',
     coverPhotoId: row.cover_photo_id || undefined,
-    coverPhotoUrl: coverPhotoUrl || undefined,
+    coverPhotoUrl: coverPhotoUrl || row.cover_photo_url || undefined,
     serviceId: row.service_id || undefined,
     active: row.active,
     bookable: row.bookable,
@@ -504,16 +504,21 @@ function mapConceptRow(row: ConceptRow, coverPhotoUrl?: string): Concept {
 }
 
 // Helper to resolve collection cover photo priority:
-// 1. cover_photo_id referenced photo
-// 2. explicitly featured photo
-// 3. first collection photo
-// 4. demo fallback URL / concept-specific distinctive photo (DEF-006)
+// 1. directCoverUrl (if custom set or stored in collection row)
+// 2. cover_photo_id referenced photo
+// 3. explicitly featured photo
+// 4. first collection photo
+// 5. demo fallback URL / concept-specific distinctive photo (DEF-006)
 function resolveCollectionCoverUrl(
   coverPhotoId?: string,
   photos?: PortfolioPhoto[],
   demoFallbackUrl?: string,
-  slugHint?: string
+  slugHint?: string,
+  directCoverUrl?: string
 ): string | undefined {
+  if (directCoverUrl && directCoverUrl !== '/hero.png' && directCoverUrl !== '/studio.png') {
+    return directCoverUrl;
+  }
   if (photos && photos.length > 0) {
     if (coverPhotoId) {
       const match = photos.find((p) => p.id === coverPhotoId);
@@ -523,6 +528,7 @@ function resolveCollectionCoverUrl(
     if (featured?.url && featured.url !== '/hero.png' && featured.url !== '/studio.png') return featured.url;
     if (photos[0]?.url && photos[0].url !== '/hero.png' && photos[0].url !== '/studio.png') return photos[0].url;
   }
+  if (directCoverUrl) return directCoverUrl;
   if (demoFallbackUrl && demoFallbackUrl !== '/hero.png' && demoFallbackUrl !== '/studio.png') {
     return demoFallbackUrl;
   }
@@ -555,6 +561,7 @@ function mapCollectionRow(row: PortfolioCollectionRow, concept?: ConceptRow): Po
     status: row.status as CollectionStatus,
     featured: row.featured,
     coverPhotoId: row.cover_photo_id || undefined,
+    coverPhotoUrl: row.cover_photo_url || undefined,
     createdBy: row.created_by || undefined,
     publishedBy: row.published_by || undefined,
     publishedAt: row.published_at || undefined,
@@ -665,6 +672,9 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
 
       const mapped = data.map((row) => {
         let coverUrl = row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined;
+        if (!coverUrl && row.cover_photo_url) {
+          coverUrl = row.cover_photo_url;
+        }
         // DEF-005: Fallback to curated concept image if DB row lacks cover photo
         if (!coverUrl) {
           const demoMatch = DEMO_CONCEPTS.find(
@@ -672,6 +682,8 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
           );
           if (demoMatch?.coverPhotoUrl) {
             coverUrl = demoMatch.coverPhotoUrl;
+          } else {
+            coverUrl = resolveCollectionCoverUrl(undefined, undefined, undefined, row.slug);
           }
         }
         return mapConceptRow(row, coverUrl);
@@ -729,20 +741,25 @@ export async function getConceptBySlug(slug: string): Promise<Concept | null> {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // Fallback to local brand concept if not in remote DB
-        const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
-        return brandConcept || null;
+        if (isDemoModeEnabled()) {
+          const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
+          return brandConcept || null;
+        }
+        return null;
       }
       throw new Error(`Lỗi tải concept ${slug}: ${error.message}`);
     }
 
     if (!data) {
-      const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
-      return brandConcept || null;
+      if (isDemoModeEnabled()) {
+        const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
+        return brandConcept || null;
+      }
+      return null;
     }
 
-    let coverPhotoUrl: string | undefined = undefined;
-    if (data.cover_photo_id) {
+    let coverPhotoUrl: string | undefined = data.cover_photo_url || undefined;
+    if (!coverPhotoUrl && data.cover_photo_id) {
       const { data: photoData } = await supabase
         .from('portfolio_photos')
         .select('url')
@@ -753,11 +770,13 @@ export async function getConceptBySlug(slug: string): Promise<Concept | null> {
       }
     }
 
-    // DEF-005: Fallback to curated thumbnail if DB row lacks cover_photo_id
+    // Fallback to curated thumbnail if DB row lacks cover photo
     if (!coverPhotoUrl) {
       const demoMatch = DEMO_CONCEPTS.find((d) => d.slug === slug || d.id === data.id);
       if (demoMatch?.coverPhotoUrl) {
         coverPhotoUrl = demoMatch.coverPhotoUrl;
+      } else {
+        coverPhotoUrl = resolveCollectionCoverUrl(undefined, undefined, undefined, slug);
       }
     }
 
@@ -838,7 +857,8 @@ export async function getPublicCollections(
           col.coverPhotoId,
           photos,
           undefined,
-          col.slug + ' ' + (col.conceptSlug || '')
+          col.slug + ' ' + (col.conceptSlug || ''),
+          col.coverPhotoUrl
         );
         return col;
       });
@@ -1048,7 +1068,7 @@ export async function getAllCollections(statusFilter?: string): Promise<Portfoli
       photos.sort((a, b) => a.sortOrder - b.sortOrder);
       col.photos = photos;
       col.photosCount = photos.length;
-      col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos);
+      col.coverPhotoUrl = resolveCollectionCoverUrl(col.coverPhotoId, photos, undefined, undefined, col.coverPhotoUrl);
       return col;
     });
 
@@ -1200,6 +1220,7 @@ export async function createConcept(input: {
       slug,
       description: input.description || null,
       service_id: input.serviceId || null,
+      cover_photo_url: input.coverPhotoUrl || null,
       active: input.active ?? true,
       bookable: input.bookable ?? true,
       display_order: input.displayOrder ?? 99,
@@ -1228,6 +1249,7 @@ export async function updateConcept(id: string, updates: Partial<Concept>): Prom
     if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.serviceId !== undefined) dbUpdates.service_id = updates.serviceId;
+    if (updates.coverPhotoUrl !== undefined) dbUpdates.cover_photo_url = updates.coverPhotoUrl;
     if (updates.active !== undefined) dbUpdates.active = updates.active;
     if (updates.bookable !== undefined) dbUpdates.bookable = updates.bookable;
     if (updates.displayOrder !== undefined) dbUpdates.display_order = updates.displayOrder;
@@ -1320,6 +1342,7 @@ export async function createCollection(input: {
       featured: input.featured ?? false,
       display_order: 1,
       cover_photo_id: null,
+      cover_photo_url: input.coverPhotoUrl || null,
     }).select('*, concepts(*), portfolio_photos(*)').single();
 
     if (error) {
@@ -1348,6 +1371,7 @@ export async function updateCollection(id: string, updates: Partial<PortfolioCol
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
     if (updates.coverPhotoId !== undefined) dbUpdates.cover_photo_id = updates.coverPhotoId;
+    if (updates.coverPhotoUrl !== undefined) dbUpdates.cover_photo_url = updates.coverPhotoUrl;
 
     const { data, error } = await supabase
       .from('portfolio_collections')

@@ -109,10 +109,12 @@ export async function getServices(): Promise<ServiceCategory[]> {
         badge: item.badge || undefined,
       }));
 
-      // DEF-009: Guarantee Graduation service is present if database has active services
-      const graduationService = INITIAL_SERVICES.find(s => s.slug === 'graduation');
-      if (graduationService && !mapped.some(s => s.slug === 'graduation' || s.id === graduationService.id)) {
-        mapped.push(graduationService);
+      // DEF-009: Guarantee Graduation service is present if database has active services in demo mode
+      if (isDemoModeEnabled()) {
+        const graduationService = INITIAL_SERVICES.find(s => s.slug === 'graduation');
+        if (graduationService && !mapped.some(s => s.slug === 'graduation' || s.id === graduationService.id)) {
+          mapped.push(graduationService);
+        }
       }
 
       if (!isTestEnv) {
@@ -194,8 +196,8 @@ export async function getPackages(serviceId?: string): Promise<PackageItem[]> {
         popularTag: p.popular_tag || undefined,
       }));
 
-      // DEF-009: Ensure Graduation packages are available if not filtered out
-      if (!serviceId || serviceId === 'c0000000-0000-0000-0000-000000000007') {
+      // DEF-009: Ensure Graduation packages are available if in demo mode
+      if (isDemoModeEnabled() && (!serviceId || serviceId === 'c0000000-0000-0000-0000-000000000007')) {
         const gradPkgs = INITIAL_PACKAGES.filter(p => p.serviceId === 'c0000000-0000-0000-0000-000000000007');
         for (const gPkg of gradPkgs) {
           if (!mapped.some(p => p.id === gPkg.id)) {
@@ -504,9 +506,9 @@ export async function getPromotions(): Promise<Promotion[]> {
 
 export async function getEmployees(): Promise<Employee[]> {
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
+    const { data: empData, error } = await supabase
       .from('employees')
-      .select('*, profiles(full_name, phone, email, avatar_url, role)')
+      .select('*, profiles(id, full_name, phone, email, avatar_url, role, staff_role, status)')
       .eq('active', true);
 
     if (error) {
@@ -514,23 +516,144 @@ export async function getEmployees(): Promise<Employee[]> {
       throw new Error(`Không thể tải danh sách nhân viên: ${error.message}`);
     }
 
-    if (!data || data.length === 0) {
-      return [];
+    // Also query profiles table for accounts with STAFF, MANAGER, or ADMIN roles
+    let profileStaff: any[] = [];
+    try {
+      const { data: pStaff } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['STAFF', 'MANAGER', 'ADMIN']);
+
+      if (Array.isArray(pStaff)) {
+        profileStaff = pStaff;
+      }
+    } catch {
+      // Ignore if in() or profiles query fails in mock environments
     }
 
-    return data.map((e: any) => ({
-      id: e.id,
-      name: e.name || e.profiles?.full_name || 'Chuyên Viên MIPA',
-      phone: e.phone || e.profiles?.phone || '',
-      email: e.email || e.profiles?.email || '',
-      role: (e.staff_role || 'PHOTOGRAPHER') as StaffRole,
-      avatar: e.avatar_url || e.profiles?.avatar_url || undefined,
-      skills: Array.isArray(e.skills) ? e.skills : [],
-      rating: Number(e.rating || 5.0),
-      totalSessions: e.total_sessions || 0,
-      status: 'ACTIVE' as const,
-      shiftSchedule: e.shift_schedule || {},
-    }));
+    const employeesList: Employee[] = [];
+
+    // Helper to find existing employee index by ID, normalized email, or normalized name
+    const findExistingIndex = (id?: string, email?: string, name?: string) => {
+      const cleanId = id?.trim();
+      const cleanEmail = email?.trim().toLowerCase();
+      const cleanName = name?.trim().toLowerCase();
+
+      return employeesList.findIndex(e => {
+        if (cleanId && e.id && e.id === cleanId) return true;
+        if (cleanEmail && e.email && e.email.trim().toLowerCase() === cleanEmail) return true;
+        if (cleanName && e.name && e.name.trim().toLowerCase() === cleanName) return true;
+        return false;
+      });
+    };
+
+    // 1. Process profile accounts FIRST as the authoritative source of truth for accounts & roles
+    profileStaff.forEach((p: any) => {
+      if (p.status === 'BANNED' || p.status === 'DISABLED' || p.status === 'SUSPENDED' || p.role === 'CUSTOMER') {
+        return;
+      }
+
+      // Authoritative role hierarchy:
+      // MANAGER or ADMIN profiles always map to MANAGER role
+      // STAFF profiles map to p.staff_role or default to PHOTOGRAPHER
+      let staffRole: StaffRole = 'PHOTOGRAPHER';
+      if (p.role === 'MANAGER' || p.role === 'ADMIN') {
+        staffRole = (p.staff_role || 'MANAGER') as StaffRole;
+      } else if (p.role === 'STAFF') {
+        staffRole = (p.staff_role || 'PHOTOGRAPHER') as StaffRole;
+      }
+
+      const employeeObj: Employee = {
+        id: p.id,
+        name: p.full_name || p.email?.split('@')[0] || 'Chuyên Viên MIPA',
+        phone: p.phone || '',
+        email: p.email || '',
+        role: staffRole,
+        avatar: p.avatar_url || undefined,
+        skills: ['Portrait', 'Studio'],
+        rating: 5.0,
+        totalSessions: 0,
+        status: 'ACTIVE' as const,
+        shiftSchedule: {},
+      };
+
+      const existingIdx = findExistingIndex(p.id, p.email, p.full_name);
+      if (existingIdx >= 0) {
+        employeesList[existingIdx] = {
+          ...employeesList[existingIdx],
+          ...employeeObj,
+          skills: employeesList[existingIdx].skills?.length ? employeesList[existingIdx].skills : employeeObj.skills,
+          rating: employeesList[existingIdx].rating || employeeObj.rating,
+          totalSessions: employeesList[existingIdx].totalSessions || employeeObj.totalSessions,
+          shiftSchedule: employeesList[existingIdx].shiftSchedule || employeeObj.shiftSchedule,
+        };
+      } else {
+        employeesList.push(employeeObj);
+      }
+    });
+
+    // 2. Process records from employees table (join data)
+    if (Array.isArray(empData)) {
+      empData.forEach((e: any) => {
+        const linkedProfile = e.profiles;
+        if (linkedProfile && (linkedProfile.status === 'BANNED' || linkedProfile.status === 'DISABLED' || linkedProfile.status === 'SUSPENDED' || linkedProfile.role === 'CUSTOMER')) {
+          const existingIdx = findExistingIndex(e.id, e.email || linkedProfile.email, e.name || linkedProfile.full_name);
+          if (existingIdx >= 0) {
+            employeesList.splice(existingIdx, 1);
+          }
+          return;
+        }
+
+        const candidateId = linkedProfile?.id || e.id;
+        const candidateEmail = linkedProfile?.email || e.email || '';
+        const candidateName = linkedProfile?.full_name || e.name || 'Chuyên Viên MIPA';
+        const candidateAvatar = linkedProfile?.avatar_url || e.avatar_url || undefined;
+        const candidatePhone = linkedProfile?.phone || e.phone || '';
+
+        let finalRole: StaffRole = (e.staff_role || 'PHOTOGRAPHER') as StaffRole;
+        if (linkedProfile) {
+          if (linkedProfile.role === 'MANAGER' || linkedProfile.role === 'ADMIN') {
+            finalRole = (linkedProfile.staff_role || 'MANAGER') as StaffRole;
+          } else if (linkedProfile.role === 'STAFF') {
+            finalRole = (linkedProfile.staff_role || e.staff_role || 'PHOTOGRAPHER') as StaffRole;
+          }
+        }
+
+        const existingIdx = findExistingIndex(candidateId, candidateEmail, candidateName);
+        if (existingIdx >= 0) {
+          const prev = employeesList[existingIdx];
+          employeesList[existingIdx] = {
+            ...prev,
+            id: candidateId || prev.id,
+            name: prev.name || candidateName,
+            email: prev.email || candidateEmail,
+            phone: prev.phone || candidatePhone,
+            avatar: prev.avatar || candidateAvatar,
+            role: prev.role || finalRole,
+            skills: Array.isArray(e.skills) && e.skills.length ? e.skills : prev.skills,
+            rating: Number(e.rating || prev.rating || 5.0),
+            totalSessions: Number(e.total_sessions || prev.totalSessions || 0),
+            shiftSchedule: e.shift_schedule || prev.shiftSchedule || {},
+          };
+        } else {
+          employeesList.push({
+            id: candidateId,
+            name: candidateName,
+            phone: candidatePhone,
+            email: candidateEmail,
+            role: finalRole,
+            avatar: candidateAvatar,
+            skills: Array.isArray(e.skills) ? e.skills : ['Portrait', 'Studio'],
+            rating: Number(e.rating || 5.0),
+            totalSessions: Number(e.total_sessions || 0),
+            status: 'ACTIVE' as const,
+            shiftSchedule: e.shift_schedule || {},
+          });
+        }
+      });
+    }
+
+    return employeesList;
   }
 
   if (isDemoModeEnabled()) {

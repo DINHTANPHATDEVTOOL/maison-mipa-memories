@@ -10,8 +10,10 @@ import { getServices } from '../../services/catalogService';
 import type { ServiceCategory } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 export const HomeServicesSection: React.FC = () => {
+  const { getAssetUrl } = useSiteAssets();
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -155,6 +157,7 @@ export const HomeServicesSection: React.FC = () => {
         >
           {services.map((service) => {
             const serviceSlug = service.slug || service.id.replace('srv_', '');
+            const displayImage = getAssetUrl(`service_${serviceSlug}`, service.image);
 
             return (
               <article
@@ -180,9 +183,9 @@ export const HomeServicesSection: React.FC = () => {
                     marginBottom: '1rem',
                   }}
                 >
-                  {service.image ? (
+                  {displayImage ? (
                     <img
-                      src={service.image}
+                      src={displayImage}
                       alt={service.name}
                       loading="lazy"
                       decoding="async"

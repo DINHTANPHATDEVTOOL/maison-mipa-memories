@@ -967,6 +967,7 @@ export interface Database {
           name: string;
           description: string | null;
           cover_photo_id: string | null;
+          cover_photo_url: string | null;
           service_id: string | null;
           active: boolean;
           bookable: boolean;
@@ -980,6 +981,7 @@ export interface Database {
           name: string;
           description?: string | null;
           cover_photo_id?: string | null;
+          cover_photo_url?: string | null;
           service_id?: string | null;
           active?: boolean;
           bookable?: boolean;
@@ -993,6 +995,7 @@ export interface Database {
           name?: string;
           description?: string | null;
           cover_photo_id?: string | null;
+          cover_photo_url?: string | null;
           service_id?: string | null;
           active?: boolean;
           bookable?: boolean;
@@ -1020,6 +1023,7 @@ export interface Database {
           status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
           featured: boolean;
           cover_photo_id: string | null;
+          cover_photo_url: string | null;
           created_by: string | null;
           published_by: string | null;
           published_at: string | null;
@@ -1037,6 +1041,7 @@ export interface Database {
           status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
           featured?: boolean;
           cover_photo_id?: string | null;
+          cover_photo_url?: string | null;
           created_by?: string | null;
           published_by?: string | null;
           published_at?: string | null;
@@ -1054,6 +1059,7 @@ export interface Database {
           status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
           featured?: boolean;
           cover_photo_id?: string | null;
+          cover_photo_url?: string | null;
           created_by?: string | null;
           published_by?: string | null;
           published_at?: string | null;
@@ -1212,6 +1218,46 @@ export interface Database {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      site_assets: {
+        Row: {
+          id: string;
+          page: string;
+          label: string;
+          description: string | null;
+          image_url: string;
+          storage_path: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          page: string;
+          label: string;
+          description?: string | null;
+          image_url: string;
+          storage_path?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          page?: string;
+          label?: string;
+          description?: string | null;
+          image_url?: string;
+          storage_path?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'site_assets_updated_by_fkey';
+            columns: ['updated_by'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       booking_proof_images: {
         Row: {
@@ -2802,4 +2848,7 @@ export type BookingResourceReservationRow = Database['public']['Tables']['bookin
 export type BookingResourceHandoffRow = Database['public']['Tables']['booking_resource_handoffs']['Row'];
 export type ResourceMaintenanceRow = Database['public']['Tables']['resource_maintenance']['Row'];
 export type ResourceIncidentRow = Database['public']['Tables']['resource_incidents']['Row'];
+export type SiteAssetRow = Database['public']['Tables']['site_assets']['Row'];
+export type SiteAssetInsert = Database['public']['Tables']['site_assets']['Insert'];
+export type SiteAssetUpdate = Database['public']['Tables']['site_assets']['Update'];
 

@@ -299,8 +299,8 @@ describe('Visual Commerce Hardening & Data Integrity Pass', () => {
     const hamburger = screen.getByLabelText('Mở menu điều hướng');
     fireEvent.click(hamburger);
 
-    expect(screen.getByRole('link', { name: /Studio Manager OS/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Staff OS Portal/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /(Hệ thống quản lý Studio|Studio Manager OS)/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /(Cổng nhân viên|Staff OS Portal)/i })).toBeInTheDocument();
   });
 
   // 12. Mobile staff: Staff portal reachable
@@ -311,8 +311,8 @@ describe('Visual Commerce Hardening & Data Integrity Pass', () => {
     const hamburger = screen.getByLabelText('Mở menu điều hướng');
     fireEvent.click(hamburger);
 
-    expect(screen.getByRole('link', { name: /Staff OS Portal/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Studio Manager OS/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /(Cổng nhân viên|Staff OS Portal)/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /(Hệ thống quản lý Studio|Studio Manager OS)/i })).not.toBeInTheDocument();
   });
 
   // 13. NavLink semantics & 16. /cam-nang policy

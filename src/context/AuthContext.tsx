@@ -28,7 +28,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
-  updateProfile: (params: { fullName: string; phone?: string }) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (params: { fullName: string; phone?: string; avatar?: string | null }) => Promise<{ success: boolean; error?: string }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
@@ -296,6 +296,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, [resolveSessionAndProfile, clearAuthoritativeAuthState, isDemoMode]);
+
+  /**
+   * Realtime Listener for Profile / Role Changes
+   */
+  useEffect(() => {
+    if (!session?.user?.id || isDemoMode || !isSupabaseConfigured()) return;
+
+    const handleRoleUpdated = (e: any) => {
+      const detail = e.detail;
+      if (!detail || detail.userId === session.user.id) {
+        refreshProfile();
+      }
+    };
+
+    window.addEventListener('mipa_role_updated', handleRoleUpdated);
+
+    let channel: any = null;
+    try {
+      if (typeof supabase?.channel === 'function') {
+        channel = supabase
+          .channel(`auth_profile_${session.user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'profiles',
+              filter: `id=eq.${session.user.id}`,
+            },
+            () => {
+              refreshProfile();
+            }
+          )
+          .subscribe();
+      }
+    } catch (e) {
+      console.warn('Realtime profile subscription error:', e);
+    }
+
+    return () => {
+      window.removeEventListener('mipa_role_updated', handleRoleUpdated);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [session?.user?.id, isDemoMode, refreshProfile]);
 
   /**
    * Production Login with Email & Password
@@ -568,9 +614,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
-   * Update Personal Profile (Full Name, Phone)
+   * Update Personal Profile (Full Name, Phone, Avatar)
    */
-  const updateProfile = useCallback(async (params: { fullName: string; phone?: string }): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = useCallback(async (params: { fullName: string; phone?: string; avatar?: string | null }): Promise<{ success: boolean; error?: string }> => {
     if (!user?.id) {
       return { success: false, error: 'Chưa đăng nhập.' };
     }
@@ -586,14 +632,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
 
     try {
+      const updatePayload: Record<string, any> = {
+        full_name: cleanName,
+        phone: cleanPhone,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (params.avatar !== undefined) {
+        updatePayload.avatar_url = params.avatar ? params.avatar.trim() : null;
+      }
+
       if (isSupabaseConfigured()) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({
-            full_name: cleanName,
-            phone: cleanPhone,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload as any)
           .eq('id', user.id);
 
         if (profileError) {
@@ -602,20 +654,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: profileError.message };
         }
 
+        // Also update employees table if user is an employee
+        if (params.avatar !== undefined) {
+          try {
+            await supabase
+              .from('employees')
+              .update({
+                avatar_url: updatePayload.avatar_url,
+                name: cleanName,
+                phone: cleanPhone,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', user.id);
+          } catch {
+            // Ignore if user is not in employees table
+          }
+        }
+
         // Sync auth user metadata
         await supabase.auth.updateUser({
           data: {
             full_name: cleanName,
             phone: cleanPhone,
+            ...(params.avatar !== undefined ? { avatar_url: updatePayload.avatar_url } : {}),
           },
         });
       }
+
+      const nextAvatar = params.avatar !== undefined
+        ? (params.avatar ? params.avatar.trim() : undefined)
+        : user.avatar;
 
       setUser(prev => prev ? {
         ...prev,
         fullName: cleanName,
         phone: cleanPhone,
+        avatar: nextAvatar,
       } : null);
+
+      window.dispatchEvent(new CustomEvent('mipa_staff_updated'));
 
       setIsLoading(false);
       return { success: true };

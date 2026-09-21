@@ -30,6 +30,8 @@ dist-ssr
 # Archives and build artifacts
 *.zip
 dist.zip
+*.tar.gz
+dist.tar.gz
 
 # Test outputs
 test-results/

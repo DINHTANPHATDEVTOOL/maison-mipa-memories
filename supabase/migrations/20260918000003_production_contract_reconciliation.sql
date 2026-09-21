@@ -445,7 +445,7 @@ BEGIN
     WHERE slr.status = 'APPROVED'
       AND tstzrange(slr.start_at, slr.end_at, '[)') && tstzrange(v_start, v_end, '[)')
   ),
-  overlaps AS (
+  booking_conflicts AS (
     SELECT 
       ba.employee_id,
       b.booking_code
@@ -471,18 +471,18 @@ BEGIN
     ep.status,
     CASE 
       WHEN l.employee_id IS NOT NULL THEN false
-      WHEN o.employee_id IS NOT NULL THEN false
+      WHEN bc.employee_id IS NOT NULL THEN false
       ELSE true
     END AS is_available,
     CASE 
       WHEN l.employee_id IS NOT NULL THEN 'Có lịch nghỉ phép đã duyệt'
-      WHEN o.employee_id IS NOT NULL THEN 'Đã có ca chụp trùng giờ: ' || o.booking_code
+      WHEN bc.employee_id IS NOT NULL THEN 'Đã có ca chụp trùng giờ: ' || bc.booking_code
       ELSE NULL
     END AS unavailability_reason,
     COALESCE(sa.skills, ARRAY[]::TEXT[]) AS matching_skills
   FROM emp_pool ep
   LEFT JOIN leaves l ON l.employee_id = ep.id
-  LEFT JOIN overlaps o ON o.employee_id = ep.id
+  LEFT JOIN booking_conflicts bc ON bc.employee_id = ep.id
   LEFT JOIN skills_agg sa ON sa.employee_id = ep.id
   ORDER BY is_available DESC, ep.full_name ASC;
 END;
@@ -496,7 +496,8 @@ GRANT EXECUTE ON FUNCTION public.return_booking_resource(UUID, TEXT, TEXT, BOOLE
 GRANT EXECUTE ON FUNCTION public.get_available_staff_for_booking(UUID, TEXT) TO authenticated;
 
 -- Comment for schema introspection and audit
-COMMENT ON FUNCTION public.assign_booking_staff_v2 IS 'Assigns staff to booking with multi-crew support and concurrency safety';
-COMMENT ON FUNCTION public.checkout_booking_resource IS 'Performs physical checkout handoff of reserved equipment';
-COMMENT ON FUNCTION public.return_booking_resource IS 'Performs equipment return and logs condition and damage';
-COMMENT ON FUNCTION public.get_available_staff_for_booking IS 'Authoritatively determines available staff for a booking interval';
+COMMENT ON FUNCTION public.assign_booking_staff_v2(UUID, UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT) IS 'Assigns staff to booking with multi-crew support and concurrency safety';
+COMMENT ON FUNCTION public.checkout_booking_resource(UUID, UUID, TEXT, TEXT) IS 'Performs physical checkout handoff of reserved equipment';
+COMMENT ON FUNCTION public.return_booking_resource(UUID, TEXT, TEXT, BOOLEAN, TEXT, TEXT, TEXT) IS 'Performs equipment return and logs condition and damage';
+COMMENT ON FUNCTION public.get_available_staff_for_booking(UUID, TEXT) IS 'Authoritatively determines available staff for a booking interval';
+

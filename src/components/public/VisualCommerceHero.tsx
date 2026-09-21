@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { ArrowRight, Calendar } from 'lucide-react';
 import { gsap } from 'gsap';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 // Default Maison MIPA brand hero asset.
 export const BRAND_HERO_ASSET = '/hero.png';
@@ -25,6 +26,12 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
 }) => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
+  const { getAssetUrl } = useSiteAssets();
+
+  const effectiveHeroImageUrl =
+    heroImageUrl && heroImageUrl !== BRAND_HERO_ASSET && heroImageUrl !== '/hero.png'
+      ? heroImageUrl
+      : getAssetUrl('home_hero_banner', BRAND_HERO_ASSET);
 
   const heroRef = useRef<HTMLElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -33,6 +40,18 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
   const titleRef = useRef<HTMLHeadingElement>(null);
   const leadRef = useRef<HTMLParagraphElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+
+  // Imperatively update image src when asset changes to avoid unmounting DOM
+  useEffect(() => {
+    if (imageRef.current && effectiveHeroImageUrl) {
+      const isDefault =
+        effectiveHeroImageUrl === BRAND_HERO_ASSET || effectiveHeroImageUrl === '/hero.png';
+      if (!isDefault && imageRef.current.srcset) {
+        imageRef.current.srcset = '';
+      }
+      imageRef.current.src = effectiveHeroImageUrl;
+    }
+  }, [effectiveHeroImageUrl]);
 
   // Subtle restrained entrance: image scale 1.03 -> 1.0, text reveal
   useEffect(() => {
@@ -198,9 +217,9 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
       >
         <img
           ref={imageRef}
-          src={heroImageUrl}
+          src={effectiveHeroImageUrl}
           srcSet={
-            heroImageUrl === BRAND_HERO_ASSET || heroImageUrl === '/hero.png'
+            effectiveHeroImageUrl === BRAND_HERO_ASSET || effectiveHeroImageUrl === '/hero.png'
               ? '/hero-800w.webp 800w, /hero.webp 1920w'
               : undefined
           }

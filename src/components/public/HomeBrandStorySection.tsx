@@ -6,10 +6,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Heart, Sun, Clock, ArrowRight } from 'lucide-react';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 const BRAND_STUDIO_STORY_ASSET = '/studio.png';
 
 export const HomeBrandStorySection: React.FC = () => {
+  const { getAssetUrl } = useSiteAssets();
+  const studioImageUrl = getAssetUrl('home_curatorial_banner', getAssetUrl('home_atelier_showcase', BRAND_STUDIO_STORY_ASSET));
   return (
     <section
       aria-label="Câu Chuyện Maison MIPA Memories"
@@ -205,7 +208,7 @@ export const HomeBrandStorySection: React.FC = () => {
               }}
             >
               <img
-                src={BRAND_STUDIO_STORY_ASSET}
+                src={studioImageUrl}
                 alt="Không gian ánh sáng tự nhiên tại Maison MIPA Memories"
                 loading="lazy"
                 decoding="async"

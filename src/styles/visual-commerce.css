@@ -67,10 +67,12 @@
   box-sizing: border-box;
 }
 
+.gallery-item-wide,
 .gallery-span-full {
   grid-column: span 12;
 }
 
+.gallery-item-half,
 .gallery-span-half {
   grid-column: span 6;
 }
@@ -81,6 +83,41 @@
 
 .gallery-span-landscape {
   grid-column: span 12;
+}
+
+.concept-gallery-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: #EDE7DC;
+  cursor: zoom-in;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.concept-gallery-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(41, 35, 31, 0.18);
+}
+
+.concept-gallery-card:hover img {
+  transform: scale(1.03);
+}
+
+.concept-gallery-card .gallery-zoom-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(21, 17, 14, 0.65) 0%, rgba(21, 17, 14, 0) 50%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 1.25rem;
+  pointer-events: none;
+}
+
+.concept-gallery-card:hover .gallery-zoom-overlay {
+  opacity: 1;
 }
 
 /* --- Services Editorial Layout --- */
@@ -148,10 +185,12 @@
   .concept-gallery-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .gallery-item-wide,
   .gallery-span-full,
   .gallery-span-landscape {
     grid-column: span 2;
   }
+  .gallery-item-half,
   .gallery-span-half,
   .gallery-span-portrait {
     grid-column: span 1;

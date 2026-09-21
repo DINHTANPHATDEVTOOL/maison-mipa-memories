@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { User, UserRole, NotificationItem } from '../types';
 import { CURRENT_USER_PROFILES, INITIAL_NOTIFICATIONS } from '../mockData';
@@ -37,21 +37,38 @@ export interface NavbarProps {
   onLogout: () => void;
 }
 
-// Official Maison MIPA Studio Emblem
-export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 36 }) => (
-  <img
-    src="/logo-transparent-256.png"
-    alt="Maison MIPA Memories Logo"
-    width={size}
-    height={size}
+// Official Maison MIPA Studio Emblem (Enhanced with Luxury Medallion Border & Contrast)
+export const MipaStudioEmblem: React.FC<{ size?: number }> = ({ size = 44 }) => (
+  <div
     style={{
       width: size,
       height: size,
-      objectFit: 'contain',
+      borderRadius: '50%',
+      padding: '2px',
+      background: 'linear-gradient(135deg, rgba(198, 164, 95, 0.7) 0%, rgba(96, 70, 52, 0.4) 100%)',
+      boxShadow: '0 2px 10px rgba(96, 70, 52, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.6)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       flexShrink: 0,
-      display: 'block',
+      border: '1.5px solid rgba(198, 164, 95, 0.55)',
+      backgroundColor: '#FFFDF9',
     }}
-  />
+  >
+    <img
+      src="/logo-transparent-256.png"
+      alt="Maison MIPA Memories Logo"
+      width={size - 6}
+      height={size - 6}
+      style={{
+        width: size - 6,
+        height: size - 6,
+        objectFit: 'contain',
+        display: 'block',
+        filter: 'drop-shadow(0 1px 2px rgba(96, 70, 52, 0.2))',
+      }}
+    />
+  </div>
 );
 
 // Bespoke Luxury User Monogram Avatar Badge
@@ -230,6 +247,23 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Click-outside handler: closes notification panel and account dropdown
+  const notifRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifs(false);
+      }
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setShowRoleDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const displayUser = currentUser || CURRENT_USER_PROFILES[currentRole];
 
   const saveNotifications = (items: NotificationItem[]) => {
@@ -343,7 +377,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           to="/"
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}
         >
-          <MipaStudioEmblem size={32} />
+          <MipaStudioEmblem size={44} />
           <div>
             <div
               style={{
@@ -421,9 +455,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Notifications button (when logged in) */}
           {currentRole !== 'GUEST' && (
-            <div style={{ position: 'relative' }}>
+            <div ref={notifRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => setShowNotifs(!showNotifs)}
+                onClick={() => { setShowNotifs(!showNotifs); setShowRoleDropdown(false); }}
                 title="Thông báo hệ thống"
                 style={{
                   width: '36px',
@@ -587,9 +621,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             ) : (
-              <div style={{ position: 'relative' }}>
+              <div ref={accountRef} style={{ position: 'relative' }}>
                 <button
-                  onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                  onClick={() => { setShowRoleDropdown(!showRoleDropdown); setShowNotifs(false); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -700,7 +734,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           marginBottom: '0.25rem',
                         }}
                       >
-                        <Camera size={14} color="#8C6E53" /> Staff OS Portal
+                        <Camera size={14} color="#8C6E53" /> Cổng nhân viên
                       </Link>
                     )}
 
@@ -720,7 +754,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           marginBottom: '0.25rem',
                         }}
                       >
-                        <LayoutDashboard size={14} color="#8C6E53" /> Studio Manager OS
+                        <LayoutDashboard size={14} color="#8C6E53" /> Hệ thống quản lý Studio
                       </Link>
                     )}
 
@@ -740,7 +774,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           marginBottom: '0.25rem',
                         }}
                       >
-                        <Crown size={14} color="#8C6E53" /> Admin Studio Portal
+                        <Crown size={14} color="#8C6E53" /> Cổng quản trị Studio
                       </Link>
                     )}
 
@@ -937,7 +971,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       minHeight: '44px',
                     }}
                   >
-                    <Camera size={16} color="#8C6E53" /> Staff OS Portal
+                    <Camera size={16} color="#8C6E53" /> Cổng nhân viên
                   </Link>
                 )}
 
@@ -955,7 +989,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       minHeight: '44px',
                     }}
                   >
-                    <LayoutDashboard size={16} color="#8C6E53" /> Studio Manager OS
+                    <LayoutDashboard size={16} color="#8C6E53" /> Hệ thống quản lý Studio
                   </Link>
                 )}
 
@@ -973,7 +1007,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       minHeight: '44px',
                     }}
                   >
-                    <Crown size={16} color="#8C6E53" /> Admin Studio Portal
+                    <Crown size={16} color="#8C6E53" /> Cổng quản trị Studio
                   </Link>
                 )}
 

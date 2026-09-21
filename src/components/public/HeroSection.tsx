@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 interface HeroSectionProps {
   onOpenBooking: () => void;
@@ -18,6 +19,8 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
+  const { getAssetUrl } = useSiteAssets();
+  const heroBannerUrl = getAssetUrl('home_hero_banner', '/hero.png');
 
   const sectionRef = useRef<HTMLElement>(null);
   const pinContainerRef = useRef<HTMLDivElement>(null);
@@ -31,6 +34,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
   const line2Ref = useRef<HTMLSpanElement>(null);
   const leadRef = useRef<HTMLParagraphElement>(null);
   const ctaGroupRef = useRef<HTMLDivElement>(null);
+
+  // When URL changes (after admin upload), also imperatively update the DOM ref
+  // in case GSAP has cached the old element and React's reconciliation is skipped
+  useEffect(() => {
+    if (heroImageRef.current && heroBannerUrl) {
+      heroImageRef.current.src = heroBannerUrl;
+    }
+  }, [heroBannerUrl]);
 
   // Cinematic Arrival & Scroll-Driven Fullscreen Transformation
   useGsapContext(() => {
@@ -344,8 +355,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
                 }}
               >
                 <img
+                  key={heroBannerUrl}
                   ref={heroImageRef}
-                  src="/hero.png"
+                  src={heroBannerUrl}
                   alt="Maison MIPA Memories — Không gian studio và buổi chụp tự nhiên"
                   fetchPriority="high"
                   style={{

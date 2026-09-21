@@ -57,7 +57,26 @@
     }
   </script>
 
-  <!-- Critical Preloads -->
+  <!-- Critical Preloads (Dynamic Custom Hero Detection) -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('maison_mipa_site_assets_cache');
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          var heroUrl = parsed && parsed.home_hero_banner && parsed.home_hero_banner.imageUrl;
+          if (heroUrl && heroUrl !== '/hero.png') {
+            var l = document.createElement('link');
+            l.rel = 'preload';
+            l.as = 'image';
+            l.href = heroUrl;
+            l.fetchPriority = 'high';
+            document.head.appendChild(l);
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="preload" as="image" href="/hero-800w.webp" type="image/webp" media="(max-width: 768px)"
     fetchpriority="high" />
   <link rel="preload" as="image" href="/hero.webp" type="image/webp" media="(min-width: 769px)" fetchpriority="high" />
@@ -257,15 +276,13 @@
   <div id="mipa-preloader" aria-hidden="true">
     <div class="mipa-preloader-inner">
       <div class="mipa-preloader-medallion">
-        <svg width="36" height="36" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M18 24C16.8954 24 16 24.8954 16 26V42C16 43.1046 16.8954 44 18 44H46C47.1046 44 48 43.1046 48 42V26C48 24.8954 47.1046 24 46 24H39.5L37.5 20H26.5L24.5 24H18Z"
-            fill="#2C221C" stroke="#C6A45F" stroke-width="2.5" stroke-linejoin="round" />
-          <circle cx="32" cy="34" r="8" fill="#15110E" stroke="#C6A45F" stroke-width="2.5" />
-          <circle cx="32" cy="34" r="4" fill="#C6A45F" />
-          <circle cx="30.5" cy="32.5" r="1.2" fill="#FFFDF6" />
-          <circle cx="42" cy="28" r="1.5" fill="#EFE6C9" />
-        </svg>
+        <img
+          src="/logo-transparent-256.png"
+          alt="Maison MIPA Memories Logo"
+          width="48"
+          height="48"
+          style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(198, 164, 95, 0.45));"
+        />
       </div>
       <div class="mipa-preloader-title">MAISON MIPA</div>
       <div class="mipa-preloader-badge">

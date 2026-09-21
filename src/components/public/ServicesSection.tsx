@@ -10,6 +10,7 @@ import type { ServiceCategory } from '../../types';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 interface ServicesSectionProps {
   onSelectService?: (serviceId: string, slug?: string) => void;
@@ -17,6 +18,7 @@ interface ServicesSectionProps {
 
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectService }) => {
   const navigate = useNavigate();
+  const { getAssetUrl } = useSiteAssets();
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const prefersReduced = useReducedMotion();
@@ -146,7 +148,9 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectServic
           {services.map((srv, idx) => {
             const isReverse = idx % 2 === 1;
             const fallbackImage = idx % 2 === 0 ? '/hero.png' : '/studio.png';
-            const displayImage = srv.image && !srv.image.includes('unsplash') ? srv.image : fallbackImage;
+            const slotKey = srv.slug ? `service_${srv.slug}` : `service_${idx}`;
+            const defaultImg = srv.image && !srv.image.includes('unsplash') ? srv.image : fallbackImage;
+            const displayImage = getAssetUrl(slotKey, defaultImg);
 
             return (
               <div

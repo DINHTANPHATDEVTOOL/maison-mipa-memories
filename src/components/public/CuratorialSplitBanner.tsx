@@ -5,8 +5,12 @@
 // ==============================================================================
 import React from 'react';
 import { Sparkles, Quote, Award } from 'lucide-react';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 export const CuratorialSplitBanner: React.FC = () => {
+  const { getAssetUrl } = useSiteAssets();
+  const bannerBgUrl = getAssetUrl('home_curatorial_banner', '/studio.png');
+  const bannerHeroUrl = getAssetUrl('home_hero_banner', '/hero.png');
   return (
     <section
       data-testid="curatorial-split-banner"
@@ -174,7 +178,7 @@ export const CuratorialSplitBanner: React.FC = () => {
                 }}
               >
                 <img
-                  src="/studio.png"
+                  src={bannerBgUrl}
                   alt="Maison MIPA Atelier Saigon"
                   style={{
                     width: '100%',
@@ -226,7 +230,7 @@ export const CuratorialSplitBanner: React.FC = () => {
                 }}
               >
                 <img
-                  src="/hero.png"
+                  src={bannerHeroUrl}
                   alt="Parisian Romance Monologue"
                   style={{
                     width: '100%',

@@ -7,6 +7,7 @@ import { CrmFollowUpDashboard } from '../components/management/CrmFollowUpDashbo
 import { FinancialLedgerDashboard } from '../components/management/FinancialLedgerDashboard';
 import { BusinessIntelligenceDashboard } from '../components/management/BusinessIntelligenceDashboard';
 import { PortfolioCMS } from '../components/management/PortfolioCMS';
+import { SiteMediaManager } from '../components/management/SiteMediaManager';
 import { DailyOperationsBoard } from '../components/management/DailyOperationsBoard';
 import { TomorrowPrepBoard } from '../components/management/TomorrowPrepBoard';
 import { WorkforceScheduling } from '../components/management/WorkforceScheduling';
@@ -29,6 +30,7 @@ import {
   CalendarCheck,
   Calendar as CalendarIcon,
   Package,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
@@ -66,6 +68,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
     | 'finance'
     | 'analytics'
     | 'portfolio'
+    | 'media'
   >('dashboard');
 
   const [plannerBooking, setPlannerBooking] = useState<Booking | null>(null);
@@ -101,74 +104,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'dashboard' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <LayoutDashboard size={14} color="#EFE6C9" /> Tổng quan
-        </button>
-
-        <button
-          onClick={() => setSubTab('operations')}
-          style={{
-            border: 'none',
-            background: subTab === 'operations' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Sparkles size={14} color="#C6A45F" /> Hôm nay
-        </button>
-
-        <button
-          onClick={() => setSubTab('tomorrow')}
-          style={{
-            border: 'none',
-            background: subTab === 'tomorrow' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <CalendarCheck size={14} color="#EFE6C9" /> Chuẩn bị ngày mai
-        </button>
-
-        <button
-          onClick={() => setSubTab('ops_calendar')}
-          style={{
-            border: 'none',
-            background: subTab === 'ops_calendar' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <CalendarIcon size={14} color="#EFE6C9" /> Lịch vận hành
+          <CalendarCheck size={16} color={subTab === 'dashboard' ? '#FFFDF6' : '#EFE6C9'} />
+          Lịch Booking & Vận Hành
         </button>
 
         <button
@@ -177,93 +124,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'workforce' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Users size={14} color="#EFE6C9" /> Nhân sự & Lịch trực
-        </button>
-
-        <button
-          onClick={() => setSubTab('resources')}
-          style={{
-            border: 'none',
-            background: subTab === 'resources' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Package size={14} color="#EFE6C9" /> Thiết bị & Kho
-        </button>
-
-        <button
-          onClick={() => setSubTab('calendar')}
-          style={{
-            border: 'none',
-            background: subTab === 'calendar' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Clock size={14} color="#EFE6C9" /> Lịch phòng
-        </button>
-
-        <button
-          onClick={() => setSubTab('crm')}
-          style={{
-            border: 'none',
-            background: subTab === 'crm' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <Users size={14} color="#EFE6C9" /> CRM khách hàng
-        </button>
-
-        <button
-          onClick={() => setSubTab('followup')}
-          style={{
-            border: 'none',
-            background: subTab === 'followup' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <CheckCircle2 size={14} color="#EFE6C9" /> Follow-up
+          <Users size={16} color={subTab === 'workforce' ? '#FFFDF6' : '#EFE6C9'} />
+          Nhân Sự & Lịch Làm Việc
         </button>
 
         <button
@@ -272,36 +144,18 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'finance' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <DollarSign size={14} color="#EFE6C9" /> Tài chính
-        </button>
-
-        <button
-          onClick={() => setSubTab('analytics')}
-          style={{
-            border: 'none',
-            background: subTab === 'analytics' ? '#8C6E53' : 'transparent',
-            color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <TrendingUp size={14} color="#EFE6C9" /> Phân tích & BI
+          <DollarSign size={16} color={subTab === 'finance' ? '#FFFDF6' : '#EFE6C9'} />
+          Doanh Thu & Tài Chính
         </button>
 
         <button
@@ -310,18 +164,41 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'portfolio' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.35rem 0.75rem',
+            padding: '0.45rem 1rem',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.45rem',
             transition: 'all 0.2s ease',
           }}
         >
-          <Camera size={16} color="#EFE6C9" /> Portfolio & Concept CMS
+          <Camera size={16} color={subTab === 'portfolio' ? '#FFFDF6' : '#EFE6C9'} />
+          Portfolio & Concept CMS
         </button>
+
+        {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || isRootOwner) && (
+          <button
+            onClick={() => setSubTab('media')}
+            style={{
+              border: 'none',
+              background: subTab === 'media' ? '#8C6E53' : 'transparent',
+              color: '#FFFDF6',
+              padding: '0.45rem 1rem',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <ImageIcon size={16} color={subTab === 'media' ? '#FFFDF6' : '#EFE6C9'} />
+            Hình ảnh & Giao diện
+          </button>
+        )}
 
         {(user?.role === 'ADMIN' || isRootOwner) && (
           <Link
@@ -331,14 +208,14 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
               background: 'rgba(255, 253, 246, 0.08)',
               border: '1px solid rgba(198, 164, 95, 0.4)',
               color: '#FFFDF6',
-              padding: '0.35rem 0.75rem',
+              padding: '0.4rem 0.85rem',
               borderRadius: '12px',
               fontWeight: 600,
               fontSize: '0.82rem',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              marginLeft: '0.2rem',
+              marginLeft: '0.3rem',
               transition: 'all 0.2s ease',
             }}
           >
@@ -443,9 +320,14 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         <PortfolioCMS />
       )}
 
+      {subTab === 'media' && (
+        <SiteMediaManager />
+      )}
+
       {plannerBooking && (
         <BookingCrewAndResourcePlanner
           booking={plannerBooking}
+          employees={employees}
           onClose={() => setPlannerBooking(null)}
         />
       )}
