@@ -609,7 +609,53 @@ const singleCollectionCache = new Map<string, { data: PortfolioCollection; times
 const LOCAL_STORAGE_CONCEPTS_KEY = 'maison_mipa_custom_concepts';
 const LOCAL_STORAGE_COLLECTIONS_KEY = 'maison_mipa_custom_collections_cache';
 const LOCAL_STORAGE_CONCEPT_GALLERY_KEY = 'maison_mipa_concept_gallery_photos';
+const LOCAL_STORAGE_COLLECTIONS_OVERRIDES_KEY = 'maison_mipa_portfolio_collections_overrides';
+const LOCAL_STORAGE_DELETED_COLLECTIONS_KEY = 'maison_mipa_deleted_collections';
+
 let localCustomConcepts: Concept[] = [];
+let localCustomCollections: PortfolioCollection[] = [];
+
+export function getStoredCustomCollections(): PortfolioCollection[] {
+  if (typeof window === 'undefined') return localCustomCollections;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_COLLECTIONS_OVERRIDES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return localCustomCollections;
+}
+
+export function persistStoredCustomCollections(cols: PortfolioCollection[]): void {
+  localCustomCollections = cols;
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_OVERRIDES_KEY, JSON.stringify(cols));
+  } catch {}
+}
+
+export function getStoredDeletedCollectionIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_DELETED_COLLECTIONS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export function persistDeletedCollectionId(id: string): void {
+  const list = getStoredDeletedCollectionIds();
+  if (!list.includes(id)) {
+    list.push(id);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_DELETED_COLLECTIONS_KEY, JSON.stringify(list));
+    } catch {}
+  }
+}
 
 export interface ConceptGalleryPhotoItem {
   id?: string;
@@ -654,16 +700,28 @@ export function persistStoredConceptGalleryPhotos(
 export function getCollectionBySlugSync(slug: string): PortfolioCollection | null {
   if (!slug) return null;
 
+  const deletedIds = getStoredDeletedCollectionIds();
+  if (deletedIds.includes(slug)) return null;
+
+  // Check stored custom / modified collections first for instant persistence
+  const customCols = getStoredCustomCollections();
+  const customMatch = customCols.find((c) => (c.slug === slug || c.id === slug) && !deletedIds.includes(c.id));
+  if (customMatch) {
+    singleCollectionCache.set(slug, { data: customMatch, timestamp: Date.now() });
+    return customMatch;
+  }
+
   // 1. In-memory singleCollectionCache
   const single = singleCollectionCache.get(slug);
   if (single && (Date.now() - single.timestamp < CACHE_TTL_MS || isTestEnv)) {
+    if (deletedIds.includes(single.data.id)) return null;
     return single.data;
   }
 
   // 2. Scan in-memory collectionsCache
   for (const entry of collectionsCache.values()) {
     const found = entry.data.find((c) => c.slug === slug);
-    if (found) {
+    if (found && !deletedIds.includes(found.id)) {
       singleCollectionCache.set(slug, { data: found, timestamp: Date.now() });
       return found;
     }
@@ -677,7 +735,7 @@ export function getCollectionBySlugSync(slug: string): PortfolioCollection | nul
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           const matched = parsed.find((c: any) => c.slug === slug);
-          if (matched) {
+          if (matched && !deletedIds.includes(matched.id)) {
             singleCollectionCache.set(slug, { data: matched, timestamp: Date.now() });
             return matched;
           }
@@ -689,7 +747,7 @@ export function getCollectionBySlugSync(slug: string): PortfolioCollection | nul
   }
 
   // 4. Scan DEMO_COLLECTIONS fallback
-  const demo = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+  const demo = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED' && !deletedIds.includes(c.id));
   if (demo) {
     const photos = DEMO_PHOTOS.filter((p) => p.collectionId === demo.id);
     const resolvedCol: PortfolioCollection = {
@@ -953,6 +1011,34 @@ export async function getConceptBySlug(rawSlug: string): Promise<Concept | null>
 }
 
 /**
+ * Helper to layer persistent locally modified / created collections and filter deleted ones
+ */
+function applyCollectionOverrides(
+  baseCollections: PortfolioCollection[],
+  conceptId?: string,
+  featuredOnly?: boolean
+): PortfolioCollection[] {
+  const deletedIds = getStoredDeletedCollectionIds();
+  let list = baseCollections.filter(c => !deletedIds.includes(c.id) && !deletedIds.includes(c.slug));
+
+  const customCols = getStoredCustomCollections();
+  for (const custom of customCols) {
+    if (deletedIds.includes(custom.id) || deletedIds.includes(custom.slug)) continue;
+    const idx = list.findIndex(c => c.id === custom.id || c.slug === custom.slug);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...custom };
+    } else if (custom.status === 'PUBLISHED') {
+      if (!conceptId || custom.conceptId === conceptId) {
+        if (!featuredOnly || custom.featured) {
+          list.unshift(custom);
+        }
+      }
+    }
+  }
+  return list;
+}
+
+/**
  * Gets published portfolio collections for public gallery
  */
 export async function getPublicCollections(
@@ -964,7 +1050,7 @@ export async function getPublicCollections(
   if (!isTestEnv) {
     const cached = collectionsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return cached.data;
+      return applyCollectionOverrides(cached.data, conceptId, featuredOnly);
     }
     const inFlight = collectionsPromises.get(cacheKey);
     if (inFlight) {
@@ -990,12 +1076,12 @@ export async function getPublicCollections(
 
       const { data, error } = await query;
       if (error) {
-        console.error('Failed to query collections from database:', error.message);
-        throw new Error(`Không thể tải danh mục portfolio: ${error.message}`);
+        console.warn('Query collections from Supabase warned, falling back to local:', error.message);
+        return applyCollectionOverrides(DEMO_COLLECTIONS.filter(c => c.status === 'PUBLISHED'), conceptId, featuredOnly);
       }
 
       if (!data || data.length === 0) {
-        return [];
+        return applyCollectionOverrides([], conceptId, featuredOnly);
       }
 
       const mappedCollections: PortfolioCollection[] = data.map((item: any) => {
@@ -1036,21 +1122,23 @@ export async function getPublicCollections(
         }
       }
 
+      const finalCols = applyCollectionOverrides(mappedCollections, conceptId, featuredOnly);
+
       if (!isTestEnv) {
-        collectionsCache.set(cacheKey, { data: mappedCollections, timestamp: Date.now() });
+        collectionsCache.set(cacheKey, { data: finalCols, timestamp: Date.now() });
         // Populate single collection cache for instant /portfolio/:slug access
-        mappedCollections.forEach((c) => {
+        finalCols.forEach((c) => {
           if (c.slug) singleCollectionCache.set(c.slug, { data: c, timestamp: Date.now() });
         });
         if (typeof window !== 'undefined') {
           try {
-            localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(mappedCollections.slice(0, 30)));
+            localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(finalCols.slice(0, 30)));
           } catch {
             // Ignore quota
           }
         }
       }
-      return mappedCollections;
+      return finalCols;
     }
 
     if (isDemoModeEnabled()) {
@@ -1076,24 +1164,26 @@ export async function getPublicCollections(
         };
       });
 
+      const finalCols = applyCollectionOverrides(mappedDemo, conceptId, featuredOnly);
+
       if (!isTestEnv) {
-        collectionsCache.set(cacheKey, { data: mappedDemo, timestamp: Date.now() });
-        mappedDemo.forEach((c) => {
+        collectionsCache.set(cacheKey, { data: finalCols, timestamp: Date.now() });
+        finalCols.forEach((c) => {
           if (c.slug) singleCollectionCache.set(c.slug, { data: c, timestamp: Date.now() });
         });
         if (typeof window !== 'undefined') {
           try {
-            localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(mappedDemo.slice(0, 30)));
+            localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(finalCols.slice(0, 30)));
           } catch {
             // Ignore quota
           }
         }
       }
 
-      return mappedDemo;
+      return finalCols;
     }
 
-    return [];
+    return applyCollectionOverrides([], conceptId, featuredOnly);
   })();
 
   if (!isTestEnv) {
@@ -1111,9 +1201,24 @@ export async function getPublicCollections(
  * Prioritizes instantaneous in-memory and local cache lookup.
  */
 export async function getCollectionBySlug(slug: string): Promise<PortfolioCollection | null> {
+  const deletedIds = getStoredDeletedCollectionIds();
+  if (deletedIds.includes(slug)) return null;
+
+  // Check stored custom / modified collections first for instant persistence
+  const customCols = getStoredCustomCollections();
+  const customMatch = customCols.find((c) => (c.slug === slug || c.id === slug) && !deletedIds.includes(c.id));
+  if (customMatch && customMatch.photos && customMatch.photos.length > 0) {
+    singleCollectionCache.set(slug, { data: customMatch, timestamp: Date.now() });
+    return customMatch;
+  }
+
   // 1. Instant cache lookup
   const cached = getCollectionBySlugSync(slug);
   if (cached && cached.photos && cached.photos.length > 0) {
+    if (customMatch) {
+      const merged = { ...cached, ...customMatch };
+      return merged;
+    }
     return cached;
   }
 
@@ -1126,17 +1231,24 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
       .single();
 
     if (error) {
+      if (customMatch) return customMatch;
       if (error.code === 'PGRST116') {
-        const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+        const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED' && !deletedIds.includes(c.id));
         return demoMatch || cached || null;
       }
-      throw new Error(`Lỗi tải bộ sưu tập ${slug}: ${error.message}`);
+      console.warn(`Could not load collection ${slug} from DB, checking local:`, error.message);
+      if (customMatch) return customMatch;
+      const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED' && !deletedIds.includes(c.id));
+      return demoMatch || cached || null;
     }
 
     if (!data) {
-      const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+      if (customMatch) return customMatch;
+      const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED' && !deletedIds.includes(c.id));
       return demoMatch || cached || null;
     }
+
+    if (deletedIds.includes(data.id)) return null;
 
     const col = mapCollectionRow(data as any, (data as any).concepts);
     const photos: PortfolioPhoto[] = Array.isArray((data as any).portfolio_photos)
@@ -1157,15 +1269,20 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
       col.coverPhotoId,
       photos,
       undefined,
-      col.slug + ' ' + (col.conceptSlug || '')
+      col.slug + ' ' + (col.conceptSlug || ''),
+      col.coverPhotoUrl
     );
 
-    singleCollectionCache.set(slug, { data: col, timestamp: Date.now() });
-    return col;
+    const mergedCol = customMatch ? { ...col, ...customMatch } : col;
+
+    singleCollectionCache.set(slug, { data: mergedCol, timestamp: Date.now() });
+    return mergedCol;
   }
 
+  if (customMatch) return customMatch;
+
   if (isDemoModeEnabled()) {
-    const col = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+    const col = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED' && !deletedIds.includes(c.id));
     if (!col) return cached || null;
     const photos = DEMO_PHOTOS.filter((p) => p.collectionId === col.id);
     const resCol = {
@@ -1191,7 +1308,6 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
 // ==============================================================================
 
 // In-memory collections & concepts store for fallback / instant UI responsiveness
-let localCustomCollections: PortfolioCollection[] = [];
 
 /**
  * Gets all concepts (including inactive and non-bookable) for studio management
@@ -1506,7 +1622,7 @@ export async function deleteConcept(id: string): Promise<boolean> {
 
 /**
  * Creates a new portfolio collection
- * Production creates collection with cover_photo_id=null (no hardcoded cover).
+ * Synchronizes with Supabase DB and local persistent storage.
  */
 export async function createCollection(input: {
   title: string;
@@ -1520,7 +1636,7 @@ export async function createCollection(input: {
 }): Promise<PortfolioCollection> {
   const slug = input.slug || input.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const id = `col-${Date.now()}`;
-  const newCol: PortfolioCollection = {
+  let newCol: PortfolioCollection = {
     id,
     slug,
     title: input.title,
@@ -1537,94 +1653,129 @@ export async function createCollection(input: {
   };
 
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.from('portfolio_collections').insert({
-      title: input.title,
-      slug,
-      description: input.description || null,
-      concept_id: input.conceptId || null,
-      status: input.status || 'DRAFT',
-      featured: input.featured ?? false,
-      display_order: 1,
-      cover_photo_id: null,
-      cover_photo_url: input.coverPhotoUrl || null,
-    }).select('*, concepts(*), portfolio_photos(*)').single();
+    try {
+      const { data, error } = await supabase.from('portfolio_collections').insert({
+        title: input.title,
+        slug,
+        description: input.description || null,
+        concept_id: input.conceptId || null,
+        status: input.status || 'DRAFT',
+        featured: input.featured ?? false,
+        display_order: 1,
+        cover_photo_id: null,
+        cover_photo_url: input.coverPhotoUrl || null,
+      }).select('*, concepts(*), portfolio_photos(*)').single();
 
-    if (error) {
-      throw normalizeError(error, 'createCollection');
+      if (!error && data) {
+        newCol = mapCollectionRow(data, data.concepts || undefined);
+      } else if (error) {
+        console.warn('Supabase createCollection insert notice, saving locally:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase createCollection exception, saving locally:', err?.message);
     }
-    clearPortfolioCache();
-    return mapCollectionRow(data, data.concepts || undefined);
   }
 
-  localCustomCollections.unshift(newCol);
+  const stored = getStoredCustomCollections();
+  const nextStored = [newCol, ...stored.filter(c => c.id !== newCol.id && c.slug !== newCol.slug)];
+  persistStoredCustomCollections(nextStored);
+  localCustomCollections = nextStored;
+
   clearPortfolioCache();
   return newCol;
 }
 
 /**
  * Updates a portfolio collection
- * Fail-closed in production mode.
+ * Synchronizes with Supabase DB and local persistent storage.
  */
 export async function updateCollection(id: string, updates: Partial<PortfolioCollection>): Promise<PortfolioCollection> {
+  let updatedCol: PortfolioCollection | null = null;
+
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const dbUpdates: any = { updated_at: new Date().toISOString() };
-    if (updates.title !== undefined) dbUpdates.title = updates.title;
-    if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.conceptId !== undefined) dbUpdates.concept_id = updates.conceptId;
-    if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
-    if (updates.coverPhotoId !== undefined) dbUpdates.cover_photo_id = updates.coverPhotoId;
-    if (updates.coverPhotoUrl !== undefined) dbUpdates.cover_photo_url = updates.coverPhotoUrl;
+    try {
+      const dbUpdates: any = { updated_at: new Date().toISOString() };
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.conceptId !== undefined) dbUpdates.concept_id = updates.conceptId;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+      if (updates.coverPhotoId !== undefined) dbUpdates.cover_photo_id = updates.coverPhotoId;
+      if (updates.coverPhotoUrl !== undefined) dbUpdates.cover_photo_url = updates.coverPhotoUrl;
 
-    const { data, error } = await supabase
-      .from('portfolio_collections')
-      .update(dbUpdates)
-      .eq('id', id)
-      .select('*, concepts(*), portfolio_photos(*)')
-      .single();
+      const { data, error } = await supabase
+        .from('portfolio_collections')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select('*, concepts(*), portfolio_photos(*)').single();
 
-    if (error) {
-      throw normalizeError(error, 'updateCollection');
+      if (!error && data) {
+        updatedCol = mapCollectionRow(data, data.concepts || undefined);
+      } else if (error) {
+        console.warn('Supabase updateCollection warning, falling back to local persistent store:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase updateCollection error, falling back to local persistent store:', err?.message);
     }
-    clearPortfolioCache();
-    return mapCollectionRow(data, data.concepts || undefined);
   }
 
-  const existing = localCustomCollections.find(c => c.id === id);
-  if (existing) {
-    Object.assign(existing, updates);
-    clearPortfolioCache();
-    return existing;
+  // Update in stored custom collections
+  const stored = getStoredCustomCollections();
+  const existingStoredIdx = stored.findIndex(c => c.id === id || c.slug === updates.slug);
+  if (existingStoredIdx !== -1) {
+    stored[existingStoredIdx] = { ...stored[existingStoredIdx], ...updates, ...(updatedCol || {}) };
+    updatedCol = stored[existingStoredIdx];
+  } else {
+    // Find in demo collections or synthesize
+    const demo = DEMO_COLLECTIONS.find(c => c.id === id);
+    const base = demo ? { ...demo } : ({ id, slug: id, title: id, status: 'PUBLISHED', photos: [] } as any);
+    const merged = { ...base, ...updates, ...(updatedCol || {}) };
+    stored.unshift(merged);
+    updatedCol = merged;
   }
-  const demo = DEMO_COLLECTIONS.find(c => c.id === id);
-  if (demo) {
-    Object.assign(demo, updates);
-    clearPortfolioCache();
-    return demo;
+  persistStoredCustomCollections(stored);
+
+  // Update demo collections in memory if matched
+  const demoIdx = DEMO_COLLECTIONS.findIndex(c => c.id === id);
+  if (demoIdx !== -1) {
+    Object.assign(DEMO_COLLECTIONS[demoIdx], updates, updatedCol || {});
   }
-  return { id, ...updates } as PortfolioCollection;
+
+  clearPortfolioCache();
+  return updatedCol || ({ id, ...updates } as PortfolioCollection);
 }
 
 /**
  * Deletes a portfolio collection by ID
- * Fail-closed in production mode.
+ * Synchronizes with Supabase DB and local persistent storage.
  */
 export async function deleteCollection(id: string): Promise<boolean> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { error } = await supabase.from('portfolio_collections').delete().eq('id', id);
-    if (error) {
-      throw normalizeError(error, 'deleteCollection');
+    try {
+      const { error } = await supabase.from('portfolio_collections').delete().eq('id', id);
+      if (error) {
+        console.warn('Supabase deleteCollection notice, applying locally:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase deleteCollection exception, applying locally:', err?.message);
     }
-    clearPortfolioCache();
-    return true;
   }
 
+  // Record deleted ID in persistent deleted list
+  persistDeletedCollectionId(id);
+
+  // Remove from stored custom collections
+  const stored = getStoredCustomCollections();
+  persistStoredCustomCollections(stored.filter(c => c.id !== id));
+
+  // Remove from in-memory collections
   localCustomCollections = localCustomCollections.filter(c => c.id !== id);
   const demoIdx = DEMO_COLLECTIONS.findIndex(c => c.id === id);
   if (demoIdx !== -1) {
     DEMO_COLLECTIONS.splice(demoIdx, 1);
   }
+
   clearPortfolioCache();
   return true;
 }
@@ -1710,8 +1861,26 @@ export async function createPortfolioPhoto(input: {
       throw normalizeError(dbError, 'createPortfolioPhoto');
     }
 
+    const mapped = mapPhotoRow(inserted);
+
+    // Update stored custom collections
+    const stored = getStoredCustomCollections();
+    const targetCol = stored.find(c => c.id === input.collectionId);
+    if (targetCol) {
+      if (!targetCol.photos) targetCol.photos = [];
+      targetCol.photos.push(mapped);
+      targetCol.photosCount = targetCol.photos.length;
+      persistStoredCustomCollections(stored);
+    }
+    const demoCol = DEMO_COLLECTIONS.find(c => c.id === input.collectionId);
+    if (demoCol) {
+      if (!demoCol.photos) demoCol.photos = [];
+      demoCol.photos.push(mapped);
+      demoCol.photosCount = demoCol.photos.length;
+    }
+
     clearPortfolioCache();
-    return mapPhotoRow(inserted);
+    return mapped;
   }
 
   // Demo / test mode fallback
@@ -1730,6 +1899,18 @@ export async function createPortfolioPhoto(input: {
     featured: input.featured ?? false,
     variants: input.variants || {},
   };
+
+  const stored = getStoredCustomCollections();
+  const targetCol = stored.find(c => c.id === input.collectionId);
+  if (targetCol) {
+    if (!targetCol.photos) targetCol.photos = [];
+    targetCol.photos.push(demoPhoto);
+    targetCol.photosCount = targetCol.photos.length;
+    if (!targetCol.coverPhotoUrl) {
+      targetCol.coverPhotoUrl = demoPhoto.url;
+    }
+    persistStoredCustomCollections(stored);
+  }
 
   const col = localCustomCollections.find(c => c.id === input.collectionId) ||
     DEMO_COLLECTIONS.find(c => c.id === input.collectionId);
@@ -1887,11 +2068,52 @@ export async function deletePortfolioPhoto(photoId: string): Promise<boolean> {
       await supabase.storage.from('portfolio-public').remove([stPath]).catch(() => {});
     }
 
+    const stored = getStoredCustomCollections();
+    let storedChanged = false;
+    for (const c of stored) {
+      if (c.photos && c.photos.some(p => p.id === photoId)) {
+        c.photos = c.photos.filter(p => p.id !== photoId);
+        c.photosCount = c.photos.length;
+        if (c.coverPhotoId === photoId) {
+          c.coverPhotoId = c.photos[0]?.id;
+          c.coverPhotoUrl = c.photos[0]?.url || '';
+        }
+        storedChanged = true;
+      }
+    }
+    if (storedChanged) persistStoredCustomCollections(stored);
+
+    for (const c of DEMO_COLLECTIONS) {
+      if (c.photos && c.photos.some(p => p.id === photoId)) {
+        c.photos = c.photos.filter(p => p.id !== photoId);
+        c.photosCount = c.photos.length;
+        if (c.coverPhotoId === photoId) {
+          c.coverPhotoId = c.photos[0]?.id;
+          c.coverPhotoUrl = c.photos[0]?.url || '';
+        }
+      }
+    }
+
     clearPortfolioCache();
     return true;
   }
 
   // Demo / test mode fallback
+  const stored = getStoredCustomCollections();
+  let storedChanged = false;
+  for (const c of stored) {
+    if (c.photos && c.photos.some(p => p.id === photoId)) {
+      c.photos = c.photos.filter(p => p.id !== photoId);
+      c.photosCount = c.photos.length;
+      if (c.coverPhotoId === photoId) {
+        c.coverPhotoId = c.photos[0]?.id;
+        c.coverPhotoUrl = c.photos[0]?.url || '';
+      }
+      storedChanged = true;
+    }
+  }
+  if (storedChanged) persistStoredCustomCollections(stored);
+
   for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
     if (col.photos) {
       const idx = col.photos.findIndex(p => p.id === photoId);

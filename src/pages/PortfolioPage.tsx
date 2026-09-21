@@ -7,13 +7,16 @@
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Home, RotateCcw } from 'lucide-react';
-import { getPublicCollections } from '../services/portfolioService';
+import { ArrowRight, ChevronRight, Home, RotateCcw, Plus, Edit3, Trash2, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { getPublicCollections, deleteCollection } from '../services/portfolioService';
 import type { PortfolioCollection } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
 import { InPlaceImageEditor } from '../components/common/InPlaceImageEditor';
+import { useAuth } from '../context/AuthContext';
+import { useSiteAssets } from '../context/SiteAssetContext';
+import { PortfolioCollectionModal } from '../components/portfolio/PortfolioCollectionModal';
 
 interface PortfolioPageProps {
   onOpenBooking?: () => void;
@@ -21,9 +24,19 @@ interface PortfolioPageProps {
 
 export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
+  const { isRootOwner, role } = useAuth();
+  const { isQuickEditModeActive } = useSiteAssets();
+  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER' || isQuickEditModeActive);
+
   const [collections, setCollections] = useState<PortfolioCollection[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
+
+  // Management Modal States
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<PortfolioCollection | null>(null);
+  const [deletingCollection, setDeletingCollection] = useState<PortfolioCollection | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCollections = async () => {
     setIsLoading(true);
@@ -36,6 +49,30 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
       setHasError(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCollectionSaved = (savedCol: PortfolioCollection) => {
+    if (editingCollection) {
+      setCollections((prev) => prev.map((c) => (c.id === savedCol.id ? savedCol : c)));
+      setEditingCollection(null);
+    } else {
+      setCollections((prev) => [savedCol, ...prev]);
+      setIsCreateModalOpen(false);
+    }
+  };
+
+  const handleDeleteCollection = async () => {
+    if (!deletingCollection) return;
+    setIsDeleting(true);
+    try {
+      await deleteCollection(deletingCollection.id);
+      setCollections((prev) => prev.filter((c) => c.id !== deletingCollection.id));
+      setDeletingCollection(null);
+    } catch (err: any) {
+      alert(err?.message || 'Lỗi khi xóa bộ sưu tập.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -90,6 +127,62 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
           </li>
         </ol>
       </nav>
+
+      {/* Admin Action Bar */}
+      {canManage && (
+        <div
+          style={{
+            maxWidth: '1350px',
+            margin: '1.25rem auto 0',
+            padding: '0 1.5rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              padding: '0.9rem 1.4rem',
+              backgroundColor: '#FFFDF9',
+              border: '1px solid rgba(198, 164, 95, 0.45)',
+              borderRadius: '6px',
+              boxShadow: '0 4px 14px rgba(41, 35, 31, 0.05)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <ShieldCheck size={18} color="#8C6E53" />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#29231F', letterSpacing: '0.04em' }}>
+                QUẢN TRỊ PORTFOLIO
+              </span>
+              <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                • {collections.length} bộ sưu tập
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="public-btn-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.55rem 1.15rem',
+                fontSize: '0.84rem',
+                backgroundColor: '#29231F',
+                color: '#FAF8F3',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              <Plus size={15} /> Thêm Bộ Sưu Tập Mới
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Page Header */}
       <header
@@ -219,9 +312,24 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
               margin: '0 auto',
             }}
           >
-            <p style={{ fontSize: '1rem', color: '#8C6E53', margin: 0 }}>
+            <p style={{ fontSize: '1rem', color: '#8C6E53', marginBottom: canManage ? '1.5rem' : 0 }}>
               Hiện chưa có bộ ảnh nào được công bố.
             </p>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="public-btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.5rem',
+                }}
+              >
+                <Plus size={16} /> Thêm Bộ Sưu Tập Đầu Tiên
+              </button>
+            )}
           </div>
         )}
 
@@ -251,6 +359,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                   key={col.id}
                   className={`mipa-story-card ${cardClass}`}
                   style={{
+                    position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     backgroundColor: '#FFFDF9',
@@ -263,6 +372,75 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                     boxSizing: 'border-box',
                   }}
                 >
+                  {/* Admin Quick Action Controls */}
+                  {canManage && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '0.75rem',
+                        right: '0.75rem',
+                        zIndex: 25,
+                        display: 'flex',
+                        gap: '0.35rem',
+                        backgroundColor: 'rgba(255, 253, 249, 0.94)',
+                        backdropFilter: 'blur(8px)',
+                        padding: '0.3rem 0.45rem',
+                        borderRadius: '4px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                        border: '1px solid rgba(140, 110, 83, 0.3)',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        title="Chỉnh sửa thông tin bộ sưu tập"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEditingCollection(col);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.35rem 0.65rem',
+                          fontSize: '0.75rem',
+                          backgroundColor: '#29231F',
+                          color: '#FAF8F3',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        <Edit3 size={12} /> Sửa
+                      </button>
+                      <button
+                        type="button"
+                        title="Xóa bộ sưu tập này"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeletingCollection(col);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.35rem 0.65rem',
+                          fontSize: '0.75rem',
+                          backgroundColor: '#B44',
+                          color: '#FFF',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        <Trash2 size={12} /> Xóa
+                      </button>
+                    </div>
+                  )}
+
                   {/* Visual Photography Frame */}
                   <InPlaceImageEditor
                     assetId={`portfolio_col_cover_${col.slug}`}
@@ -457,6 +635,108 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
           </button>
         </section>
       </main>
+
+      {/* Create Collection Modal */}
+      {isCreateModalOpen && (
+        <PortfolioCollectionModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          collection={null}
+          onSaved={handleCollectionSaved}
+        />
+      )}
+
+      {/* Edit Collection Modal */}
+      {editingCollection && (
+        <PortfolioCollectionModal
+          isOpen={Boolean(editingCollection)}
+          onClose={() => setEditingCollection(null)}
+          collection={editingCollection}
+          onSaved={handleCollectionSaved}
+        />
+      )}
+
+      {/* Delete Collection Confirmation Modal */}
+      {deletingCollection && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(21, 17, 14, 0.75)',
+            backdropFilter: 'blur(5px)',
+            padding: '1.25rem',
+          }}
+          onClick={() => !isDeleting && setDeletingCollection(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFDF9',
+              borderRadius: '8px',
+              maxWidth: '480px',
+              width: '100%',
+              padding: '2rem',
+              border: '1px solid rgba(140, 110, 83, 0.25)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', color: '#B44' }}>
+              <AlertTriangle size={24} />
+              <h3 style={{ margin: 0, fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)', fontSize: '1.5rem', color: '#29231F' }}>
+                Xác Nhận Xóa Bộ Sưu Tập
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.92rem', lineHeight: 1.6, color: '#604634', marginBottom: '1.5rem' }}>
+              Quý khách có chắc chắn muốn xóa bộ sưu tập <strong>&ldquo;{deletingCollection.title}&rdquo;</strong> không? Hành động này sẽ gỡ bỏ bộ sưu tập khỏi danh sách hiển thị và lưu trữ.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeletingCollection(null)}
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(140, 110, 83, 0.3)',
+                  borderRadius: '4px',
+                  color: '#604634',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.88rem',
+                }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteCollection}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.65rem 1.35rem',
+                  backgroundColor: '#B44',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#FFF',
+                  fontWeight: 500,
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.88rem',
+                }}
+              >
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {isDeleting ? 'Đang xóa...' : 'Xóa Vĩnh Viễn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

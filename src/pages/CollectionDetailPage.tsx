@@ -7,16 +7,20 @@
 // ==============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { getCollectionBySlug, getCollectionBySlugSync, getPublicConcepts } from '../services/portfolioService';
+import { getCollectionBySlug, getCollectionBySlugSync, getPublicConcepts, deleteCollection, deletePortfolioPhoto } from '../services/portfolioService';
 import { getServices } from '../services/catalogService';
 import { getPhotoObjectPosition, getPhotoOrientation } from '../utils/photoUtils';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 import type { PortfolioCollection, PortfolioPhoto, Concept, ServiceCategory } from '../types';
-import { ChevronRight, Home, Layers } from 'lucide-react';
+import { ChevronRight, Home, Layers, Edit3, Trash2, Plus, ShieldCheck, AlertTriangle, Sparkles } from 'lucide-react';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
 import { DarkroomLightbox } from '../components/public/DarkroomLightbox';
 import { InPlaceImageEditor } from '../components/common/InPlaceImageEditor';
+import { useAuth } from '../context/AuthContext';
+import { useSiteAssets } from '../context/SiteAssetContext';
+import { PortfolioCollectionModal } from '../components/portfolio/PortfolioCollectionModal';
+import { AddPhotoModal } from '../components/portfolio/AddPhotoModal';
 
 interface CollectionDetailPageProps {
   onOpenBooking?: (conceptSlug?: string) => void;
@@ -34,6 +38,10 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { isRootOwner, role } = useAuth();
+  const { isQuickEditModeActive } = useSiteAssets();
+  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER' || isQuickEditModeActive);
+
   // Instant zero-latency initialization: from router state or synchronous cache
   const routeStateCollection = (location.state as any)?.collection as PortfolioCollection | undefined;
   const initialCol =
@@ -48,6 +56,14 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
   // Lightbox State
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+
+  // Management Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddPhotoModalOpen, setIsAddPhotoModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState<PortfolioPhoto | null>(null);
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -126,6 +142,61 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
       navigate(`/booking?service=${encodeURIComponent(relatedService.id)}`);
     } else {
       navigate('/booking');
+    }
+  };
+
+  const handleCollectionSaved = (updatedCol: PortfolioCollection) => {
+    setCollection(updatedCol);
+    if (updatedCol.slug && updatedCol.slug !== slug) {
+      navigate(`/portfolio/${updatedCol.slug}`, { replace: true, state: { collection: updatedCol } });
+    }
+  };
+
+  const handleDeleteCollection = async () => {
+    if (!collection?.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteCollection(collection.id);
+      setIsDeleteModalOpen(false);
+      navigate('/portfolio', { replace: true });
+    } catch (err: any) {
+      alert(err?.message || 'Lỗi khi xóa bộ sưu tập.');
+      setIsDeleting(false);
+    }
+  };
+
+  const handlePhotoAdded = (newPhoto: PortfolioPhoto) => {
+    setCollection((prev) => {
+      if (!prev) return null;
+      const updatedPhotos = [...(prev.photos || []), newPhoto];
+      return {
+        ...prev,
+        photos: updatedPhotos,
+        photosCount: updatedPhotos.length,
+        coverPhotoUrl: prev.coverPhotoUrl || newPhoto.url,
+      };
+    });
+  };
+
+  const confirmDeletePhoto = async () => {
+    if (!photoToDelete?.id) return;
+    setIsDeletingPhoto(true);
+    try {
+      await deletePortfolioPhoto(photoToDelete.id);
+      setCollection((prev) => {
+        if (!prev) return null;
+        const updated = (prev.photos || []).filter((p) => p.id !== photoToDelete.id);
+        return {
+          ...prev,
+          photos: updated,
+          photosCount: updated.length,
+        };
+      });
+      setPhotoToDelete(null);
+    } catch (err: any) {
+      alert(err?.message || 'Lỗi khi xóa ảnh.');
+    } finally {
+      setIsDeletingPhoto(false);
     }
   };
 
@@ -221,99 +292,131 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     const aspect = customAspect || (isPortrait ? '4 / 5' : '3 / 2');
 
     return (
-      <InPlaceImageEditor
-        key={photo.id || idx}
-        assetId={`portfolio_photo_${collection?.slug}_${photo.id || idx}`}
-        currentImageUrl={photo.url}
-        label={`Ảnh #${idx + 1}: ${photo.altText || collection?.title || 'Bộ ảnh'}`}
-        onImageUpdated={(newUrl) => {
-          setCollection((prev) => {
-            if (!prev) return null;
-            const updated = (prev.photos || []).map((p, i) =>
-              i === idx ? { ...p, url: newUrl } : p
-            );
-            return { ...prev, photos: updated };
-          });
-        }}
-        onImageDeleted={() => {
-          setCollection((prev) => {
-            if (!prev) return null;
-            const updated = (prev.photos || []).filter((_, i) => i !== idx);
-            return { ...prev, photos: updated };
-          });
-        }}
-        containerStyle={{ width: '100%', display: 'block' }}
-      >
-        <button
-          type="button"
-          onClick={() => setActivePhotoIndex(idx)}
-          className="editorial-image-frame vc-image-frame"
-          aria-label={`Xem ảnh ${idx + 1} của ${photos.length}: ${photo.altText || collection?.title}`}
-          style={{
-            borderRadius: '4px',
-            overflow: 'hidden',
-            cursor: 'pointer',
-            backgroundColor: '#EDE7DC',
-            position: 'relative',
-            aspectRatio: aspect,
-            border: '1px solid rgba(140, 110, 83, 0.15)',
-            width: '100%',
-            padding: 0,
-            margin: 0,
-            background: 'none',
-            font: 'inherit',
-            textAlign: 'inherit',
-            display: 'block',
-          }}
-        >
-          <img
-            src={photo.url}
-            alt={photo.altText || `${collection?.title} - Ảnh ${idx + 1}`}
-            loading="lazy"
-            decoding="async"
-            width={photo.width}
-            height={photo.height}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'block',
-              objectFit: 'cover',
-              objectPosition: getPhotoObjectPosition(photo),
+      <div key={photo.id || idx} style={{ position: 'relative', width: '100%' }}>
+        {canManage && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setPhotoToDelete(photo);
             }}
-          />
-
-          {/* Hover / focus caption overlay */}
-          <div
-            className="photo-overlay"
+            title="Xóa ảnh này khỏi bộ sưu tập"
             style={{
               position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(21, 17, 14, 0.82) 0%, rgba(21, 17, 14, 0.1) 40%, transparent 100%)',
-              opacity: 0,
-              transition: 'opacity 0.25s ease',
-              display: 'flex',
-              alignItems: 'flex-end',
-              padding: '1.25rem',
+              top: '10px',
+              right: '10px',
+              zIndex: 35,
+              backgroundColor: 'rgba(21, 17, 14, 0.85)',
+              color: '#FEB2B2',
+              border: '1px solid rgba(229, 62, 62, 0.5)',
+              borderRadius: '4px',
+              padding: '0.35rem 0.65rem',
+              fontSize: '0.74rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              backdropFilter: 'blur(4px)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-              <div>
-                {photo.caption && (
-                  <p style={{ color: '#FBF6EE', fontSize: '0.88rem', margin: '0 0 0.2rem 0', fontWeight: 400 }}>
-                    {photo.caption}
-                  </p>
-                )}
-                <span style={{ color: '#D1C4B7', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  Ảnh {idx + 1} / {photos.length}
+            <Trash2 size={12} /> Xóa ảnh
+          </button>
+        )}
+        <InPlaceImageEditor
+          assetId={`portfolio_photo_${collection?.slug}_${photo.id || idx}`}
+          currentImageUrl={photo.url}
+          label={`Ảnh #${idx + 1}: ${photo.altText || collection?.title || 'Bộ ảnh'}`}
+          onImageUpdated={(newUrl) => {
+            setCollection((prev) => {
+              if (!prev) return null;
+              const updated = (prev.photos || []).map((p, i) =>
+                i === idx ? { ...p, url: newUrl } : p
+              );
+              return { ...prev, photos: updated };
+            });
+          }}
+          onImageDeleted={() => {
+            setCollection((prev) => {
+              if (!prev) return null;
+              const updated = (prev.photos || []).filter((_, i) => i !== idx);
+              return { ...prev, photos: updated };
+            });
+          }}
+          containerStyle={{ width: '100%', display: 'block' }}
+        >
+          <button
+            type="button"
+            onClick={() => setActivePhotoIndex(idx)}
+            className="editorial-image-frame vc-image-frame"
+            aria-label={`Xem ảnh ${idx + 1} của ${photos.length}: ${photo.altText || collection?.title}`}
+            style={{
+              borderRadius: '4px',
+              overflow: 'hidden',
+              cursor: 'pointer',
+              backgroundColor: '#EDE7DC',
+              position: 'relative',
+              aspectRatio: aspect,
+              border: '1px solid rgba(140, 110, 83, 0.15)',
+              width: '100%',
+              padding: 0,
+              margin: 0,
+              background: 'none',
+              font: 'inherit',
+              textAlign: 'inherit',
+              display: 'block',
+            }}
+          >
+            <img
+              src={photo.url}
+              alt={photo.altText || `${collection?.title} - Ảnh ${idx + 1}`}
+              loading="lazy"
+              decoding="async"
+              width={photo.width}
+              height={photo.height}
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                objectFit: 'cover',
+                objectPosition: getPhotoObjectPosition(photo),
+              }}
+            />
+
+            {/* Hover / focus caption overlay */}
+            <div
+              className="photo-overlay"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(to top, rgba(21, 17, 14, 0.82) 0%, rgba(21, 17, 14, 0.1) 40%, transparent 100%)',
+                opacity: 0,
+                transition: 'opacity 0.25s ease',
+                display: 'flex',
+                alignItems: 'flex-end',
+                padding: '1.25rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
+                <div>
+                  {photo.caption && (
+                    <p style={{ color: '#FBF6EE', fontSize: '0.88rem', margin: '0 0 0.2rem 0', fontWeight: 400 }}>
+                      {photo.caption}
+                    </p>
+                  )}
+                  <span style={{ color: '#D1C4B7', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Ảnh {idx + 1} / {photos.length}
+                  </span>
+                </div>
+                <span style={{ color: '#C6A45F', fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.05em' }}>
+                  Phóng to ↗
                 </span>
               </div>
-              <span style={{ color: '#C6A45F', fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.05em' }}>
-                Phóng to ↗
-              </span>
             </div>
-          </div>
-        </button>
-      </InPlaceImageEditor>
+          </button>
+        </InPlaceImageEditor>
+      </div>
     );
   };
 
@@ -370,6 +473,115 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
         canonicalPath={`/portfolio/${collection.slug}`}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
+
+      {/* Admin Action Bar for Root Owner / Admin */}
+      {canManage && (
+        <div
+          style={{
+            backgroundColor: '#29231F',
+            color: '#FAF8F3',
+            borderBottom: '1px solid #C6A45F',
+            padding: '0.65rem 1.5rem',
+            position: 'sticky',
+            top: 0,
+            zIndex: 40,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: '1350px',
+              margin: '0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <ShieldCheck size={16} color="#C6A45F" />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.04em', color: '#EFE6C9' }}>
+                QUẢN TRỊ BỘ SƯU TẬP
+              </span>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '3px',
+                  backgroundColor: collection.status === 'PUBLISHED' ? 'rgba(72, 187, 120, 0.2)' : 'rgba(237, 137, 54, 0.2)',
+                  color: collection.status === 'PUBLISHED' ? '#68D391' : '#F6AD55',
+                  fontWeight: 600,
+                }}
+              >
+                ● {collection.status === 'PUBLISHED' ? 'ĐÃ XUẤT BẢN' : collection.status === 'DRAFT' ? 'BẢN NHÁP' : 'LƯU TRỮ'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.9rem',
+                  backgroundColor: '#C6A45F',
+                  color: '#29231F',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Edit3 size={13} /> Sửa Bộ Ảnh Này
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddPhotoModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.9rem',
+                  backgroundColor: 'rgba(255, 253, 249, 0.12)',
+                  color: '#FAF8F3',
+                  border: '1px solid rgba(255, 253, 249, 0.3)',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <Plus size={14} /> Thêm Ảnh
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.85rem',
+                  backgroundColor: 'rgba(229, 62, 62, 0.18)',
+                  color: '#FEB2B2',
+                  border: '1px solid rgba(229, 62, 62, 0.4)',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={13} /> Xóa Bộ Sưu Tập
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Breadcrumbs */}
       <nav aria-label="Breadcrumb" style={{ maxWidth: '1350px', margin: '0 auto', padding: '1.2rem 1.5rem 0' }}>
@@ -453,17 +665,47 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
                 </div>
               )}
 
-              <h1
-                className="vc-display"
-                style={{
-                  color: '#FFFDF9',
-                  margin: '0 0 1rem 0',
-                  lineHeight: 1.15,
-                  fontWeight: 500,
-                }}
-              >
-                {collection.title}
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                <h1
+                  className="vc-display"
+                  style={{
+                    color: '#FFFDF9',
+                    margin: 0,
+                    lineHeight: 1.15,
+                    fontWeight: 500,
+                  }}
+                >
+                  {collection.title}
+                </h1>
+
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEditModalOpen(true);
+                    }}
+                    title="Chỉnh sửa tiêu đề & lời tựa bộ ảnh"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.75rem',
+                      backgroundColor: 'rgba(198, 164, 95, 0.9)',
+                      color: '#29231F',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backdropFilter: 'blur(4px)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <Edit3 size={13} /> Sửa Tiêu Đề & Lời Tựa
+                  </button>
+                )}
+              </div>
 
               {collection.description && (
                 <p className="vc-copy" style={{ color: '#EFE6C9', margin: '0 0 1.8rem 0', maxWidth: '650px', fontWeight: 300 }}>
@@ -544,6 +786,33 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           })}
         </div>
 
+        {/* Admin Add Photos button */}
+        {canManage && (
+          <div style={{ margin: '2.5rem auto 1rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setIsAddPhotoModalOpen(true)}
+              style={{
+                padding: '0.9rem 2.25rem',
+                backgroundColor: '#FFFDF9',
+                border: '2px dashed rgba(140, 110, 83, 0.35)',
+                borderRadius: '6px',
+                color: '#604634',
+                fontSize: '0.92rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.55rem',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              }}
+            >
+              <Plus size={18} color="#8C6E53" /> Thêm Ảnh Mới Vào Bộ Sưu Tập Này
+            </button>
+          </div>
+        )}
+
         {/* Authoritative Related Concept or Service */}
         {(relatedConcept || relatedService) && (
           <section style={{ marginTop: '4.5rem', padding: '2.5rem', backgroundColor: '#FFFDF9', borderRadius: '4px', border: '1px solid rgba(140, 110, 83, 0.2)' }}>
@@ -613,6 +882,196 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           onClose={() => setActivePhotoIndex(null)}
           onSelectIndex={(index) => setActivePhotoIndex(index)}
         />
+      )}
+
+      {/* Edit Collection Modal */}
+      {isEditModalOpen && (
+        <PortfolioCollectionModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          collection={collection}
+          onSaved={handleCollectionSaved}
+        />
+      )}
+
+      {/* Add Photo Modal */}
+      {isAddPhotoModalOpen && (
+        <AddPhotoModal
+          isOpen={isAddPhotoModalOpen}
+          onClose={() => setIsAddPhotoModalOpen(false)}
+          collectionId={collection.id}
+          collectionTitle={collection.title}
+          onPhotoAdded={handlePhotoAdded}
+        />
+      )}
+
+      {/* Delete Collection Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(21, 17, 14, 0.75)',
+            backdropFilter: 'blur(5px)',
+            padding: '1.25rem',
+          }}
+          onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFDF9',
+              borderRadius: '8px',
+              maxWidth: '480px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+              border: '1px solid rgba(140, 110, 83, 0.25)',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: '#FFF5F5',
+                color: '#E53E3E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1rem auto',
+              }}
+            >
+              <AlertTriangle size={24} />
+            </div>
+            <h3 style={{ fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)', fontSize: '1.6rem', color: '#29231F', margin: '0 0 0.6rem 0' }}>
+              Xác nhận xóa bộ sưu tập?
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#604634', margin: '0 0 1.5rem 0', lineHeight: 1.6 }}>
+              Hành động này sẽ xóa vĩnh viễn bộ ảnh <strong>"{collection.title}"</strong> khỏi Portfolio. Quá trình này không thể hoàn tác.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteModalOpen(false)}
+                style={{
+                  padding: '0.65rem 1.4rem',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(140, 110, 83, 0.3)',
+                  borderRadius: '4px',
+                  color: '#604634',
+                  fontSize: '0.88rem',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteCollection}
+                style={{
+                  padding: '0.65rem 1.6rem',
+                  backgroundColor: '#E53E3E',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#FAF8F3',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  cursor: isDeleting ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                }}
+              >
+                {isDeleting ? 'Đang xóa...' : 'Xóa Vĩnh Viễn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Photo Confirmation Modal */}
+      {photoToDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(21, 17, 14, 0.75)',
+            backdropFilter: 'blur(5px)',
+            padding: '1.25rem',
+          }}
+          onClick={() => !isDeletingPhoto && setPhotoToDelete(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFDF9',
+              borderRadius: '8px',
+              maxWidth: '420px',
+              width: '100%',
+              padding: '1.5rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+              border: '1px solid rgba(140, 110, 83, 0.25)',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)', fontSize: '1.4rem', color: '#29231F', margin: '0 0 0.5rem 0' }}>
+              Xóa ảnh khỏi bộ sưu tập?
+            </h3>
+            <p style={{ fontSize: '0.88rem', color: '#604634', margin: '0 0 1.25rem 0' }}>
+              Ảnh này sẽ được gỡ khỏi bộ ảnh "{collection.title}".
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button
+                type="button"
+                disabled={isDeletingPhoto}
+                onClick={() => setPhotoToDelete(null)}
+                style={{
+                  padding: '0.55rem 1.2rem',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(140, 110, 83, 0.3)',
+                  borderRadius: '4px',
+                  color: '#604634',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingPhoto}
+                onClick={confirmDeletePhoto}
+                style={{
+                  padding: '0.55rem 1.4rem',
+                  backgroundColor: '#E53E3E',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#FAF8F3',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: isDeletingPhoto ? 'wait' : 'pointer',
+                }}
+              >
+                {isDeletingPhoto ? 'Đang xóa...' : 'Xóa Ảnh'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
