@@ -1092,6 +1092,11 @@ export interface Database {
           sort_order: number;
           featured: boolean;
           variants: Record<string, unknown>;
+          storage_bucket?: string | null;
+          storage_path?: string | null;
+          mime_type?: string | null;
+          file_size_bytes?: number | null;
+          updated_by?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1110,6 +1115,11 @@ export interface Database {
           sort_order?: number;
           featured?: boolean;
           variants?: Record<string, unknown>;
+          storage_bucket?: string | null;
+          storage_path?: string | null;
+          mime_type?: string | null;
+          file_size_bytes?: number | null;
+          updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1128,6 +1138,11 @@ export interface Database {
           sort_order?: number;
           featured?: boolean;
           variants?: Record<string, unknown>;
+          storage_bucket?: string | null;
+          storage_path?: string | null;
+          mime_type?: string | null;
+          file_size_bytes?: number | null;
+          updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };

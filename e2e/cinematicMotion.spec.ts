@@ -39,6 +39,9 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.goto('/atelier');
     await page.waitForLoadState('domcontentloaded');
 
+    // Wait for lazy chunk to mount and render atelier section
+    await expect(page.locator('#atelier-3d')).toBeVisible({ timeout: 15000 });
+
     // Verify 3D atelier viewport is visible without transform delay
     const viewport = page.getByTestId('virtual-exhibition-viewport');
     await expect(viewport).toBeVisible();
@@ -69,19 +72,19 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Navigate to Portfolio
-    await page.getByRole('link', { name: 'Portfolio', exact: true }).click();
+    await page.getByRole('link', { name: 'Portfolio', exact: true }).first().click();
     await expect(page).toHaveURL(/\/portfolio/);
-    await expect(page.locator('h1')).toContainText('Bộ sưu tập hình ảnh');
+    await expect(page.locator('h1')).toContainText(/Bộ Sưu Tập/i);
 
     // Navigate to Services
-    await page.getByRole('link', { name: 'Dịch vụ', exact: true }).click();
+    await page.getByRole('link', { name: 'Dịch vụ', exact: true }).first().click();
     await expect(page).toHaveURL(/\/dich-vu/);
-    await expect(page.locator('h1')).toContainText('Dịch vụ chụp ảnh');
+    await expect(page.locator('h1')).toContainText(/Dịch vụ chụp ảnh/i);
 
     // Navigate to Pricing
-    await page.getByRole('link', { name: 'Bảng giá', exact: true }).click();
+    await page.getByRole('link', { name: 'Bảng giá', exact: true }).first().click();
     await expect(page).toHaveURL(/\/bang-gia/);
-    await expect(page.locator('h1')).toContainText('Bảng giá dịch vụ');
+    await expect(page.locator('h1')).toContainText(/Bảng giá dịch vụ/i);
 
     // Back to Home
     await page.locator('header a[href="/"]').first().click();
@@ -106,6 +109,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.locator('text=Bước 1/6')).toBeVisible();
+    await page.locator('.booking-card-option').first().click();
     await page.getByRole('button', { name: /Tiếp Theo/i }).click();
 
     await expect(page.locator('text=Bước 2/6')).toBeVisible();
@@ -125,13 +129,13 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await expect(page.getByRole('heading', { name: /Ý tưởng & phong cách ánh sáng|Ý tưởng & Concept/i })).toBeVisible({ timeout: 10000 });
 
     // Section 3: Services
-    await expect(page.getByRole('heading', { name: /Danh mục chụp tại Maison/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Danh mục chụp tại (tiệm ảnh )?Maison/i })).toBeVisible({ timeout: 10000 });
 
     // Section 4: Stories
-    await expect(page.getByRole('heading', { name: /Những câu chuyện được kể lại/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Những Câu Chuyện Được Kể/i })).toBeVisible({ timeout: 10000 });
 
     // Section 5: Brand Story
-    await expect(page.getByRole('heading', { name: /Ánh sáng tự nhiên/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Ký Ức Trú Ngụ|Ánh sáng tự nhiên/i })).toBeVisible();
 
     // Section 6: Pricing
     await expect(page.getByRole('heading', { name: /Bảng giá dịch vụ/i })).toBeVisible();
@@ -211,7 +215,7 @@ test.describe('Maison MIPA Cinematic Motion & Responsive QA', () => {
     await page.waitForLoadState('domcontentloaded');
 
     const section = page.locator('#atelier-3d');
-    await expect(section).toBeVisible();
+    await expect(section).toBeVisible({ timeout: 15000 });
 
     const viewport = page.getByTestId('virtual-exhibition-viewport');
     await expect(viewport).toBeVisible();

@@ -7,6 +7,7 @@
 // - No Unsplash/mock data in production.
 // ==============================================================================
 import { supabase, isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
+import { normalizeError } from '../utils/AppError';
 import type {
   Concept,
   PortfolioCollection,
@@ -676,11 +677,13 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
         return mapConceptRow(row, coverUrl);
       });
 
-      // Guarantee the 7 core brand concepts from DEMO_CONCEPTS are merged if missing from DB
-      for (const dCnc of DEMO_CONCEPTS) {
-        if (dCnc.active && !mapped.some((c) => c.slug === dCnc.slug || c.id === dCnc.id)) {
-          if (!serviceId || dCnc.serviceId === serviceId) {
-            mapped.push(dCnc);
+      // Guarantee brand concepts from DEMO_CONCEPTS are merged ONLY in demo mode
+      if (isDemoModeEnabled()) {
+        for (const dCnc of DEMO_CONCEPTS) {
+          if (dCnc.active && !mapped.some((c) => c.slug === dCnc.slug || c.id === dCnc.id)) {
+            if (!serviceId || dCnc.serviceId === serviceId) {
+              mapped.push(dCnc);
+            }
           }
         }
       }
@@ -840,11 +843,13 @@ export async function getPublicCollections(
         return col;
       });
 
-      // Merge brand collections from DEMO_COLLECTIONS if not in remote DB
-      for (const dCol of DEMO_COLLECTIONS) {
-        if (dCol.status === 'PUBLISHED' && !mappedCollections.some((c) => c.slug === dCol.slug || c.id === dCol.id)) {
-          if ((!conceptId || dCol.conceptId === conceptId) && (!featuredOnly || dCol.featured)) {
-            mappedCollections.push(dCol);
+      // Merge brand collections from DEMO_COLLECTIONS ONLY in demo mode
+      if (isDemoModeEnabled()) {
+        for (const dCol of DEMO_COLLECTIONS) {
+          if (dCol.status === 'PUBLISHED' && !mappedCollections.some((c) => c.slug === dCol.slug || c.id === dCol.id)) {
+            if ((!conceptId || dCol.conceptId === conceptId) && (!featuredOnly || dCol.featured)) {
+              mappedCollections.push(dCol);
+            }
           }
         }
       }
@@ -1163,6 +1168,7 @@ export async function updatePhotoFocalPoint(
 
 /**
  * Creates a new concept
+ * Fail-closed in production: mutates DB and invalidates cache.
  */
 export async function createConcept(input: {
   name: string;
@@ -1182,65 +1188,68 @@ export async function createConcept(input: {
     slug,
     description: input.description || '',
     serviceId: input.serviceId || 'c0000000-0000-0000-0000-000000000001',
-    coverPhotoUrl: input.coverPhotoUrl || '/hero-couple.jpg',
+    coverPhotoUrl: input.coverPhotoUrl || '',
     active: input.active ?? true,
     bookable: input.bookable ?? true,
     displayOrder: input.displayOrder ?? 99,
   };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase.from('concepts').insert({
-        name: input.name,
-        slug,
-        description: input.description || null,
-        service_id: input.serviceId || null,
-        active: input.active ?? true,
-        bookable: input.bookable ?? true,
-        display_order: input.displayOrder ?? 99,
-      }).select().single();
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data, error } = await supabase.from('concepts').insert({
+      name: input.name,
+      slug,
+      description: input.description || null,
+      service_id: input.serviceId || null,
+      active: input.active ?? true,
+      bookable: input.bookable ?? true,
+      display_order: input.displayOrder ?? 99,
+    }).select().single();
 
-      if (!error && data) {
-        newConcept.id = data.id;
-      }
-    } catch (e) {
-      console.warn('[PortfolioService] createConcept DB error, using local state:', e);
+    if (error) {
+      throw normalizeError(error, 'createConcept');
     }
+    clearPortfolioCache();
+    return mapConceptRow(data, input.coverPhotoUrl);
   }
 
   localCustomConcepts.unshift(newConcept);
+  clearPortfolioCache();
   return newConcept;
 }
 
 /**
  * Updates an existing concept
+ * Fail-closed in production: throws if DB fails, never mutates DEMO_CONCEPTS in production.
  */
 export async function updateConcept(id: string, updates: Partial<Concept>): Promise<Concept> {
-  if (isSupabaseConfigured()) {
-    try {
-      const dbUpdates: any = { updated_at: new Date().toISOString() };
-      if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.serviceId !== undefined) dbUpdates.service_id = updates.serviceId;
-      if (updates.active !== undefined) dbUpdates.active = updates.active;
-      if (updates.bookable !== undefined) dbUpdates.bookable = updates.bookable;
-      if (updates.displayOrder !== undefined) dbUpdates.display_order = updates.displayOrder;
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const dbUpdates: any = { updated_at: new Date().toISOString() };
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.serviceId !== undefined) dbUpdates.service_id = updates.serviceId;
+    if (updates.active !== undefined) dbUpdates.active = updates.active;
+    if (updates.bookable !== undefined) dbUpdates.bookable = updates.bookable;
+    if (updates.displayOrder !== undefined) dbUpdates.display_order = updates.displayOrder;
 
-      await supabase.from('concepts').update(dbUpdates).eq('id', id);
-    } catch (e) {
-      console.warn('[PortfolioService] updateConcept DB error:', e);
+    const { data, error } = await supabase.from('concepts').update(dbUpdates).eq('id', id).select().single();
+    if (error) {
+      throw normalizeError(error, 'updateConcept');
     }
+    clearPortfolioCache();
+    return mapConceptRow(data, updates.coverPhotoUrl);
   }
 
   const existing = localCustomConcepts.find(c => c.id === id);
   if (existing) {
     Object.assign(existing, updates);
+    clearPortfolioCache();
     return existing;
   }
   const demo = DEMO_CONCEPTS.find(c => c.id === id);
   if (demo) {
     Object.assign(demo, updates);
+    clearPortfolioCache();
     return demo;
   }
   return { id, ...updates } as Concept;
@@ -1248,25 +1257,30 @@ export async function updateConcept(id: string, updates: Partial<Concept>): Prom
 
 /**
  * Deletes a concept by ID
+ * Fail-closed in production: throws if DB fails, never mutates DEMO_CONCEPTS in production.
  */
 export async function deleteConcept(id: string): Promise<boolean> {
-  if (isSupabaseConfigured()) {
-    try {
-      await supabase.from('concepts').delete().eq('id', id);
-    } catch (e) {
-      console.warn('[PortfolioService] deleteConcept DB error:', e);
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { error } = await supabase.from('concepts').delete().eq('id', id);
+    if (error) {
+      throw normalizeError(error, 'deleteConcept');
     }
+    clearPortfolioCache();
+    return true;
   }
+
   localCustomConcepts = localCustomConcepts.filter(c => c.id !== id);
   const demoIdx = DEMO_CONCEPTS.findIndex(c => c.id === id);
   if (demoIdx !== -1) {
     DEMO_CONCEPTS.splice(demoIdx, 1);
   }
+  clearPortfolioCache();
   return true;
 }
 
 /**
  * Creates a new portfolio collection
+ * Production creates collection with cover_photo_id=null (no hardcoded cover).
  */
 export async function createCollection(input: {
   title: string;
@@ -1289,65 +1303,76 @@ export async function createCollection(input: {
     conceptId: input.conceptId,
     status: input.status || 'DRAFT',
     featured: input.featured ?? false,
-    coverPhotoUrl: input.coverPhotoUrl || '/hero-bride.jpg',
+    coverPhotoUrl: input.coverPhotoUrl || '',
     photos: [],
     photosCount: 0,
     createdAt: new Date().toISOString(),
     displayOrder: 1,
   };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase.from('portfolio_collections').insert({
-        title: input.title,
-        slug,
-        description: input.description || null,
-        concept_id: input.conceptId || null,
-        status: input.status || 'DRAFT',
-        featured: input.featured ?? false,
-        display_order: 1,
-      }).select().single();
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data, error } = await supabase.from('portfolio_collections').insert({
+      title: input.title,
+      slug,
+      description: input.description || null,
+      concept_id: input.conceptId || null,
+      status: input.status || 'DRAFT',
+      featured: input.featured ?? false,
+      display_order: 1,
+      cover_photo_id: null,
+    }).select('*, concepts(*), portfolio_photos(*)').single();
 
-      if (!error && data) {
-        newCol.id = data.id;
-      }
-    } catch (e) {
-      console.warn('[PortfolioService] createCollection DB error, using local state:', e);
+    if (error) {
+      throw normalizeError(error, 'createCollection');
     }
+    clearPortfolioCache();
+    return mapCollectionRow(data, data.concepts || undefined);
   }
 
   localCustomCollections.unshift(newCol);
+  clearPortfolioCache();
   return newCol;
 }
 
 /**
  * Updates a portfolio collection
+ * Fail-closed in production mode.
  */
 export async function updateCollection(id: string, updates: Partial<PortfolioCollection>): Promise<PortfolioCollection> {
-  if (isSupabaseConfigured()) {
-    try {
-      const dbUpdates: any = { updated_at: new Date().toISOString() };
-      if (updates.title !== undefined) dbUpdates.title = updates.title;
-      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.conceptId !== undefined) dbUpdates.concept_id = updates.conceptId;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const dbUpdates: any = { updated_at: new Date().toISOString() };
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.conceptId !== undefined) dbUpdates.concept_id = updates.conceptId;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+    if (updates.coverPhotoId !== undefined) dbUpdates.cover_photo_id = updates.coverPhotoId;
 
-      await supabase.from('portfolio_collections').update(dbUpdates).eq('id', id);
-    } catch (e) {
-      console.warn('[PortfolioService] updateCollection DB error:', e);
+    const { data, error } = await supabase
+      .from('portfolio_collections')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select('*, concepts(*), portfolio_photos(*)')
+      .single();
+
+    if (error) {
+      throw normalizeError(error, 'updateCollection');
     }
+    clearPortfolioCache();
+    return mapCollectionRow(data, data.concepts || undefined);
   }
 
   const existing = localCustomCollections.find(c => c.id === id);
   if (existing) {
     Object.assign(existing, updates);
+    clearPortfolioCache();
     return existing;
   }
   const demo = DEMO_COLLECTIONS.find(c => c.id === id);
   if (demo) {
     Object.assign(demo, updates);
+    clearPortfolioCache();
     return demo;
   }
   return { id, ...updates } as PortfolioCollection;
@@ -1355,20 +1380,475 @@ export async function updateCollection(id: string, updates: Partial<PortfolioCol
 
 /**
  * Deletes a portfolio collection by ID
+ * Fail-closed in production mode.
  */
 export async function deleteCollection(id: string): Promise<boolean> {
-  if (isSupabaseConfigured()) {
-    try {
-      await supabase.from('portfolio_collections').delete().eq('id', id);
-    } catch (e) {
-      console.warn('[PortfolioService] deleteCollection DB error:', e);
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { error } = await supabase.from('portfolio_collections').delete().eq('id', id);
+    if (error) {
+      throw normalizeError(error, 'deleteCollection');
     }
+    clearPortfolioCache();
+    return true;
   }
+
   localCustomCollections = localCustomCollections.filter(c => c.id !== id);
   const demoIdx = DEMO_COLLECTIONS.findIndex(c => c.id === id);
   if (demoIdx !== -1) {
     DEMO_COLLECTIONS.splice(demoIdx, 1);
   }
+  clearPortfolioCache();
   return true;
+}
+
+/**
+ * Creates and persists a portfolio photo in Supabase Storage and database
+ */
+export async function createPortfolioPhoto(input: {
+  collectionId: string;
+  file?: File | Blob;
+  url?: string;
+  filename: string;
+  width?: number;
+  height?: number;
+  focalX?: number;
+  focalY?: number;
+  altText?: string;
+  caption?: string;
+  sortOrder?: number;
+  featured?: boolean;
+  variants?: Record<string, any>;
+}): Promise<PortfolioPhoto> {
+  const photoId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `pho_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    let finalUrl = input.url || '';
+    let storagePath: string | null = null;
+
+    if (input.file) {
+      const sanitizedName = (input.filename || 'photo.webp').replace(/[^a-zA-Z0-9.-]/g, '_');
+      storagePath = `portfolio/${input.collectionId}/${photoId}/${Date.now()}_${sanitizedName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('portfolio-public')
+        .upload(storagePath, input.file, {
+          contentType: input.file.type || 'image/webp',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw normalizeError(uploadError, 'createPortfolioPhoto');
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('portfolio-public')
+        .getPublicUrl(storagePath);
+
+      finalUrl = urlData?.publicUrl || '';
+    }
+
+    if (!finalUrl) {
+      throw new Error('URL ảnh hoặc file tải lên không hợp lệ.');
+    }
+
+    const { data: inserted, error: dbError } = await supabase
+      .from('portfolio_photos')
+      .insert({
+        id: photoId,
+        collection_id: input.collectionId,
+        url: finalUrl,
+        filename: input.filename || 'photo.webp',
+        width: input.width || 1200,
+        height: input.height || 800,
+        focal_x: input.focalX ?? 50,
+        focal_y: input.focalY ?? 50,
+        alt_text: input.altText || '',
+        caption: input.caption || null,
+        sort_order: input.sortOrder ?? 0,
+        featured: input.featured ?? false,
+        variants: (input.variants || {}) as any,
+        storage_bucket: 'portfolio-public',
+        storage_path: storagePath,
+        mime_type: input.file?.type || 'image/webp',
+        file_size_bytes: input.file?.size || 0,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      if (storagePath) {
+        await supabase.storage.from('portfolio-public').remove([storagePath]).catch(() => {});
+      }
+      throw normalizeError(dbError, 'createPortfolioPhoto');
+    }
+
+    clearPortfolioCache();
+    return mapPhotoRow(inserted);
+  }
+
+  // Demo / test mode fallback
+  const demoPhoto: PortfolioPhoto = {
+    id: photoId,
+    collectionId: input.collectionId,
+    url: input.url || (input.file ? URL.createObjectURL(input.file) : '/hero-couple.jpg'),
+    filename: input.filename,
+    width: input.width || 1200,
+    height: input.height || 800,
+    focalX: input.focalX ?? 50,
+    focalY: input.focalY ?? 50,
+    altText: input.altText || '',
+    caption: input.caption,
+    sortOrder: input.sortOrder ?? 0,
+    featured: input.featured ?? false,
+    variants: input.variants || {},
+  };
+
+  const col = localCustomCollections.find(c => c.id === input.collectionId) ||
+    DEMO_COLLECTIONS.find(c => c.id === input.collectionId);
+  if (col) {
+    if (!col.photos) col.photos = [];
+    col.photos.push(demoPhoto);
+    col.photosCount = col.photos.length;
+    if (!col.coverPhotoUrl) {
+      col.coverPhotoUrl = demoPhoto.url;
+    }
+  }
+
+  clearPortfolioCache();
+  return demoPhoto;
+}
+
+/**
+ * Replaces an existing portfolio photo with a new optimized image asset
+ */
+export async function replacePortfolioPhoto(
+  photoId: string,
+  file: File | Blob,
+  metadata?: { width?: number; height?: number; filename?: string }
+): Promise<PortfolioPhoto> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('portfolio_photos')
+      .select('*')
+      .eq('id', photoId)
+      .single();
+
+    if (fetchErr || !existing) {
+      throw normalizeError(fetchErr || new Error('Photo not found'), 'replacePortfolioPhoto');
+    }
+
+    const filename = metadata?.filename || existing.filename || 'photo.webp';
+    const sanitizedName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const newStoragePath = `portfolio/${existing.collection_id}/${photoId}/${Date.now()}_${sanitizedName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('portfolio-public')
+      .upload(newStoragePath, file, {
+        contentType: file.type || 'image/webp',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw normalizeError(uploadError, 'replacePortfolioPhoto');
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('portfolio-public')
+      .getPublicUrl(newStoragePath);
+
+    const newUrl = urlData?.publicUrl || '';
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('portfolio_photos')
+      .update({
+        url: newUrl,
+        filename,
+        width: metadata?.width || existing.width,
+        height: metadata?.height || existing.height,
+        storage_path: newStoragePath,
+        file_size_bytes: file.size,
+        mime_type: file.type || 'image/webp',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', photoId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      await supabase.storage.from('portfolio-public').remove([newStoragePath]).catch(() => {});
+      throw normalizeError(updateErr, 'replacePortfolioPhoto');
+    }
+
+    // Clean up old storage file safely
+    const oldPath = (existing as any).storage_path;
+    if (oldPath && oldPath !== newStoragePath) {
+      await supabase.storage.from('portfolio-public').remove([oldPath]).catch(() => {});
+    }
+
+    clearPortfolioCache();
+    return mapPhotoRow(updated);
+  }
+
+  // Demo / test mode fallback
+  for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
+    if (col.photos) {
+      const p = col.photos.find(item => item.id === photoId);
+      if (p) {
+        p.url = URL.createObjectURL(file);
+        if (metadata?.width) p.width = metadata.width;
+        if (metadata?.height) p.height = metadata.height;
+        if (metadata?.filename) p.filename = metadata.filename;
+        clearPortfolioCache();
+        return p;
+      }
+    }
+  }
+
+  throw new Error('Photo not found');
+}
+
+/**
+ * Deletes a portfolio photo and cleans up storage and cover references
+ */
+export async function deletePortfolioPhoto(photoId: string): Promise<boolean> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data: photoData, error: fetchErr } = await supabase
+      .from('portfolio_photos')
+      .select('*')
+      .eq('id', photoId)
+      .single();
+
+    if (fetchErr || !photoData) {
+      throw normalizeError(fetchErr || new Error('Photo not found'), 'deletePortfolioPhoto');
+    }
+
+    const { error: delErr } = await supabase
+      .from('portfolio_photos')
+      .delete()
+      .eq('id', photoId);
+
+    if (delErr) {
+      throw normalizeError(delErr, 'deletePortfolioPhoto');
+    }
+
+    // If collection had this photo as cover, choose next available photo or null
+    const { data: colData } = await supabase
+      .from('portfolio_collections')
+      .select('cover_photo_id')
+      .eq('id', photoData.collection_id)
+      .single();
+
+    if (colData && colData.cover_photo_id === photoId) {
+      const { data: remaining } = await supabase
+        .from('portfolio_photos')
+        .select('id')
+        .eq('collection_id', photoData.collection_id)
+        .order('sort_order', { ascending: true })
+        .limit(1);
+
+      const nextCoverId = remaining && remaining.length > 0 ? remaining[0].id : null;
+      await supabase
+        .from('portfolio_collections')
+        .update({ cover_photo_id: nextCoverId })
+        .eq('id', photoData.collection_id);
+    }
+
+    // Clean up storage file
+    const stPath = (photoData as any).storage_path;
+    if (stPath) {
+      await supabase.storage.from('portfolio-public').remove([stPath]).catch(() => {});
+    }
+
+    clearPortfolioCache();
+    return true;
+  }
+
+  // Demo / test mode fallback
+  for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
+    if (col.photos) {
+      const idx = col.photos.findIndex(p => p.id === photoId);
+      if (idx !== -1) {
+        col.photos.splice(idx, 1);
+        col.photosCount = col.photos.length;
+        if (col.coverPhotoId === photoId) {
+          col.coverPhotoId = col.photos[0]?.id;
+          col.coverPhotoUrl = col.photos[0]?.url || '';
+        }
+        break;
+      }
+    }
+  }
+
+  clearPortfolioCache();
+  return true;
+}
+
+/**
+ * Reorders photos in a collection and persists sort_order to database
+ */
+export async function reorderPortfolioPhotos(
+  collectionId: string,
+  orderedPhotoIds: string[]
+): Promise<boolean> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    for (let i = 0; i < orderedPhotoIds.length; i++) {
+      const { error } = await supabase
+        .from('portfolio_photos')
+        .update({ sort_order: i + 1, updated_at: new Date().toISOString() })
+        .eq('id', orderedPhotoIds[i]);
+      if (error) {
+        throw normalizeError(error, 'reorderPortfolioPhotos');
+      }
+    }
+    clearPortfolioCache();
+    return true;
+  }
+
+  // Demo / test mode fallback
+  for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
+    if (col.id === collectionId && col.photos) {
+      const photoMap = new Map(col.photos.map(p => [p.id, p]));
+      col.photos = orderedPhotoIds
+        .map((id, idx) => {
+          const p = photoMap.get(id);
+          if (p) p.sortOrder = idx + 1;
+          return p;
+        })
+        .filter((p): p is PortfolioPhoto => Boolean(p));
+      break;
+    }
+  }
+
+  clearPortfolioCache();
+  return true;
+}
+
+/**
+ * Sets a photo as the authoritative cover for a portfolio collection
+ */
+export async function setCollectionCoverPhoto(
+  collectionId: string,
+  photoId: string
+): Promise<boolean> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { error } = await supabase
+      .from('portfolio_collections')
+      .update({
+        cover_photo_id: photoId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', collectionId);
+
+    if (error) {
+      throw normalizeError(error, 'setCollectionCoverPhoto');
+    }
+
+    clearPortfolioCache();
+    return true;
+  }
+
+  // Demo / test mode fallback
+  for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
+    if (col.id === collectionId) {
+      col.coverPhotoId = photoId;
+      const p = col.photos?.find(x => x.id === photoId);
+      if (p) col.coverPhotoUrl = p.url;
+      break;
+    }
+  }
+
+  clearPortfolioCache();
+  return true;
+}
+
+/**
+ * Sets a photo as the cover for a concept
+ */
+export async function setConceptCoverPhoto(
+  conceptId: string,
+  photoId: string
+): Promise<boolean> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { error } = await supabase
+      .from('concepts')
+      .update({
+        cover_photo_id: photoId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conceptId);
+
+    if (error) {
+      throw normalizeError(error, 'setConceptCoverPhoto');
+    }
+
+    clearPortfolioCache();
+    return true;
+  }
+
+  // Demo / test mode fallback
+  for (const c of [...localCustomConcepts, ...DEMO_CONCEPTS]) {
+    if (c.id === conceptId) {
+      c.coverPhotoId = photoId;
+      break;
+    }
+  }
+
+  clearPortfolioCache();
+  return true;
+}
+
+/**
+ * Updates metadata for a portfolio photo (alt text, caption, featured, focal point)
+ */
+export async function updatePortfolioPhotoMetadata(
+  photoId: string,
+  updates: {
+    altText?: string;
+    caption?: string;
+    focalX?: number;
+    focalY?: number;
+    featured?: boolean;
+  }
+): Promise<PortfolioPhoto> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const dbUpdates: any = { updated_at: new Date().toISOString() };
+    if (updates.altText !== undefined) dbUpdates.alt_text = updates.altText;
+    if (updates.caption !== undefined) dbUpdates.caption = updates.caption;
+    if (updates.focalX !== undefined) dbUpdates.focal_x = updates.focalX;
+    if (updates.focalY !== undefined) dbUpdates.focal_y = updates.focalY;
+    if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+
+    const { data, error } = await supabase
+      .from('portfolio_photos')
+      .update(dbUpdates)
+      .eq('id', photoId)
+      .select()
+      .single();
+
+    if (error) {
+      throw normalizeError(error, 'updatePortfolioPhotoMetadata');
+    }
+
+    clearPortfolioCache();
+    return mapPhotoRow(data);
+  }
+
+  // Demo / test mode fallback
+  for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
+    if (col.photos) {
+      const p = col.photos.find(item => item.id === photoId);
+      if (p) {
+        if (updates.altText !== undefined) p.altText = updates.altText;
+        if (updates.caption !== undefined) p.caption = updates.caption;
+        if (updates.focalX !== undefined) p.focalX = updates.focalX;
+        if (updates.focalY !== undefined) p.focalY = updates.focalY;
+        if (updates.featured !== undefined) p.featured = updates.featured;
+        clearPortfolioCache();
+        return p;
+      }
+    }
+  }
+
+  throw new Error('Photo not found');
 }
 

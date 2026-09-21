@@ -348,7 +348,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     } finally {
       setIsLoadingCatalog(false);
     }
-  }, [demoMode, initialConceptSlug, initialServiceId, initialPackageId]);
+  }, [demoMode, presentation, initialConceptSlug, initialServiceId, initialPackageId]);
 
   useEffect(() => {
     loadInitialData();
@@ -719,7 +719,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setIsLoadingSlots(false);
       }
     }
-  }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot]);
+  }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot, demoMode, presentation]);
 
 
   const consumePendingBookingDraft = useCallback(() => {

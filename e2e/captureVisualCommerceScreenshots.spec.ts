@@ -36,7 +36,7 @@ test.describe('Visual Commerce Review Screenshot Suite', () => {
     }, { timeout: 10000 });
 
     // Verify copy & CTAs are clearly visible before capturing
-    await expect(heroHeading).toContainText('Những câu chuyện được giữ lại bằng ánh sáng');
+    await expect(heroHeading).toContainText('TIỆM ẢNH MAISON MIPA MEMORIES');
     await expect(hero.locator('p').first()).toBeVisible();
     await expect(hero.locator('a:has-text("Khám phá concept")').first()).toBeVisible();
     await expect(hero.locator('button:has-text("Đặt lịch chụp")').first()).toBeVisible();
@@ -132,7 +132,7 @@ test.describe('Visual Commerce Review Screenshot Suite', () => {
       return el.getAttribute('data-hero-ready') === 'true' || opacity >= 0.95;
     }, { timeout: 10000 });
 
-    await expect(heroHeading).toContainText('Những câu chuyện được giữ lại bằng ánh sáng');
+    await expect(heroHeading).toContainText('TIỆM ẢNH MAISON MIPA MEMORIES');
     await page.screenshot({
       path: path.join(REVIEW_DIR, 'mobile_homepage_hero.png'),
     });

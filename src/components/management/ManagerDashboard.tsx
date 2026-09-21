@@ -26,7 +26,7 @@ import {
   determineShiftFromTime,
   SHIFT_CONFIGS,
   getStaffRegisteredShifts,
-  assignStaffAndSendEmailNotification,
+  assignBookingStaffAndNotify,
   type StaffShiftRegistrationRecord,
 } from '../../services/staffSchedulingService';
 import {
@@ -72,6 +72,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
   // Assign staff modal/popover state
   const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
+  const [isAssigningStaff, setIsAssigningStaff] = useState(false);
+  const [assignStaffError, setAssignStaffError] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedStaffRole, setSelectedStaffRole] = useState<string>('PHOTOGRAPHER');
   const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
@@ -218,16 +220,17 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningBooking || !selectedEmployeeId) return;
+    setIsAssigningStaff(true);
+    setAssignStaffError('');
+
     const baseEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
     const assignedEmp = baseEmployees.find(emp => emp.id === selectedEmployeeId) ||
       registeredShifts.find(s => s.employeeId === selectedEmployeeId);
-    const assignedName = (assignedEmp as any)?.name || (assignedEmp as any)?.employeeName;
+    const assignedName = (assignedEmp as any)?.name || (assignedEmp as any)?.employeeName || 'Nhân sự';
     const assignedEmail = (assignedEmp as any)?.email;
 
-    onAssignStaff(assigningBooking.id, selectedEmployeeId, selectedStaffRole);
-
     try {
-      await assignStaffAndSendEmailNotification({
+      const result = await assignBookingStaffAndNotify({
         bookingId: assigningBooking.id,
         employeeId: selectedEmployeeId,
         role: selectedStaffRole as any,
@@ -247,14 +250,21 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           email: assignedEmail,
         },
       });
-    } catch (err) {
-      console.warn('Could not dispatch staff email notification:', err);
-    }
 
-    setWorkflowNotice(`✓ Đã phân công ${assignedName || 'nhân sự'} và tự động gửi email thông báo buổi chụp!`);
-    setAssigningBooking(null);
-    setSelectedEmployeeId('');
-    setTimeout(() => setWorkflowNotice(''), 4500);
+      // Update parent state with authoritative assignment
+      onAssignStaff(assigningBooking.id, selectedEmployeeId, selectedStaffRole);
+
+      setWorkflowNotice(`✓ ${result.notificationMessage}`);
+      setAssigningBooking(null);
+      setSelectedEmployeeId('');
+      setAssignStaffError('');
+      setTimeout(() => setWorkflowNotice(''), 4500);
+    } catch (err: any) {
+      console.error('Staff assignment error:', err);
+      setAssignStaffError(err.message || 'Không thể phân công nhân sự do xung đột lịch hoặc lỗi kết nối.');
+    } finally {
+      setIsAssigningStaff(false);
+    }
   };
 
   const handleCheckIn = async (b: Booking) => {
@@ -1075,8 +1085,6 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         );
 
         const matchingRoleEmployees = availableEmployees.filter(e => e.role === selectedStaffRole);
-        const registeredForShift = matchingRoleEmployees.filter(e => registeredIds.has(e.id));
-        const notRegisteredForShift = matchingRoleEmployees.filter(e => !registeredIds.has(e.id));
         const otherRoleEmployees = availableEmployees.filter(e => e.role !== selectedStaffRole);
 
         return (
@@ -1262,10 +1270,32 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                {assignStaffError && (
+                  <div
+                    role="alert"
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.65rem 0.85rem',
+                      backgroundColor: '#FDF2F2',
+                      border: '1px solid #F87171',
+                      borderRadius: '8px',
+                      color: '#991B1B',
+                      fontSize: '0.85rem',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    ⚠️ {assignStaffError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.75rem' }}>
                   <button
                     type="button"
-                    onClick={() => setAssigningBooking(null)}
+                    onClick={() => {
+                      setAssigningBooking(null);
+                      setAssignStaffError('');
+                    }}
+                    disabled={isAssigningStaff}
                     className="btn-mipa-secondary"
                     style={{ flex: 1, padding: '0.75rem', minHeight: '44px' }}
                   >
@@ -1273,10 +1303,11 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   </button>
                   <button
                     type="submit"
+                    disabled={isAssigningStaff || !selectedEmployeeId}
                     className="btn-mipa-gold"
-                    style={{ flex: 1, padding: '0.75rem', minHeight: '44px' }}
+                    style={{ flex: 1, padding: '0.75rem', minHeight: '44px', opacity: isAssigningStaff ? 0.6 : 1 }}
                   >
-                    Lưu Phân Công &amp; Gửi Email
+                    {isAssigningStaff ? 'Đang Xử Lý...' : 'Lưu Phân Công & Gửi Email'}
                   </button>
                 </div>
               </form>

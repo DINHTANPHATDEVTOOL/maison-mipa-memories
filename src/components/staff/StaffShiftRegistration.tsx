@@ -7,7 +7,7 @@
 // Data is authoritative and visible to Admin / Managers for smart booking assignment.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { User, StaffRole } from '../../types';
 import {
   type ShiftType,
@@ -56,7 +56,7 @@ export const StaffShiftRegistration: React.FC<StaffShiftRegistrationProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Load existing shifts for this staff
-  const loadShifts = async () => {
+  const loadShifts = useCallback(async () => {
     try {
       const shifts = await getStaffRegisteredShifts({ employeeId: staffId });
       setRegisteredShifts(shifts);
@@ -78,11 +78,11 @@ export const StaffShiftRegistration: React.FC<StaffShiftRegistrationProps> = ({
     } catch (err) {
       console.error('Failed to load registered shifts:', err);
     }
-  };
+  }, [staffId]);
 
   useEffect(() => {
     loadShifts();
-  }, [staffId]);
+  }, [loadShifts]);
 
   // Helper to get days of the current week (Mon -> Sun)
   const getDaysOfWeek = (baseDate: Date) => {

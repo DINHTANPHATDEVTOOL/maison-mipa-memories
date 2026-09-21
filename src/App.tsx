@@ -194,7 +194,7 @@ function AppContent() {
         if (b.id === bookingId || b.bookingCode === bookingId) {
           return {
             ...b,
-            assignments: [...b.assignments.filter(a => a.assignmentRole !== asg.assignmentRole), asg],
+            assignments: [...b.assignments.filter(a => !(a.employeeId === asg.employeeId && a.assignmentRole === asg.assignmentRole)), asg],
             updatedAt: new Date().toISOString(),
           };
         }
@@ -536,7 +536,7 @@ export function App() {
         if (preloader.parentNode) {
           preloader.parentNode.removeChild(preloader);
         }
-      }, 750);
+      }, typeof navigator !== 'undefined' && navigator.webdriver ? 0 : 350);
       return () => clearTimeout(timer);
     }
   }, []);

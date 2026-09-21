@@ -201,7 +201,7 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
             <ShieldCheck size={15} color="#047857" /> BÁO CÁO DOANH THU & SỔ QUỸ STUDIO
           </div>
           <h2 style={{ fontSize: '1.8rem', color: '#604634', margin: '0.2rem 0 0 0', fontFamily: 'Cinzel, serif', fontWeight: 600 }}>
-            Tổng Hợp Doanh Thu Theo Ngày, Tháng, Năm
+            Quản Lý Thu Tiền & Sổ Quỹ Studio
           </h2>
         </div>
 
@@ -300,12 +300,24 @@ export const FinancialLedgerDashboard: React.FC<FinancialLedgerDashboardProps> =
 
         <div style={{ backgroundColor: '#FFFDF6', padding: '1.3rem', borderRadius: '16px', border: '1px solid #EFE6C9', boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
           <div style={{ fontSize: '0.78rem', color: '#8C6E53', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>💰</span> TỔNG CỌC & ĐÃ THU
+            <span>💼</span> Giá Trị Booking Đã Chốt
           </div>
           <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#604634', marginTop: '0.4rem' }}>
-            {(summary?.actualCashReceived || 0).toLocaleString('vi-VN')} đ
+            {(summary?.confirmedBookingValue || 0).toLocaleString('vi-VN')} đ
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6E5F55', marginTop: '0.25rem' }}>
+            Tổng giá trị hợp đồng đã chốt
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: '#ECFDF5', padding: '1.3rem', borderRadius: '16px', border: '1px solid #A7F3D0', boxShadow: '0 2px 8px rgba(96, 70, 52, 0.05)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#047857', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>💰</span> Thực Thu Thực Tế (Net Cash)
+          </div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#065F46', marginTop: '0.4rem' }}>
+            {(summary?.actualCashReceived || 0).toLocaleString('vi-VN')} đ
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.25rem' }}>
             Tổng tiền đã vào quỹ studio
           </div>
         </div>

@@ -577,11 +577,31 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1rem' }}>
-                  <img
-                    src={emp.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt={emp.name}
-                    style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #C6A45F' }}
-                  />
+                  {emp.avatar ? (
+                    <img
+                      src={emp.avatar}
+                      alt={emp.name}
+                      style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #C6A45F' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: '#FAF8F5',
+                        border: '1px solid #C6A45F',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        color: '#8C6E53',
+                      }}
+                    >
+                      {emp.name.split(' ').map((n: string) => n[0]).slice(-2).join('').toUpperCase() || 'NV'}
+                    </div>
+                  )}
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '1rem', color: '#2C2420' }}>{emp.name}</div>
                     <div style={{ fontSize: '0.8rem', color: '#8C6E53', fontWeight: 600 }}>{emp.role}</div>

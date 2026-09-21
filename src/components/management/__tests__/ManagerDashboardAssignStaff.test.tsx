@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ManagerDashboard } from '../ManagerDashboard';
 import type { Booking, Employee, StudioRoom } from '../../../types';
@@ -134,7 +134,7 @@ describe('ManagerDashboard - Staff Assignment Modal & Employee Resolution', () =
     expect(screen.queryByText(/ĐIỀU PHỐI NHÂN SỰ STUDIO/i)).toBeNull();
   });
 
-  it('2. populates matching specialty employees and other available staff in separate optgroups', () => {
+  it('2. populates matching specialty employees and other available staff in separate optgroups', async () => {
     const onAssignStaff = vi.fn();
     render(
       <ManagerDashboard
@@ -165,10 +165,12 @@ describe('ManagerDashboard - Staff Assignment Modal & Employee Resolution', () =
     fireEvent.change(empSelect, { target: { value: 'emp-photo-1' } });
     fireEvent.click(screen.getByRole('button', { name: /Lưu Phân Công/i }));
 
-    expect(onAssignStaff).toHaveBeenCalledWith('b-001', 'emp-photo-1', 'PHOTOGRAPHER');
+    await waitFor(() => {
+      expect(onAssignStaff).toHaveBeenCalledWith('b-001', 'emp-photo-1', 'PHOTOGRAPHER');
+    });
   });
 
-  it('3. dynamically regroups options when assignment role is changed', () => {
+  it('3. dynamically regroups options when assignment role is changed', async () => {
     const onAssignStaff = vi.fn();
     render(
       <ManagerDashboard
@@ -195,7 +197,9 @@ describe('ManagerDashboard - Staff Assignment Modal & Employee Resolution', () =
     fireEvent.change(empSelect, { target: { value: 'emp-makeup-1' } });
     fireEvent.click(screen.getByRole('button', { name: /Lưu Phân Công/i }));
 
-    expect(onAssignStaff).toHaveBeenCalledWith('b-001', 'emp-makeup-1', 'MAKEUP');
+    await waitFor(() => {
+      expect(onAssignStaff).toHaveBeenCalledWith('b-001', 'emp-makeup-1', 'MAKEUP');
+    });
   });
 
   it('4. falls back to mock employees when database employees array is empty', () => {

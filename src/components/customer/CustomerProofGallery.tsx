@@ -40,6 +40,7 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
+  const [failedImageIds, setFailedImageIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -329,17 +330,44 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
                   onClick={() => toggleSelect(proof.id)}
                 >
                   {/* Image Display */}
-                  <img
-                    src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80&sig=${idx}`}
-                    alt={proof.fileName}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.3s ease',
-                    }}
-                  />
+                  {(proof.thumbnailUrl || proof.previewUrl) && !failedImageIds[proof.id] ? (
+                    <img
+                      src={proof.thumbnailUrl || proof.previewUrl}
+                      alt={proof.fileName}
+                      onError={() => setFailedImageIds((prev) => ({ ...prev, [proof.id]: true }))}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.3s ease',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                        backgroundColor: '#1C1613',
+                        color: '#C6A45F',
+                        textAlign: 'center',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <Camera size={28} style={{ marginBottom: '0.4rem', opacity: 0.8 }} />
+                      <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#FFFDF6', maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {proof.fileName}
+                      </div>
+                      <div style={{ fontSize: '0.62rem', color: '#8C6E53', marginTop: '0.2rem' }}>
+                        MIPA PROOF NEGATIVE
+                      </div>
+                    </div>
+                  )}
 
                   {/* Watermark/Proof tag */}
                   <div
@@ -456,17 +484,57 @@ export const CustomerProofGallery: React.FC<CustomerProofGalleryProps> = ({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1400&q=85&sig=${lightboxIndex}`}
-              alt={proofs[lightboxIndex].fileName}
-              style={{
-                maxWidth: '90vw',
-                maxHeight: '75vh',
-                objectFit: 'contain',
-                borderRadius: '8px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-              }}
-            />
+            {(() => {
+              const activeProof = proofs[lightboxIndex];
+              const activeUrl = activeProof?.previewUrl || activeProof?.thumbnailUrl;
+              return activeUrl && !failedImageIds[activeProof.id] ? (
+                <img
+                  src={activeUrl}
+                  alt={activeProof.fileName}
+                  onError={() => setFailedImageIds((prev) => ({ ...prev, [activeProof.id]: true }))}
+                  style={{
+                    maxWidth: '90vw',
+                    maxHeight: '75vh',
+                    objectFit: 'contain',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '540px',
+                    maxWidth: '90vw',
+                    height: '360px',
+                    backgroundColor: '#1C1613',
+                    border: '1px solid rgba(198, 164, 95, 0.4)',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem',
+                    color: '#FFFDF6',
+                    textAlign: 'center',
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: '12px', left: '16px', fontSize: '0.7rem', color: '#8C6E53', letterSpacing: '0.1em' }}>
+                    MAISON MIPA DIGITAL PROOF NEGATIVE
+                  </div>
+                  <Camera size={44} style={{ color: '#C6A45F', marginBottom: '1rem' }} />
+                  <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    {activeProof.fileName}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                    Bản chụp #{lightboxIndex + 1} • {activeProof.mimeType || 'IMAGE'} {activeProof.width ? `• ${activeProof.width}x${activeProof.height}` : ''}
+                  </div>
+                  <div style={{ marginTop: '1.5rem', padding: '0.3rem 0.8rem', borderRadius: '4px', backgroundColor: 'rgba(198, 164, 95, 0.1)', color: '#C6A45F', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                    AUTHENTIC BOOKING PROOF ASSET
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Bottom Controls in Lightbox */}
             <div

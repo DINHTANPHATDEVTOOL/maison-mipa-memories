@@ -237,35 +237,8 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
 /**
  * In-Memory Booking Engine for offline tests
  */
-/**
- * Validates whether a booking slot falls within studio operating hours:
- * - Weekday (Monday - Friday): 08:30 — 19:00
- * - Weekend (Saturday - Sunday): 08:00 — 20:30
- */
-export function isWithinOperatingHours(
-  bookingDate: string,
-  startTime: string,
-  endTime: string
-): { valid: boolean; reason?: string } {
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-
-  const dObj = new Date(bookingDate + 'T00:00:00+07:00');
-  const dayOfWeek = isNaN(dObj.getTime()) ? 1 : dObj.getDay();
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const openingMinutes = isWeekend ? 8 * 60 : 8 * 60 + 30;
-  const closingMinutes = isWeekend ? 20 * 60 + 30 : 19 * 60;
-
-  if (startMinutes < openingMinutes || endMinutes > closingMinutes) {
-    const hoursDesc = isWeekend ? 'Cuối tuần: 08:00 - 20:30' : 'Ngày thường: 08:30 - 19:00';
-    return {
-      valid: false,
-      reason: `Khung giờ đã chọn (${startTime} - ${endTime}) nằm ngoài giờ mở cửa của studio (${hoursDesc}). Vui lòng chọn khung giờ trong giờ hoạt động.`,
-    };
-  }
-
-  return { valid: true };
-}
+import { isWithinOperatingHours } from '../utils/businessTime';
+export { isWithinOperatingHours };
 
 export function createBookingInMemory(request: CreateBookingRequest): Booking {
   if (!request.serviceId || !request.packageId || !request.studioId) {
@@ -831,7 +804,8 @@ export async function updateStaffTask(taskId: string, newStatus: string, notes?:
 export async function assignBookingStaff(
   bookingId: string,
   employeeId: string,
-  assignmentRole: string = 'PHOTOGRAPHER'
+  assignmentRole: string = 'PHOTOGRAPHER',
+  allowMultiple: boolean = false
 ): Promise<BookingAssignment> {
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     return assignBookingStaffV2({
@@ -856,7 +830,11 @@ export async function assignBookingStaff(
 
   if (booking) {
     if (!booking.assignments) booking.assignments = [];
-    const existingIndex = booking.assignments.findIndex(a => a.assignmentRole === assignmentRole);
+    const existingIndex = booking.assignments.findIndex(a =>
+      allowMultiple
+        ? a.employeeId === employeeId && a.assignmentRole === assignmentRole
+        : a.assignmentRole === assignmentRole
+    );
     if (existingIndex >= 0) {
       booking.assignments[existingIndex] = asg;
     } else {

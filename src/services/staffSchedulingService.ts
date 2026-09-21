@@ -473,20 +473,20 @@ export interface StaffEmailNotification {
   status: 'SENT';
 }
 
-// LocalStorage key for cross-session and cross-tab persistence
-const LOCAL_STORAGE_SHIFTS_KEY = 'maison_mipa_registered_shifts';
+// LocalStorage key for temporary drafts only (never authoritative schedule in production)
+const LOCAL_STORAGE_SHIFTS_DRAFT_KEY = 'mipa_draft_registered_shifts';
 
 // In-memory fallback stores
 let inMemoryRegisteredShifts: StaffShiftRegistrationRecord[] = [];
 let inMemoryEmailNotifications: StaffEmailNotification[] = [];
 
 /**
- * Reads registered shifts from localStorage (if in browser) or memory.
+ * Reads registered shifts from localStorage draft (if in demo mode) or memory.
  */
 export function getStoredRegisteredShifts(): StaffShiftRegistrationRecord[] {
-  if (typeof window !== 'undefined' && window.localStorage) {
+  if (isDemoModeEnabled() && typeof window !== 'undefined' && window.localStorage) {
     try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_KEY);
+      const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -495,32 +495,37 @@ export function getStoredRegisteredShifts(): StaffShiftRegistrationRecord[] {
         }
       }
     } catch (e) {
-      console.warn('[StaffScheduling] Error reading shifts from localStorage:', e);
+      console.warn('[StaffScheduling] Error reading shifts from localStorage draft:', e);
     }
   }
   return inMemoryRegisteredShifts;
 }
 
 /**
- * Persists registered shifts to memory and localStorage, and broadcasts an update event.
+ * Persists registered shifts to memory and localStorage draft (in demo mode only).
  */
 export function persistStoredRegisteredShifts(shifts: StaffShiftRegistrationRecord[]) {
   inMemoryRegisteredShifts = shifts;
-  if (typeof window !== 'undefined' && window.localStorage) {
+  if (isDemoModeEnabled() && typeof window !== 'undefined' && window.localStorage) {
     try {
-      localStorage.setItem(LOCAL_STORAGE_SHIFTS_KEY, JSON.stringify(shifts));
+      localStorage.setItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY, JSON.stringify(shifts));
       window.dispatchEvent(new CustomEvent('mipa_shifts_updated', { detail: { count: shifts.length } }));
     } catch (e) {
-      console.warn('[StaffScheduling] Error saving shifts to localStorage:', e);
+      console.warn('[StaffScheduling] Error saving draft shifts to localStorage:', e);
     }
   }
 }
 
-// Initialize default shifts for demo and development
+// Initialize default shifts for demo and development ONLY
 function initializeDefaultShifts() {
+  if (!isDemoModeEnabled()) {
+    // Production mode must NEVER auto-generate fake shifts!
+    return;
+  }
+
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_KEY);
+      const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -627,88 +632,75 @@ function initializeDefaultShifts() {
     }
   }
 
-  if (typeof window !== 'undefined' && window.localStorage && inMemoryRegisteredShifts.length > 0) {
+  if (typeof window !== 'undefined' && window.localStorage && inMemoryRegisteredShifts.length > 0 && isDemoModeEnabled()) {
     try {
-      localStorage.setItem(LOCAL_STORAGE_SHIFTS_KEY, JSON.stringify(inMemoryRegisteredShifts));
+      localStorage.setItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY, JSON.stringify(inMemoryRegisteredShifts));
     } catch {
       // ignore
     }
   }
 }
 
-initializeDefaultShifts();
-
-/**
- * Determines whether a given time falls into MORNING or AFTERNOON shift
- */
-export function determineShiftFromTime(timeString: string): ShiftType {
-  let hour = 9;
-  if (timeString.includes('T')) {
-    hour = new Date(timeString).getHours();
-  } else if (timeString.includes(':')) {
-    hour = parseInt(timeString.split(':')[0], 10);
-  }
-  return hour < 13 ? 'MORNING' : 'AFTERNOON';
+// In demo mode only, populate initial demo shifts
+if (isDemoModeEnabled()) {
+  initializeDefaultShifts();
 }
 
 /**
+ * Determines whether a given time falls into MORNING or AFTERNOON shift
+ * Centralized Asia/Ho_Chi_Minh timezone-independent calculation
+ */
+import { determineShiftFromTime } from '../utils/businessTime';
+export { determineShiftFromTime };
+
+/**
  * Fetch registered shifts, optionally filtered by employeeId and/or date range
+ * In production Supabase mode: Database is authoritative and fails closed.
  */
 export async function getStaffRegisteredShifts(params?: {
   employeeId?: string;
   startDate?: string;
   endDate?: string;
 }): Promise<StaffShiftRegistrationRecord[]> {
-  initializeDefaultShifts();
-  const shifts = [...getStoredRegisteredShifts()];
-
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    try {
-      let query = supabase.from('employees').select('id, name, staff_role, shift_schedule').eq('active', true);
-      if (params?.employeeId) {
-        query = query.eq('id', params.employeeId);
-      }
-      const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        let updated = false;
-        data.forEach((emp: any) => {
-          if (emp.shift_schedule && typeof emp.shift_schedule === 'object') {
-            Object.entries(emp.shift_schedule).forEach(([dateStr, shiftTypes]: [string, any]) => {
-              if (Array.isArray(shiftTypes)) {
-                shiftTypes.forEach((st: ShiftType) => {
-                  const exists = shifts.some(
-                    s => s.employeeId === emp.id && s.shiftDate === dateStr && s.shiftType === st
-                  );
-                  if (!exists && SHIFT_CONFIGS[st]) {
-                    const cfg = SHIFT_CONFIGS[st];
-                    shifts.push({
-                      id: `shift-${emp.id}-${dateStr}-${st[0]}`,
-                      employeeId: emp.id,
-                      employeeName: emp.name || 'Nhân sự MIPA',
-                      role: (emp.staff_role || 'PHOTOGRAPHER') as StaffRole,
-                      shiftDate: dateStr,
-                      shiftType: st,
-                      startAt: `${dateStr}T${cfg.startHour}:00+07:00`,
-                      endAt: `${dateStr}T${cfg.endHour}:00+07:00`,
-                      createdAt: new Date().toISOString(),
-                    });
-                    updated = true;
-                  }
-                });
-              }
-            });
-          }
-        });
-        if (updated) {
-          persistStoredRegisteredShifts(shifts);
-        }
-      }
-    } catch (e) {
-      console.warn('[StaffScheduling] getStaffRegisteredShifts DB fallback to memory:', e);
-    }
+  if (isDemoModeEnabled()) {
+    initializeDefaultShifts();
   }
 
-  let result = [...shifts];
+  // 1. Authoritative production mode
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    let query = supabase.from('staff_shifts').select('id, employee_id, shift_date, shift_type, start_at, end_at, created_at');
+    if (params?.employeeId) {
+      query = query.eq('employee_id', params.employeeId);
+    }
+    if (params?.startDate) {
+      query = query.gte('shift_date', params.startDate);
+    }
+    if (params?.endDate) {
+      query = query.lte('shift_date', params.endDate);
+    }
+    const { data, error } = await query;
+    if (error) {
+      throw normalizeError(error, 'getStaffRegisteredShifts');
+    }
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      employeeId: row.employee_id,
+      employeeName: 'Nhân sự MIPA',
+      role: 'PHOTOGRAPHER' as StaffRole,
+      shiftDate: row.shift_date,
+      shiftType: row.shift_type as ShiftType,
+      startAt: row.start_at,
+      endAt: row.end_at,
+      createdAt: row.created_at,
+    }));
+  }
+
+  // 2. Demo / test mode fallback
+  let result = [...getStoredRegisteredShifts()];
   if (params?.employeeId) {
     result = result.filter(s => s.employeeId === params.employeeId);
   }
@@ -723,13 +715,62 @@ export async function getStaffRegisteredShifts(params?: {
 
 /**
  * Register or unregister shifts for a staff member (supports week & month updates)
+ * In production mode: mutates DB first and fails closed without updating local state on error.
  */
 export async function registerStaffShifts(
   employeeId: string,
   shiftsToUpdate: { date: string; shiftType: ShiftType; selected: boolean }[],
   staffMetadata?: { employeeName?: string; role?: StaffRole }
 ): Promise<StaffShiftRegistrationRecord[]> {
-  initializeDefaultShifts();
+  // 1. Authoritative production mode: Fail-closed DB mutation
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    for (const item of shiftsToUpdate) {
+      const config = SHIFT_CONFIGS[item.shiftType];
+      if (item.selected) {
+        const { error } = await supabase.from('staff_shifts').upsert({
+          employee_id: employeeId,
+          shift_date: item.date,
+          shift_type: item.shiftType,
+          start_at: `${item.date}T${config.startHour}:00+07:00`,
+          end_at: `${item.date}T${config.endHour}:00+07:00`,
+        }, { onConflict: 'employee_id,shift_date,shift_type' });
+        if (error) {
+          throw normalizeError(error, 'registerStaffShifts');
+        }
+      } else {
+        const { error } = await supabase
+          .from('staff_shifts')
+          .delete()
+          .match({ employee_id: employeeId, shift_date: item.date, shift_type: item.shiftType });
+        if (error) {
+          throw normalizeError(error, 'registerStaffShifts');
+        }
+      }
+    }
+
+    const { data, error } = await supabase.from('staff_shifts').select('*').eq('employee_id', employeeId);
+    if (error) {
+      throw normalizeError(error, 'registerStaffShifts');
+    }
+    const updated = (data || []).map((row: any) => ({
+      id: row.id,
+      employeeId: row.employee_id,
+      employeeName: staffMetadata?.employeeName || 'Nhân sự MIPA',
+      role: staffMetadata?.role || 'PHOTOGRAPHER',
+      shiftDate: row.shift_date,
+      shiftType: row.shift_type as ShiftType,
+      startAt: row.start_at,
+      endAt: row.end_at,
+      createdAt: row.created_at,
+    }));
+    persistStoredRegisteredShifts(updated);
+    return updated;
+  }
+
+  // 2. Demo / test mode fallback
+  if (isDemoModeEnabled()) {
+    initializeDefaultShifts();
+  }
   const currentShifts = [...getStoredRegisteredShifts()];
 
   const emp = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
@@ -767,55 +808,13 @@ export async function registerStaffShifts(
   }
 
   persistStoredRegisteredShifts(currentShifts);
-
-  // Attempt Supabase sync if connected
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    try {
-      const employeeShifts = currentShifts.filter(s => s.employeeId === employeeId);
-      const scheduleMap: Record<string, ShiftType[]> = {};
-      employeeShifts.forEach(s => {
-        if (!scheduleMap[s.shiftDate]) scheduleMap[s.shiftDate] = [];
-        if (!scheduleMap[s.shiftDate].includes(s.shiftType)) {
-          scheduleMap[s.shiftDate].push(s.shiftType);
-        }
-      });
-      await supabase
-        .from('employees')
-        .update({ shift_schedule: scheduleMap })
-        .eq('id', employeeId);
-    } catch (e) {
-      console.warn('[StaffScheduling] registerStaffShifts DB sync fallback:', e);
-    }
-
-    try {
-      for (const item of shiftsToUpdate) {
-        if (item.selected) {
-          const config = SHIFT_CONFIGS[item.shiftType];
-          await supabase.from('staff_shifts').upsert({
-            employee_id: employeeId,
-            shift_date: item.date,
-            shift_type: item.shiftType,
-            start_at: `${item.date}T${config.startHour}:00+07:00`,
-            end_at: `${item.date}T${config.endHour}:00+07:00`,
-          });
-        } else {
-          await supabase
-            .from('staff_shifts')
-            .delete()
-            .match({ employee_id: employeeId, shift_date: item.date, shift_type: item.shiftType });
-        }
-      }
-    } catch {
-      // table might not exist, handled safely
-    }
-  }
-
   return currentShifts.filter(s => s.employeeId === employeeId);
 }
 
 /**
  * Returns available staff for a specific date and time slot,
  * highlighting staff who have registered for that shift.
+ * In production Supabase mode: queries actual employees and staff_shifts.
  */
 export async function getAvailableStaffForSlot(params: {
   date: string; // YYYY-MM-DD
@@ -827,9 +826,64 @@ export async function getAvailableStaffForSlot(params: {
   isRegisteredForShift: boolean;
   registeredTimeRange?: string;
 }[]> {
-  initializeDefaultShifts();
   const shiftType = determineShiftFromTime(params.time);
   const targetDate = params.date.split('T')[0];
+
+  // 1. Authoritative production mode
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    let empQuery = supabase.from('employees').select('*').eq('active', true);
+    if (params.role) {
+      empQuery = empQuery.eq('staff_role', params.role);
+    }
+    const { data: empData, error: empErr } = await empQuery;
+    if (empErr) {
+      throw normalizeError(empErr, 'getAvailableStaffForSlot');
+    }
+    const employeesList: Employee[] = (empData || []).map((row: any) => ({
+      id: row.id,
+      name: row.name || 'Nhân sự MIPA',
+      email: row.email || '',
+      phone: row.phone || '',
+      role: (row.staff_role || 'PHOTOGRAPHER') as StaffRole,
+      avatar: row.avatar || '',
+      skills: Array.isArray(row.skills) ? row.skills : [],
+      rating: 5.0,
+      totalSessions: 0,
+      status: 'ACTIVE' as const,
+      shiftSchedule: {},
+    }));
+
+    // Query real shifts from DB for this date
+    const { data: shiftData, error: shiftErr } = await supabase
+      .from('staff_shifts')
+      .select('employee_id, shift_type')
+      .eq('shift_date', targetDate);
+
+    if (shiftErr) {
+      throw normalizeError(shiftErr, 'getAvailableStaffForSlot');
+    }
+
+    const registeredEmpIds = new Set(
+      (shiftData || [])
+        .filter((s: any) => s.shift_type === shiftType)
+        .map((s: any) => s.employee_id)
+    );
+
+    return employeesList.map(emp => {
+      const registered = registeredEmpIds.has(emp.id);
+      return {
+        employee: emp,
+        shiftType,
+        isRegisteredForShift: registered,
+        registeredTimeRange: registered ? SHIFT_CONFIGS[shiftType].timeRange : undefined,
+      };
+    });
+  }
+
+  // 2. Demo / test mode fallback
+  if (isDemoModeEnabled()) {
+    initializeDefaultShifts();
+  }
   const registeredShifts = getStoredRegisteredShifts();
 
   // Combine INITIAL_EMPLOYEES with any dynamically registered employees
@@ -950,4 +1004,116 @@ export function getStaffEmailNotifications(employeeId?: string): StaffEmailNotif
     return inMemoryEmailNotifications.filter(e => e.toEmail === targetEmail || (emp && e.toEmail === emp.email));
   }
   return [...inMemoryEmailNotifications];
+}
+
+export interface StaffAssignmentNotificationResult {
+  assignment: BookingAssignment;
+  notificationStatus: 'QUEUED' | 'SENT' | 'SKIPPED_MISSING_EMAIL' | 'FAILED';
+  notificationMessage: string;
+}
+
+/**
+ * Unified authoritative staff assignment + email dispatch flow.
+ * 1. Executes authoritative assign_booking_staff_v2 RPC
+ * 2. On assignment success, creates durable notification_outbox event (STAFF_BOOKING_ASSIGNED)
+ * 3. Distinguishes assignment success from email dispatch status without false delivery claims
+ */
+export async function assignBookingStaffAndNotify(params: {
+  bookingId: string;
+  employeeId: string;
+  role: StaffRole;
+  bookingDetails: {
+    bookingCode: string;
+    customerName: string;
+    customerPhone?: string;
+    shootDate: string;
+    shootTime: string;
+    packageName?: string;
+    serviceName?: string;
+    studioName?: string;
+    notes?: string;
+  };
+  staffDetails?: {
+    name?: string;
+    email?: string;
+  };
+}): Promise<StaffAssignmentNotificationResult> {
+  // 1. Authoritative mutation
+  const assignment = await assignBookingStaffV2({
+    bookingId: params.bookingId,
+    employeeId: params.employeeId,
+    assignmentRole: params.role,
+    notes: params.bookingDetails.notes,
+  });
+
+  const staffName = params.staffDetails?.name || assignment.employeeName || 'Nhân sự MIPA';
+  const targetEmail = params.staffDetails?.email?.trim();
+
+  // 2. Missing email validation (No fake staff@maisonmipa.vn fallback)
+  if (!targetEmail || targetEmail === 'staff@maisonmipa.vn' || targetEmail.includes('placeholder')) {
+    return {
+      assignment,
+      notificationStatus: 'SKIPPED_MISSING_EMAIL',
+      notificationMessage: `Đã phân công ${staffName}. Nhân sự chưa có email hợp lệ để gửi thông báo.`,
+    };
+  }
+
+  // 3. Durable notification_outbox event in production mode
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const idempotencyKey = `staff-assignment:${params.bookingId}:${params.employeeId}:${params.role}`;
+    try {
+      const { error: outboxErr } = await supabase.from('notification_outbox').upsert({
+        event_type: 'STAFF_BOOKING_ASSIGNED',
+        recipient_user_id: params.employeeId,
+        recipient_email: targetEmail,
+        entity_type: 'booking_assignments',
+        entity_id: assignment.id,
+        template_key: 'STAFF_BOOKING_ASSIGNED',
+        payload: {
+          booking_id: params.bookingId,
+          booking_code: params.bookingDetails.bookingCode,
+          customer_name: params.bookingDetails.customerName,
+          customer_phone: params.bookingDetails.customerPhone || null,
+          shoot_date: params.bookingDetails.shootDate,
+          shoot_time: params.bookingDetails.shootTime,
+          package_name: params.bookingDetails.packageName || params.bookingDetails.serviceName || 'Gói Chụp Nghệ Thuật',
+          studio_name: params.bookingDetails.studioName || 'Studio Maison MIPA',
+          employee_name: staffName,
+          role: params.role,
+        },
+        status: 'PENDING',
+        idempotency_key: idempotencyKey,
+      }, { onConflict: 'idempotency_key' });
+
+      if (outboxErr) {
+        console.warn('[StaffScheduling] Failed to insert notification_outbox:', outboxErr);
+        return {
+          assignment,
+          notificationStatus: 'FAILED',
+          notificationMessage: `Đã phân công ${staffName}. Email thông báo tạm thời gặp lỗi khi đưa vào hàng đợi.`,
+        };
+      }
+
+      return {
+        assignment,
+        notificationStatus: 'QUEUED',
+        notificationMessage: `Đã phân công ${staffName}. Email thông báo đang được gửi.`,
+      };
+    } catch (err) {
+      console.warn('[StaffScheduling] Exception writing notification_outbox:', err);
+      return {
+        assignment,
+        notificationStatus: 'FAILED',
+        notificationMessage: `Đã phân công ${staffName}. Lỗi hệ thống gửi thông báo.`,
+      };
+    }
+  }
+
+  // 4. Demo / test mode fallback
+  const demoResult = await assignStaffAndSendEmailNotification(params);
+  return {
+    assignment: demoResult.assignment,
+    notificationStatus: 'SENT',
+    notificationMessage: `Đã phân công ${staffName}. Email thông báo đã gửi.`,
+  };
 }

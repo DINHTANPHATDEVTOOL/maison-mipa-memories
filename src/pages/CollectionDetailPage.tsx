@@ -26,6 +26,8 @@ interface PhotoEssayBlock {
   photos: { photo: PortfolioPhoto; index: number }[];
 }
 
+const EMPTY_PHOTOS: PortfolioPhoto[] = [];
+
 export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOpenBooking }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -110,7 +112,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     { name: collection?.title || 'Chi tiết bộ ảnh', url: getCanonicalUrl(`/portfolio/${slug || ''}`) },
   ];
 
-  const photos = collection?.photos || [];
+  const photos = collection?.photos || EMPTY_PHOTOS;
 
   const coverPhoto = collection
     ? (collection.coverPhotoId

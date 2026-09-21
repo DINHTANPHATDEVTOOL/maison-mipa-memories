@@ -79,7 +79,10 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
         assignmentRole: selectedStaffRole,
       });
 
-      setAssignments(prev => [...prev.filter(a => a.assignmentRole !== selectedStaffRole), newAssignment]);
+      setAssignments(prev => [
+        ...prev.filter(a => !(a.employeeId === selectedEmployeeId && a.assignmentRole === selectedStaffRole)),
+        newAssignment
+      ]);
       setSuccessMsg(`Đã phân công ${selectedStaffRole} thành công.`);
       if (onUpdated) onUpdated();
     } catch (err: any) {
