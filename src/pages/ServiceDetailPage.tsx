@@ -14,6 +14,7 @@ import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { SITE_CONFIG, getCanonicalUrl } from '../config/site';
 import { NotFoundPage } from './NotFoundPage';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
+import { InPlaceImageEditor } from '../components/common/InPlaceImageEditor';
 
 interface ServiceDetailPageProps {
   onOpenBooking: () => void;
@@ -232,30 +233,46 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
             </div>
           </div>
 
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              aspectRatio: '16/11',
-              borderRadius: '2px',
-              overflow: 'hidden',
-              backgroundColor: '#EDE7DC',
+          <InPlaceImageEditor
+            assetId={`service_detail_hero_${serviceData?.id || slug}`}
+            currentImageUrl={image || ''}
+            label={`Dịch vụ: ${title}`}
+            onImageUpdated={(newUrl) => {
+              setServices((prev) =>
+                prev.map((s) => (s.id === serviceData?.id ? { ...s, coverPhotoUrl: newUrl, imageUrl: newUrl } : s))
+              );
+            }}
+            onImageDeleted={() => {
+              setServices((prev) =>
+                prev.map((s) => (s.id === serviceData?.id ? { ...s, coverPhotoUrl: '', imageUrl: '' } : s))
+              );
             }}
           >
-            {image ? (
-              <img
-                src={image}
-                alt={title}
-                fetchPriority="high"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
-            ) : (
-              <EditorialImagePlaceholder
-                aspectRatio="16/11"
-                caption={shortTitle}
-              />
-            )}
-          </div>
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '16/11',
+                borderRadius: '2px',
+                overflow: 'hidden',
+                backgroundColor: '#EDE7DC',
+              }}
+            >
+              {image ? (
+                <img
+                  src={image}
+                  alt={title}
+                  fetchPriority="high"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <EditorialImagePlaceholder
+                  aspectRatio="16/11"
+                  caption={shortTitle}
+                />
+              )}
+            </div>
+          </InPlaceImageEditor>
         </div>
       </header>
 

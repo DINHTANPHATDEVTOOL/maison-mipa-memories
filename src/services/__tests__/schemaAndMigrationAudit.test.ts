@@ -36,6 +36,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260921000001_dynamic_portfolio_asset_management.sql',
     '20260921000002_site_media_and_custom_concepts.sql',
     '20260921000003_restrict_site_assets_to_root_owner.sql',
+    '20260921000004_allow_authenticated_avatar_upload.sql',
   ];
 
   const EXPECTED_TABLES = [

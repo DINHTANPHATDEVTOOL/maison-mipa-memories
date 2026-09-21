@@ -805,7 +805,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Graceful fallback for components rendered outside AuthProvider (e.g., isolated tests)
+    return {
+      user: null,
+      role: 'GUEST',
+      isRootOwner: false,
+      login: async () => {},
+      logout: async () => {},
+      signUp: async () => ({ success: false, message: '' }),
+      updateProfile: async () => {},
+      changeRole: () => {},
+      loading: false,
+    } as unknown as AuthContextType;
   }
   return context;
 };

@@ -7,6 +7,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Heart, Sun, Clock, ArrowRight } from 'lucide-react';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 const BRAND_STUDIO_STORY_ASSET = '/studio.png';
 
@@ -207,18 +208,25 @@ export const HomeBrandStorySection: React.FC = () => {
                 boxShadow: '0 25px 60px rgba(96, 70, 52, 0.2), 0 0 0 1px rgba(198, 164, 95, 0.3)',
               }}
             >
-              <img
-                src={studioImageUrl}
-                alt="Không gian ánh sáng tự nhiên tại Maison MIPA Memories"
-                loading="lazy"
-                decoding="async"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
+              <InPlaceImageEditor
+                assetId="home_atelier_showcase"
+                currentImageUrl={studioImageUrl}
+                label="Ảnh Không Gian Tiệm Ảnh (Brand Story)"
+                containerStyle={{ width: '100%', height: '100%' }}
+              >
+                <img
+                  src={studioImageUrl}
+                  alt="Không gian ánh sáng tự nhiên tại Maison MIPA Memories"
+                  loading="lazy"
+                  decoding="async"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </InPlaceImageEditor>
 
               {/* Poetic Overlay Ribbon on the photo */}
               <div

@@ -13,6 +13,7 @@ import type { PortfolioCollection } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
+import { InPlaceImageEditor } from '../components/common/InPlaceImageEditor';
 
 interface PortfolioPageProps {
   onOpenBooking?: () => void;
@@ -263,46 +264,67 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                   }}
                 >
                   {/* Visual Photography Frame */}
-                  <Link
-                    to={`/portfolio/${col.slug}`}
-                    data-cursor="XEM"
-                    style={{
-                      display: 'block',
-                      position: 'relative',
-                      width: '100%',
-                      aspectRatio,
-                      overflow: 'hidden',
-                      backgroundColor: '#EDE7DC',
-                      textDecoration: 'none',
+                  <InPlaceImageEditor
+                    assetId={`portfolio_col_cover_${col.slug}`}
+                    currentImageUrl={coverUrl || '/studio.png'}
+                    label={`Ảnh bìa bộ ảnh: ${col.title}`}
+                    onImageUpdated={(newUrl) => {
+                      setCollections((prev) =>
+                        prev.map((item) =>
+                          item.id === col.id ? { ...item, coverPhotoUrl: newUrl } : item
+                        )
+                      );
+                    }}
+                    onImageDeleted={() => {
+                      setCollections((prev) =>
+                        prev.map((item) =>
+                          item.id === col.id ? { ...item, coverPhotoUrl: '' } : item
+                        )
+                      );
                     }}
                   >
-                    {coverUrl ? (
-                      <img
-                        src={coverUrl}
-                        alt={col.title}
-                        loading="lazy"
-                        decoding="async"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                          transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.035)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.0)';
-                        }}
-                      />
-                    ) : (
-                      <EditorialImagePlaceholder
-                        aspectRatio={aspectRatio}
-                        caption={col.title}
-                      />
-                    )}
-                  </Link>
+                    <Link
+                      to={`/portfolio/${col.slug}`}
+                      state={{ collection: col }}
+                      data-cursor="XEM"
+                      style={{
+                        display: 'block',
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio,
+                        overflow: 'hidden',
+                        backgroundColor: '#EDE7DC',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {coverUrl ? (
+                        <img
+                          src={coverUrl}
+                          alt={col.title}
+                          loading="lazy"
+                          decoding="async"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                            transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.035)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.0)';
+                          }}
+                        />
+                      ) : (
+                        <EditorialImagePlaceholder
+                          aspectRatio={aspectRatio}
+                          caption={col.title}
+                        />
+                      )}
+                    </Link>
+                  </InPlaceImageEditor>
 
                   {/* Metadata */}
                   <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
@@ -334,6 +356,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                       >
                         <Link
                           to={`/portfolio/${col.slug}`}
+                          state={{ collection: col }}
                           style={{ color: 'inherit', textDecoration: 'none' }}
                         >
                           {col.title}
@@ -362,6 +385,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                     <div style={{ paddingTop: '1rem', borderTop: '1px solid rgba(140, 110, 83, 0.15)' }}>
                       <Link
                         to={`/portfolio/${col.slug}`}
+                        state={{ collection: col }}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',

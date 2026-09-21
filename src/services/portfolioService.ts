@@ -604,12 +604,146 @@ const conceptsPromises = new Map<string, Promise<Concept[]>>();
 
 const collectionsCache = new Map<string, { data: PortfolioCollection[]; timestamp: number }>();
 const collectionsPromises = new Map<string, Promise<PortfolioCollection[]>>();
+const singleCollectionCache = new Map<string, { data: PortfolioCollection; timestamp: number }>();
+
+const LOCAL_STORAGE_CONCEPTS_KEY = 'maison_mipa_custom_concepts';
+const LOCAL_STORAGE_COLLECTIONS_KEY = 'maison_mipa_custom_collections_cache';
+const LOCAL_STORAGE_CONCEPT_GALLERY_KEY = 'maison_mipa_concept_gallery_photos';
+let localCustomConcepts: Concept[] = [];
+
+export interface ConceptGalleryPhotoItem {
+  id?: string;
+  url: string;
+  altText?: string;
+}
+
+export function getStoredConceptGalleryPhotos(conceptSlugOrId: string): ConceptGalleryPhotoItem[] | null {
+  if (typeof window === 'undefined' || !conceptSlugOrId) return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_CONCEPT_GALLERY_KEY);
+    if (!raw) return null;
+    const mapping = JSON.parse(raw);
+    if (mapping && Array.isArray(mapping[conceptSlugOrId])) {
+      return mapping[conceptSlugOrId];
+    }
+  } catch {
+    // Ignore JSON error
+  }
+  return null;
+}
+
+export function persistStoredConceptGalleryPhotos(
+  conceptSlugOrId: string,
+  photos: ConceptGalleryPhotoItem[]
+): void {
+  if (typeof window === 'undefined' || !conceptSlugOrId) return;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_CONCEPT_GALLERY_KEY);
+    const mapping = raw ? JSON.parse(raw) : {};
+    mapping[conceptSlugOrId] = photos;
+    localStorage.setItem(LOCAL_STORAGE_CONCEPT_GALLERY_KEY, JSON.stringify(mapping));
+  } catch {
+    // Ignore storage error
+  }
+}
+
+/**
+ * Synchronously retrieves a collection by slug from in-memory cache, localStorage, or demo fallback.
+ * Allows instant 0ms page rendering on /portfolio/:slug without waiting for network.
+ */
+export function getCollectionBySlugSync(slug: string): PortfolioCollection | null {
+  if (!slug) return null;
+
+  // 1. In-memory singleCollectionCache
+  const single = singleCollectionCache.get(slug);
+  if (single && (Date.now() - single.timestamp < CACHE_TTL_MS || isTestEnv)) {
+    return single.data;
+  }
+
+  // 2. Scan in-memory collectionsCache
+  for (const entry of collectionsCache.values()) {
+    const found = entry.data.find((c) => c.slug === slug);
+    if (found) {
+      singleCollectionCache.set(slug, { data: found, timestamp: Date.now() });
+      return found;
+    }
+  }
+
+  // 3. Scan localStorage cache
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_COLLECTIONS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const matched = parsed.find((c: any) => c.slug === slug);
+          if (matched) {
+            singleCollectionCache.set(slug, { data: matched, timestamp: Date.now() });
+            return matched;
+          }
+        }
+      }
+    } catch {
+      // Ignore JSON error
+    }
+  }
+
+  // 4. Scan DEMO_COLLECTIONS fallback
+  const demo = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
+  if (demo) {
+    const photos = DEMO_PHOTOS.filter((p) => p.collectionId === demo.id);
+    const resolvedCol: PortfolioCollection = {
+      ...demo,
+      photos,
+      photosCount: photos.length,
+      coverPhotoUrl: resolveCollectionCoverUrl(
+        demo.coverPhotoId,
+        photos,
+        demo.coverPhotoUrl,
+        demo.slug + ' ' + (demo.conceptSlug || '')
+      ),
+    };
+    singleCollectionCache.set(slug, { data: resolvedCol, timestamp: Date.now() });
+    return resolvedCol;
+  }
+
+  return null;
+}
+
+export function getStoredCustomConcepts(): Concept[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_CONCEPTS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore JSON error
+    }
+  }
+  return localCustomConcepts;
+}
+
+export function persistStoredCustomConcepts(concepts: Concept[]): void {
+  localCustomConcepts = concepts;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_CONCEPTS_KEY, JSON.stringify(concepts));
+    } catch {
+      // Ignore storage error
+    }
+  }
+}
 
 export function clearPortfolioCache(): void {
   conceptsCache.clear();
   conceptsPromises.clear();
   collectionsCache.clear();
   collectionsPromises.clear();
+  singleCollectionCache.clear();
 }
 
 /**
@@ -707,7 +841,9 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
     }
 
     if (isDemoModeEnabled()) {
-      let items = DEMO_CONCEPTS.filter((c) => c.active);
+      const storedCustom = getStoredCustomConcepts();
+      const allMerged = [...storedCustom, ...DEMO_CONCEPTS];
+      let items = allMerged.filter((c) => c.active);
       if (serviceId) {
         items = items.filter((c) => c.serviceId === serviceId);
       }
@@ -730,31 +866,48 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
 /**
  * Gets a concept by its unique slug
  */
-export async function getConceptBySlug(slug: string): Promise<Concept | null> {
+export async function getConceptBySlug(rawSlug: string): Promise<Concept | null> {
+  if (!rawSlug) return null;
+  const decoded = decodeURIComponent(rawSlug).trim();
+  const normalized = decoded.toLowerCase().replace(/\s+/g, '-');
+
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
+    let data: any = null;
+    const res1 = await supabase
       .from('concepts')
       .select('*')
-      .eq('slug', slug)
+      .eq('slug', decoded)
       .eq('active', true)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        if (isDemoModeEnabled()) {
-          const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
-          return brandConcept || null;
-        }
-        return null;
+    if (res1.data) {
+      data = res1.data;
+    } else if (decoded !== normalized) {
+      const res2 = await supabase
+        .from('concepts')
+        .select('*')
+        .eq('slug', normalized)
+        .eq('active', true)
+        .maybeSingle();
+      if (res2.data) {
+        data = res2.data;
       }
-      throw new Error(`Lỗi tải concept ${slug}: ${error.message}`);
     }
 
     if (!data) {
-      if (isDemoModeEnabled()) {
-        const brandConcept = DEMO_CONCEPTS.find((c) => c.slug === slug && c.active);
-        return brandConcept || null;
-      }
+      const custom = getStoredCustomConcepts();
+      const customFound = custom.find((c) => c.slug === decoded || c.slug === normalized || c.id === decoded);
+      if (customFound && customFound.active) return customFound;
+
+      const brandConcept = DEMO_CONCEPTS.find(
+        (c) =>
+          (c.slug === decoded ||
+            c.slug === normalized ||
+            c.slug.replace(/-/g, ' ') === decoded.toLowerCase() ||
+            c.id === decoded) &&
+          c.active
+      );
+      if (brandConcept) return brandConcept;
       return null;
     }
 
@@ -772,22 +925,31 @@ export async function getConceptBySlug(slug: string): Promise<Concept | null> {
 
     // Fallback to curated thumbnail if DB row lacks cover photo
     if (!coverPhotoUrl) {
-      const demoMatch = DEMO_CONCEPTS.find((d) => d.slug === slug || d.id === data.id);
+      const demoMatch = DEMO_CONCEPTS.find((d) => d.slug === normalized || d.slug === decoded || d.id === data.id);
       if (demoMatch?.coverPhotoUrl) {
         coverPhotoUrl = demoMatch.coverPhotoUrl;
       } else {
-        coverPhotoUrl = resolveCollectionCoverUrl(undefined, undefined, undefined, slug);
+        coverPhotoUrl = resolveCollectionCoverUrl(undefined, undefined, undefined, normalized);
       }
     }
 
     return mapConceptRow(data, coverPhotoUrl);
   }
 
-  if (isDemoModeEnabled()) {
-    return DEMO_CONCEPTS.find((c) => c.slug === slug && c.active) || null;
-  }
+  const custom = getStoredCustomConcepts();
+  const customFound = custom.find((c) => c.slug === decoded || c.slug === normalized || c.id === decoded);
+  if (customFound && customFound.active) return customFound;
 
-  return null;
+  return (
+    DEMO_CONCEPTS.find(
+      (c) =>
+        (c.slug === decoded ||
+          c.slug === normalized ||
+          c.slug.replace(/-/g, ' ') === decoded.toLowerCase() ||
+          c.id === decoded) &&
+        c.active
+    ) || null
+  );
 }
 
 /**
@@ -876,6 +1038,17 @@ export async function getPublicCollections(
 
       if (!isTestEnv) {
         collectionsCache.set(cacheKey, { data: mappedCollections, timestamp: Date.now() });
+        // Populate single collection cache for instant /portfolio/:slug access
+        mappedCollections.forEach((c) => {
+          if (c.slug) singleCollectionCache.set(c.slug, { data: c, timestamp: Date.now() });
+        });
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(mappedCollections.slice(0, 30)));
+          } catch {
+            // Ignore quota
+          }
+        }
       }
       return mappedCollections;
     }
@@ -888,7 +1061,7 @@ export async function getPublicCollections(
       if (featuredOnly) {
         items = items.filter((c) => c.featured);
       }
-      return items.map((c) => {
+      const mappedDemo = items.map((c) => {
         const photos = DEMO_PHOTOS.filter((p) => p.collectionId === c.id);
         return {
           ...c,
@@ -902,6 +1075,22 @@ export async function getPublicCollections(
           ),
         };
       });
+
+      if (!isTestEnv) {
+        collectionsCache.set(cacheKey, { data: mappedDemo, timestamp: Date.now() });
+        mappedDemo.forEach((c) => {
+          if (c.slug) singleCollectionCache.set(c.slug, { data: c, timestamp: Date.now() });
+        });
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(mappedDemo.slice(0, 30)));
+          } catch {
+            // Ignore quota
+          }
+        }
+      }
+
+      return mappedDemo;
     }
 
     return [];
@@ -918,9 +1107,16 @@ export async function getPublicCollections(
 }
 
 /**
- * Gets a single published collection with all photos by its slug
+ * Gets a single published collection with all photos by its slug.
+ * Prioritizes instantaneous in-memory and local cache lookup.
  */
 export async function getCollectionBySlug(slug: string): Promise<PortfolioCollection | null> {
+  // 1. Instant cache lookup
+  const cached = getCollectionBySlugSync(slug);
+  if (cached && cached.photos && cached.photos.length > 0) {
+    return cached;
+  }
+
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('portfolio_collections')
@@ -932,14 +1128,14 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
     if (error) {
       if (error.code === 'PGRST116') {
         const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
-        return demoMatch || null;
+        return demoMatch || cached || null;
       }
       throw new Error(`Lỗi tải bộ sưu tập ${slug}: ${error.message}`);
     }
 
     if (!data) {
       const demoMatch = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
-      return demoMatch || null;
+      return demoMatch || cached || null;
     }
 
     const col = mapCollectionRow(data as any, (data as any).concepts);
@@ -963,14 +1159,16 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
       undefined,
       col.slug + ' ' + (col.conceptSlug || '')
     );
+
+    singleCollectionCache.set(slug, { data: col, timestamp: Date.now() });
     return col;
   }
 
   if (isDemoModeEnabled()) {
     const col = DEMO_COLLECTIONS.find((c) => c.slug === slug && c.status === 'PUBLISHED');
-    if (!col) return null;
+    if (!col) return cached || null;
     const photos = DEMO_PHOTOS.filter((p) => p.collectionId === col.id);
-    return {
+    const resCol = {
       ...col,
       photos,
       photosCount: photos.length,
@@ -981,9 +1179,11 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
         col.slug + ' ' + (col.conceptSlug || '')
       ),
     };
+    singleCollectionCache.set(slug, { data: resCol, timestamp: Date.now() });
+    return resCol;
   }
 
-  return null;
+  return cached || null;
 }
 
 // ==============================================================================
@@ -991,7 +1191,6 @@ export async function getCollectionBySlug(slug: string): Promise<PortfolioCollec
 // ==============================================================================
 
 // In-memory collections & concepts store for fallback / instant UI responsiveness
-let localCustomConcepts: Concept[] = [];
 let localCustomCollections: PortfolioCollection[] = [];
 
 /**
@@ -1233,7 +1432,8 @@ export async function createConcept(input: {
     return mapConceptRow(data, input.coverPhotoUrl);
   }
 
-  localCustomConcepts.unshift(newConcept);
+  const custom = getStoredCustomConcepts();
+  persistStoredCustomConcepts([newConcept, ...custom]);
   clearPortfolioCache();
   return newConcept;
 }
@@ -1262,13 +1462,16 @@ export async function updateConcept(id: string, updates: Partial<Concept>): Prom
     return mapConceptRow(data, updates.coverPhotoUrl);
   }
 
-  const existing = localCustomConcepts.find(c => c.id === id);
-  if (existing) {
-    Object.assign(existing, updates);
+  const custom = getStoredCustomConcepts();
+  const customIdx = custom.findIndex((c) => c.id === id);
+  if (customIdx !== -1) {
+    custom[customIdx] = { ...custom[customIdx], ...updates };
+    persistStoredCustomConcepts(custom);
     clearPortfolioCache();
-    return existing;
+    return custom[customIdx];
   }
-  const demo = DEMO_CONCEPTS.find(c => c.id === id);
+
+  const demo = DEMO_CONCEPTS.find((c) => c.id === id);
   if (demo) {
     Object.assign(demo, updates);
     clearPortfolioCache();
@@ -1291,8 +1494,9 @@ export async function deleteConcept(id: string): Promise<boolean> {
     return true;
   }
 
-  localCustomConcepts = localCustomConcepts.filter(c => c.id !== id);
-  const demoIdx = DEMO_CONCEPTS.findIndex(c => c.id === id);
+  const custom = getStoredCustomConcepts();
+  persistStoredCustomConcepts(custom.filter((c) => c.id !== id));
+  const demoIdx = DEMO_CONCEPTS.findIndex((c) => c.id === id);
   if (demoIdx !== -1) {
     DEMO_CONCEPTS.splice(demoIdx, 1);
   }

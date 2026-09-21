@@ -4,8 +4,9 @@
 // Features: Gold drop-cap quote, curatorial wax seal, archival film rebate borders
 // ==============================================================================
 import React from 'react';
-import { Sparkles, Quote, Award } from 'lucide-react';
+import { Quote, Award } from 'lucide-react';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 export const CuratorialSplitBanner: React.FC = () => {
   const { getAssetUrl } = useSiteAssets();
@@ -177,16 +178,23 @@ export const CuratorialSplitBanner: React.FC = () => {
                   position: 'relative',
                 }}
               >
-                <img
-                  src={bannerBgUrl}
-                  alt="Maison MIPA Atelier Saigon"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    filter: 'brightness(0.92)',
-                  }}
-                />
+                <InPlaceImageEditor
+                  assetId="home_curatorial_banner"
+                  currentImageUrl={bannerBgUrl}
+                  label="Ảnh Giới Thiệu Nghệ Thuật (Curatorial Split)"
+                  containerStyle={{ width: '100%', height: '100%' }}
+                >
+                  <img
+                    src={bannerBgUrl}
+                    alt="Maison MIPA Atelier Saigon"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      filter: 'brightness(0.92)',
+                    }}
+                  />
+                </InPlaceImageEditor>
                 {/* Film Rebate Number */}
                 <div
                   style={{
@@ -197,6 +205,7 @@ export const CuratorialSplitBanner: React.FC = () => {
                     fontSize: '0.62rem',
                     color: '#E0C287',
                     letterSpacing: '0.15em',
+                    pointerEvents: 'none',
                   }}
                 >
                   KODAK PORTRA 400 • 36 EXP
@@ -229,15 +238,22 @@ export const CuratorialSplitBanner: React.FC = () => {
                   position: 'relative',
                 }}
               >
-                <img
-                  src={bannerHeroUrl}
-                  alt="Parisian Romance Monologue"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
+                <InPlaceImageEditor
+                  assetId="home_hero_banner"
+                  currentImageUrl={bannerHeroUrl}
+                  label="Ảnh Đại Diện Nghệ Thuật (Primary Print)"
+                  containerStyle={{ width: '100%', height: '100%' }}
+                >
+                  <img
+                    src={bannerHeroUrl}
+                    alt="Parisian Romance Monologue"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </InPlaceImageEditor>
                 {/* French Atelier Stamp */}
                 <div
                   style={{

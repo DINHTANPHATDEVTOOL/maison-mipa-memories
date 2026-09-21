@@ -64,30 +64,46 @@
   grid-template-columns: repeat(12, 1fr);
   gap: 1.5rem;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
 .gallery-item-wide,
-.gallery-span-full {
-  grid-column: span 12;
+.gallery-span-full,
+.concept-gallery-item.gallery-item-wide {
+  grid-column: span 12 !important;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .gallery-item-half,
-.gallery-span-half {
-  grid-column: span 6;
+.gallery-span-half,
+.concept-gallery-item.gallery-item-half {
+  grid-column: span 6 !important;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .gallery-span-portrait {
   grid-column: span 6;
+  min-width: 0;
 }
 
 .gallery-span-landscape {
   grid-column: span 12;
+  min-width: 0;
 }
 
 .concept-gallery-card {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border-radius: 4px;
   background-color: #EDE7DC;
   cursor: zoom-in;

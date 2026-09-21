@@ -10,6 +10,9 @@ import {
   getInitialSiteAssets,
   getSiteAssets,
   updateSiteAssetImage,
+  updateSiteAssetWithUrl,
+  createCustomSiteAsset,
+  deleteCustomSiteAsset,
   resetSiteAssetToDefault,
   deleteSiteAssetImage,
   subscribeSiteAssets,
@@ -21,10 +24,15 @@ interface SiteAssetContextType {
   assets: Record<string, SiteAsset>;
   getAssetUrl: (assetId: string, fallbackUrl?: string) => string;
   updateAsset: (assetId: string, file: File) => Promise<SiteAsset>;
+  updateAssetUrl: (assetId: string, url: string) => Promise<SiteAsset>;
+  createAsset: (params: { id: string; page?: any; label: string; imageUrl: string; description?: string }) => Promise<SiteAsset>;
+  deleteCustomAsset: (assetId: string) => Promise<void>;
   resetAsset: (assetId: string) => Promise<SiteAsset>;
   deleteAsset: (assetId: string) => Promise<SiteAsset>;
   refreshAssets: () => Promise<void>;
   loading: boolean;
+  isQuickEditModeActive: boolean;
+  setQuickEditModeActive: (active: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 const SiteAssetContext = createContext<SiteAssetContextType | null>(null);
@@ -33,6 +41,24 @@ export const SiteAssetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Synchronously initialize with cached assets from localStorage to eliminate 1s flash on page reload
   const [assets, setAssets] = useState<Record<string, SiteAsset>>(() => getInitialSiteAssets());
   const [loading, setLoading] = useState<boolean>(true);
+  const [isQuickEditModeActive, setIsQuickEditModeActiveState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mipa_quick_edit_mode');
+      return saved !== 'false';
+    }
+    return true;
+  });
+
+  const setQuickEditModeActive = useCallback((valOrFn: boolean | ((prev: boolean) => boolean)) => {
+    setIsQuickEditModeActiveState((prev) => {
+      const next = typeof valOrFn === 'function' ? valOrFn(prev) : valOrFn;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mipa_quick_edit_mode', String(next));
+      }
+      return next;
+    });
+  }, []);
+
   const { user } = useAuth();
 
   const refreshAssets = useCallback(async () => {
@@ -77,6 +103,33 @@ export const SiteAssetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [user?.id]
   );
 
+  const updateAssetUrl = useCallback(
+    async (assetId: string, url: string): Promise<SiteAsset> => {
+      const updated = await updateSiteAssetWithUrl(assetId, url, user?.id);
+      setAssets((prev) => ({ ...prev, [assetId]: updated }));
+      return updated;
+    },
+    [user?.id]
+  );
+
+  const createAsset = useCallback(
+    async (params: { id: string; page?: any; label: string; imageUrl: string; description?: string }): Promise<SiteAsset> => {
+      const created = await createCustomSiteAsset(params, user?.id);
+      setAssets((prev) => ({ ...prev, [created.id]: created }));
+      return created;
+    },
+    [user?.id]
+  );
+
+  const deleteCustomAsset = useCallback(async (assetId: string): Promise<void> => {
+    await deleteCustomSiteAsset(assetId);
+    setAssets((prev) => {
+      const copy = { ...prev };
+      delete copy[assetId];
+      return copy;
+    });
+  }, []);
+
   const resetAsset = useCallback(async (assetId: string): Promise<SiteAsset> => {
     const reset = await resetSiteAssetToDefault(assetId);
     // Immediately update React state
@@ -96,10 +149,15 @@ export const SiteAssetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         assets,
         getAssetUrl,
         updateAsset,
+        updateAssetUrl,
+        createAsset,
+        deleteCustomAsset,
         resetAsset,
         deleteAsset,
         refreshAssets,
         loading,
+        isQuickEditModeActive,
+        setQuickEditModeActive,
       }}
     >
       {children}
@@ -120,6 +178,15 @@ export const useSiteAssets = (): SiteAssetContextType => {
       updateAsset: async () => {
         throw new Error('SiteAssetProvider not mounted');
       },
+      updateAssetUrl: async () => {
+        throw new Error('SiteAssetProvider not mounted');
+      },
+      createAsset: async () => {
+        throw new Error('SiteAssetProvider not mounted');
+      },
+      deleteCustomAsset: async () => {
+        throw new Error('SiteAssetProvider not mounted');
+      },
       resetAsset: async () => {
         throw new Error('SiteAssetProvider not mounted');
       },
@@ -128,6 +195,8 @@ export const useSiteAssets = (): SiteAssetContextType => {
       },
       refreshAssets: async () => {},
       loading: false,
+      isQuickEditModeActive: false,
+      setQuickEditModeActive: () => {},
     };
   }
   return context;

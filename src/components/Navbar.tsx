@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { User, UserRole, NotificationItem } from '../types';
-import { CURRENT_USER_PROFILES, INITIAL_NOTIFICATIONS } from '../mockData';
-import { getUserNotifications } from '../services/notificationService';
+import { CURRENT_USER_PROFILES } from '../mockData';
+import {
+  getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  dismissNotification,
+  clearAllNotifications,
+  getReadNotificationIds,
+  getDismissedNotificationIds,
+} from '../services/notificationService';
+import { useSiteAssets } from '../context/SiteAssetContext';
 import {
   Camera,
   Bell,
@@ -13,15 +22,14 @@ import {
   ChevronDown,
   X,
   LogOut,
-  UserPlus,
   LogIn,
   Menu,
   LayoutDashboard,
   Crown,
-  Check,
   CheckCheck,
-  Clock,
   CheckCircle,
+  Sparkles,
+  Trash2,
 } from 'lucide-react';
 
 export interface NavbarProps {
@@ -187,12 +195,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showNotifs, setShowNotifs] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const { isQuickEditModeActive, setQuickEditModeActive } = useSiteAssets();
+
   // Notification state - strictly isolated by user ID: mipa_notifications_v2:<USER_ID>
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     if (!currentUser?.id) return [];
     try {
       const saved = localStorage.getItem(`mipa_notifications_v2:${currentUser.id}`);
-      return saved ? JSON.parse(saved) : [];
+      const parsed: NotificationItem[] = saved ? JSON.parse(saved) : [];
+      const readIds = getReadNotificationIds(currentUser.id);
+      const dismissedIds = getDismissedNotificationIds(currentUser.id);
+      return parsed
+        .filter((n) => !dismissedIds.has(n.id))
+        .map((n) => (readIds.has(n.id) ? { ...n, read: true } : n));
     } catch {
       return [];
     }
@@ -208,8 +223,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     // User A login: load only A cache
     try {
       const saved = localStorage.getItem(`mipa_notifications_v2:${currentUser.id}`);
-      if (mounted) {
-        setNotifications(saved ? JSON.parse(saved) : []);
+      if (mounted && saved) {
+        const parsed: NotificationItem[] = JSON.parse(saved);
+        const readIds = getReadNotificationIds(currentUser.id);
+        const dismissedIds = getDismissedNotificationIds(currentUser.id);
+        setNotifications(
+          parsed
+            .filter((n) => !dismissedIds.has(n.id))
+            .map((n) => (readIds.has(n.id) ? { ...n, read: true } : n))
+        );
       }
     } catch {
       if (mounted) setNotifications([]);
@@ -218,13 +240,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     async function loadNotifications() {
       if (!currentUser?.id) return;
       try {
-        const remoteNotifs = await getUserNotifications(currentUser.id);
+        const remoteNotifs = await getUserNotifications(currentUser.id, currentRole);
         if (mounted) {
           // If server returns [], set notifications to []. Do NOT keep previous state.
           const fresh = remoteNotifs || [];
-          setNotifications(fresh);
+          const readIds = getReadNotificationIds(currentUser.id);
+          const dismissedIds = getDismissedNotificationIds(currentUser.id);
+          const reconciled = fresh
+            .filter((n) => !dismissedIds.has(n.id))
+            .map((n) => (readIds.has(n.id) ? { ...n, read: true } : n));
+          setNotifications(reconciled);
           try {
-            localStorage.setItem(`mipa_notifications_v2:${currentUser.id}`, JSON.stringify(fresh));
+            localStorage.setItem(`mipa_notifications_v2:${currentUser.id}`, JSON.stringify(reconciled));
           } catch (e) {
             console.warn('Cannot persist notifications', e);
           }
@@ -237,7 +264,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => {
       mounted = false;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentRole]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -279,24 +306,36 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleMarkAsRead = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (currentUser?.id) {
+      markNotificationAsRead(id, currentUser.id);
+    }
     const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
     saveNotifications(updated);
   };
 
   const handleDismissNotification = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (currentUser?.id) {
+      dismissNotification(id, currentUser.id);
+    }
     const updated = notifications.filter((n) => n.id !== id);
     saveNotifications(updated);
   };
 
   const handleMarkAllAsRead = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (currentUser?.id) {
+      markAllNotificationsAsRead(notifications.map((n) => n.id), currentUser.id);
+    }
     const updated = notifications.map((n) => ({ ...n, read: true }));
     saveNotifications(updated);
   };
 
   const handleClearAllNotifications = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (currentUser?.id) {
+      clearAllNotifications(notifications.map((n) => n.id), currentUser.id);
+    }
     saveNotifications([]);
   };
 
@@ -539,10 +578,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllAsRead}
+                          title="Đánh dấu tất cả là đã đọc"
                           style={{
                             border: 'none',
                             background: 'transparent',
@@ -555,6 +595,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                           }}
                         >
                           <CheckCheck size={12} /> Đã đọc
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={handleClearAllNotifications}
+                          title="Xóa tất cả thông báo"
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            fontSize: '0.72rem',
+                            color: '#A39281',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.2rem',
+                          }}
+                        >
+                          <Trash2 size={12} /> Xóa
                         </button>
                       )}
                       <button
@@ -572,22 +630,54 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div style={{ fontSize: '0.82rem' }}>Không có thông báo mới</div>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '280px', overflowY: 'auto' }}>
                       {notifications.map((n) => (
                         <div
                           key={n.id}
                           onClick={() => handleMarkAsRead(n.id)}
                           style={{
-                            padding: '0.6rem',
-                            borderRadius: '4px',
+                            padding: '0.65rem 0.75rem',
+                            borderRadius: '6px',
                             backgroundColor: n.read ? '#FAF8F3' : '#FFFDF9',
-                            border: '1px solid rgba(140, 110, 83, 0.2)',
+                            border: n.read ? '1px solid rgba(140, 110, 83, 0.15)' : '1px solid #C6A45F',
                             fontSize: '0.8rem',
                             cursor: 'pointer',
+                            transition: 'all 0.15s ease',
                           }}
                         >
-                          <div style={{ fontWeight: 600, color: '#29231F', marginBottom: '0.2rem' }}>{n.title}</div>
-                          <div style={{ color: '#604634', fontSize: '0.76rem', lineHeight: 1.4 }}>{n.message}</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              {!n.read && (
+                                <span
+                                  style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#C6A45F',
+                                    display: 'inline-block',
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              )}
+                              <span style={{ fontWeight: n.read ? 500 : 700, color: '#29231F' }}>{n.title}</span>
+                            </div>
+                            <button
+                              onClick={(e) => handleDismissNotification(n.id, e)}
+                              title="Xóa thông báo này"
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: '#A39281',
+                                padding: '0 2px',
+                              }}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                          <div style={{ color: n.read ? '#8C7767' : '#604634', fontSize: '0.76rem', lineHeight: 1.4 }}>
+                            {n.message}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -776,6 +866,40 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <Crown size={14} color="#8C6E53" /> Cổng quản trị Studio
                       </Link>
+                    )}
+
+                    {(currentRole === 'ADMIN' || currentRole === 'MANAGER' || displayUser.isRootOwner) && (
+                      <div
+                        onClick={() => setQuickEditModeActive((prev) => !prev)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: isQuickEditModeActive ? '#FAF8F3' : 'transparent',
+                          border: isQuickEditModeActive ? '1px solid #C6A45F' : '1px solid rgba(140, 110, 83, 0.15)',
+                          borderRadius: '4px',
+                          marginBottom: '0.25rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#29231F' }}>
+                          <Sparkles size={14} color="#C6A45F" />
+                          <span>Đổi ảnh tại chỗ</span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: isQuickEditModeActive ? '#8C6E53' : '#A39281',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            backgroundColor: isQuickEditModeActive ? '#EDE7DC' : '#FAF8F3',
+                          }}
+                        >
+                          {isQuickEditModeActive ? 'BẬT' : 'TẮT'}
+                        </span>
+                      </div>
                     )}
 
                     <div style={{ borderTop: '1px solid rgba(140, 110, 83, 0.2)', marginTop: '0.4rem', paddingTop: '0.4rem' }}>
@@ -1009,6 +1133,43 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Crown size={16} color="#8C6E53" /> Cổng quản trị Studio
                   </Link>
+                )}
+
+                {(currentRole === 'ADMIN' || currentRole === 'MANAGER' || displayUser.isRootOwner) && (
+                  <button
+                    onClick={() => setQuickEditModeActive((prev) => !prev)}
+                    style={{
+                      border: isQuickEditModeActive ? '1px solid #C6A45F' : '1px solid rgba(140, 110, 83, 0.2)',
+                      backgroundColor: isQuickEditModeActive ? '#FAF8F3' : 'transparent',
+                      color: '#29231F',
+                      borderRadius: '4px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      minHeight: '44px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0 0.75rem',
+                      marginTop: '0.25rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Sparkles size={16} color="#C6A45F" /> Đổi ảnh tại chỗ
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: isQuickEditModeActive ? '#8C6E53' : '#A39281',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '4px',
+                        backgroundColor: isQuickEditModeActive ? '#EDE7DC' : '#FAF8F3',
+                      }}
+                    >
+                      {isQuickEditModeActive ? 'BẬT' : 'TẮT'}
+                    </span>
+                  </button>
                 )}
 
                 <button

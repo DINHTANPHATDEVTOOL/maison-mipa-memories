@@ -9,6 +9,7 @@ import { getPublicConcepts } from '../../services/portfolioService';
 import type { Concept } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 export const HomeConceptsSection: React.FC = () => {
   const [concepts, setConcepts] = useState<Concept[]>([]);
@@ -221,47 +222,63 @@ export const HomeConceptsSection: React.FC = () => {
                 }}
               >
                 {/* Photography Frame */}
-                <Link
-                  to={`/concept/${concept.slug}`}
-                  style={{
-                    display: 'block',
-                    position: 'relative',
-                    width: '100%',
-                    aspectRatio,
-                    overflow: 'hidden',
-                    borderRadius: '2px',
-                    backgroundColor: '#EDE7DC',
-                    textDecoration: 'none',
-                    marginBottom: '1.15rem',
+                <InPlaceImageEditor
+                  assetId={`concept_cover_${concept.slug || concept.id}`}
+                  currentImageUrl={concept.coverPhotoUrl || ''}
+                  label={`Concept: ${concept.name}`}
+                  onImageUpdated={(newUrl) => {
+                    setConcepts((prev) =>
+                      prev.map((c) => (c.id === concept.id ? { ...c, coverPhotoUrl: newUrl } : c))
+                    );
                   }}
+                  onImageDeleted={() => {
+                    setConcepts((prev) =>
+                      prev.map((c) => (c.id === concept.id ? { ...c, coverPhotoUrl: '' } : c))
+                    );
+                  }}
+                  containerStyle={{ marginBottom: '1.15rem' }}
                 >
-                  {concept.coverPhotoUrl ? (
-                    <img
-                      src={concept.coverPhotoUrl}
-                      alt={concept.name}
-                      loading={index === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.035)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.0)';
-                      }}
-                    />
-                  ) : (
-                    <EditorialImagePlaceholder
-                      aspectRatio={aspectRatio}
-                      caption={concept.name}
-                    />
-                  )}
-                </Link>
+                  <Link
+                    to={`/concept/${concept.slug}`}
+                    style={{
+                      display: 'block',
+                      position: 'relative',
+                      width: '100%',
+                      aspectRatio,
+                      overflow: 'hidden',
+                      borderRadius: '2px',
+                      backgroundColor: '#EDE7DC',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {concept.coverPhotoUrl ? (
+                      <img
+                        src={concept.coverPhotoUrl}
+                        alt={concept.name}
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.035)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.0)';
+                        }}
+                      />
+                    ) : (
+                      <EditorialImagePlaceholder
+                        aspectRatio={aspectRatio}
+                        caption={concept.name}
+                      />
+                    )}
+                  </Link>
+                </InPlaceImageEditor>
 
                 {/* Concept Information */}
                 <div>

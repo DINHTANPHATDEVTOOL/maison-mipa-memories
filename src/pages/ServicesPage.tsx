@@ -6,13 +6,16 @@
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Home, RotateCcw } from 'lucide-react';
-import { getServices } from '../services/catalogService';
+import { ArrowRight, ChevronRight, Home, RotateCcw, Plus, Edit3, Trash2, X, Check, Sparkles, Upload, Camera } from 'lucide-react';
+import { getServices, createService, updateService, deleteService } from '../services/catalogService';
 import type { ServiceCategory } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
 import { useSiteAssets } from '../context/SiteAssetContext';
+import { useAuth } from '../context/AuthContext';
+import { InPlaceImageEditor } from '../components/common/InPlaceImageEditor';
+import { uploadDirectAssetFile } from '../services/siteAssetService';
 
 interface ServicesPageProps {
   onOpenBooking: () => void;
@@ -20,10 +23,24 @@ interface ServicesPageProps {
 
 export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
+  const { isRootOwner, role } = useAuth();
+  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER');
   const { getAssetUrl } = useSiteAssets();
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
+
+  // Admin CRUD Modal States
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [editingService, setEditingService] = useState<ServiceCategory | null>(null);
+  const [formName, setFormName] = useState<string>('');
+  const [formSlug, setFormSlug] = useState<string>('');
+  const [formDesc, setFormDesc] = useState<string>('');
+  const [formBadge, setFormBadge] = useState<string>('');
+  const [formImage, setFormImage] = useState<string>('/hero.png');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const fetchServices = async () => {
     setIsLoading(true);
@@ -42,6 +59,89 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
   useEffect(() => {
     fetchServices();
   }, []);
+
+  const handleOpenCreate = () => {
+    setEditingService(null);
+    setFormName('');
+    setFormSlug('');
+    setFormDesc('');
+    setFormBadge('');
+    setFormImage('/hero.png');
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (srv: ServiceCategory) => {
+    setEditingService(srv);
+    setFormName(srv.name);
+    setFormSlug(srv.slug);
+    setFormDesc(srv.description);
+    setFormBadge(srv.badge || '');
+    setFormImage(srv.image || '/hero.png');
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (srv: ServiceCategory) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa dịch vụ "${srv.name}"?`)) {
+      return;
+    }
+    try {
+      await deleteService(srv.id);
+      await fetchServices();
+    } catch (err: any) {
+      alert(err?.message || 'Không thể xóa dịch vụ.');
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) {
+      setFormError('Vui lòng nhập tên dịch vụ.');
+      return;
+    }
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      if (editingService) {
+        await updateService(editingService.id, {
+          name: formName.trim(),
+          slug: formSlug.trim() || undefined,
+          description: formDesc.trim(),
+          badge: formBadge.trim() || undefined,
+          image: formImage,
+        });
+      } else {
+        await createService({
+          name: formName.trim(),
+          slug: formSlug.trim() || undefined,
+          description: formDesc.trim(),
+          badge: formBadge.trim() || undefined,
+          image: formImage,
+        });
+      }
+      setIsModalOpen(false);
+      await fetchServices();
+    } catch (err: any) {
+      setFormError(err?.message || 'Có lỗi xảy ra khi lưu dịch vụ.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const res = await uploadDirectAssetFile(file, 'services', 'service');
+      setFormImage(res.url);
+    } catch (err: any) {
+      alert(err?.message || 'Lỗi khi tải ảnh lên.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const breadcrumbs = [
     { name: 'Trang chủ', url: getCanonicalUrl('/') },
@@ -137,6 +237,30 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
         >
           Mỗi gói dịch vụ tại Maison MIPA được thiết kế để gìn giữ những dấu mốc thiêng liêng nhất của cuộc đời bạn — từ tình yêu đôi lứa, chân dung cá nhân đến nụ cười đầm ấm của cả gia đình trong ngôi nhà ký ức.
         </p>
+
+        {canManage && (
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={handleOpenCreate}
+              style={{
+                backgroundColor: '#C6A45F',
+                color: '#1A1412',
+                border: 'none',
+                padding: '0.65rem 1.4rem',
+                borderRadius: '30px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 15px rgba(198, 164, 95, 0.35)',
+              }}
+            >
+              <Plus size={16} /> Thêm Dịch Vụ Mới
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -229,30 +353,45 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                       backgroundColor: '#EDE7DC',
                     }}
                   >
-                    <Link to={`/dich-vu/${serviceSlug}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+                    <div style={{ width: '100%', height: '100%' }}>
                       {(() => {
                         const displayImage = getAssetUrl(`service_${serviceSlug}`, srv.image);
-                        return displayImage ? (
-                          <img
-                            src={displayImage}
-                            alt={srv.name}
-                            loading="lazy"
-                            decoding="async"
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              display: 'block',
+                        return (
+                          <InPlaceImageEditor
+                            assetId={`service_${serviceSlug}`}
+                            currentImageUrl={displayImage || '/hero.png'}
+                            label={`Ảnh Dịch Vụ: ${srv.name}`}
+                            onImageUpdated={(newUrl) => {
+                              updateService(srv.id, { image: newUrl }).then(fetchServices);
                             }}
-                          />
-                        ) : (
-                          <EditorialImagePlaceholder
-                            aspectRatio="16/11"
-                            caption={srv.name}
-                          />
+                            onImageReset={fetchServices}
+                            containerStyle={{ width: '100%', height: '100%' }}
+                          >
+                            <Link to={`/dich-vu/${serviceSlug}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+                              {displayImage ? (
+                                <img
+                                  src={displayImage}
+                                  alt={srv.name}
+                                  loading="lazy"
+                                  decoding="async"
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    display: 'block',
+                                  }}
+                                />
+                              ) : (
+                                <EditorialImagePlaceholder
+                                  aspectRatio="16/11"
+                                  caption={srv.name}
+                                />
+                              )}
+                            </Link>
+                          </InPlaceImageEditor>
                         );
                       })()}
-                    </Link>
+                    </div>
 
                     {/* Verified badge only */}
                     {srv.badge && (
@@ -350,6 +489,49 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
                       >
                         Đặt lịch
                       </button>
+
+                      {canManage && (
+                        <div style={{ display: 'inline-flex', gap: '0.45rem', alignItems: 'center', marginLeft: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(srv)}
+                            style={{
+                              border: '1px solid #C6A45F',
+                              background: 'rgba(198, 164, 95, 0.1)',
+                              color: '#8C6E53',
+                              padding: '0.45rem 0.8rem',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Edit3 size={13} /> Sửa
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(srv)}
+                            style={{
+                              border: '1px solid rgba(220, 38, 38, 0.3)',
+                              background: 'rgba(254, 242, 242, 0.8)',
+                              color: '#DC2626',
+                              padding: '0.45rem 0.8rem',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Trash2 size={13} /> Xóa
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -408,6 +590,203 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => 
           </div>
         </section>
       </main>
+
+      {/* Modal: Create & Edit Service */}
+      {isModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(20, 16, 13, 0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => !isSubmitting && setIsModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '2rem',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              border: '1px solid #EFE6C9',
+              position: 'relative',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSubmitting}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                border: 'none',
+                background: '#F5EFE6',
+                color: '#6E5F55',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={16} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+              <Sparkles size={18} color="#C6A45F" />
+              <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8C6E53', fontWeight: 700 }}>
+                QUẢN TRỊ ROOT • {editingService ? 'CHỈNH SỬA DỊCH VỤ' : 'THÊM DỊCH VỤ MỚI'}
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.35rem', color: '#29231F', margin: '0 0 1.25rem 0', fontWeight: 600 }}>
+              {editingService ? editingService.name : 'Tạo Dịch Vụ Chụp Ảnh Mới'}
+            </h3>
+
+            {formError && (
+              <div style={{ backgroundColor: '#FEF2F2', color: '#991B1B', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4A3B32', marginBottom: '4px' }}>
+                  Tên Dịch Vụ <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Ví dụ: Chụp Ảnh Doanh Nhân & Profile"
+                  required
+                  style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '8px', border: '1px solid #D3C2B3', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4A3B32', marginBottom: '4px' }}>
+                    Đường dẫn (Slug)
+                  </label>
+                  <input
+                    type="text"
+                    value={formSlug}
+                    onChange={(e) => setFormSlug(e.target.value)}
+                    placeholder="doanh-nhan (để trống tự tạo)"
+                    style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '8px', border: '1px solid #D3C2B3', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4A3B32', marginBottom: '4px' }}>
+                    Huy hiệu (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    value={formBadge}
+                    onChange={(e) => setFormBadge(e.target.value)}
+                    placeholder="Yêu thích nhất, Nổi bật..."
+                    style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '8px', border: '1px solid #D3C2B3', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4A3B32', marginBottom: '4px' }}>
+                  Mô Tả Dịch Vụ
+                </label>
+                <textarea
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                  rows={3}
+                  placeholder="Mô tả trải nghiệm, phong cách và thông điệp của gói dịch vụ..."
+                  style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '8px', border: '1px solid #D3C2B3', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4A3B32', marginBottom: '4px' }}>
+                  Ảnh Đại Diện Dịch Vụ
+                </label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ width: '80px', height: '55px', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#EDE7DC', flexShrink: 0 }}>
+                    <img src={formImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <input
+                    type="text"
+                    value={formImage}
+                    onChange={(e) => setFormImage(e.target.value)}
+                    placeholder="Đường dẫn ảnh /hero.png hoặc https://..."
+                    style={{ flex: 1, padding: '0.7rem 0.9rem', borderRadius: '8px', border: '1px solid #D3C2B3', outline: 'none' }}
+                  />
+                </div>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '0.5rem 0.9rem',
+                    borderRadius: '8px',
+                    backgroundColor: '#F7F3EC',
+                    border: '1px solid #C6A45F',
+                    color: '#8C6E53',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: isUploading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <Upload size={14} />
+                  <span>{isUploading ? 'Đang nén & tải ảnh...' : 'Tải ảnh từ máy tính'}</span>
+                  <input type="file" accept="image/*" onChange={handleUploadImage} disabled={isUploading} style={{ display: 'none' }} />
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSubmitting}
+                  style={{ padding: '0.7rem 1.25rem', borderRadius: '8px', border: '1px solid #D3C2B3', background: '#FFF', cursor: 'pointer' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    padding: '0.7rem 1.5rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#8C6E53',
+                    color: '#FFF',
+                    fontWeight: 700,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Check size={16} />
+                  <span>{isSubmitting ? 'Đang lưu...' : editingService ? 'Lưu Thay Đổi' : 'Tạo Dịch Vụ'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

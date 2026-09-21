@@ -6,8 +6,8 @@
 // Zero unrelated photo fallbacks; zero invented relations.
 // ==============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getCollectionBySlug, getPublicConcepts } from '../services/portfolioService';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { getCollectionBySlug, getCollectionBySlugSync, getPublicConcepts } from '../services/portfolioService';
 import { getServices } from '../services/catalogService';
 import { getPhotoObjectPosition, getPhotoOrientation } from '../utils/photoUtils';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
@@ -16,6 +16,7 @@ import type { PortfolioCollection, PortfolioPhoto, Concept, ServiceCategory } fr
 import { ChevronRight, Home, Layers } from 'lucide-react';
 import { EditorialImagePlaceholder } from '../components/public/EditorialImagePlaceholder';
 import { DarkroomLightbox } from '../components/public/DarkroomLightbox';
+import { InPlaceImageEditor } from '../components/common/InPlaceImageEditor';
 
 interface CollectionDetailPageProps {
   onOpenBooking?: (conceptSlug?: string) => void;
@@ -31,11 +32,18 @@ const EMPTY_PHOTOS: PortfolioPhoto[] = [];
 export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOpenBooking }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [collection, setCollection] = useState<PortfolioCollection | null>(null);
+  // Instant zero-latency initialization: from router state or synchronous cache
+  const routeStateCollection = (location.state as any)?.collection as PortfolioCollection | undefined;
+  const initialCol =
+    (routeStateCollection?.slug === slug ? routeStateCollection : null) ||
+    (slug ? getCollectionBySlugSync(slug) : null);
+
+  const [collection, setCollection] = useState<PortfolioCollection | null>(initialCol);
   const [relatedConcept, setRelatedConcept] = useState<Concept | null>(null);
   const [relatedService, setRelatedService] = useState<ServiceCategory | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialCol);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Lightbox State
@@ -43,24 +51,38 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
   useEffect(() => {
     let mounted = true;
+
     async function fetchCollection() {
       if (!slug) return;
-      setIsLoading(true);
+      if (!collection) {
+        setIsLoading(true);
+      }
       setErrorMessage(null);
+
       try {
-        const [data, allConcepts, allServices] = await Promise.all([
-          getCollectionBySlug(slug),
-          getPublicConcepts(),
-          getServices(),
-        ]);
+        // Fast path: if collection already has photos, no need to re-fetch collection immediately
+        const colPromise =
+          collection && collection.photos && collection.photos.length > 0
+            ? Promise.resolve(collection)
+            : getCollectionBySlug(slug);
+
+        const data = await colPromise;
 
         if (mounted) {
           if (!data) {
             setErrorMessage('Không tìm thấy bộ sưu tập được yêu cầu.');
-          } else {
-            setCollection(data);
+            setIsLoading(false);
+            return;
+          }
+          setCollection(data);
+          setIsLoading(false);
+        }
 
-            // Find authoritative related concept if relation exists
+        // Fetch related concepts and services in background without blocking visual rendering
+        Promise.all([getPublicConcepts(), getServices()])
+          .then(([allConcepts, allServices]) => {
+            if (!mounted || !data) return;
+
             if (data.conceptId || data.conceptSlug) {
               const matchedCnc = allConcepts.find(
                 (c) => c.id === data.conceptId || c.slug === data.conceptSlug
@@ -76,19 +98,20 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
               const matchedSrv = allServices.find((s) => s.id === data.serviceId);
               if (matchedSrv) setRelatedService(matchedSrv);
             }
-          }
-        }
+          })
+          .catch((e) => console.warn('Non-blocking related catalog load error:', e));
       } catch (err: any) {
         if (mounted) {
           setErrorMessage(err.message || 'Lỗi khi tải bộ sưu tập.');
+          setIsLoading(false);
         }
-      } finally {
-        if (mounted) setIsLoading(false);
       }
     }
 
     fetchCollection();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [slug]);
 
   const handleBookConcept = () => {
@@ -198,79 +221,126 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
     const aspect = customAspect || (isPortrait ? '4 / 5' : '3 / 2');
 
     return (
-      <button
-        type="button"
+      <InPlaceImageEditor
         key={photo.id || idx}
-        onClick={() => setActivePhotoIndex(idx)}
-        className="editorial-image-frame vc-image-frame"
-        aria-label={`Xem ảnh ${idx + 1} của ${photos.length}: ${photo.altText || collection?.title}`}
-        style={{
-          borderRadius: '4px',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          backgroundColor: '#EDE7DC',
-          position: 'relative',
-          aspectRatio: aspect,
-          border: '1px solid rgba(140, 110, 83, 0.15)',
-          width: '100%',
-          padding: 0,
-          margin: 0,
-          background: 'none',
-          font: 'inherit',
-          textAlign: 'inherit',
-          display: 'block',
+        assetId={`portfolio_photo_${collection?.slug}_${photo.id || idx}`}
+        currentImageUrl={photo.url}
+        label={`Ảnh #${idx + 1}: ${photo.altText || collection?.title || 'Bộ ảnh'}`}
+        onImageUpdated={(newUrl) => {
+          setCollection((prev) => {
+            if (!prev) return null;
+            const updated = (prev.photos || []).map((p, i) =>
+              i === idx ? { ...p, url: newUrl } : p
+            );
+            return { ...prev, photos: updated };
+          });
         }}
+        onImageDeleted={() => {
+          setCollection((prev) => {
+            if (!prev) return null;
+            const updated = (prev.photos || []).filter((_, i) => i !== idx);
+            return { ...prev, photos: updated };
+          });
+        }}
+        containerStyle={{ width: '100%', display: 'block' }}
       >
-        <img
-          src={photo.url}
-          alt={photo.altText || `${collection?.title} - Ảnh ${idx + 1}`}
-          loading="lazy"
-          decoding="async"
-          width={photo.width}
-          height={photo.height}
+        <button
+          type="button"
+          onClick={() => setActivePhotoIndex(idx)}
+          className="editorial-image-frame vc-image-frame"
+          aria-label={`Xem ảnh ${idx + 1} của ${photos.length}: ${photo.altText || collection?.title}`}
           style={{
+            borderRadius: '4px',
+            overflow: 'hidden',
+            cursor: 'pointer',
+            backgroundColor: '#EDE7DC',
+            position: 'relative',
+            aspectRatio: aspect,
+            border: '1px solid rgba(140, 110, 83, 0.15)',
             width: '100%',
-            height: '100%',
+            padding: 0,
+            margin: 0,
+            background: 'none',
+            font: 'inherit',
+            textAlign: 'inherit',
             display: 'block',
-            objectFit: 'cover',
-            objectPosition: getPhotoObjectPosition(photo),
-          }}
-        />
-
-        {/* Hover / focus caption overlay */}
-        <div
-          className="photo-overlay"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(to top, rgba(21, 17, 14, 0.88) 0%, transparent 60%)',
-            display: 'flex',
-            alignItems: 'flex-end',
-            padding: '1.2rem',
-            opacity: 0,
-            transition: 'opacity var(--motion-normal) ease',
           }}
         >
-          <div>
-            <div style={{ color: '#EFE6C9', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.05em' }}>
-              #{idx + 1} / {photos.length}
-            </div>
-            {photo.caption && (
-              <div style={{ color: '#FFFDF9', fontSize: '0.92rem', fontWeight: 500, marginTop: '0.2rem' }}>
-                {photo.caption}
+          <img
+            src={photo.url}
+            alt={photo.altText || `${collection?.title} - Ảnh ${idx + 1}`}
+            loading="lazy"
+            decoding="async"
+            width={photo.width}
+            height={photo.height}
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              objectFit: 'cover',
+              objectPosition: getPhotoObjectPosition(photo),
+            }}
+          />
+
+          {/* Hover / focus caption overlay */}
+          <div
+            className="photo-overlay"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgba(21, 17, 14, 0.82) 0%, rgba(21, 17, 14, 0.1) 40%, transparent 100%)',
+              opacity: 0,
+              transition: 'opacity 0.25s ease',
+              display: 'flex',
+              alignItems: 'flex-end',
+              padding: '1.25rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
+              <div>
+                {photo.caption && (
+                  <p style={{ color: '#FBF6EE', fontSize: '0.88rem', margin: '0 0 0.2rem 0', fontWeight: 400 }}>
+                    {photo.caption}
+                  </p>
+                )}
+                <span style={{ color: '#D1C4B7', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Ảnh {idx + 1} / {photos.length}
+                </span>
               </div>
-            )}
+              <span style={{ color: '#C6A45F', fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.05em' }}>
+                Phóng to ↗
+              </span>
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      </InPlaceImageEditor>
     );
   };
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF8F3' }}>
-        <div style={{ textAlign: 'center', color: '#8C6E53' }}>
-          <p style={{ fontSize: '0.95rem' }}>Đang tải bộ sưu tập...</p>
+      <div style={{ minHeight: '85vh', backgroundColor: '#FAF8F3', padding: '2rem 1.5rem 5rem' }}>
+        <div style={{ maxWidth: '1350px', margin: '0 auto' }}>
+          {/* Skeleton Breadcrumbs */}
+          <div style={{ width: '220px', height: '14px', backgroundColor: 'rgba(140, 110, 83, 0.15)', borderRadius: '4px', marginBottom: '2rem' }} />
+          {/* Skeleton Hero Frame */}
+          <div
+            style={{
+              width: '100%',
+              height: '420px',
+              borderRadius: '4px',
+              backgroundColor: '#EDE7DC',
+              backgroundImage: 'linear-gradient(90deg, #EDE7DC 0%, #F5EFE6 50%, #EDE7DC 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'marqueeScroll 2s linear infinite',
+              marginBottom: '3rem',
+            }}
+          />
+          {/* Skeleton Photo Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+            <div style={{ height: '380px', backgroundColor: 'rgba(140, 110, 83, 0.12)', borderRadius: '4px' }} />
+            <div style={{ height: '380px', backgroundColor: 'rgba(140, 110, 83, 0.12)', borderRadius: '4px' }} />
+          </div>
         </div>
       </div>
     );
@@ -324,87 +394,100 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
 
       {/* Cinematic Header / Hero Banner */}
       <header style={{ maxWidth: '1350px', margin: '1.5rem auto 3rem', padding: '0 1.5rem' }}>
-        <div
-          style={{
-            position: 'relative',
-            borderRadius: '4px',
-            overflow: 'hidden',
-            minHeight: '440px',
-            display: 'flex',
-            alignItems: 'flex-end',
-            backgroundColor: '#2C221E',
+        <InPlaceImageEditor
+          assetId={`portfolio_col_hero_${collection.slug}`}
+          currentImageUrl={coverUrl || '/studio.png'}
+          label={`Ảnh bìa: ${collection.title}`}
+          onImageUpdated={(newUrl) => {
+            setCollection((prev) => (prev ? { ...prev, coverPhotoUrl: newUrl } : null));
           }}
+          onImageDeleted={() => {
+            setCollection((prev) => (prev ? { ...prev, coverPhotoUrl: '' } : null));
+          }}
+          containerStyle={{ width: '100%', position: 'relative' }}
         >
-          {coverUrl ? (
-            <img
-              src={coverUrl}
-              alt={collection.title}
-              fetchPriority="high"
-              decoding="async"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: getPhotoObjectPosition(coverPhoto),
-              }}
-            />
-          ) : (
-            <div style={{ position: 'absolute', inset: 0 }}>
-              <EditorialImagePlaceholder height="100%" caption={collection.title} />
-            </div>
-          )}
-
           <div
             style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(21, 17, 14, 0.94) 0%, rgba(21, 17, 14, 0.45) 55%, transparent 100%)',
+              position: 'relative',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              minHeight: '440px',
+              display: 'flex',
+              alignItems: 'flex-end',
+              backgroundColor: '#2C221E',
             }}
-          />
-
-          <div style={{ position: 'relative', zIndex: 1, padding: 'clamp(1.5rem, 5vw, 3.5rem)', maxWidth: '850px' }}>
-            {collection.conceptName && (
-              <div className="vc-overline" style={{ color: '#EFE6C9', marginBottom: '0.6rem' }}>
-                CONCEPT • {collection.conceptName}
+          >
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt={collection.title}
+                fetchPriority="high"
+                decoding="async"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: getPhotoObjectPosition(coverPhoto),
+                }}
+              />
+            ) : (
+              <div style={{ position: 'absolute', inset: 0 }}>
+                <EditorialImagePlaceholder height="100%" caption={collection.title} />
               </div>
             )}
 
-            <h1
-              className="vc-display"
+            <div
               style={{
-                color: '#FFFDF9',
-                margin: '0 0 1rem 0',
-                lineHeight: 1.15,
-                fontWeight: 500,
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(to top, rgba(21, 17, 14, 0.94) 0%, rgba(21, 17, 14, 0.45) 55%, transparent 100%)',
               }}
-            >
-              {collection.title}
-            </h1>
+            />
 
-            {collection.description && (
-              <p className="vc-copy" style={{ color: '#EFE6C9', margin: '0 0 1.8rem 0', maxWidth: '650px', fontWeight: 300 }}>
-                {collection.description}
-              </p>
-            )}
+            <div style={{ position: 'relative', zIndex: 1, padding: 'clamp(1.5rem, 5vw, 3.5rem)', maxWidth: '850px' }}>
+              {collection.conceptName && (
+                <div className="vc-overline" style={{ color: '#EFE6C9', marginBottom: '0.6rem' }}>
+                  CONCEPT • {collection.conceptName}
+                </div>
+              )}
 
-            {/* Direct Booking CTA */}
-            <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                onClick={handleBookConcept}
-                className="vc-primary-button"
-                style={{ backgroundColor: '#EFE6C9', color: '#29231F' }}
+              <h1
+                className="vc-display"
+                style={{
+                  color: '#FFFDF9',
+                  margin: '0 0 1rem 0',
+                  lineHeight: 1.15,
+                  fontWeight: 500,
+                }}
               >
-                Đặt concept này
-              </button>
+                {collection.title}
+              </h1>
 
-              <span style={{ color: 'rgba(239, 230, 201, 0.8)', fontSize: '0.88rem' }}>
-                {photos.length} tác phẩm tuyển chọn
-              </span>
+              {collection.description && (
+                <p className="vc-copy" style={{ color: '#EFE6C9', margin: '0 0 1.8rem 0', maxWidth: '650px', fontWeight: 300 }}>
+                  {collection.description}
+                </p>
+              )}
+
+              {/* Direct Booking CTA */}
+              <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleBookConcept}
+                  className="vc-primary-button"
+                  style={{ backgroundColor: '#EFE6C9', color: '#29231F' }}
+                >
+                  Đặt concept này
+                </button>
+
+                <span style={{ color: 'rgba(239, 230, 201, 0.8)', fontSize: '0.88rem' }}>
+                  {photos.length} tác phẩm tuyển chọn
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        </InPlaceImageEditor>
       </header>
 
       {/* Rhythmic Photo Essay Gallery */}

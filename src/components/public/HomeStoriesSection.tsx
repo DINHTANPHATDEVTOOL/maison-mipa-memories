@@ -9,6 +9,7 @@ import { getPublicCollections } from '../../services/portfolioService';
 import type { PortfolioCollection } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 export const HomeStoriesSection: React.FC = () => {
   const [collections, setCollections] = useState<PortfolioCollection[]>([]);
@@ -146,47 +147,64 @@ export const HomeStoriesSection: React.FC = () => {
                 }}
               >
                 {/* Visual Cover Frame */}
-                <Link
-                  to={`/portfolio/${col.slug}`}
-                  style={{
-                    display: 'block',
-                    position: 'relative',
-                    width: '100%',
-                    aspectRatio,
-                    overflow: 'hidden',
-                    borderRadius: '2px',
-                    backgroundColor: '#EDE7DC',
-                    textDecoration: 'none',
-                    marginBottom: '1rem',
+                <InPlaceImageEditor
+                  assetId={`portfolio_col_cover_${col.slug}`}
+                  currentImageUrl={coverUrl || '/studio.png'}
+                  label={`Ảnh câu chuyện: ${col.title}`}
+                  onImageUpdated={(newUrl) => {
+                    setCollections((prev) =>
+                      prev.map((c) => (c.id === col.id ? { ...c, coverPhotoUrl: newUrl } : c))
+                    );
                   }}
+                  onImageDeleted={() => {
+                    setCollections((prev) =>
+                      prev.map((c) => (c.id === col.id ? { ...c, coverPhotoUrl: '' } : c))
+                    );
+                  }}
+                  containerStyle={{ width: '100%', marginBottom: '1rem' }}
                 >
-                  {coverUrl ? (
-                    <img
-                      src={coverUrl}
-                      alt={col.title}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.035)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.0)';
-                      }}
-                    />
-                  ) : (
-                    <EditorialImagePlaceholder
-                      aspectRatio={aspectRatio}
-                      caption={col.title}
-                    />
-                  )}
-                </Link>
+                  <Link
+                    to={`/portfolio/${col.slug}`}
+                    state={{ collection: col }}
+                    style={{
+                      display: 'block',
+                      position: 'relative',
+                      width: '100%',
+                      aspectRatio,
+                      overflow: 'hidden',
+                      borderRadius: '2px',
+                      backgroundColor: '#EDE7DC',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {coverUrl ? (
+                      <img
+                        src={coverUrl}
+                        alt={col.title}
+                        loading="lazy"
+                        decoding="async"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.035)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.0)';
+                        }}
+                      />
+                    ) : (
+                      <EditorialImagePlaceholder
+                        aspectRatio={aspectRatio}
+                        caption={col.title}
+                      />
+                    )}
+                  </Link>
+                </InPlaceImageEditor>
 
                 {/* Metadata */}
                 <div>
@@ -215,6 +233,7 @@ export const HomeStoriesSection: React.FC = () => {
                   >
                     <Link
                       to={`/portfolio/${col.slug}`}
+                      state={{ collection: col }}
                       style={{
                         color: 'inherit',
                         textDecoration: 'none',
@@ -226,6 +245,7 @@ export const HomeStoriesSection: React.FC = () => {
 
                   <Link
                     to={`/portfolio/${col.slug}`}
+                    state={{ collection: col }}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',

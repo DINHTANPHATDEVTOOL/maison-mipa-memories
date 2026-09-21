@@ -10,6 +10,7 @@ import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 interface FinalCtaSectionProps {
   onOpenBooking: () => void;
@@ -136,23 +137,30 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({ onOpenBooking 
             willChange: 'transform, border-radius',
           }}
         >
-          <img
-            key={ctaBannerUrl}
-            ref={imageRef}
-            src={ctaBannerUrl}
-            alt="Maison MIPA Memories — Không gian studio sẵn sàng đón bạn"
-            loading="lazy"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-              filter: 'brightness(0.55)',
-              willChange: 'transform',
-            }}
-          />
+          <InPlaceImageEditor
+            assetId="home_cta_banner"
+            currentImageUrl={ctaBannerUrl}
+            label="Ảnh Lời Kết & Đặt Lịch (Final CTA)"
+            containerStyle={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+          >
+            <img
+              key={ctaBannerUrl}
+              ref={imageRef}
+              src={ctaBannerUrl}
+              alt="Maison MIPA Memories — Không gian studio sẵn sàng đón bạn"
+              loading="lazy"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                filter: 'brightness(0.55)',
+                willChange: 'transform',
+              }}
+            />
+          </InPlaceImageEditor>
 
           {/* Deep Darkroom Vignette */}
           <div

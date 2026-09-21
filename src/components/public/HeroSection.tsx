@@ -10,6 +10,7 @@ import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 interface HeroSectionProps {
   onOpenBooking: () => void;
@@ -354,21 +355,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenBooking }) => {
                   willChange: 'transform, border-radius',
                 }}
               >
-                <img
-                  key={heroBannerUrl}
-                  ref={heroImageRef}
-                  src={heroBannerUrl}
-                  alt="Maison MIPA Memories — Không gian studio và buổi chụp tự nhiên"
-                  fetchPriority="high"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    maxHeight: '620px',
-                    objectFit: 'cover',
-                    display: 'block',
-                    willChange: 'transform',
-                  }}
-                />
+                <InPlaceImageEditor
+                  assetId="home_hero_banner"
+                  currentImageUrl={heroBannerUrl}
+                  label="Ảnh Banner Chính (Hero Section)"
+                >
+                  <img
+                    key={heroBannerUrl}
+                    ref={heroImageRef}
+                    src={heroBannerUrl}
+                    alt="Maison MIPA Memories — Không gian studio và buổi chụp tự nhiên"
+                    fetchPriority="high"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: '620px',
+                      objectFit: 'cover',
+                      display: 'block',
+                      willChange: 'transform',
+                    }}
+                  />
+                </InPlaceImageEditor>
               </div>
             </div>
           </div>

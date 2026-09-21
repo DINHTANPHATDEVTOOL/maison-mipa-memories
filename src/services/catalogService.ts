@@ -32,6 +32,37 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const LOCAL_STORAGE_PACKAGES_KEY = 'maison_mipa_custom_packages';
 let localPackages: PackageItem[] = [...INITIAL_PACKAGES];
 
+const LOCAL_STORAGE_SERVICES_KEY = 'maison_mipa_custom_services';
+let localServices: ServiceCategory[] = [...INITIAL_SERVICES];
+
+export function getStoredServices(): ServiceCategory[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_SERVICES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Fallback to in-memory localServices
+    }
+  }
+  return localServices;
+}
+
+export function persistStoredServices(srvs: ServiceCategory[]): void {
+  localServices = srvs;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_SERVICES_KEY, JSON.stringify(srvs));
+    } catch {
+      // Ignore storage write error
+    }
+  }
+}
+
 export function getStoredPackages(): PackageItem[] {
   if (typeof window !== 'undefined') {
     try {
@@ -125,7 +156,7 @@ export async function getServices(): Promise<ServiceCategory[]> {
 
     // Demo mode or unconfigured dev/test environment
     if (isDemoModeEnabled()) {
-      return INITIAL_SERVICES;
+      return getStoredServices();
     }
 
     return [];
@@ -139,6 +170,141 @@ export async function getServices(): Promise<ServiceCategory[]> {
   }
 
   return fetchPromise;
+}
+
+export async function createService(params: {
+  name: string;
+  slug?: string;
+  description?: string;
+  icon?: string;
+  image?: string;
+  badge?: string;
+  displayOrder?: number;
+}): Promise<ServiceCategory> {
+  const cleanName = params.name.trim();
+  const slug =
+    params.slug?.trim() ||
+    cleanName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '') || `service-${Date.now()}`;
+
+  const newService: ServiceCategory = {
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `srv_${Date.now()}`,
+    slug,
+    name: cleanName,
+    description: params.description?.trim() || '',
+    icon: params.icon || 'Camera',
+    image: params.image || '/hero.png',
+    badge: params.badge?.trim() || undefined,
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .insert({
+          id: newService.id,
+          slug: newService.slug,
+          name: newService.name,
+          description: newService.description,
+          icon: newService.icon,
+          image: newService.image,
+          badge: newService.badge || null,
+          active: true,
+          display_order: params.displayOrder ?? 99,
+        })
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Supabase createService fallback:', error.message);
+      } else if (data) {
+        newService.id = data.id;
+      }
+    } catch (err: any) {
+      console.warn('Supabase createService exception:', err?.message);
+    }
+  }
+
+  const current = getStoredServices();
+  persistStoredServices([...current, newService]);
+  clearCatalogCache();
+  return newService;
+}
+
+export async function updateService(
+  id: string,
+  updates: Partial<ServiceCategory> & { displayOrder?: number; active?: boolean }
+): Promise<ServiceCategory> {
+  if (isSupabaseConfigured()) {
+    try {
+      const dbPayload: Record<string, any> = {};
+      if (updates.name !== undefined) dbPayload.name = updates.name.trim();
+      if (updates.slug !== undefined) dbPayload.slug = updates.slug.trim();
+      if (updates.description !== undefined) dbPayload.description = updates.description.trim();
+      if (updates.icon !== undefined) dbPayload.icon = updates.icon;
+      if (updates.image !== undefined) dbPayload.image = updates.image;
+      if (updates.badge !== undefined) dbPayload.badge = updates.badge ? updates.badge.trim() : null;
+      if (updates.active !== undefined) dbPayload.active = updates.active;
+      if (updates.displayOrder !== undefined) dbPayload.display_order = updates.displayOrder;
+
+      const { error } = await (supabase.from('services') as any).update(dbPayload).eq('id', id);
+      if (error) {
+        console.warn('Supabase updateService fallback:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase updateService exception:', err?.message);
+    }
+  }
+
+  const current = getStoredServices();
+  let found: ServiceCategory | null = null;
+  const updatedList = current.map((s) => {
+    if (s.id === id || s.slug === id) {
+      found = { ...s, ...updates };
+      return found;
+    }
+    return s;
+  });
+
+  if (found) {
+    persistStoredServices(updatedList);
+  } else {
+    found = {
+      id,
+      slug: updates.slug || `service-${Date.now()}`,
+      name: updates.name || 'Dịch Vụ Mới',
+      description: updates.description || '',
+      icon: updates.icon || 'Camera',
+      image: updates.image || '/hero.png',
+      badge: updates.badge,
+    };
+    persistStoredServices([...current, found]);
+  }
+
+  clearCatalogCache();
+  return found;
+}
+
+export async function deleteService(id: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('services').update({ active: false }).eq('id', id);
+      if (error) {
+        console.warn('Supabase deleteService fallback:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase deleteService exception:', err?.message);
+    }
+  }
+
+  const current = getStoredServices();
+  persistStoredServices(current.filter((s) => s.id !== id && s.slug !== id));
+  clearCatalogCache();
+  return true;
 }
 
 export async function getPackages(serviceId?: string): Promise<PackageItem[]> {

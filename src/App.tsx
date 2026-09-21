@@ -52,6 +52,7 @@ import { OfflineBanner } from './components/common/OfflineBanner';
 import { CustomCursor } from './motion/CustomCursor';
 import { PageTransition } from './motion/PageTransition';
 import { FilmGrainOverlay } from './components/public/FilmGrainOverlay';
+import { GlobalImageQuickEditor } from './components/common/GlobalImageQuickEditor';
 
 function AppContent() {
   const { user: currentUser, role: currentRole, logout } = useAuth();
@@ -571,6 +572,9 @@ function AppContent() {
       {/* Photography Exhibition Micro-Interactions & Film Grain */}
       <CustomCursor />
       <FilmGrainOverlay />
+
+      {/* Global In-Place Image Quick Editor (Root Owner / Admin Visual OS) */}
+      <GlobalImageQuickEditor />
 
     </div>
   );

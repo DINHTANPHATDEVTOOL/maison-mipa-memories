@@ -9,6 +9,7 @@ import { useReducedMotion } from '../../motion/useReducedMotion';
 import { ArrowRight, Calendar } from 'lucide-react';
 import { gsap } from 'gsap';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 // Default Maison MIPA brand hero asset.
 export const BRAND_HERO_ASSET = '/hero.png';
@@ -215,29 +216,36 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
           overflow: 'hidden',
         }}
       >
-        <img
-          ref={imageRef}
-          src={effectiveHeroImageUrl}
-          srcSet={
-            effectiveHeroImageUrl === BRAND_HERO_ASSET || effectiveHeroImageUrl === '/hero.png'
-              ? '/hero-800w.webp 800w, /hero.webp 1920w'
-              : undefined
-          }
-          sizes="(max-width: 768px) 100vw, 1920px"
-          alt="Maison MIPA Memories — Nhiếp ảnh nghệ thuật phong cách Pháp"
-          width="1920"
-          height="1080"
-          fetchPriority="high"
-          decoding="async"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center 40%',
-            display: 'block',
-            transformOrigin: 'center center',
-          }}
-        />
+        <InPlaceImageEditor
+          assetId="hero_banner"
+          currentImageUrl={effectiveHeroImageUrl}
+          label="Ảnh bìa Hero chính"
+          containerStyle={{ width: '100%', height: '100%' }}
+        >
+          <img
+            ref={imageRef}
+            src={effectiveHeroImageUrl}
+            srcSet={
+              effectiveHeroImageUrl === BRAND_HERO_ASSET || effectiveHeroImageUrl === '/hero.png'
+                ? '/hero-800w.webp 800w, /hero.webp 1920w'
+                : undefined
+            }
+            sizes="(max-width: 768px) 100vw, 1920px"
+            alt="Maison MIPA Memories — Nhiếp ảnh nghệ thuật phong cách Pháp"
+            width="1920"
+            height="1080"
+            fetchPriority="high"
+            decoding="async"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center 40%',
+              display: 'block',
+              transformOrigin: 'center center',
+            }}
+          />
+        </InPlaceImageEditor>
 
         {/* Cinematic Dual Gradient Mask for High Text Legibility & Warm Paper Feel */}
         <div

@@ -11,6 +11,7 @@ import type { ServiceCategory } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 export const HomeServicesSection: React.FC = () => {
   const { getAssetUrl } = useSiteAssets();
@@ -170,46 +171,62 @@ export const HomeServicesSection: React.FC = () => {
                 }}
               >
                 {/* Visual Photography Frame */}
-                <Link
-                  to={`/dich-vu/${serviceSlug}`}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    aspectRatio: '16/11',
-                    overflow: 'hidden',
-                    borderRadius: '2px',
-                    backgroundColor: '#EDE7DC',
-                    textDecoration: 'none',
-                    marginBottom: '1rem',
+                <InPlaceImageEditor
+                  assetId={`service_cover_${service.id}`}
+                  currentImageUrl={displayImage || ''}
+                  label={`Dịch vụ: ${service.name}`}
+                  onImageUpdated={(newUrl) => {
+                    setServices((prev) =>
+                      prev.map((s) => (s.id === service.id ? { ...s, coverPhotoUrl: newUrl, imageUrl: newUrl } : s))
+                    );
                   }}
+                  onImageDeleted={() => {
+                    setServices((prev) =>
+                      prev.map((s) => (s.id === service.id ? { ...s, coverPhotoUrl: '', imageUrl: '' } : s))
+                    );
+                  }}
+                  containerStyle={{ marginBottom: '1rem' }}
                 >
-                  {displayImage ? (
-                    <img
-                      src={displayImage}
-                      alt={service.name}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.04)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.0)';
-                      }}
-                    />
-                  ) : (
-                    <EditorialImagePlaceholder
-                      aspectRatio="16/11"
-                      caption={service.name}
-                    />
-                  )}
-                </Link>
+                  <Link
+                    to={`/dich-vu/${serviceSlug}`}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      aspectRatio: '16/11',
+                      overflow: 'hidden',
+                      borderRadius: '2px',
+                      backgroundColor: '#EDE7DC',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {displayImage ? (
+                      <img
+                        src={displayImage}
+                        alt={service.name}
+                        loading="lazy"
+                        decoding="async"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.04)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.0)';
+                        }}
+                      />
+                    ) : (
+                      <EditorialImagePlaceholder
+                        aspectRatio="16/11"
+                        caption={service.name}
+                      />
+                    )}
+                  </Link>
+                </InPlaceImageEditor>
 
                 {/* Service Metadata */}
                 <div>

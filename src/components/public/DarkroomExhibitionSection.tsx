@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { useSiteAssets } from '../../context/SiteAssetContext';
+import { InPlaceImageEditor } from '../common/InPlaceImageEditor';
 
 interface ExhibitionFrame {
   id: string;
@@ -256,20 +257,27 @@ export const DarkroomExhibitionSection: React.FC = () => {
             willChange: 'transform',
           }}
         >
-          <img
-            key={darkroomCenterUrl}
-            ref={darkroomImgRef}
-            src={darkroomCenterUrl}
-            alt="Maison MIPA Không gian phòng tối triển lãm"
-            loading="lazy"
-            className="transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
-          />
+          <InPlaceImageEditor
+            assetId="home_atelier_showcase"
+            currentImageUrl={darkroomCenterUrl}
+            label="Ảnh Không Gian Studio (Atelier Darkroom)"
+            containerStyle={{ width: '100%', height: '100%' }}
+          >
+            <img
+              key={darkroomCenterUrl}
+              ref={darkroomImgRef}
+              src={darkroomCenterUrl}
+              alt="Maison MIPA Không gian phòng tối triển lãm"
+              loading="lazy"
+              className="transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </InPlaceImageEditor>
         </div>
 
         {/* Layer 3: Foreground Stationary Caption */}

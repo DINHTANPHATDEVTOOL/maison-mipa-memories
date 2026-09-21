@@ -9,7 +9,7 @@ import type { SiteAssetRow } from '../types/database';
 
 export interface SiteAsset {
   id: string;
-  page: 'HOME' | 'SERVICES' | 'ATELIER' | 'GLOBAL';
+  page: 'HOME' | 'SERVICES' | 'CONCEPTS' | 'PORTFOLIO' | 'ATELIER' | 'GLOBAL' | 'CUSTOM';
   label: string;
   description?: string;
   imageUrl: string;
@@ -19,6 +19,27 @@ export interface SiteAsset {
 }
 
 export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
+  site_logo: {
+    id: 'site_logo',
+    page: 'GLOBAL',
+    label: 'Logo Thương Hiệu (Navbar & Header)',
+    description: 'Logo chính thức của Tiệm ảnh Maison MIPA Memories',
+    imageUrl: '/logo.png',
+  },
+  site_logo_transparent: {
+    id: 'site_logo_transparent',
+    page: 'GLOBAL',
+    label: 'Logo Trong Suốt (Footer & Dark Mode)',
+    description: 'Logo phiên bản nền trong suốt tinh tế',
+    imageUrl: '/logo-transparent.png',
+  },
+  site_favicon: {
+    id: 'site_favicon',
+    page: 'GLOBAL',
+    label: 'Biểu Tượng Favicon Trình Duyệt',
+    description: 'Biểu tượng nhỏ hiển thị trên tab trình duyệt',
+    imageUrl: '/favicon.png',
+  },
   home_hero_banner: {
     id: 'home_hero_banner',
     page: 'HOME',
@@ -116,6 +137,55 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     label: 'Không Gian: Garden Atelier (Phòng 3)',
     description: 'Khu vực bối cảnh vườn & ánh sáng hoa tươi',
     imageUrl: '/hero-bride.jpg',
+  },
+  brand_story_1: {
+    id: 'brand_story_1',
+    page: 'HOME',
+    label: 'Ảnh Câu Chuyện Thương Hiệu (Khung 1)',
+    description: 'Khung ảnh giới thiệu phong cách tiệm ảnh Maison MIPA',
+    imageUrl: '/hero-couple.jpg',
+  },
+  brand_story_2: {
+    id: 'brand_story_2',
+    page: 'HOME',
+    label: 'Ảnh Câu Chuyện Thương Hiệu (Khung 2)',
+    description: 'Khung ảnh góc studio và ánh sáng tự nhiên',
+    imageUrl: '/studio.png',
+  },
+  concept_aodai: {
+    id: 'concept_aodai',
+    page: 'CONCEPTS',
+    label: 'Ảnh Concept: Nàng Thơ Áo Dài',
+    description: 'Ảnh đại diện concept Áo dài truyền thống & cách tân',
+    imageUrl: '/concept-aodai.webp',
+  },
+  concept_graduation: {
+    id: 'concept_graduation',
+    page: 'CONCEPTS',
+    label: 'Ảnh Concept: Kỷ Yếu & Tốt Nghiệp',
+    description: 'Ảnh đại diện concept Kỷ yếu thanh xuân',
+    imageUrl: '/concept-graduation.webp',
+  },
+  concept_tet: {
+    id: 'concept_tet',
+    page: 'CONCEPTS',
+    label: 'Ảnh Concept: Tết Sum Vầy & Du Xuân',
+    description: 'Ảnh đại diện concept Tết ấm áp',
+    imageUrl: '/concept-tet.webp',
+  },
+  concept_noel: {
+    id: 'concept_noel',
+    page: 'CONCEPTS',
+    label: 'Ảnh Concept: Giáng Sinh Lung Linh (Noel Cozy)',
+    description: 'Ảnh đại diện concept Giáng sinh ấm áp',
+    imageUrl: '/concept-noel.webp',
+  },
+  editorial_guide_banner: {
+    id: 'editorial_guide_banner',
+    page: 'GLOBAL',
+    label: 'Ảnh Banner Cẩm Nang Chuẩn Bị (/cam-nang)',
+    description: 'Ảnh trang cẩm nang chụp ảnh',
+    imageUrl: '/hero-camera.jpg',
   },
 };
 
@@ -490,6 +560,155 @@ export async function resetSiteAssetToDefault(assetId: string): Promise<SiteAsse
 
 /** Explicit alias for deleting an uploaded custom image and reverting to the brand default */
 export const deleteSiteAssetImage = resetSiteAssetToDefault;
+
+/**
+ * Updates a site asset directly with an external or local URL
+ */
+export async function updateSiteAssetWithUrl(
+  assetId: string,
+  imageUrl: string,
+  userId?: string
+): Promise<SiteAsset> {
+  const currentAssets = await getSiteAssets();
+  const existing = currentAssets[assetId] || DEFAULT_SITE_ASSETS[assetId] || {
+    id: assetId,
+    page: 'GLOBAL',
+    label: assetId,
+    imageUrl: '/hero.png',
+  };
+
+  const updatedAsset: SiteAsset = {
+    ...existing,
+    imageUrl: imageUrl.trim(),
+    updatedBy: userId,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const isValidUuid =
+        typeof userId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+
+      await supabase.from('site_assets').upsert({
+        id: updatedAsset.id,
+        page: updatedAsset.page,
+        label: updatedAsset.label,
+        description: updatedAsset.description || null,
+        image_url: updatedAsset.imageUrl,
+        storage_path: updatedAsset.storagePath || null,
+        updated_by: isValidUuid ? userId : null,
+        updated_at: updatedAsset.updatedAt,
+      });
+    } catch (err: any) {
+      console.warn('Supabase updateSiteAssetWithUrl warning:', err?.message);
+    }
+  }
+
+  const nextAssets = { ...currentAssets, [assetId]: updatedAsset };
+  cachedAssets = nextAssets;
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(nextAssets));
+    } catch {
+      // Ignore
+    }
+  }
+
+  notifyListeners(nextAssets);
+  return updatedAsset;
+}
+
+/**
+ * Creates a brand new custom site asset slot
+ */
+export async function createCustomSiteAsset(
+  params: {
+    id: string;
+    page?: 'HOME' | 'SERVICES' | 'CONCEPTS' | 'PORTFOLIO' | 'ATELIER' | 'GLOBAL' | 'CUSTOM';
+    label: string;
+    imageUrl: string;
+    description?: string;
+  },
+  userId?: string
+): Promise<SiteAsset> {
+  const assetId = params.id.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  const newAsset: SiteAsset = {
+    id: assetId,
+    page: params.page || 'CUSTOM',
+    label: params.label.trim(),
+    description: params.description?.trim(),
+    imageUrl: params.imageUrl.trim() || '/hero.png',
+    updatedBy: userId,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const isValidUuid =
+        typeof userId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+
+      await supabase.from('site_assets').upsert({
+        id: newAsset.id,
+        page: newAsset.page,
+        label: newAsset.label,
+        description: newAsset.description || null,
+        image_url: newAsset.imageUrl,
+        storage_path: null,
+        updated_by: isValidUuid ? userId : null,
+        updated_at: newAsset.updatedAt,
+      });
+    } catch (err: any) {
+      console.warn('Supabase createCustomSiteAsset warning:', err?.message);
+    }
+  }
+
+  const currentAssets = await getSiteAssets();
+  const nextAssets = { ...currentAssets, [assetId]: newAsset };
+  cachedAssets = nextAssets;
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(nextAssets));
+    } catch {
+      // Ignore
+    }
+  }
+
+  notifyListeners(nextAssets);
+  return newAsset;
+}
+
+/**
+ * Deletes a custom site asset slot
+ */
+export async function deleteCustomSiteAsset(assetId: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.from('site_assets').delete().eq('id', assetId);
+    } catch (err: any) {
+      console.warn('Supabase deleteCustomSiteAsset warning:', err?.message);
+    }
+  }
+
+  const currentAssets = await getSiteAssets();
+  const nextAssets = { ...currentAssets };
+  delete nextAssets[assetId];
+  cachedAssets = nextAssets;
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(nextAssets));
+    } catch {
+      // Ignore
+    }
+  }
+
+  notifyListeners(nextAssets);
+  return true;
+}
 
 /**
  * Subscribe to site asset changes for reactive UI updates

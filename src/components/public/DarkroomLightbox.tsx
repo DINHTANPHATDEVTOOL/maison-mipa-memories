@@ -3,7 +3,7 @@
 // Presentation: Darkroom minimal luxury (#15110E), photo centered
 // Accessibility: role="dialog", aria-modal="true", keyboard nav, body scroll lock, focus restoration
 // ==============================================================================
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ArrowLeft, ArrowRight } from 'lucide-react';
 import type { PortfolioPhoto } from '../../types';
 
@@ -26,18 +26,40 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
-  const activePhoto = photos[currentIndex] || photos[0];
+  const [internalIndex, setInternalIndex] = useState(currentIndex);
+
+  useEffect(() => {
+    setInternalIndex(currentIndex);
+  }, [currentIndex]);
+
   const total = photos.length;
+  const activeIndex =
+    typeof internalIndex === 'number' && internalIndex >= 0 && internalIndex < total
+      ? internalIndex
+      : 0;
+  const activePhoto = photos[activeIndex] || photos[0];
 
-  const handlePrev = useCallback(() => {
-    if (total <= 1) return;
-    onSelectIndex((currentIndex - 1 + total) % total);
-  }, [currentIndex, total, onSelectIndex]);
+  const handlePrev = useCallback(
+    (e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      if (total <= 1) return;
+      const nextIdx = (activeIndex - 1 + total) % total;
+      setInternalIndex(nextIdx);
+      onSelectIndex(nextIdx);
+    },
+    [activeIndex, total, onSelectIndex]
+  );
 
-  const handleNext = useCallback(() => {
-    if (total <= 1) return;
-    onSelectIndex((currentIndex + 1) % total);
-  }, [currentIndex, total, onSelectIndex]);
+  const handleNext = useCallback(
+    (e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      if (total <= 1) return;
+      const nextIdx = (activeIndex + 1) % total;
+      setInternalIndex(nextIdx);
+      onSelectIndex(nextIdx);
+    },
+    [activeIndex, total, onSelectIndex]
+  );
 
   const prevRef = useRef(handlePrev);
   prevRef.current = handlePrev;
@@ -125,14 +147,14 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
 
   if (!activePhoto) return null;
 
-  const counterText = `${currentIndex + 1} / ${total}`;
+  const counterText = `${activeIndex + 1} / ${total}`;
 
   return (
     <div
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`Chi tiết ảnh ${currentIndex + 1} của ${total} — ${collectionTitle}`}
+      aria-label={`Chi tiết ảnh ${activeIndex + 1} của ${total} — ${collectionTitle}`}
       tabIndex={-1}
       style={{
         position: 'fixed',
@@ -225,44 +247,51 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
         {/* Previous Button */}
         {total > 1 && (
           <button
+            type="button"
             onClick={handlePrev}
             aria-label="Ảnh trước đó"
             style={{
               position: 'absolute',
               left: 'clamp(0.5rem, 2vw, 2rem)',
-              minWidth: '44px',
-              minHeight: '44px',
+              minWidth: '48px',
+              minHeight: '48px',
               width: '48px',
               height: '48px',
               border: 'none',
-              backgroundColor: 'rgba(21, 17, 14, 0.65)',
+              backgroundColor: 'rgba(21, 17, 14, 0.85)',
               color: '#FFFDF9',
               borderRadius: '50%',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 3,
+              zIndex: 25,
+              pointerEvents: 'auto',
               backdropFilter: 'blur(8px)',
-              transition: 'background-color 0.2s ease',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              transition: 'background-color 0.2s ease, transform 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.95)';
+              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.98)';
+              e.currentTarget.style.transform = 'scale(1.08)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.65)';
+              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.85)';
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={22} />
           </button>
         )}
 
-        {/* Displayed Image */}
+        {/* Displayed Image (Clickable to advance to next) */}
         <img
           src={activePhoto.url}
-          alt={activePhoto.altText || `${collectionTitle} — Ảnh ${currentIndex + 1}`}
+          alt={activePhoto.altText || `${collectionTitle} — Ảnh ${activeIndex + 1}`}
           width={activePhoto.width}
           height={activePhoto.height}
+          onClick={handleNext}
+          title={total > 1 ? 'Nhấp vào ảnh để xem ảnh tiếp theo' : undefined}
           style={{
             maxWidth: '92vw',
             maxHeight: '76vh',
@@ -271,41 +300,48 @@ export const DarkroomLightbox: React.FC<DarkroomLightboxProps> = ({
             objectFit: 'contain',
             borderRadius: '2px',
             userSelect: 'none',
+            cursor: total > 1 ? 'pointer' : 'default',
+            transition: 'opacity 0.2s ease',
           }}
         />
 
         {/* Next Button */}
         {total > 1 && (
           <button
+            type="button"
             onClick={handleNext}
             aria-label="Ảnh kế tiếp"
             style={{
               position: 'absolute',
               right: 'clamp(0.5rem, 2vw, 2rem)',
-              minWidth: '44px',
-              minHeight: '44px',
+              minWidth: '48px',
+              minHeight: '48px',
               width: '48px',
               height: '48px',
               border: 'none',
-              backgroundColor: 'rgba(21, 17, 14, 0.65)',
+              backgroundColor: 'rgba(21, 17, 14, 0.85)',
               color: '#FFFDF9',
               borderRadius: '50%',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 3,
+              zIndex: 25,
+              pointerEvents: 'auto',
               backdropFilter: 'blur(8px)',
-              transition: 'background-color 0.2s ease',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              transition: 'background-color 0.2s ease, transform 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.95)';
+              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.98)';
+              e.currentTarget.style.transform = 'scale(1.08)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.65)';
+              e.currentTarget.style.backgroundColor = 'rgba(21, 17, 14, 0.85)';
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <ArrowRight size={20} />
+            <ArrowRight size={22} />
           </button>
         )}
       </div>
