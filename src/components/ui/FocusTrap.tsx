@@ -36,6 +36,12 @@ export const FocusTrap: React.FC<FocusTrapProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
+  // Keep onEscape in a ref so the focus-init effect never re-runs
+  // just because the parent re-created the callback function.
+  const onEscapeRef = useRef(onEscape);
+  useEffect(() => {
+    onEscapeRef.current = onEscape;
+  }, [onEscape]);
 
   useEffect(() => {
     if (!active) return;
@@ -64,9 +70,9 @@ export const FocusTrap: React.FC<FocusTrapProps> = ({
       if (!containerRef.current) return;
 
       if (e.key === 'Escape') {
-        if (onEscape) {
+        if (onEscapeRef.current) {
           e.preventDefault();
-          onEscape();
+          onEscapeRef.current();
         }
         return;
       }
@@ -112,7 +118,7 @@ export const FocusTrap: React.FC<FocusTrapProps> = ({
         previousActiveElementRef.current.focus();
       }
     };
-  }, [active, onEscape]);
+  }, [active]); // ← only re-run when modal opens/closes, NOT on every callback re-creation
 
   return (
     <div
