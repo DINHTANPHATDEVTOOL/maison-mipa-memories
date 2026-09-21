@@ -196,6 +196,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     const configToml = fs.readFileSync(path.resolve(__dirname, '../../../supabase/config.toml'), 'utf-8');
 
     expect(configToml).not.toContain('[functions.payment-webhook]');
+    expect(configToml).not.toContain('[functions.create-payos-link]');
     expect(configToml).toContain('[functions.send-email]');
     expect(configToml).toContain('verify_jwt = true');
     expect(configToml).toContain('[functions.request-otp]');

@@ -14,15 +14,9 @@ max_rows = 1000
 
 # ------------------------------------------------------------------------------
 # Edge Functions Configuration:
-# - create-payos-link: verify_jwt = true (LEGACY)
-#   Requires authenticated customer/manager session.
-#   Authoritative amount is fetched directly from database.
 # - send-email: verify_jwt = true
 #   Private function for backend notification outbox worker / service role only.
 # ------------------------------------------------------------------------------
-
-[functions.create-payos-link]
-verify_jwt = true
 
 [functions.send-email]
 verify_jwt = true

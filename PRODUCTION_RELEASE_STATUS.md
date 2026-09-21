@@ -123,7 +123,7 @@ During Booking Flow V2 operations:
 ## 7. Legacy Components Notice
 
 The following source files, database tables, and edge functions are retained exclusively for historical record preservation and must **NOT** be deployed or required by future operators:
-- Edge Functions: `payment-webhook` (DELETED), `create-payos-link` (`LEGACY / NOT USED BY BOOKING FLOW V2`)
+- Edge Functions: `payment-webhook` (DELETED), `create-payos-link` (DELETED)
 - Database Tables: `payments`, `payment_settings` (`LEGACY READ-ONLY ARCHIVE`)
 - Frontend: `src/services/paymentService.ts` (`LEGACY`)
 
