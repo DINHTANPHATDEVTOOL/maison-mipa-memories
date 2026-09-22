@@ -1,6 +1,6 @@
 // ==============================================================================
 // Maison MIPA Memories - Site Media & Asset Management Service
-// Full-site dynamic image management for Root Owner & Studio Managers
+// Full-site dynamic image management for Root Owner & Managers
 // Direct file upload to Supabase Storage with WebP compression & metadata stripping
 // ==============================================================================
 
@@ -57,8 +57,8 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
   home_atelier_showcase: {
     id: 'home_atelier_showcase',
     page: 'HOME',
-    label: 'Ảnh Không Gian Studio (Atelier Darkroom)',
-    description: 'Góc phòng studio nghệ thuật, ánh sáng tự nhiên',
+    label: 'Ảnh Không Gian Tiệm Ảnh (Atelier Darkroom)',
+    description: 'Góc phòng tiệm ảnh nghệ thuật, ánh sáng tự nhiên',
     imageUrl: '/studio.png',
   },
   home_cta_banner: {
@@ -79,7 +79,7 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     id: 'service_wedding',
     page: 'SERVICES',
     label: 'Ảnh Dịch Vụ: Cưới & Pre-Wedding',
-    description: 'Ảnh đại diện gói chụp ảnh cưới studio phong cách Pháp',
+    description: 'Ảnh đại diện gói chụp ảnh cưới phong cách Pháp',
     imageUrl: '/hero-bride.jpg',
   },
   service_portrait: {
@@ -115,7 +115,7 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     page: 'SERVICES',
     label: 'Ảnh Dịch Vụ: Sinh Nhật & Tiệc',
     description: 'Ảnh đại diện gói chụp sinh nhật, sự kiện nhỏ',
-    imageUrl: '/concept-tet.webp',
+    imageUrl: '/concept-noel.webp',
   },
   atelier_room_1: {
     id: 'atelier_room_1',
@@ -136,7 +136,7 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     page: 'ATELIER',
     label: 'Không Gian: Garden Atelier (Phòng 3)',
     description: 'Khu vực bối cảnh vườn & ánh sáng hoa tươi',
-    imageUrl: '/hero-bride.jpg',
+    imageUrl: '/hero.webp',
   },
   brand_story_1: {
     id: 'brand_story_1',
@@ -149,7 +149,7 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     id: 'brand_story_2',
     page: 'HOME',
     label: 'Ảnh Câu Chuyện Thương Hiệu (Khung 2)',
-    description: 'Khung ảnh góc studio và ánh sáng tự nhiên',
+    description: 'Khung ảnh góc tiệm ảnh và ánh sáng tự nhiên',
     imageUrl: '/studio.png',
   },
   concept_aodai: {

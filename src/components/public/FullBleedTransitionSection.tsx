@@ -9,8 +9,10 @@ import React, { useRef } from 'react';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 export const FullBleedTransitionSection: React.FC = () => {
+  const { getAssetUrl } = useSiteAssets();
   const sectionRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -126,8 +128,8 @@ export const FullBleedTransitionSection: React.FC = () => {
         {/* Underlying Full-Bleed Photograph */}
         <img
           ref={imageRef}
-          src="/studio.png"
-          alt="Không gian ánh sáng tự nhiên tại Maison MIPA Studio"
+          src={getAssetUrl('home_curatorial_banner', '/studio.png')}
+          alt="Không gian ánh sáng tự nhiên tại Maison MIPA"
           loading="lazy"
           style={{
             position: 'absolute',

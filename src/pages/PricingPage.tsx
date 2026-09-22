@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   getServices,
   getPackages,
+  getAddons,
   createPackage,
   updatePackage,
   deletePackage,
 } from '../services/catalogService';
-import type { ServiceCategory, PackageItem } from '../types';
+import type { ServiceCategory, PackageItem, Addon } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
 import {
@@ -21,11 +22,12 @@ import {
   ShieldCheck,
   AlertCircle,
   Save,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 function formatVnd(amount: number): string {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+  return `Chỉ từ ${new Intl.NumberFormat('vi-VN').format(amount)} VNĐ`;
 }
 
 interface PricingPageProps {
@@ -44,13 +46,15 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
     authContext = null;
   }
   const canManagePricing = Boolean(
-    authContext?.isRootOwner ||
-      authContext?.role === 'ROOT_OWNER' ||
-      authContext?.role === 'ADMIN'
+    authContext?.user &&
+      (authContext?.isRootOwner ||
+        authContext?.role === 'ROOT_OWNER' ||
+        authContext?.role === 'ADMIN')
   );
 
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [packages, setPackages] = useState<PackageItem[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Admin Modal & Action States
@@ -72,9 +76,10 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const [srvs, pkgs] = await Promise.all([getServices(), getPackages()]);
+      const [srvs, pkgs, adds] = await Promise.all([getServices(), getPackages(), getAddons()]);
       setServices(srvs);
       setPackages(pkgs);
+      setAddons(adds);
     } catch (err) {
       console.warn('Lỗi tải bảng giá:', err);
     } finally {
@@ -105,7 +110,7 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
     setFormPopularTag('');
     setFormRecommended(false);
     setFormFeaturesText(
-      '90 phút chụp hình tận tâm\n1 Concept trang trí Studio\n15 Ảnh chỉnh sửa hậu kỳ tỉ mỉ\nTặng toàn bộ file ảnh gốc chất lượng cao'
+      '90 phút chụp hình tận tâm\n1 Concept bối cảnh tiệm ảnh\n15 Ảnh chỉnh sửa hậu kỳ tỉ mỉ\nTặng toàn bộ file ảnh gốc chất lượng cao'
     );
     setIsModalOpen(true);
   };
@@ -450,7 +455,7 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
               color: '#604634',
             }}
           >
-            Hiện bảng giá đang được cập nhật. Quý khách vui lòng liên hệ studio để được tư vấn chi tiết.
+            Hiện bảng giá đang được cập nhật. Quý khách vui lòng liên hệ tiệm ảnh để được tư vấn chi tiết.
           </div>
         )}
 
@@ -677,7 +682,89 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
             </section>
           ))}
 
-        {/* Studio Experience Standards (Restrained Editorial 01, 02, 03) */}
+        {/* DỊCH VỤ BỔ SUNG & NÂNG CẤP KỶ NIỆM (ADDONS) */}
+        {!isLoading && addons.length > 0 && (
+          <section
+            aria-labelledby="addons-section-title"
+            style={{
+              backgroundColor: '#FFFDF9',
+              border: '1px solid rgba(140, 110, 83, 0.2)',
+              borderRadius: '6px',
+              padding: 'clamp(2rem, 4vw, 3rem)',
+            }}
+          >
+            <div
+              style={{
+                marginBottom: '2rem',
+                borderBottom: '1px solid rgba(140, 110, 83, 0.15)',
+                paddingBottom: '1rem',
+              }}
+            >
+              <span className="vc-overline" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                DỊCH VỤ BỔ SUNG &bull; TÙY CHỌN NÂNG CẤP
+              </span>
+              <h2
+                id="addons-section-title"
+                className="vc-section-title"
+                style={{ margin: 0 }}
+              >
+                Dịch Vụ Bổ Sung & Nâng Cấp Kỷ Niệm
+              </h2>
+              <p className="vc-copy" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+                Các dịch vụ hoàn thiện từ trang điểm, tạo mẫu tóc đến in ấn photobook cao cấp lưu giữ trọn đời — báo giá minh bạch chỉ từ mức niêm yết.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
+              {addons.map((addon) => (
+                <div
+                  key={addon.id}
+                  style={{
+                    padding: '1.5rem',
+                    backgroundColor: '#FAF8F3',
+                    border: '1px solid rgba(140, 110, 83, 0.18)',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                  }}
+                >
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#29231F', margin: '0 0 0.4rem 0' }}>
+                      {addon.name}
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: '#604634', margin: 0, lineHeight: 1.5 }}>
+                      {addon.description}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px dashed rgba(140, 110, 83, 0.15)' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#8C6E53', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                      Chi phí
+                    </span>
+                    <strong
+                      style={{
+                        fontFamily: 'var(--editorial-font-heading, "Cormorant Garamond", serif)',
+                        fontSize: '1.3rem',
+                        color: '#29231F',
+                      }}
+                    >
+                      {formatVnd(addon.price)}
+                    </strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Tiêu chuẩn trải nghiệm tiệm ảnh Maison MIPA */}
         <section
           style={{
             backgroundColor: '#FFFDF9',
@@ -1058,7 +1145,7 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
                   rows={4}
                   value={formFeaturesText}
                   onChange={(e) => setFormFeaturesText(e.target.value)}
-                  placeholder="90 phút chụp hình tận tâm&#10;1 Concept trang trí Studio&#10;15 Ảnh chỉnh sửa hậu kỳ kĩ lưỡng&#10;Tặng toàn bộ file ảnh gốc full HD"
+                  placeholder="90 phút chụp hình tận tâm&#10;1 Concept bối cảnh tiệm ảnh&#10;15 Ảnh chỉnh sửa hậu kỳ kĩ lưỡng&#10;Tặng toàn bộ file ảnh gốc full HD"
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',

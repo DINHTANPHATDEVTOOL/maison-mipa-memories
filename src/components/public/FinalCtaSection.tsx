@@ -147,7 +147,7 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({ onOpenBooking 
               key={ctaBannerUrl}
               ref={imageRef}
               src={ctaBannerUrl}
-              alt="Maison MIPA Memories — Không gian studio sẵn sàng đón bạn"
+              alt="Maison MIPA Memories — Không gian tiệm ảnh sẵn sàng đón bạn"
               loading="lazy"
               style={{
                 position: 'absolute',

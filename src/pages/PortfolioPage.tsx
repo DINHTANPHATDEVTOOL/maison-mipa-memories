@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Home, RotateCcw, Plus, Edit3, Trash2, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
-import { getPublicCollections, deleteCollection } from '../services/portfolioService';
+import { getPublicCollections, deleteCollection, updateCollection } from '../services/portfolioService';
 import type { PortfolioCollection } from '../types';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
 import { getCanonicalUrl } from '../config/site';
@@ -24,9 +24,8 @@ interface PortfolioPageProps {
 
 export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
-  const { isRootOwner, role } = useAuth();
-  const { isQuickEditModeActive } = useSiteAssets();
-  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER' || isQuickEditModeActive);
+  const { user, isRootOwner, role } = useAuth();
+  const canManage = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
 
   const [collections, setCollections] = useState<PortfolioCollection[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -447,6 +446,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                     currentImageUrl={coverUrl || '/studio.png'}
                     label={`Ảnh bìa bộ ảnh: ${col.title}`}
                     onImageUpdated={(newUrl) => {
+                      updateCollection(col.id, { coverPhotoUrl: newUrl });
                       setCollections((prev) =>
                         prev.map((item) =>
                           item.id === col.id ? { ...item, coverPhotoUrl: newUrl } : item
@@ -454,6 +454,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onOpenBooking }) =
                       );
                     }}
                     onImageDeleted={() => {
+                      updateCollection(col.id, { coverPhotoUrl: '' });
                       setCollections((prev) =>
                         prev.map((item) =>
                           item.id === col.id ? { ...item, coverPhotoUrl: '' } : item

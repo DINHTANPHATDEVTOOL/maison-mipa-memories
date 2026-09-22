@@ -9,10 +9,14 @@ import type { AtelierArtwork } from './atelierTypes';
 const KNOWN_BOOKABLE_SLUGS = new Set([
   'parisian-romance',
   'vintage-cinematic',
-  'french-haute-couture',
+  'nang-tho',
+  'chup-ao-dai-duyen-dang',
+  'chup-ky-yeu-tot-nghiep',
   'la-famille-douce',
-  'bebe-soleil',
-  'corporate-noir',
+  'sinh-nhat-lung-linh',
+  'chup-chan-dung-nghe-thuat',
+  'chup-le-tet-sum-vay',
+  'chup-giang-sinh-noel-cozy',
 ]);
 
 interface ArtworkInspectionProps {

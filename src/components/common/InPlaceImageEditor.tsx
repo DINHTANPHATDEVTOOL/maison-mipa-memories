@@ -32,9 +32,9 @@ export const InPlaceImageEditor: React.FC<InPlaceImageEditorProps> = ({
   containerStyle,
   className,
 }) => {
-  const { isRootOwner, role } = useAuth();
+  const { user, isRootOwner, role } = useAuth();
   const { isQuickEditModeActive, updateAsset, updateAssetUrl, resetAsset } = useSiteAssets();
-  const canEdit = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER');
+  const canEdit = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
 
   const effectiveAssetId =
     assetId ||

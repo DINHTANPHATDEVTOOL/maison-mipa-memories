@@ -23,8 +23,8 @@ interface ServicesPageProps {
 
 export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
-  const { isRootOwner, role } = useAuth();
-  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER');
+  const { user, isRootOwner, role } = useAuth();
+  const canManage = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
   const { getAssetUrl } = useSiteAssets();
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -139,7 +139,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectServic
           <span className="editorial-overline">DỊCH VỤ CHỤP ẢNH</span>
           <h2 className="editorial-h2">Bạn muốn lưu lại điều gì?</h2>
           <p className="editorial-copy">
-            Từ những buổi chụp đôi riêng tư, chân dung cá nhân đến những ngày sum vầy của gia đình, mỗi buổi chụp đều được chuẩn bị chỉn chu và kỹ lưỡng.
+            Từ chụp chân dung cá nhân, ảnh couple ngọt ngào, kỷ yếu tốt nghiệp, tiệc sinh nhật đến tổ ấm gia đình sum vầy, mỗi buổi chụp đều được chuẩn bị chỉn chu và ấm áp tại tiệm ảnh.
           </p>
         </div>
 

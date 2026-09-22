@@ -196,11 +196,11 @@ export const DEFAULT_ATELIER_ARTWORKS: AtelierArtwork[] = [
     scale: [1.15, 1.5, 1], // Subtle secondary print on boiserie
   },
   {
-    id: 'c1000000-0000-0000-0000-000000000003',
-    title: 'French Haute Couture',
-    conceptSlug: 'french-haute-couture',
-    imageUrl: '/hero-baby.jpg',
-    description: 'Váy cưới tối giản sang trọng, khăn voan bay bổng và tạo dáng nghệ thuật thời trang cao cấp.',
+    id: 'c1000000-0000-0000-0000-000000000008',
+    title: 'Nàng Thơ Trong Trẻo',
+    conceptSlug: 'nang-tho',
+    imageUrl: '/hero-camera.jpg',
+    description: 'Ánh sáng ban mai dịu dàng, hoa tươi và phong cách mộng mơ trong trẻo tại tiệm ảnh Maison MIPA.',
     wallPosition: 'right',
     position: [3.4, 1.45, -3.42],
     rotation: [0, 0, 0],

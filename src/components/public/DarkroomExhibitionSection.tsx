@@ -39,11 +39,11 @@ const EXHIBITION_FRAMES: ExhibitionFrame[] = [
   },
   {
     id: 'f3',
-    title: 'French Haute Couture — Monologue',
-    subtitle: 'Nét tối giản đương đại, đường nét mềm mại và tinh tế',
-    dimension: 'Black & Ochre Archive / 2026',
-    imageUrl: '/hero.png',
-    collectionSlug: 'french-haute-couture',
+    title: 'Nàng Thơ Trong Trẻo — Ánh Sáng Tinh Khôi',
+    subtitle: 'Nét đẹp trong trẻo, ánh mắt dịu dàng kết hợp cùng sắc hoa tươi',
+    dimension: 'Natural Daylight / Tiệm ảnh MIPA',
+    imageUrl: '/hero-camera.jpg',
+    collectionSlug: 'nang-tho',
   },
 ];
 

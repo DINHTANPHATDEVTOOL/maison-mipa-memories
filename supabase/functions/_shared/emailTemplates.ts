@@ -37,8 +37,8 @@ const emailHeader = `
 
 const emailFooter = `
   <div style="padding: 20px; text-align: center; color: ${BRAND_MUTED}; font-size: 12px; border-top: 1px solid #EFE6C9; margin-top: 30px;">
-    <p style="margin: 0 0 6px 0;"><strong>Maison MIPA Memories Studio</strong></p>
-    <p style="margin: 0 0 6px 0;">Hotline: 0908 123 456 • Email: contact@maisonmipa.io.vn</p>
+    <p style="margin: 0 0 6px 0;"><strong>Tiệm Ảnh Maison MIPA Memories</strong></p>
+    <p style="margin: 0 0 6px 0;">Hotline: 0908 123 456 • Email: maisonmipamemories@gmail.com</p>
     <p style="margin: 0; color: #A39385;">Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email hoặc liên hệ hỗ trợ.</p>
   </div>
 `;
@@ -277,14 +277,14 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
               <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #047857;">${formatVnd(depositAmount)}</td>
             </tr>
             <tr style="border-top: 1px solid #EFE6C9;">
-              <td style="padding: 10px 0 6px 0; font-weight: 700; color: #2C221E;">Số tiền còn lại cần thanh toán tại studio:</td>
+              <td style="padding: 10px 0 6px 0; font-weight: 700; color: #2C221E;">Số tiền còn lại cần thanh toán tại tiệm ảnh:</td>
               <td style="padding: 10px 0 6px 0; text-align: right; font-weight: 700; color: #B45309; font-size: 16px;">${formatVnd(remainingAmount)}</td>
             </tr>
           </table>
         </div>
 
         <p style="color: #604634; line-height: 1.6; font-size: 13.5px;">
-          Mọi thắc mắc hoặc cần hỗ trợ trước ngày chụp, quý khách vui lòng liên hệ hotline <strong>0908 123 456</strong> hoặc email <strong>contact@maisonmipa.io.vn</strong>. Maison MIPA rất hân hạnh được đồng hành cùng bạn!
+          Mọi thắc mắc hoặc cần hỗ trợ trước ngày chụp, quý khách vui lòng liên hệ hotline <strong>0908 123 456</strong> hoặc email <strong>maisonmipamemories@gmail.com</strong>. Maison MIPA rất hân hạnh được đồng hành cùng bạn!
         </p>
       `;
       break;

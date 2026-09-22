@@ -16,13 +16,13 @@ export const ProcessSection: React.FC = () => {
       num: '02',
       icon: Check,
       title: 'Tư Vấn Trang Phục',
-      desc: 'Maison MIPA gửi hướng dẫn chuẩn bị trang phục theo concept và hỗ trợ chọn đồ tại studio.',
+      desc: 'Maison MIPA gửi hướng dẫn chuẩn bị trang phục theo concept và hỗ trợ chọn đồ tại tiệm ảnh.',
     },
     {
       num: '03',
       icon: Camera,
       title: 'Buổi Chụp Thư Thái',
-      desc: 'Makeup chuyên nghiệp, chụp ảnh trong phòng studio khép kín với nhiếp ảnh gia giàu kinh nghiệm.',
+      desc: 'Makeup chuyên nghiệp, buổi chụp nhẹ nhàng và tự nhiên tại tiệm ảnh với nhiếp ảnh gia tận tâm.',
     },
     {
       num: '04',

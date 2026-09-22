@@ -58,7 +58,7 @@ export const Footer: React.FC = () => {
             maxWidth: '320px',
             margin: 0,
           }}>
-            Maison MIPA Memories — Nhà là nơi lưu giữ ký ức. Tiệm ảnh mang phong cách ấm áp, tinh tế và chân thật tại Sài Gòn.
+            {SITE_CONFIG.brandStoryShort}
           </p>
           {/* Social Links with TikTok & Facebook Fanpage & Zalo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginTop: '1.25rem' }}>
@@ -201,24 +201,22 @@ export const Footer: React.FC = () => {
             fontSize: '0.85rem',
             color: 'rgba(255, 253, 249, 0.8)',
           }}>
-            <Link to="/concept" style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none' }}>
-              • Chụp Chân Dung Nghệ Thuật
-            </Link>
-            <Link to="/concept" style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none' }}>
-              • Chụp Kỷ Yếu & Tốt Nghiệp
-            </Link>
-            <Link to="/concept" style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none' }}>
-              • Chụp Áo Dài Duyên Dáng
-            </Link>
-            <Link to="/concept" style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none' }}>
-              • Chụp Đồ Án Tốt Nghiệp & Sáng Tạo
-            </Link>
-            <Link to="/concept" style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none' }}>
-              • Chụp Couple & Tình Yêu
-            </Link>
-            <Link to="/concept" style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none' }}>
-              • Chụp Lễ Tết Sum Vầy & Giáng Sinh
-            </Link>
+            {[
+              { name: 'Nàng Thơ Trong Trẻo', slug: 'nang-tho' },
+              { name: 'Chụp Áo Dài Duyên Dáng', slug: 'chup-ao-dai-duyen-dang' },
+              { name: 'Kỷ Yếu & Tốt Nghiệp', slug: 'chup-ky-yeu-tot-nghiep' },
+              { name: 'Ảnh Couple & Parisian', slug: 'parisian-romance' },
+              { name: 'Tiệc Sinh Nhật Rực Rỡ', slug: 'sinh-nhat-lung-linh' },
+              { name: 'Gia Đình Sum Vầy & Tổ Ấm', slug: 'la-famille-douce' },
+            ].map((c) => (
+              <Link
+                key={c.slug}
+                to={`/concept/${c.slug}`}
+                style={{ color: 'rgba(255, 253, 249, 0.75)', textDecoration: 'none', transition: 'color 0.2s' }}
+              >
+                • {c.name}
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -274,7 +272,7 @@ export const Footer: React.FC = () => {
         color: 'rgba(255, 253, 249, 0.5)',
       }}>
         <div>
-          © 2026 {SITE_CONFIG.siteName}. Bảo lưu mọi quyền.
+          © {new Date().getFullYear()} {SITE_CONFIG.siteName}. Bảo lưu mọi quyền.
         </div>
         <div>
           {SITE_CONFIG.contact.address.formatted}

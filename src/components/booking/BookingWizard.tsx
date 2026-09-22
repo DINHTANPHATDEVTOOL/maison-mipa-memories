@@ -882,7 +882,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   // Proceed from Step 5 to Step 6: Create Booking and Authoritative Payment
   const handleProceedToPayment = async () => {
     if (!selectedService || !selectedPackage || !selectedStudio) {
-      setErrorMessage('Thông tin đặt lịch chưa đầy đủ. Vui lòng kiểm tra lại dịch vụ, gói chụp và phòng studio.');
+      setErrorMessage('Thông tin đặt lịch chưa đầy đủ. Vui lòng kiểm tra lại dịch vụ, gói chụp và không gian chụp.');
       return;
     }
 
@@ -1180,7 +1180,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 GÓI CHỤP:
               </span>
               <strong style={{ color: '#29231F' }}>{selectedPackage.name}</strong>
-              <span style={{ color: '#70533C' }}>({selectedPackage.price.toLocaleString('vi-VN')} đ)</span>
+              <span style={{ color: '#70533C' }}>(Chỉ từ {selectedPackage.price.toLocaleString('vi-VN')} VNĐ)</span>
             </div>
           )}
         </div>
@@ -1443,12 +1443,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           </h4>
                           <div style={{
                             fontFamily: 'var(--editorial-font-heading)',
-                            fontSize: '1.65rem',
+                            fontSize: '1.45rem',
                             fontWeight: 600,
                             color: 'var(--editorial-brown)',
                             marginBottom: '1rem',
                           }}>
-                            {pkg.price.toLocaleString('vi-VN')}đ
+                            Chỉ từ {pkg.price.toLocaleString('vi-VN')} VNĐ
                           </div>
                           
                           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1605,7 +1605,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
                   <div style={{ marginTop: '1.8rem' }}>
                     <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      2. Chọn không gian studio
+                      2. Chọn không gian chụp tại tiệm
                     </label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                       {studios.map((std) => {
@@ -1809,8 +1809,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <h5 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--editorial-brown)', margin: 0 }}>{addon.name}</h5>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--editorial-brown-accent)' }}>
-                            +{addon.price.toLocaleString('vi-VN')}đ
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--editorial-brown-accent)' }}>
+                            +Chỉ từ {addon.price.toLocaleString('vi-VN')} VNĐ
                           </span>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: 'var(--editorial-text-secondary)', marginTop: '0.3rem', margin: '0.3rem 0 0 0', lineHeight: 1.4 }}>
@@ -1998,18 +1998,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     className="mipa-input"
                     style={{ borderRadius: '4px', border: '1px solid var(--editorial-divider)' }}
                   >
-                    <option value="Kỷ niệm">Kỷ niệm tình yêu / Ngày cưới</option>
+                    <option value="Cá nhân">Chụp ảnh chân dung cá nhân</option>
+                    <option value="Couple">Ảnh couple / Đôi lứa</option>
+                    <option value="Tốt nghiệp">Tốt nghiệp / Kỷ yếu</option>
                     <option value="Sinh nhật">Sinh nhật / Tuổi mới</option>
-                    <option value="Cưới">Chụp ảnh cưới / Studio Wedding</option>
-                    <option value="Tốt nghiệp">Kỷ yếu / Tốt nghiệp</option>
                     <option value="Gia đình">Kỷ niệm gia đình</option>
-                    <option value="Cá nhân">Chân dung cá nhân</option>
                   </select>
                 </div>
               </div>
 
               <div style={{ marginTop: '1.2rem' }}>
-                <label htmlFor="booking-customer-note" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Ghi chú thêm cho studio</label>
+                <label htmlFor="booking-customer-note" className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600 }}>Ghi chú thêm cho tiệm ảnh</label>
                 <textarea
                   id="booking-customer-note"
                   rows={3}

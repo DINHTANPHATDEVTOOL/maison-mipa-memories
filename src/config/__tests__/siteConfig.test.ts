@@ -13,7 +13,7 @@ describe('SITE_CONFIG - Single Source of Truth for Brand, SEO & Pricing', () => 
   it('has consistent hotline and phone numbers', () => {
     expect(SITE_CONFIG.contact.hotline).toBe('0966 616 546');
     expect(SITE_CONFIG.contact.phoneE164).toBe('+84966616546');
-    expect(SITE_CONFIG.contact.email).toBe('contact@maisonmipa.vn');
+    expect(SITE_CONFIG.contact.email).toBe('maisonmipamemories@gmail.com');
     expect(SITE_CONFIG.contact.address.formatted).toContain('88 Phan Sào Nam');
     expect(SITE_CONFIG.contact.address.formatted).toContain('Quận Tân Bình');
   });

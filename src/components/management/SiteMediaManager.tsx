@@ -26,8 +26,8 @@ import {
 
 export const SiteMediaManager: React.FC = () => {
   const { assets, updateAsset, updateAssetUrl, createAsset, deleteCustomAsset, resetAsset, refreshAssets, loading } = useSiteAssets();
-  const { isRootOwner, role } = useAuth();
-  const canManage = isRootOwner || role === 'ADMIN' || role === 'MANAGER';
+  const { user, isRootOwner, role } = useAuth();
+  const canManage = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
 
   type CategoryType = 'ALL' | 'HOME' | 'SERVICES' | 'CONCEPTS' | 'PORTFOLIO' | 'ATELIER' | 'GLOBAL' | 'CUSTOM';
   const [activeCategory, setActiveCategory] = useState<CategoryType>('ALL');
@@ -435,8 +435,9 @@ export const SiteMediaManager: React.FC = () => {
                     transition: 'transform 0.3s ease',
                   }}
                   onError={(e) => {
-                    // Fallback to hero.png if image fails to load
-                    (e.target as HTMLImageElement).src = '/hero.png';
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = '/hero.png';
                   }}
                 />
 

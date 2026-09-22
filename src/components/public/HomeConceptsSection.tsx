@@ -5,7 +5,7 @@
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getPublicConcepts } from '../../services/portfolioService';
+import { getPublicConcepts, updateConcept } from '../../services/portfolioService';
 import type { Concept } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
@@ -223,15 +223,17 @@ export const HomeConceptsSection: React.FC = () => {
               >
                 {/* Photography Frame */}
                 <InPlaceImageEditor
-                  assetId={`concept_cover_${concept.slug || concept.id}`}
+                  assetId={`concept_${concept.slug}`}
                   currentImageUrl={concept.coverPhotoUrl || ''}
                   label={`Concept: ${concept.name}`}
                   onImageUpdated={(newUrl) => {
+                    updateConcept(concept.id, { coverPhotoUrl: newUrl });
                     setConcepts((prev) =>
                       prev.map((c) => (c.id === concept.id ? { ...c, coverPhotoUrl: newUrl } : c))
                     );
                   }}
                   onImageDeleted={() => {
+                    updateConcept(concept.id, { coverPhotoUrl: '' });
                     setConcepts((prev) =>
                       prev.map((c) => (c.id === concept.id ? { ...c, coverPhotoUrl: '' } : c))
                     );

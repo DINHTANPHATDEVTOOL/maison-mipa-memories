@@ -21,8 +21,8 @@ interface ConceptCatalogPageProps {
 
 export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBooking: _onOpenBooking }) => {
   const navigate = useNavigate();
-  const { isRootOwner, role } = useAuth();
-  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER');
+  const { user, isRootOwner, role } = useAuth();
+  const canManage = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
 
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [services, setServices] = useState<ServiceCategory[]>([]);
@@ -425,7 +425,7 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
               Hiện chưa có concept nào trong danh mục này.
             </p>
             <p style={{ fontSize: '0.9rem', color: '#8C6E53', margin: 0 }}>
-              Quý khách vui lòng chọn danh mục khác hoặc liên hệ studio để được tư vấn thiết kế riêng.
+              Quý khách vui lòng chọn danh mục khác hoặc liên hệ tiệm ảnh để được tư vấn thiết kế riêng.
             </p>
           </div>
         )}

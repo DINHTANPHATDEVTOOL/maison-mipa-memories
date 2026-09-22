@@ -41,87 +41,21 @@ export const DEMO_CONCEPTS: Concept[] = [
     name: 'Vintage Loft & Cinematic',
     description: 'Tone nâu ấm, ánh sáng điện ảnh tương phản nhẹ tôn vinh cảm xúc chân thật và chiều sâu.',
     serviceId: 'c0000000-0000-0000-0000-000000000001',
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero.png',
     active: true,
     bookable: true,
     displayOrder: 2,
   },
   {
-    id: 'c1000000-0000-0000-0000-000000000003',
-    slug: 'french-haute-couture',
-    name: 'French Haute Couture',
-    description: 'Váy cưới tối giản sang trọng, khăn voan bay bổng và tạo dáng nghệ thuật thời trang cao cấp.',
-    serviceId: 'c0000000-0000-0000-0000-000000000002',
-    coverPhotoUrl: '/hero-bride.jpg',
+    id: 'c1000000-0000-0000-0000-000000000008',
+    slug: 'nang-tho',
+    name: 'Nàng Thơ Trong Trẻo',
+    description: 'Ánh sáng ban mai dịu dàng, hoa tươi và phong cách mộng mơ trong trẻo tại tiệm ảnh Maison MIPA.',
+    serviceId: 'c0000000-0000-0000-0000-000000000005',
+    coverPhotoUrl: '/hero-camera.jpg',
     active: true,
     bookable: true,
     displayOrder: 3,
-  },
-  {
-    id: 'c1000000-0000-0000-0000-000000000004',
-    slug: 'la-famille-douce',
-    name: 'La Famille Douce',
-    description: 'Không gian phòng khách ấm áp, lưu giữ nụ cười và sự gắn kết tự nhiên của mọi thành viên.',
-    serviceId: 'c0000000-0000-0000-0000-000000000003',
-    coverPhotoUrl: '/hero.webp',
-    active: true,
-    bookable: true,
-    displayOrder: 4,
-  },
-  {
-    id: 'c1000000-0000-0000-0000-000000000005',
-    slug: 'l-ange-de-mipa',
-    name: "L'Ange de MIPA",
-    description: 'Tone trắng tinh khôi, ánh sáng dịu nhẹ ôm ấp những khoảnh khắc đầu đời đáng yêu của bé.',
-    serviceId: 'c0000000-0000-0000-0000-000000000004',
-    coverPhotoUrl: '/hero-baby.jpg',
-    active: true,
-    bookable: true,
-    displayOrder: 5,
-  },
-  {
-    id: 'c1000000-0000-0000-0000-000000000006',
-    slug: 'monochrome-editorial',
-    name: 'Monochrome Editorial Portrait',
-    description: 'Chân dung nghệ thuật đen trắng giàu xúc cảm, bắt trọn thần thái và cá tính độc bản.',
-    serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/hero-camera.jpg',
-    active: true,
-    bookable: true,
-    displayOrder: 6,
-  },
-  {
-    id: 'c1000000-0000-0000-0000-000000000007',
-    slug: 'private-atelier-special',
-    name: 'Private Atelier Special',
-    description: 'Concept phiên bản giới hạn theo mùa, không mở đặt lịch công khai.',
-    serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/studio.png',
-    active: true,
-    bookable: false,
-    displayOrder: 7,
-  },
-  {
-    id: 'c1000000-0000-0000-0000-000000000008',
-    slug: 'chup-chan-dung-nghe-thuat',
-    name: 'Chụp Chân Dung Nghệ Thuật',
-    description: 'Tôn vinh nét đẹp, thần thái độc bản của riêng bạn với ánh sáng tự nhiên tinh tế và phong cách xử lý màu nhẹ nhàng.',
-    serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/hero-camera.jpg',
-    active: true,
-    bookable: true,
-    displayOrder: 8,
-  },
-  {
-    id: 'c1000000-0000-0000-0000-000000000009',
-    slug: 'chup-ky-yeu-tot-nghiep',
-    name: 'Chụp Kỷ Yếu & Tốt Nghiệp Thanh Xuân',
-    description: 'Lưu giữ mốc son rực rỡ của thời sinh viên, lễ phục cử nhân trang trọng kết hợp cùng nụ cười thanh xuân rạng rỡ.',
-    serviceId: 'c0000000-0000-0000-0000-000000000007',
-    coverPhotoUrl: '/concept-graduation.webp',
-    active: true,
-    bookable: true,
-    displayOrder: 9,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000010',
@@ -132,18 +66,51 @@ export const DEMO_CONCEPTS: Concept[] = [
     coverPhotoUrl: '/concept-aodai.webp',
     active: true,
     bookable: true,
-    displayOrder: 10,
+    displayOrder: 4,
+  },
+  {
+    id: 'c1000000-0000-0000-0000-000000000009',
+    slug: 'chup-ky-yeu-tot-nghiep',
+    name: 'Chụp Kỷ Yếu & Tốt Nghiệp Thanh Xuân',
+    description: 'Lưu giữ mốc son rực rỡ của thời sinh viên, lễ phục cử nhân trang trọng kết hợp cùng nụ cười thanh xuân rạng rỡ.',
+    serviceId: 'c0000000-0000-0000-0000-000000000007',
+    coverPhotoUrl: '/concept-graduation.webp',
+    active: true,
+    bookable: true,
+    displayOrder: 5,
+  },
+  {
+    id: 'c1000000-0000-0000-0000-000000000004',
+    slug: 'la-famille-douce',
+    name: 'Gia Đình Sum Vầy & Tổ Ấm',
+    description: 'Không gian ấm áp, lưu giữ nụ cười và sự gắn kết tự nhiên của mọi thành viên trong gia đình.',
+    serviceId: 'c0000000-0000-0000-0000-000000000003',
+    coverPhotoUrl: '/hero.webp',
+    active: true,
+    bookable: true,
+    displayOrder: 6,
+  },
+  {
+    id: 'c1000000-0000-0000-0000-000000000006',
+    slug: 'sinh-nhat-lung-linh',
+    name: 'Tiệc Sinh Nhật Rực Rỡ',
+    description: 'Ánh nến lung linh, hoa tươi, bóng bay và bánh kem xinh xắn ghi dấu tuổi mới rạng rỡ và tràn đầy niềm vui.',
+    serviceId: 'c0000000-0000-0000-0000-000000000006',
+    coverPhotoUrl: '/concept-noel.webp',
+    active: true,
+    bookable: true,
+    displayOrder: 7,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000011',
-    slug: 'chup-do-an-sang-tao',
-    name: 'Chụp Đồ Án & Tác Phẩm Sáng Tạo',
-    description: 'Không gian ánh sáng chuẩn mực hỗ trợ sinh viên kiến trúc, thời trang, mỹ thuật ghi lại trọn vẹn chi tiết đồ án tâm huyết.',
+    slug: 'chup-chan-dung-nghe-thuat',
+    name: 'Chân Dung Nghệ Thuật Độc Bản',
+    description: 'Tôn vinh nét đẹp, thần thái độc bản của riêng bạn với ánh sáng tự nhiên tinh tế và phong cách xử lý màu nhẹ nhàng.',
     serviceId: 'c0000000-0000-0000-0000-000000000005',
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero-camera.jpg',
     active: true,
     bookable: true,
-    displayOrder: 11,
+    displayOrder: 8,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000012',
@@ -154,7 +121,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     coverPhotoUrl: '/concept-tet.webp',
     active: true,
     bookable: true,
-    displayOrder: 12,
+    displayOrder: 9,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000013',
@@ -165,7 +132,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     coverPhotoUrl: '/concept-noel.webp',
     active: true,
     bookable: true,
-    displayOrder: 13,
+    displayOrder: 10,
   },
 ];
 
@@ -189,29 +156,29 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     id: 'c2000000-0000-0000-0000-000000000002',
     slug: 'vintage-loft-intimate',
     title: 'Vintage Loft Moments',
-    description: 'Khoảnh khắc đời thường mộc mạc của cặp đôi trong căn phòng loft rực nắng ấm áp.',
+    description: 'Khoảnh khắc đời thường mộc mạc của cặp đôi trong căn phòng rực nắng ấm áp.',
     conceptId: 'c1000000-0000-0000-0000-000000000002',
     conceptName: 'Vintage Loft & Cinematic',
     conceptSlug: 'vintage-cinematic',
     serviceId: 'c0000000-0000-0000-0000-000000000001',
     status: 'PUBLISHED',
     featured: true,
-    coverPhotoUrl: '/studio.png',
+    coverPhotoUrl: '/hero.png',
     displayOrder: 2,
     photosCount: 2,
   },
   {
     id: 'c2000000-0000-0000-0000-000000000003',
-    slug: 'renaissance-white-veil',
-    title: 'Renaissance White Veil — Ánh Sáng Tình Yêu',
-    description: 'Khăn voan thêu tay cổ điển kết hợp ánh sáng tự nhiên tạo nên những khung hình cưới vượt thời gian.',
+    slug: 'nang-tho-tinh-khoi',
+    title: 'Nàng Thơ — Ánh Sáng Tinh Khôi',
+    description: 'Nét đẹp trong trẻo, ánh mắt dịu dàng kết hợp cùng sắc hoa tươi trong không gian ấm áp tại tiệm ảnh.',
     conceptId: 'c1000000-0000-0000-0000-000000000003',
-    conceptName: 'French Haute Couture',
-    conceptSlug: 'french-haute-couture',
-    serviceId: 'c0000000-0000-0000-0000-000000000002',
+    conceptName: 'Nàng Thơ Trong Trẻo',
+    conceptSlug: 'nang-tho',
+    serviceId: 'c0000000-0000-0000-0000-000000000005',
     status: 'PUBLISHED',
     featured: true,
-    coverPhotoUrl: '/hero-bride.jpg',
+    coverPhotoUrl: '/hero-camera.jpg',
     displayOrder: 3,
     photosCount: 1,
   },
@@ -219,9 +186,9 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
     id: 'c2000000-0000-0000-0000-000000000004',
     slug: 'la-famille-douce-home',
     title: 'La Famille Douce — Bình Yên Trọn Vẹn',
-    description: 'Kỷ niệm gia đình ngập tràn tiếng cười và sự âu yếm trong không gian studio ấm cúng như chính ngôi nhà bạn.',
+    description: 'Kỷ niệm gia đình ngập tràn tiếng cười và sự âu yếm trong không gian ấm cúng như chính ngôi nhà bạn.',
     conceptId: 'c1000000-0000-0000-0000-000000000004',
-    conceptName: 'La Famille Douce',
+    conceptName: 'Gia Đình Sum Vầy & Tổ Ấm',
     conceptSlug: 'la-famille-douce',
     serviceId: 'c0000000-0000-0000-0000-000000000003',
     status: 'PUBLISHED',
@@ -232,27 +199,27 @@ export const DEMO_COLLECTIONS: PortfolioCollection[] = [
   },
   {
     id: 'c2000000-0000-0000-0000-000000000005',
-    slug: 'l-ange-pure-whiteness',
-    title: "L'Ange — Thiên Thần Bé Nhỏ",
-    description: 'Vẻ đẹp thiên thần thơ ngây của bé yêu được nâng niu bằng những chất liệu ren thêu mềm mại nhất.',
-    conceptId: 'c1000000-0000-0000-0000-000000000005',
-    conceptName: "L'Ange de MIPA",
-    conceptSlug: 'l-ange-de-mipa',
-    serviceId: 'c0000000-0000-0000-0000-000000000004',
+    slug: 'sinh-nhat-tuoi-moi',
+    title: 'Tiệc Sinh Nhật — Tuổi Mới Rạng Rỡ',
+    description: 'Ánh nến lung linh và chiếc bánh kem ngọt ngào, ghi dấu tuổi mới với trọn vẹn sự rạng rỡ và yêu đời.',
+    conceptId: 'c1000000-0000-0000-0000-000000000006',
+    conceptName: 'Tiệc Sinh Nhật Rực Rỡ',
+    conceptSlug: 'sinh-nhat-lung-linh',
+    serviceId: 'c0000000-0000-0000-0000-000000000006',
     status: 'PUBLISHED',
     featured: false,
-    coverPhotoUrl: '/hero-baby.jpg',
+    coverPhotoUrl: '/concept-noel.webp',
     displayOrder: 5,
     photosCount: 1,
   },
   {
     id: 'c2000000-0000-0000-0000-000000000006',
     slug: 'monochrome-soul-draft',
-    title: 'Monochrome Soul & Contrast (Draft Preview)',
+    title: 'Chân Dung Độc Bản (Preview)',
     description: 'Bộ ảnh chân dung nghệ thuật thử nghiệm đang hoàn thiện hậu kỳ.',
-    conceptId: 'c1000000-0000-0000-0000-000000000006',
-    conceptName: 'Monochrome Editorial Portrait',
-    conceptSlug: 'monochrome-editorial',
+    conceptId: 'c1000000-0000-0000-0000-000000000008',
+    conceptName: 'Chân Dung Nghệ Thuật Độc Bản',
+    conceptSlug: 'chup-chan-dung-nghe-thuat',
     serviceId: 'c0000000-0000-0000-0000-000000000005',
     status: 'DRAFT',
     featured: false,
@@ -382,14 +349,14 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000005',
     collectionId: 'c2000000-0000-0000-0000-000000000003',
-    url: '/hero-bride.jpg',
-    filename: 'renaissance-veil-1.webp',
+    url: '/hero-camera.jpg',
+    filename: 'muse-portrait-1.webp',
     width: 1920,
     height: 1080,
     focalX: 50.0,
     focalY: 35.0,
-    altText: 'Cô dâu trong chiếc khăn voan ren thêu tay tinh xảo',
-    caption: 'Khăn voan thêu tay độc bản',
+    altText: 'Nàng thơ trong trẻo với ánh sáng tự nhiên tại tiệm ảnh',
+    caption: 'Nét đẹp trong trẻo và thanh lịch',
     sortOrder: 1,
     featured: true,
   },
@@ -540,8 +507,7 @@ function resolveCollectionCoverUrl(
   if (hint.includes('noel') || hint.includes('giang-sinh')) return '/concept-noel.webp';
   if (hint.includes('ange') || hint.includes('baby')) return '/hero-baby.jpg';
   if (hint.includes('famille') || hint.includes('family')) return '/hero.webp';
-  if (hint.includes('couture') || hint.includes('veil') || hint.includes('wedding')) return '/hero-bride.jpg';
-  if (hint.includes('parisian') || hint.includes('couple')) return '/hero-couple.jpg';
+  if (hint.includes('wedding') || hint.includes('couple') || hint.includes('parisian')) return '/hero-couple.jpg';
   if (hint.includes('portrait') || hint.includes('chan-dung') || hint.includes('monochrome') || hint.includes('do-an')) return '/hero-camera.jpg';
   if (demoFallbackUrl) return demoFallbackUrl;
   return photos && photos[0]?.url ? photos[0].url : undefined;
@@ -1932,9 +1898,43 @@ export async function createPortfolioPhoto(input: {
  */
 export async function replacePortfolioPhoto(
   photoId: string,
-  file: File | Blob,
+  fileOrUrl: File | Blob | string,
   metadata?: { width?: number; height?: number; filename?: string }
 ): Promise<PortfolioPhoto> {
+  if (typeof fileOrUrl === 'string') {
+    if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+      const { data: updated, error: updateErr } = await supabase
+        .from('portfolio_photos')
+        .update({
+          url: fileOrUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', photoId)
+        .select()
+        .single();
+
+      if (updateErr) {
+        throw normalizeError(updateErr, 'replacePortfolioPhoto');
+      }
+      clearPortfolioCache();
+      return mapPhotoRow(updated);
+    }
+
+    // Demo / test mode fallback
+    for (const col of [...localCustomCollections, ...DEMO_COLLECTIONS]) {
+      if (col.photos) {
+        const p = col.photos.find((item) => item.id === photoId);
+        if (p) {
+          p.url = fileOrUrl;
+          clearPortfolioCache();
+          return p;
+        }
+      }
+    }
+    throw new Error('Photo not found');
+  }
+
+  const file = fileOrUrl;
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     const { data: existing, error: fetchErr } = await supabase
       .from('portfolio_photos')

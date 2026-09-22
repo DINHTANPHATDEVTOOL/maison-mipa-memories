@@ -11,7 +11,7 @@ import type { ServiceCategory, PackageItem } from '../../types';
 import { ArrowRight, Check } from 'lucide-react';
 
 function formatVnd(amount: number): string {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+  return `Chỉ từ ${new Intl.NumberFormat('vi-VN').format(amount)} VNĐ`;
 }
 
 export const HomePricingPreview: React.FC = () => {
@@ -255,7 +255,7 @@ export const HomePricingPreview: React.FC = () => {
                 {/* Column 4: Price */}
                 <div>
                   <div style={{ fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#70533C', fontWeight: 600 }}>
-                    GIÁ TRỌN GÓI
+                    GIÁ DỊCH VỤ (THAM KHẢO)
                   </div>
                   <div style={{ fontSize: '1.35rem', color: '#29231F', fontWeight: 600 }}>
                     {formatVnd(pkg.price)}

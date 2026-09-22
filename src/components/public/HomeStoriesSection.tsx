@@ -5,7 +5,7 @@
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getPublicCollections } from '../../services/portfolioService';
+import { getPublicCollections, updateCollection } from '../../services/portfolioService';
 import type { PortfolioCollection } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
@@ -151,15 +151,25 @@ export const HomeStoriesSection: React.FC = () => {
                   assetId={`portfolio_col_cover_${col.slug}`}
                   currentImageUrl={coverUrl || '/studio.png'}
                   label={`Ảnh câu chuyện: ${col.title}`}
-                  onImageUpdated={(newUrl) => {
+                  onImageUpdated={async (newUrl) => {
                     setCollections((prev) =>
                       prev.map((c) => (c.id === col.id ? { ...c, coverPhotoUrl: newUrl } : c))
                     );
+                    try {
+                      await updateCollection(col.id, { coverPhotoUrl: newUrl });
+                    } catch (err) {
+                      console.warn('Lỗi cập nhật ảnh bìa bộ sưu tập:', err);
+                    }
                   }}
-                  onImageDeleted={() => {
+                  onImageDeleted={async () => {
                     setCollections((prev) =>
                       prev.map((c) => (c.id === col.id ? { ...c, coverPhotoUrl: '' } : c))
                     );
+                    try {
+                      await updateCollection(col.id, { coverPhotoUrl: '' });
+                    } catch (err) {
+                      console.warn('Lỗi xóa ảnh bìa bộ sưu tập:', err);
+                    }
                   }}
                   containerStyle={{ width: '100%', marginBottom: '1rem' }}
                 >

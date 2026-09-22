@@ -19,7 +19,8 @@ const VALID_ADDON_ID = 'e0000000-0000-0000-0000-000000000001';   // Makeup
 
 const WEDDING_SERVICE_ID = 'c0000000-0000-0000-0000-000000000002'; // Wedding
 const WEDDING_PACKAGE_ID = 'd0000000-0000-0000-0000-000000000011'; // Wedding Basic
-const WEDDING_CONCEPT_ID = 'c1000000-0000-0000-0000-000000000003'; // French Haute Couture (belongs to Wedding)
+const PORTRAIT_SERVICE_ID = 'c0000000-0000-0000-0000-000000000005'; // Portrait
+const PORTRAIT_CONCEPT_ID = 'c1000000-0000-0000-0000-000000000008'; // Nang Tho (belongs to Portrait)
 
 describe('Booking Auth Resume & Continuity in App', () => {
   beforeEach(() => {
@@ -193,11 +194,11 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
   });
 
   it('allows draft when concept belongs to another service (cross-service permitted by contract)', async () => {
-    // Couple service with Wedding concept (cross-service permitted by authoritative contract)
+    // Couple service with Portrait concept (cross-service permitted by authoritative contract)
     const validDraft = {
       serviceId: VALID_SERVICE_ID,
       packageId: VALID_PACKAGE_ID,
-      conceptIds: [WEDDING_CONCEPT_ID],
+      conceptIds: [PORTRAIT_CONCEPT_ID],
       studioId: VALID_STUDIO_ID,
       date: '2026-11-20',
       timeSlot: '15:30',
@@ -487,14 +488,14 @@ describe('Strict Deep-Link Query Parameter Validations', () => {
     renderWithAuth(
       <BookingWizard
         {...defaultProps}
-        initialConceptSlug="french-haute-couture" // Wedding concept
+        initialConceptSlug="nang-tho" // Portrait concept
       />
     );
 
     await waitFor(() => {
-      // Service should be derived as Pre-Wedding & Studio Wedding
-      expect(screen.getAllByText(/Pre-Wedding & Studio Wedding/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/French Haute Couture/i).length).toBeGreaterThan(0);
+      // Service should be derived as Chụp Ảnh Chân Dung Nghệ Thuật
+      expect(screen.getAllByText(/Chân Dung/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Nàng Thơ/i).length).toBeGreaterThan(0);
     });
   });
 

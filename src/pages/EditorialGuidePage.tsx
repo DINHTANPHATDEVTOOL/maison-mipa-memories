@@ -19,9 +19,9 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
   ];
 
   const guideCategories = [
-    { title: 'Trang Phục & Bảng Màu', desc: 'Gợi ý cách phối trang phục tone màu trung tính, vải tự nhiên hài hòa với ánh sáng studio.' },
+    { title: 'Trang Phục & Bảng Màu', desc: 'Gợi ý cách phối trang phục tone màu trung tính, vải tự nhiên hài hòa với ánh sáng tự nhiên tại tiệm ảnh.' },
     { title: 'Tạo Dáng & Thần Thái', desc: 'Bí quyết thả lỏng cơ thể, tương tác tự nhiên trước ống kính mà không bị gượng gạo.' },
-    { title: 'Chuẩn Bị Cho Buổi Chụp', desc: 'Những lưu ý về giấc ngủ, dưỡng ẩm và thời gian đến studio để có tinh thần thoải mái nhất.' },
+    { title: 'Chuẩn Bị Cho Buổi Chụp', desc: 'Những lưu ý về giấc ngủ, dưỡng ẩm và thời gian đến tiệm ảnh để có tinh thần thoải mái nhất.' },
     { title: 'Kinh Nghiệm Chụp Bé & Gia Đình', desc: 'Cách chuẩn bị đồ chơi, giữ năng lượng vui vẻ và sắp xếp lịch trình cho các bé nhỏ.' },
   ];
 
@@ -31,7 +31,6 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
         title="Cẩm Nang Chuẩn Bị & Phong Cách Chụp Ảnh | Tiệm Ảnh Maison MIPA Memories"
         description="Cẩm nang hướng dẫn chuẩn bị trang phục, phối tone màu và kinh nghiệm tạo dáng tự nhiên cho các buổi chụp ảnh chân dung, kỷ yếu, couple tại Tiệm ảnh Maison MIPA."
         canonicalPath="/cam-nang"
-        noIndex={true}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
 

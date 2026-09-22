@@ -8,9 +8,11 @@ import React, { useRef } from 'react';
 import { useReducedMotion } from '../../motion/useReducedMotion';
 import { useGsapContext, gsap } from '../../motion/useGsapContext';
 import { MOTION_CONFIG } from '../../motion/motionConfig';
+import { useSiteAssets } from '../../context/SiteAssetContext';
 
 export const MaisonStorySection: React.FC = () => {
   const prefersReduced = useReducedMotion();
+  const { getAssetUrl } = useSiteAssets();
   const sectionRef = useRef<HTMLElement>(null);
   const storyImageRef = useRef<HTMLDivElement>(null);
   const timelineLineRef = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export const MaisonStorySection: React.FC = () => {
     {
       num: '02',
       title: 'Chuẩn bị',
-      desc: 'Hướng dẫn lựa chọn trang phục và chuẩn bị makeup tự nhiên tại studio.',
+      desc: 'Hướng dẫn lựa chọn trang phục và chuẩn bị makeup tự nhiên tại tiệm ảnh.',
     },
     {
       num: '03',
@@ -154,8 +156,8 @@ export const MaisonStorySection: React.FC = () => {
             }}
           >
             <img
-              src="/studio.png"
-              alt="Maison MIPA Memories — Không gian phòng chụp ánh sáng tự nhiên"
+              src={getAssetUrl('home_atelier_showcase', '/studio.png')}
+              alt="Maison MIPA Memories — Không gian tiệm ảnh ấm áp, ánh sáng tự nhiên"
               loading="lazy"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />

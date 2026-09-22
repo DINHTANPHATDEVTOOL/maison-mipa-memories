@@ -98,7 +98,7 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
   return (
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '85vh', paddingBottom: '6rem' }}>
       <SeoHead
-        title={`${shortTitle} | Studio Chụp Ảnh Nghệ Thuật Maison MIPA`}
+        title={`${shortTitle} | Tiệm Ảnh Maison MIPA Memories`}
         description={description}
         canonicalPath={canonicalPath}
         ogImage={image}
@@ -624,8 +624,8 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ onOpenBook
                   <h3 style={{ fontFamily: 'var(--editorial-font-heading)', fontSize: '1.6rem', color: '#29231F', margin: '0 0 0.5rem 0' }}>
                     {pkg.name}
                   </h3>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 600, color: '#29231F', marginBottom: '1.25rem' }}>
-                    {new Intl.NumberFormat('vi-VN').format(pkg.price)} đ
+                  <div style={{ fontSize: '1.45rem', fontWeight: 600, color: '#29231F', marginBottom: '1.25rem', fontFamily: 'var(--editorial-font-heading)' }}>
+                    Chỉ từ {new Intl.NumberFormat('vi-VN').format(pkg.price)} VNĐ
                   </div>
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {pkg.editedPhotosCount > 0 && (

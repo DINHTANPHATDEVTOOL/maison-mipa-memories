@@ -6,7 +6,7 @@
 // ==============================================================================
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getServices } from '../../services/catalogService';
+import { getServices, updateService } from '../../services/catalogService';
 import type { ServiceCategory } from '../../types';
 import { ArrowRight } from 'lucide-react';
 import { EditorialImagePlaceholder } from './EditorialImagePlaceholder';
@@ -126,7 +126,7 @@ export const HomeServicesSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Các gói chụp ảnh được thiết kế chuyên biệt cho từng dấu mốc: Chân dung, Kỷ yếu & Tốt nghiệp, Áo dài truyền thống, Chụp đồ án, Couple lãng mạn đến Lễ Tết & Giáng sinh ấm cúng.
+              Các dịch vụ được thiết kế chuyên biệt cho từng khoảnh khắc: Chân dung cá nhân nghệ thuật, Ảnh couple ngọt ngào, Kỷ yếu & Tốt nghiệp thanh xuân, Sinh nhật tuổi mới và Kỷ niệm gia đình ấm áp.
             </p>
           </div>
 
@@ -172,17 +172,19 @@ export const HomeServicesSection: React.FC = () => {
               >
                 {/* Visual Photography Frame */}
                 <InPlaceImageEditor
-                  assetId={`service_cover_${service.id}`}
+                  assetId={`service_${serviceSlug}`}
                   currentImageUrl={displayImage || ''}
                   label={`Dịch vụ: ${service.name}`}
                   onImageUpdated={(newUrl) => {
+                    updateService(service.id, { image: newUrl });
                     setServices((prev) =>
-                      prev.map((s) => (s.id === service.id ? { ...s, coverPhotoUrl: newUrl, imageUrl: newUrl } : s))
+                      prev.map((s) => (s.id === service.id ? { ...s, image: newUrl, coverPhotoUrl: newUrl, imageUrl: newUrl } : s))
                     );
                   }}
                   onImageDeleted={() => {
+                    updateService(service.id, { image: '' });
                     setServices((prev) =>
-                      prev.map((s) => (s.id === service.id ? { ...s, coverPhotoUrl: '', imageUrl: '' } : s))
+                      prev.map((s) => (s.id === service.id ? { ...s, image: '', coverPhotoUrl: '', imageUrl: '' } : s))
                     );
                   }}
                   containerStyle={{ marginBottom: '1rem' }}

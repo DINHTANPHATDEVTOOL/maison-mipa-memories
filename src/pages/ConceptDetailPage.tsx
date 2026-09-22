@@ -50,8 +50,8 @@ interface ConceptDetailPageProps {
 export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { isRootOwner, role } = useAuth();
-  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER');
+  const { user, isRootOwner, role } = useAuth();
+  const canManage = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
 
   const [concept, setConcept] = useState<Concept | null>(null);
   const [allServices, setAllServices] = useState<ServiceCategory[]>([]);
@@ -416,7 +416,7 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
     <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', paddingBottom: '6rem' }}>
       <SeoHead
         title={`${concept.name} — Concept Chụp Ảnh Nghệ Thuật | Maison MIPA`}
-        description={concept.description || `Khám phá phong cách chụp ảnh ${concept.name} tại Maison MIPA Memories Studio Sài Gòn.`}
+        description={concept.description || `Khám phá phong cách chụp ảnh ${concept.name} tại Tiệm Ảnh Maison MIPA Memories Sài Gòn.`}
         canonicalPath={`/concept/${concept.slug}`}
         jsonLd={generateBreadcrumbSchema(breadcrumbs)}
       />
@@ -1107,8 +1107,8 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
                   >
                     {pkg.name}
                   </h3>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#29231F', marginBottom: '1.25rem' }}>
-                    {new Intl.NumberFormat('vi-VN').format(pkg.price)} đ
+                  <div style={{ fontSize: '1.4rem', fontWeight: 600, color: '#29231F', marginBottom: '1.25rem' }}>
+                    Chỉ từ {new Intl.NumberFormat('vi-VN').format(pkg.price)} VNĐ
                   </div>
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {pkg.editedPhotosCount > 0 && (

@@ -217,7 +217,7 @@ export const VisualCommerceHero: React.FC<VisualCommerceHeroProps> = ({
         }}
       >
         <InPlaceImageEditor
-          assetId="hero_banner"
+          assetId="home_hero_banner"
           currentImageUrl={effectiveHeroImageUrl}
           label="Ảnh bìa Hero chính"
           containerStyle={{ width: '100%', height: '100%' }}

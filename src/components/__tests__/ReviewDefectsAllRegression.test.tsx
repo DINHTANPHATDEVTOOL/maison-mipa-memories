@@ -42,7 +42,7 @@ describe('Maison MIPA Web Review Defects Regression Suite (DEF-004 to DEF-009)',
     // Unique URLs across the 7 core brand concepts
     const brandConceptSlugs = [
       'parisian-romance',
-      'french-haute-couture',
+      'vintage-cinematic',
       'chup-ky-yeu-tot-nghiep',
       'chup-ao-dai-duyen-dang',
       'chup-le-tet-sum-vay',

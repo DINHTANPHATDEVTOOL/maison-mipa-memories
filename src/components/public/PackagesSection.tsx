@@ -79,7 +79,7 @@ export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenBooking 
         {/* Editorial Section Header */}
         <div style={{ marginBottom: '4rem', maxWidth: '640px' }}>
           <span className="editorial-overline">BẢNG GIÁ & QUYỀN LỢI</span>
-          <h2 className="editorial-h2">Các gói chụp tại studio</h2>
+          <h2 className="editorial-h2">Các gói chụp tại tiệm ảnh</h2>
           <p className="editorial-copy">
             Chi phí minh bạch, không phát sinh phụ phí ẩn. Toàn bộ các gói chụp đều bao gồm trọn bộ file ảnh gốc chất lượng cao bàn giao qua Google Drive.
           </p>
@@ -108,8 +108,8 @@ export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenBooking 
 
               {/* Col 3: Price */}
               <div>
-                <div className="editorial-price-amount">
-                  {pkg.price.toLocaleString('vi-VN')} <span className="editorial-price-currency">VNĐ</span>
+                <div className="editorial-price-amount" style={{ fontSize: '1.25rem' }}>
+                  Chỉ từ {pkg.price.toLocaleString('vi-VN')} <span className="editorial-price-currency">VNĐ</span>
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--editorial-text-muted)', marginTop: '0.2rem' }}>
                   Đặt cọc 30% khi giữ lịch

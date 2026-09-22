@@ -52,7 +52,7 @@ describe('Booking Wizard Regression Tests (DEF-001, DEF-002, DEF-003, TC-045)', 
     });
 
     // Select Couple service
-    const coupleCard = screen.getByText('Couple Photography');
+    const coupleCard = screen.getByText(/Couple Photography|Ảnh couple/i);
     fireEvent.click(coupleCard);
 
     // Proceed to Step 2

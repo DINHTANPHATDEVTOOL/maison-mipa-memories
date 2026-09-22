@@ -13,7 +13,7 @@ interface FaqItem {
 export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Có cần chuẩn bị trang phục trước khi đến chụp không?',
-    answer: 'Studio có sẵn bộ sưu tập trang phục và phụ kiện phong cách Pháp nhẹ nhàng (váy ren, sơ mi lụa, vest tone trầm). Bạn cũng có thể mang theo trang phục cá nhân yêu thích, chuyên viên sẽ tư vấn phối hợp hài hòa với bối cảnh.',
+    answer: 'Tiệm ảnh có sẵn bộ sưu tập trang phục và phụ kiện phong cách thơ mộng, nhẹ nhàng (áo dài, váy nàng thơ, sơ mi lụa, vest tone trầm). Bạn cũng có thể mang theo trang phục cá nhân yêu thích, chuyên viên sẽ tư vấn phối hợp hài hòa với bối cảnh.',
   },
   {
     question: 'Bao lâu sau buổi chụp thì tôi nhận được ảnh?',
@@ -25,7 +25,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: 'Chính sách đặt cọc và thanh toán như thế nào?',
-    answer: 'Sau khi gửi yêu cầu tư vấn, đội ngũ Maison MIPA sẽ liên hệ trực tiếp để tư vấn chi tiết, thống nhất lịch chụp và hướng dẫn đặt cọc giữ lịch. Số tiền còn lại bạn có thể thanh toán sau khi hoàn tất buổi chụp tại studio.',
+    answer: 'Sau khi gửi yêu cầu tư vấn, đội ngũ Maison MIPA sẽ liên hệ trực tiếp để tư vấn chi tiết, thống nhất lịch chụp và hướng dẫn đặt cọc giữ lịch. Số tiền còn lại bạn có thể thanh toán sau khi hoàn tất buổi chụp tại tiệm ảnh.',
   },
   {
     question: 'Nếu có việc bận đột xuất, tôi có thể đổi lịch chụp không?',
@@ -48,7 +48,7 @@ export const FaqSection: React.FC = () => {
           <span className="editorial-overline">HỎI ĐÁP & CHÍNH SÁCH</span>
           <h2 className="editorial-h2">Những câu hỏi thường gặp</h2>
           <p className="editorial-copy">
-            Những thông tin cần thiết về trang phục, đặt cọc và quy trình bàn giao ảnh tại studio.
+            Những thông tin cần thiết về trang phục, đặt cọc và quy trình bàn giao ảnh tại tiệm ảnh.
           </p>
         </div>
 

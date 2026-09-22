@@ -44,9 +44,9 @@ export const SiteAssetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isQuickEditModeActive, setIsQuickEditModeActiveState] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('mipa_quick_edit_mode');
-      return saved !== 'false';
+      return saved === 'true';
     }
-    return true;
+    return false;
   });
 
   const setQuickEditModeActive = useCallback((valOrFn: boolean | ((prev: boolean) => boolean)) => {

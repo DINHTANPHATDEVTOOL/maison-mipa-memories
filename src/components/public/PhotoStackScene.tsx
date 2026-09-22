@@ -35,10 +35,10 @@ const STACK_PRINTS: StackPrint[] = [
   },
   {
     id: 'p3',
-    title: 'French Haute Couture',
-    annotation: '03 / Tirage argentique — Studio B',
-    imageUrl: '/hero.png',
-    slug: 'french-haute-couture',
+    title: 'Nàng Thơ Trong Trẻo',
+    annotation: '03 / Ánh sáng ban mai — Tiệm ảnh MIPA',
+    imageUrl: '/hero-camera.jpg',
+    slug: 'nang-tho',
   },
   {
     id: 'p4',

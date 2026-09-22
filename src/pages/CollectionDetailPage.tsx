@@ -7,7 +7,7 @@
 // ==============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { getCollectionBySlug, getCollectionBySlugSync, getPublicConcepts, deleteCollection, deletePortfolioPhoto } from '../services/portfolioService';
+import { getCollectionBySlug, getCollectionBySlugSync, getPublicConcepts, deleteCollection, deletePortfolioPhoto, updateCollection, replacePortfolioPhoto } from '../services/portfolioService';
 import { getServices } from '../services/catalogService';
 import { getPhotoObjectPosition, getPhotoOrientation } from '../utils/photoUtils';
 import { SeoHead, generateBreadcrumbSchema } from '../components/seo/SeoHead';
@@ -38,9 +38,8 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { isRootOwner, role } = useAuth();
-  const { isQuickEditModeActive } = useSiteAssets();
-  const canManage = Boolean(isRootOwner || role === 'ADMIN' || role === 'MANAGER' || isQuickEditModeActive);
+  const { user, isRootOwner, role } = useAuth();
+  const canManage = Boolean(user && (isRootOwner || role === 'ADMIN' || role === 'MANAGER'));
 
   // Instant zero-latency initialization: from router state or synchronous cache
   const routeStateCollection = (location.state as any)?.collection as PortfolioCollection | undefined;
@@ -328,7 +327,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           assetId={`portfolio_photo_${collection?.slug}_${photo.id || idx}`}
           currentImageUrl={photo.url}
           label={`Ảnh #${idx + 1}: ${photo.altText || collection?.title || 'Bộ ảnh'}`}
-          onImageUpdated={(newUrl) => {
+          onImageUpdated={async (newUrl) => {
             setCollection((prev) => {
               if (!prev) return null;
               const updated = (prev.photos || []).map((p, i) =>
@@ -336,13 +335,27 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
               );
               return { ...prev, photos: updated };
             });
+            if (photo.id) {
+              try {
+                await replacePortfolioPhoto(photo.id, newUrl);
+              } catch (err) {
+                console.warn('Lỗi lưu ảnh thay thế:', err);
+              }
+            }
           }}
-          onImageDeleted={() => {
+          onImageDeleted={async () => {
             setCollection((prev) => {
               if (!prev) return null;
               const updated = (prev.photos || []).filter((_, i) => i !== idx);
               return { ...prev, photos: updated };
             });
+            if (photo.id) {
+              try {
+                await deletePortfolioPhoto(photo.id);
+              } catch (err) {
+                console.warn('Lỗi xóa ảnh:', err);
+              }
+            }
           }}
           containerStyle={{ width: '100%', display: 'block' }}
         >
@@ -610,11 +623,25 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
           assetId={`portfolio_col_hero_${collection.slug}`}
           currentImageUrl={coverUrl || '/studio.png'}
           label={`Ảnh bìa: ${collection.title}`}
-          onImageUpdated={(newUrl) => {
+          onImageUpdated={async (newUrl) => {
             setCollection((prev) => (prev ? { ...prev, coverPhotoUrl: newUrl } : null));
+            if (collection.id) {
+              try {
+                await updateCollection(collection.id, { coverPhotoUrl: newUrl });
+              } catch (err) {
+                console.warn('Lỗi lưu ảnh bìa bộ sưu tập:', err);
+              }
+            }
           }}
-          onImageDeleted={() => {
+          onImageDeleted={async () => {
             setCollection((prev) => (prev ? { ...prev, coverPhotoUrl: '' } : null));
+            if (collection.id) {
+              try {
+                await updateCollection(collection.id, { coverPhotoUrl: '' });
+              } catch (err) {
+                console.warn('Lỗi xóa ảnh bìa bộ sưu tập:', err);
+              }
+            }
           }}
           containerStyle={{ width: '100%', position: 'relative' }}
         >
