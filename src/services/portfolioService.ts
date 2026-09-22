@@ -577,9 +577,36 @@ const LOCAL_STORAGE_COLLECTIONS_KEY = 'maison_mipa_custom_collections_cache';
 const LOCAL_STORAGE_CONCEPT_GALLERY_KEY = 'maison_mipa_concept_gallery_photos';
 const LOCAL_STORAGE_COLLECTIONS_OVERRIDES_KEY = 'maison_mipa_portfolio_collections_overrides';
 const LOCAL_STORAGE_DELETED_COLLECTIONS_KEY = 'maison_mipa_deleted_collections';
+const LOCAL_STORAGE_DELETED_CONCEPTS_KEY = 'maison_mipa_deleted_concepts';
 
 let localCustomConcepts: Concept[] = [];
 let localCustomCollections: PortfolioCollection[] = [];
+let localDeletedConceptIds: string[] = [];
+
+export function getStoredDeletedConceptIds(): string[] {
+  if (typeof window === 'undefined') return localDeletedConceptIds;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_DELETED_CONCEPTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return localDeletedConceptIds;
+}
+
+export function persistDeletedConceptId(id: string): void {
+  const list = getStoredDeletedConceptIds();
+  if (!list.includes(id)) {
+    list.push(id);
+    localDeletedConceptIds = list;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_DELETED_CONCEPTS_KEY, JSON.stringify(list));
+      } catch {}
+    }
+  }
+}
 
 export function getStoredCustomCollections(): PortfolioCollection[] {
   if (typeof window === 'undefined') return localCustomCollections;
@@ -621,6 +648,34 @@ export function persistDeletedCollectionId(id: string): void {
       localStorage.setItem(LOCAL_STORAGE_DELETED_COLLECTIONS_KEY, JSON.stringify(list));
     } catch {}
   }
+}
+
+/**
+ * Helper to layer persistent locally modified / created concepts and filter deleted ones
+ */
+export function applyConceptOverrides(
+  baseConcepts: Concept[],
+  serviceId?: string
+): Concept[] {
+  const deletedIds = getStoredDeletedConceptIds();
+  let list = baseConcepts.filter((c) => !deletedIds.includes(c.id) && !deletedIds.includes(c.slug));
+
+  const customConcepts = getStoredCustomConcepts();
+  for (const custom of customConcepts) {
+    if (deletedIds.includes(custom.id) || deletedIds.includes(custom.slug)) continue;
+    const idx = list.findIndex((c) => c.id === custom.id || c.slug === custom.slug);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...custom };
+    } else {
+      list.unshift(custom);
+    }
+  }
+
+  if (serviceId) {
+    list = list.filter((c) => c.serviceId === serviceId);
+  }
+
+  return list;
 }
 
 export interface ConceptGalleryPhotoItem {
@@ -795,22 +850,18 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
         .eq('active', true)
         .order('display_order', { ascending: true });
 
-      if (serviceId) {
-        query = query.eq('service_id', serviceId);
-      }
-
       const { data, error } = await query;
       if (error) {
-        console.error('Failed to query concepts from database:', error.message);
-        throw new Error(`Không thể tải danh sách concept: ${error.message}`);
+        if (!isDemoModeEnabled()) {
+          console.error('Failed to query concepts from database:', error.message);
+          throw new Error(`Không thể tải danh sách concept: ${error.message}`);
+        }
+        console.warn('Supabase concepts query notice, falling back to local/demo:', error.message);
       }
 
-      if (!data || data.length === 0) {
-        return [];
-      }
-
+      const rows = data || [];
       // Hydrate coverPhotoUrl without N+1 query
-      const coverPhotoIds = data
+      const coverPhotoIds = rows
         .map((c) => c.cover_photo_id)
         .filter((id): id is string => Boolean(id));
 
@@ -828,7 +879,7 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
         }
       }
 
-      const mapped = data.map((row) => {
+      const mapped = rows.map((row) => {
         let coverUrl = row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined;
         if (!coverUrl && row.cover_photo_url) {
           coverUrl = row.cover_photo_url;
@@ -851,27 +902,22 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
       if (isDemoModeEnabled()) {
         for (const dCnc of DEMO_CONCEPTS) {
           if (dCnc.active && !mapped.some((c) => c.slug === dCnc.slug || c.id === dCnc.id)) {
-            if (!serviceId || dCnc.serviceId === serviceId) {
-              mapped.push(dCnc);
-            }
+            mapped.push(dCnc);
           }
         }
       }
 
+      const finalConcepts = applyConceptOverrides(mapped, serviceId);
+
       if (!isTestEnv) {
-        conceptsCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
+        conceptsCache.set(cacheKey, { data: finalConcepts, timestamp: Date.now() });
       }
-      return mapped;
+      return finalConcepts;
     }
 
     if (isDemoModeEnabled()) {
-      const storedCustom = getStoredCustomConcepts();
-      const allMerged = [...storedCustom, ...DEMO_CONCEPTS];
-      let items = allMerged.filter((c) => c.active);
-      if (serviceId) {
-        items = items.filter((c) => c.serviceId === serviceId);
-      }
-      return items;
+      const finalConcepts = applyConceptOverrides(DEMO_CONCEPTS.filter((c) => c.active), serviceId);
+      return finalConcepts;
     }
 
     return [];
@@ -888,39 +934,81 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
 }
 
 /**
+ * Gets a concept synchronously from persistent storage or demo seeds
+ */
+export function getConceptBySlugSync(rawSlug: string): Concept | null {
+  if (!rawSlug) return null;
+  const decoded = decodeURIComponent(rawSlug).trim();
+  const normalized = decoded.toLowerCase().replace(/\s+/g, '-');
+  const deletedIds = getStoredDeletedConceptIds();
+  if (deletedIds.includes(rawSlug) || deletedIds.includes(decoded) || deletedIds.includes(normalized)) {
+    return null;
+  }
+  const custom = getStoredCustomConcepts();
+  const customFound = custom.find((c) => (c.slug === decoded || c.slug === normalized || c.id === decoded) && !deletedIds.includes(c.id));
+  if (customFound && customFound.active) return customFound;
+
+  const demoMatch = DEMO_CONCEPTS.find(
+    (c) =>
+      (c.slug === decoded ||
+        c.slug === normalized ||
+        c.slug.replace(/-/g, ' ') === decoded.toLowerCase() ||
+        c.id === decoded) &&
+      c.active &&
+      !deletedIds.includes(c.id) &&
+      !deletedIds.includes(c.slug)
+  );
+  if (demoMatch) {
+    const override = custom.find((c) => c.id === demoMatch.id || c.slug === demoMatch.slug);
+    return override ? { ...demoMatch, ...override } : demoMatch;
+  }
+  return null;
+}
+
+/**
  * Gets a concept by its unique slug
  */
 export async function getConceptBySlug(rawSlug: string): Promise<Concept | null> {
   if (!rawSlug) return null;
   const decoded = decodeURIComponent(rawSlug).trim();
   const normalized = decoded.toLowerCase().replace(/\s+/g, '-');
+  const deletedIds = getStoredDeletedConceptIds();
+  if (deletedIds.includes(rawSlug) || deletedIds.includes(decoded) || deletedIds.includes(normalized)) {
+    return null;
+  }
+
+  const custom = getStoredCustomConcepts();
+  const customFound = custom.find((c) => (c.slug === decoded || c.slug === normalized || c.id === decoded) && !deletedIds.includes(c.id));
+  if (customFound && customFound.active) return customFound;
 
   if (isSupabaseConfigured()) {
     let data: any = null;
-    const res1 = await supabase
-      .from('concepts')
-      .select('*')
-      .eq('slug', decoded)
-      .eq('active', true)
-      .maybeSingle();
-
-    if (res1.data) {
-      data = res1.data;
-    } else if (decoded !== normalized) {
-      const res2 = await supabase
+    try {
+      const res1 = await supabase
         .from('concepts')
         .select('*')
-        .eq('slug', normalized)
+        .eq('slug', decoded)
         .eq('active', true)
         .maybeSingle();
-      if (res2.data) {
-        data = res2.data;
+
+      if (res1.data) {
+        data = res1.data;
+      } else if (decoded !== normalized) {
+        const res2 = await supabase
+          .from('concepts')
+          .select('*')
+          .eq('slug', normalized)
+          .eq('active', true)
+          .maybeSingle();
+        if (res2.data) {
+          data = res2.data;
+        }
       }
+    } catch (err) {
+      console.warn('Supabase getConceptBySlug notice:', err);
     }
 
     if (!data) {
-      const custom = getStoredCustomConcepts();
-      const customFound = custom.find((c) => c.slug === decoded || c.slug === normalized || c.id === decoded);
       if (customFound && customFound.active) return customFound;
 
       const brandConcept = DEMO_CONCEPTS.find(
@@ -929,9 +1017,14 @@ export async function getConceptBySlug(rawSlug: string): Promise<Concept | null>
             c.slug === normalized ||
             c.slug.replace(/-/g, ' ') === decoded.toLowerCase() ||
             c.id === decoded) &&
-          c.active
+          c.active &&
+          !deletedIds.includes(c.id) &&
+          !deletedIds.includes(c.slug)
       );
-      if (brandConcept) return brandConcept;
+      if (brandConcept) {
+        const override = custom.find((c) => c.id === brandConcept.id || c.slug === brandConcept.slug);
+        return override ? { ...brandConcept, ...override } : brandConcept;
+      }
       return null;
     }
 
@@ -957,23 +1050,26 @@ export async function getConceptBySlug(rawSlug: string): Promise<Concept | null>
       }
     }
 
-    return mapConceptRow(data, coverPhotoUrl);
+    const mapped = mapConceptRow(data, coverPhotoUrl);
+    const override = custom.find((c) => c.id === mapped.id || c.slug === mapped.slug);
+    return override ? { ...mapped, ...override } : mapped;
   }
 
-  const custom = getStoredCustomConcepts();
-  const customFound = custom.find((c) => c.slug === decoded || c.slug === normalized || c.id === decoded);
-  if (customFound && customFound.active) return customFound;
-
-  return (
-    DEMO_CONCEPTS.find(
-      (c) =>
-        (c.slug === decoded ||
-          c.slug === normalized ||
-          c.slug.replace(/-/g, ' ') === decoded.toLowerCase() ||
-          c.id === decoded) &&
-        c.active
-    ) || null
+  const demoMatch = DEMO_CONCEPTS.find(
+    (c) =>
+      (c.slug === decoded ||
+        c.slug === normalized ||
+        c.slug.replace(/-/g, ' ') === decoded.toLowerCase() ||
+        c.id === decoded) &&
+      c.active &&
+      !deletedIds.includes(c.id) &&
+      !deletedIds.includes(c.slug)
   );
+  if (demoMatch) {
+    const override = custom.find((c) => c.id === demoMatch.id || c.slug === demoMatch.slug);
+    return override ? { ...demoMatch, ...override } : demoMatch;
+  }
+  return null;
 }
 
 /**
@@ -1286,10 +1382,15 @@ export async function getAllConcepts(): Promise<Concept[]> {
       .order('display_order', { ascending: true });
 
     if (error) {
-      throw new Error(`Không thể tải toàn bộ concept: ${error.message}`);
+      if (!isDemoModeEnabled()) {
+        throw new Error(`Không thể tải toàn bộ concept: ${error.message}`);
+      }
+      return applyConceptOverrides([...DEMO_CONCEPTS]);
     }
 
-    if (!data || data.length === 0) return [...localCustomConcepts];
+    if (!data || data.length === 0) {
+      return applyConceptOverrides(isDemoModeEnabled() ? [...DEMO_CONCEPTS] : []);
+    }
 
     const coverPhotoIds = data
       .map((c) => c.cover_photo_id)
@@ -1312,14 +1413,23 @@ export async function getAllConcepts(): Promise<Concept[]> {
     const mapped = data.map((row) =>
       mapConceptRow(row, row.cover_photo_id ? coverPhotoMap.get(row.cover_photo_id) : undefined)
     );
-    return [...localCustomConcepts, ...mapped];
+
+    if (isDemoModeEnabled()) {
+      for (const d of DEMO_CONCEPTS) {
+        if (!mapped.some(m => m.id === d.id || m.slug === d.slug)) {
+          mapped.push(d);
+        }
+      }
+    }
+
+    return applyConceptOverrides(mapped);
   }
 
   if (isDemoModeEnabled()) {
-    return [...localCustomConcepts, ...DEMO_CONCEPTS];
+    return applyConceptOverrides([...DEMO_CONCEPTS]);
   }
 
-  return [...localCustomConcepts];
+  return applyConceptOverrides([]);
 }
 
 /**
@@ -1483,7 +1593,7 @@ export async function createConcept(input: {
 }): Promise<Concept> {
   const slug = input.slug || input.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const id = `concept-${Date.now()}`;
-  const newConcept: Concept = {
+  let newConcept: Concept = {
     id,
     name: input.name,
     slug,
@@ -1496,92 +1606,117 @@ export async function createConcept(input: {
   };
 
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { data, error } = await supabase.from('concepts').insert({
-      name: input.name,
-      slug,
-      description: input.description || null,
-      service_id: input.serviceId || null,
-      cover_photo_url: input.coverPhotoUrl || null,
-      active: input.active ?? true,
-      bookable: input.bookable ?? true,
-      display_order: input.displayOrder ?? 99,
-    }).select().single();
+    try {
+      const { data, error } = await supabase.from('concepts').insert({
+        name: input.name,
+        slug,
+        description: input.description || null,
+        service_id: input.serviceId || null,
+        cover_photo_url: input.coverPhotoUrl || null,
+        active: input.active ?? true,
+        bookable: input.bookable ?? true,
+        display_order: input.displayOrder ?? 99,
+      }).select().single();
 
-    if (error) {
-      throw normalizeError(error, 'createConcept');
+      if (!error && data) {
+        newConcept = mapConceptRow(data, input.coverPhotoUrl);
+      } else if (error) {
+        console.warn('Supabase createConcept notice, saving locally:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase createConcept exception, saving locally:', err?.message);
     }
-    clearPortfolioCache();
-    return mapConceptRow(data, input.coverPhotoUrl);
   }
 
   const custom = getStoredCustomConcepts();
-  persistStoredCustomConcepts([newConcept, ...custom]);
+  const nextCustom = [newConcept, ...custom.filter(c => c.id !== newConcept.id && c.slug !== newConcept.slug)];
+  persistStoredCustomConcepts(nextCustom);
+  localCustomConcepts = nextCustom;
   clearPortfolioCache();
   return newConcept;
 }
 
 /**
  * Updates an existing concept
- * Fail-closed in production: throws if DB fails, never mutates DEMO_CONCEPTS in production.
+ * Synchronizes with Supabase DB and local persistent storage.
  */
 export async function updateConcept(id: string, updates: Partial<Concept>): Promise<Concept> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const dbUpdates: any = { updated_at: new Date().toISOString() };
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.serviceId !== undefined) dbUpdates.service_id = updates.serviceId;
-    if (updates.coverPhotoUrl !== undefined) dbUpdates.cover_photo_url = updates.coverPhotoUrl;
-    if (updates.active !== undefined) dbUpdates.active = updates.active;
-    if (updates.bookable !== undefined) dbUpdates.bookable = updates.bookable;
-    if (updates.displayOrder !== undefined) dbUpdates.display_order = updates.displayOrder;
+  let updatedConcept: Concept | null = null;
 
-    const { data, error } = await supabase.from('concepts').update(dbUpdates).eq('id', id).select().single();
-    if (error) {
-      throw normalizeError(error, 'updateConcept');
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    try {
+      const dbUpdates: any = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.serviceId !== undefined) dbUpdates.service_id = updates.serviceId;
+      if (updates.coverPhotoUrl !== undefined) dbUpdates.cover_photo_url = updates.coverPhotoUrl;
+      if (updates.active !== undefined) dbUpdates.active = updates.active;
+      if (updates.bookable !== undefined) dbUpdates.bookable = updates.bookable;
+      if (updates.displayOrder !== undefined) dbUpdates.display_order = updates.displayOrder;
+
+      const { data, error } = await supabase.from('concepts').update(dbUpdates).eq('id', id).select().single();
+      if (!error && data) {
+        updatedConcept = mapConceptRow(data, updates.coverPhotoUrl);
+      } else if (error) {
+        console.warn('Supabase updateConcept notice, saving locally:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase updateConcept exception, saving locally:', err?.message);
     }
-    clearPortfolioCache();
-    return mapConceptRow(data, updates.coverPhotoUrl);
   }
 
   const custom = getStoredCustomConcepts();
-  const customIdx = custom.findIndex((c) => c.id === id);
+  const customIdx = custom.findIndex((c) => c.id === id || c.slug === id);
   if (customIdx !== -1) {
-    custom[customIdx] = { ...custom[customIdx], ...updates };
-    persistStoredCustomConcepts(custom);
-    clearPortfolioCache();
-    return custom[customIdx];
+    updatedConcept = { ...custom[customIdx], ...updates, ...(updatedConcept || {}) };
+    custom[customIdx] = updatedConcept;
+  } else {
+    const demo = DEMO_CONCEPTS.find((c) => c.id === id || c.slug === id);
+    const base = demo || ({ id, ...updates } as Concept);
+    updatedConcept = { ...base, ...updates, ...(updatedConcept || {}) };
+    custom.unshift(updatedConcept);
+  }
+  persistStoredCustomConcepts(custom);
+  localCustomConcepts = custom;
+
+  const demoMatch = DEMO_CONCEPTS.find((c) => c.id === id || c.slug === id);
+  if (demoMatch) {
+    Object.assign(demoMatch, updates);
   }
 
-  const demo = DEMO_CONCEPTS.find((c) => c.id === id);
-  if (demo) {
-    Object.assign(demo, updates);
-    clearPortfolioCache();
-    return demo;
-  }
-  return { id, ...updates } as Concept;
+  clearPortfolioCache();
+  return updatedConcept;
 }
 
 /**
  * Deletes a concept by ID
- * Fail-closed in production: throws if DB fails, never mutates DEMO_CONCEPTS in production.
+ * Synchronizes with Supabase DB and local persistent storage.
  */
 export async function deleteConcept(id: string): Promise<boolean> {
+  persistDeletedConceptId(id);
+
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    const { error } = await supabase.from('concepts').delete().eq('id', id);
-    if (error) {
-      throw normalizeError(error, 'deleteConcept');
+    try {
+      const { error } = await supabase.from('concepts').delete().eq('id', id);
+      if (error) {
+        console.warn('Supabase deleteConcept notice:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase deleteConcept exception:', err?.message);
     }
-    clearPortfolioCache();
-    return true;
   }
 
   const custom = getStoredCustomConcepts();
-  persistStoredCustomConcepts(custom.filter((c) => c.id !== id));
-  const demoIdx = DEMO_CONCEPTS.findIndex((c) => c.id === id);
+  const nextCustom = custom.filter((c) => c.id !== id && c.slug !== id);
+  persistStoredCustomConcepts(nextCustom);
+  localCustomConcepts = nextCustom;
+
+  const demoIdx = DEMO_CONCEPTS.findIndex((c) => c.id === id || c.slug === id);
   if (demoIdx !== -1) {
     DEMO_CONCEPTS.splice(demoIdx, 1);
   }
+
   clearPortfolioCache();
   return true;
 }

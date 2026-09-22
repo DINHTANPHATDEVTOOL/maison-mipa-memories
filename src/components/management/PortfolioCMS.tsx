@@ -12,7 +12,9 @@ import type {
   Concept,
   PortfolioCollection,
   PortfolioPhoto,
+  ServiceCategory,
 } from '../../types';
+import { getServices } from '../../services/catalogService';
 import {
   getAllConcepts,
   getAllCollections,
@@ -68,6 +70,7 @@ export const PortfolioCMS: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'collections' | 'concepts'>('collections');
   const [collections, setCollections] = useState<PortfolioCollection[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [services, setServices] = useState<ServiceCategory[]>([]);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -166,12 +169,14 @@ export const PortfolioCMS: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [cols, concs] = await Promise.all([
+      const [cols, concs, srvs] = await Promise.all([
         getAllCollections(selectedStatusFilter),
         getAllConcepts(),
+        getServices(),
       ]);
       setCollections(cols);
       setConcepts(concs);
+      setServices(srvs);
       if (activeCollectionRef.current) {
         const refreshed = cols.find((c) => c.id === activeCollectionRef.current?.id);
         if (refreshed) setActiveCollection(refreshed);
@@ -274,11 +279,12 @@ export const PortfolioCMS: React.FC = () => {
   // Concept CRUD Handlers
   const openCreateConceptModal = () => {
     setEditingConcept(null);
+    const defaultServiceId = services[0]?.id || 'c0000000-0000-0000-0000-000000000001';
     setConceptFormData({
       name: '',
       slug: '',
       description: '',
-      serviceId: 'c0000000-0000-0000-0000-000000000001',
+      serviceId: defaultServiceId,
       coverPhotoUrl: '/studio.png',
       active: true,
       bookable: true,
@@ -293,7 +299,7 @@ export const PortfolioCMS: React.FC = () => {
       name: c.name,
       slug: c.slug,
       description: c.description || '',
-      serviceId: c.serviceId || 'c0000000-0000-0000-0000-000000000001',
+      serviceId: c.serviceId || services[0]?.id || 'c0000000-0000-0000-0000-000000000001',
       coverPhotoUrl: c.coverPhotoUrl || '',
       active: c.active,
       bookable: c.bookable,
@@ -1125,6 +1131,7 @@ export const PortfolioCMS: React.FC = () => {
                 <tr style={{ borderBottom: '2px solid var(--mipa-beige)', textAlign: 'left', color: '#8C6E53' }}>
                   <th style={{ padding: '0.75rem' }}>Tên Concept</th>
                   <th style={{ padding: '0.75rem' }}>Slug</th>
+                  <th style={{ padding: '0.75rem' }}>Dịch vụ</th>
                   <th style={{ padding: '0.75rem' }}>Mô tả</th>
                   <th style={{ padding: '0.75rem' }}>Trạng thái</th>
                   <th style={{ padding: '0.75rem' }}>Mở đặt lịch</th>
@@ -1135,14 +1142,14 @@ export const PortfolioCMS: React.FC = () => {
                 {isLoading ? (
                   [1, 2, 3].map((i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
-                      <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#8C6E53' }}>
+                      <td colSpan={7} style={{ padding: '1rem', textAlign: 'center', color: '#8C6E53' }}>
                         Đang tải danh mục concept...
                       </td>
                     </tr>
                   ))
                 ) : concepts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '1.5rem', textAlign: 'center', color: '#8C6E53' }}>
+                    <td colSpan={7} style={{ padding: '1.5rem', textAlign: 'center', color: '#8C6E53' }}>
                       Chưa có concept nào.
                     </td>
                   </tr>
@@ -1151,6 +1158,21 @@ export const PortfolioCMS: React.FC = () => {
                     <tr key={c.id} style={{ borderBottom: '1px solid rgba(140, 110, 83, 0.1)' }}>
                       <td style={{ padding: '0.75rem', fontWeight: 600, color: '#604634' }}>{c.name}</td>
                       <td style={{ padding: '0.75rem', color: '#8C6E53' }}><code>{c.slug}</code></td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          backgroundColor: '#F5EDE4',
+                          color: '#604634',
+                          fontWeight: 600,
+                          border: '1px solid rgba(140, 110, 83, 0.2)',
+                          display: 'inline-block',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {services.find((s) => s.id === c.serviceId)?.name || 'Chưa gán'}
+                        </span>
+                      </td>
                       <td style={{ padding: '0.75rem', color: '#6E5F55', maxWidth: '350px' }}>{c.description}</td>
                       <td style={{ padding: '0.75rem' }}>
                         <span style={{ padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: c.active ? '#DCFCE7' : '#FEE2E2', color: c.active ? '#15803D' : '#B91C1C', fontWeight: 700 }}>
@@ -1713,6 +1735,35 @@ export const PortfolioCMS: React.FC = () => {
                     style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem' }}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#604634', marginBottom: '0.3rem' }}>
+                  Thuộc Dịch Vụ (Service) *
+                </label>
+                <select
+                  value={conceptFormData.serviceId}
+                  onChange={(e) => setConceptFormData({ ...conceptFormData, serviceId: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.8rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--mipa-beige)',
+                    backgroundColor: '#FAF8F5',
+                    fontSize: '0.88rem',
+                    color: '#604634',
+                    fontWeight: 600,
+                  }}
+                >
+                  {services.map((srv) => (
+                    <option key={srv.id} value={srv.id}>
+                      {srv.name}
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.75rem', color: '#8C6E53', marginTop: '0.2rem', display: 'block' }}>
+                  Khách hàng khi đặt lịch dịch vụ này sẽ thấy và chọn được concept tương ứng.
+                </span>
               </div>
 
               <div>

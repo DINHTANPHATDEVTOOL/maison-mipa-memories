@@ -8,6 +8,12 @@ import {
   deleteCollection,
   createPortfolioPhoto,
   deletePortfolioPhoto,
+  getAllConcepts,
+  getPublicConcepts,
+  getConceptBySlug,
+  createConcept,
+  updateConcept,
+  deleteConcept,
 } from '../portfolioService';
 
 describe('Portfolio CRUD and Persistent Storage Overrides', () => {
@@ -116,5 +122,96 @@ describe('Portfolio CRUD and Persistent Storage Overrides', () => {
     const colAfterDelete = await getCollectionBySlug(slug);
     expect(colAfterDelete?.photos?.length).toBe(initialPhotoCount);
     expect(colAfterDelete?.photos?.some((p) => p.id === newPhoto.id)).toBe(false);
+  });
+
+  it('creates a new concept with a chosen serviceId and persists across queries', async () => {
+    const serviceId = 'c0000000-0000-0000-0000-000000000005';
+    const newConcept = await createConcept({
+      name: 'Santorini Sunset Romance',
+      slug: 'santorini-sunset-romance',
+      description: 'Tone cam ấm hoàng hôn lãng mạn bên khung cửa.',
+      serviceId,
+      coverPhotoUrl: 'https://cdn.maisonmipa.vn/santorini.webp',
+      active: true,
+      bookable: true,
+    });
+
+    expect(newConcept.id).toBeDefined();
+    expect(newConcept.serviceId).toBe(serviceId);
+
+    // Verify getAllConcepts includes new concept with right service
+    const all = await getAllConcepts();
+    const foundAll = all.find((c) => c.slug === 'santorini-sunset-romance');
+    expect(foundAll).toBeDefined();
+    expect(foundAll?.serviceId).toBe(serviceId);
+
+    // Verify getPublicConcepts with that serviceId includes it
+    const byService = await getPublicConcepts(serviceId);
+    expect(byService.some((c) => c.slug === 'santorini-sunset-romance')).toBe(true);
+
+    // Verify getPublicConcepts with another serviceId excludes it
+    const otherService = await getPublicConcepts('c0000000-0000-0000-0000-000000000001');
+    expect(otherService.some((c) => c.slug === 'santorini-sunset-romance')).toBe(false);
+
+    // Verify getConceptBySlug
+    const bySlug = await getConceptBySlug('santorini-sunset-romance');
+    expect(bySlug).not.toBeNull();
+    expect(bySlug?.serviceId).toBe(serviceId);
+  });
+
+  it('updates an existing concept to switch its serviceId and persists across queries', async () => {
+    const original = await getConceptBySlug('parisian-romance');
+    expect(original).not.toBeNull();
+    const oldServiceId = original!.serviceId;
+    const newServiceId = 'c0000000-0000-0000-0000-000000000003'; // Gia đình
+
+    const updated = await updateConcept(original!.id, {
+      serviceId: newServiceId,
+      name: 'Parisian Romance — Chuyển Sang Gia Đình',
+    });
+
+    expect(updated.serviceId).toBe(newServiceId);
+    expect(updated.name).toBe('Parisian Romance — Chuyển Sang Gia Đình');
+
+    // Verify getConceptBySlug reflects the changed serviceId
+    const fetched = await getConceptBySlug('parisian-romance');
+    expect(fetched).not.toBeNull();
+    expect(fetched?.serviceId).toBe(newServiceId);
+    expect(fetched?.name).toBe('Parisian Romance — Chuyển Sang Gia Đình');
+
+    // Verify querying by the new service includes it
+    const inNewService = await getPublicConcepts(newServiceId);
+    expect(inNewService.some((c) => c.id === original!.id || c.slug === 'parisian-romance')).toBe(true);
+
+    // Verify querying by the old service no longer includes it
+    if (oldServiceId && oldServiceId !== newServiceId) {
+      const inOldService = await getPublicConcepts(oldServiceId);
+      expect(inOldService.some((c) => c.id === original!.id || c.slug === 'parisian-romance')).toBe(false);
+    }
+
+    // Verify getAllConcepts reflects the changed serviceId
+    const all = await getAllConcepts();
+    const foundInAll = all.find((c) => c.id === original!.id);
+    expect(foundInAll?.serviceId).toBe(newServiceId);
+  });
+
+  it('deletes a concept and ensures it is never returned in queries or lookups', async () => {
+    const slug = 'vintage-cinematic';
+    const concept = await getConceptBySlug(slug);
+    expect(concept).not.toBeNull();
+
+    await deleteConcept(concept!.id);
+
+    // Lookups must return null
+    const afterDelete = await getConceptBySlug(slug);
+    expect(afterDelete).toBeNull();
+
+    // Must not be in getPublicConcepts
+    const publicConcepts = await getPublicConcepts();
+    expect(publicConcepts.some((c) => c.id === concept!.id || c.slug === slug)).toBe(false);
+
+    // Must not be in getAllConcepts
+    const allConcepts = await getAllConcepts();
+    expect(allConcepts.some((c) => c.id === concept!.id || c.slug === slug)).toBe(false);
   });
 });

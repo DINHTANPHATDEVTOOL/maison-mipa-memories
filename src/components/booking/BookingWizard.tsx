@@ -200,7 +200,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         pkgs = INITIAL_PACKAGES;
         adds = INITIAL_ADDONS;
         stds = INITIAL_STUDIO_ROOMS;
-        cncs = DEMO_CONCEPTS;
+        try {
+          cncs = await getPublicConcepts();
+        } catch {
+          cncs = DEMO_CONCEPTS;
+        }
       }
 
       // Load promotions authoritatively (non-blocking for core catalog)
