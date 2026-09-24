@@ -1,6 +1,6 @@
 // ==============================================================================
 // Maison MIPA Memories — Seasonal Exhibition Privilege Banner
-// Concept: Banner Đặc Sắc Mùa Kỷ Niệm & Cưới Paris 2026
+// Concept: Banner Đặc Sắc Mùa Kỷ Niệm Paris 2026
 // Features: 3 Luxury Atelier Privilege cards, gold foil badges, wax seal emblem
 // ==============================================================================
 import React from 'react';

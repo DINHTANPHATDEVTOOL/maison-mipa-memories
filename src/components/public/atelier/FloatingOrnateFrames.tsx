@@ -225,31 +225,31 @@ export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   useCursor(hoveredId !== null, 'pointer', 'default');
 
-  const weddingArt: AtelierArtwork = {
+  const coupleArt: AtelierArtwork = {
     ...(artworks.find((a) => a.wallPosition === 'center') || artworks[0]),
     imageUrl: '/hero-couple.jpg',
-    title: 'Hôn Lễ Vượt Thời Gian',
+    title: 'Vintage Loft & Cinematic',
   };
 
-  const babyArt: AtelierArtwork = {
+  const portraitArt: AtelierArtwork = {
     ...(artworks.find((a) => a.wallPosition === 'right') || artworks[2] || artworks[0]),
-    imageUrl: '/hero-baby.jpg',
-    title: 'Nụ Cười Tuổi Thơ',
+    imageUrl: '/hero-camera.jpg',
+    title: 'Nàng Thơ Trong Trẻo',
   };
 
-  const lifestyleArt: AtelierArtwork = {
+  const museArt: AtelierArtwork = {
     ...(artworks.find((a) => a.wallPosition === 'left') || artworks[1] || artworks[0]),
-    imageUrl: '/hero-bride.jpg',
-    title: 'Nàng Thơ Paris',
+    imageUrl: '/concept-aodai.webp',
+    title: 'Dáng Ngọc Áo Dài',
   };
 
   // Calibrated positions relative to diorama cluster root:
-  // - Wedding frame: hovering high above-left of camera with generous clearance
-  // - Lifestyle frame: placed elegantly on the left, fully within screen bounds
-  // - Baby frame: hovering high on the right with spacious breathing room
+  // - Couple frame: hovering high above-left of camera with generous clearance
+  // - Muse frame: placed elegantly on the left, fully within screen bounds
+  // - Portrait frame: hovering high on the right with spacious breathing room
   const frameConfigs = [
     {
-      artwork: weddingArt,
+      artwork: coupleArt,
       basePosition: isMobile
         ? ([-0.95, 0.76, 0.08] as [number, number, number])
         : ([-1.42, 1.06, -0.10] as [number, number, number]),
@@ -258,7 +258,7 @@ export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
       floatOffset: 0,
     },
     {
-      artwork: lifestyleArt,
+      artwork: museArt,
       basePosition: isMobile
         ? ([-1.75, 0.12, -0.20] as [number, number, number])
         : ([-2.15, 0.22, -0.22] as [number, number, number]),
@@ -267,7 +267,7 @@ export const FloatingOrnateFrames: React.FC<FloatingOrnateFramesProps> = ({
       floatOffset: 1.8,
     },
     {
-      artwork: babyArt,
+      artwork: portraitArt,
       basePosition: isMobile
         ? ([0.85, 0.70, -0.08] as [number, number, number])
         : ([1.38, 0.92, -0.16] as [number, number, number]),

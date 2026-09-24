@@ -25,7 +25,6 @@ import {
   ChevronRight,
   Home,
   Calendar,
-  ArrowRight,
   Check,
   RotateCcw,
   Maximize2,
@@ -35,7 +34,6 @@ import {
   X,
   Upload,
   Plus,
-  Camera,
   Link as LinkIcon,
   Image as ImageIcon,
   Loader2,
@@ -47,7 +45,7 @@ interface ConceptDetailPageProps {
   onOpenBooking: () => void;
 }
 
-export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
+export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = ({ onOpenBooking }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user, isRootOwner, role } = useAuth();
@@ -679,7 +677,10 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {concept.bookable ? (
                 <button
-                  onClick={() => navigate(`/booking?concept=${concept.slug}`)}
+                  onClick={() => {
+                    if (onOpenBooking) onOpenBooking();
+                    navigate(`/booking?concept=${concept.slug}`);
+                  }}
                   className="public-btn-primary"
                   style={{
                     display: 'inline-flex',
@@ -1125,9 +1126,10 @@ export const ConceptDetailPage: React.FC<ConceptDetailPageProps> = () => {
                 </div>
 
                 <button
-                  onClick={() =>
-                    navigate(`/booking?concept=${concept.slug}&service=${pkg.serviceId}&package=${pkg.id}`)
-                  }
+                  onClick={() => {
+                    if (onOpenBooking) onOpenBooking();
+                    navigate(`/booking?concept=${concept.slug}&service=${pkg.serviceId}&package=${pkg.id}`);
+                  }}
                   className="public-btn-primary"
                   style={{
                     width: '100%',

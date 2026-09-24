@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  DollarSign,
   CreditCard,
   Download,
   Filter,
   RefreshCw,
   Plus,
   AlertCircle,
-  CheckCircle2,
-  Calendar,
   ArrowUpRight,
   ArrowDownLeft,
   ShieldCheck,

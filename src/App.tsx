@@ -227,6 +227,10 @@ function AppContent() {
     setBookings(prev => [newBooking, ...prev.filter(b => b.id !== newBooking.id)]);
   }, []);
 
+  const handleBookingUpdated = useCallback((updated: Booking) => {
+    setBookings(prev => prev.map(b => (b.id === updated.id || b.bookingCode === updated.bookingCode ? updated : b)));
+  }, []);
+
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingStatus, note?: string) => {
     try {
       setAppError(null);
@@ -404,6 +408,7 @@ function AppContent() {
                 <AccountPage
                   bookings={bookings}
                   onOpenBooking={handleOpenBooking}
+                  onUpdateBooking={handleBookingUpdated}
                   onRequireAuth={() => handleOpenAuthModal('LOGIN', '🔒 Quý khách vui lòng Đăng Nhập để xem lịch cá nhân')}
                 />
               }
@@ -429,6 +434,7 @@ function AppContent() {
                   onOpenBooking={handleOpenBooking}
                   onUpdateStatus={handleUpdateStatus}
                   onAssignStaff={handleAssignStaff}
+                  onUpdateBooking={handleBookingUpdated}
                   onRequireAuth={() => handleOpenAuthModal('LOGIN', '🔒 Khu vực dành cho Quản Lý Studio.')}
                 />
               }

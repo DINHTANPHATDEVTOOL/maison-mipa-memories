@@ -27,7 +27,7 @@ describe('Role, RBAC & ABAC State Machine Enforcement (Phase B & C)', () => {
     avatar: '',
   };
 
-  const receptionistUser: User = {
+  const _receptionistUser: User = {
     id: 'emp_rec_01',
     fullName: 'Tiếp Tân Minh',
     name: 'Tiếp Tân Minh',
@@ -49,7 +49,7 @@ describe('Role, RBAC & ABAC State Machine Enforcement (Phase B & C)', () => {
     avatar: '',
   };
 
-  const makeupUser: User = {
+  const _makeupUser: User = {
     id: 'emp_mu_01',
     fullName: 'Makeup Artist Trang',
     name: 'Makeup Artist Trang',

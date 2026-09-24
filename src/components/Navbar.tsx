@@ -313,6 +313,24 @@ export const Navbar: React.FC<NavbarProps> = ({
     saveNotifications(updated);
   };
 
+  const handleNotificationClick = (n: NotificationItem) => {
+    handleMarkAsRead(n.id);
+    setShowNotifs(false);
+    if (n.link) {
+      navigate(n.link);
+    } else if (n.bookingCode || n.bookingId) {
+      if (currentRole === 'ADMIN' || currentRole === 'MANAGER') {
+        navigate(`/management?tab=dashboard&bookingCode=${n.bookingCode || ''}&bookingId=${n.bookingId || ''}`);
+      } else {
+        navigate('/account');
+      }
+    } else if (currentRole === 'ADMIN' || currentRole === 'MANAGER') {
+      navigate('/management');
+    } else {
+      navigate('/account');
+    }
+  };
+
   const handleDismissNotification = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (currentUser?.id) {
@@ -634,12 +652,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {notifications.map((n) => (
                         <div
                           key={n.id}
-                          onClick={() => handleMarkAsRead(n.id)}
+                          onClick={() => handleNotificationClick(n)}
                           style={{
                             padding: '0.65rem 0.75rem',
                             borderRadius: '6px',
                             backgroundColor: n.read ? '#FAF8F3' : '#FFFDF9',
-                            border: n.read ? '1px solid rgba(140, 110, 83, 0.15)' : '1px solid #C6A45F',
+                            border: n.read ? '1px solid rgba(140, 110, 83, 0.15)' : '1.5px solid #C6A45F',
                             fontSize: '0.8rem',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',

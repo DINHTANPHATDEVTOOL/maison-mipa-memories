@@ -5,7 +5,7 @@
 // ==============================================================================
 import React from 'react';
 import type { Booking, BookingStatus } from '../../types';
-import { UserCheck, Clock, Phone, MapPin, CheckCircle, Search } from 'lucide-react';
+import { UserCheck, Clock, Phone, MapPin, CheckCircle } from 'lucide-react';
 
 interface ReceptionistPortalProps {
   bookings: Booking[];
@@ -105,7 +105,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </button>
                   ) : isAlreadyCheckedIn ? (
                     <span style={{ fontSize: '0.85rem', color: '#16A34A', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <CheckCircle size={16} /> Đã vào phòng chụp
+                      <CheckCircle size={16} /> Đã tiếp đón / Đang chụp
                     </span>
                   ) : (
                     <span style={{ fontSize: '0.82rem', color: '#8C6E53' }}>

@@ -111,7 +111,7 @@ export const HomeConceptCatalogPreview: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Từ phong cách cổ điển lãng mạn nước Pháp, chân dung đen trắng tối giản đến những khung hình gia đình ấm áp. Khám phá catalog concept chi tiết với hướng dẫn trang phục và bối cảnh được chuẩn bị sẵn.
+              Từ phong cách cổ điển lãng mạn nước Pháp, chân dung đen trắng tối giản đến những khung hình gia đình ấm áp. Khám phá catalog concept chi tiết với hướng dẫn trang phục và không gian tiệm ảnh được chuẩn bị sẵn.
             </p>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>

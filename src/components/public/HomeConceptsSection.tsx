@@ -124,7 +124,7 @@ export const HomeConceptsSection: React.FC = () => {
                 fontWeight: 300,
               }}
             >
-              Mỗi concept tại tiệm ảnh Maison MIPA được xây dựng tỉ mỉ về bối cảnh, ánh sáng và phục trang để tôn vinh trọn vẹn cảm xúc chân thật nhất của bạn.
+              Mỗi concept tại tiệm ảnh Maison MIPA được xây dựng tỉ mỉ về không gian, ánh sáng và phục trang để tôn vinh trọn vẹn cảm xúc chân thật nhất của bạn.
             </p>
           </div>
 

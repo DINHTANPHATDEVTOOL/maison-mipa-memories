@@ -602,7 +602,8 @@ export async function getStudioRooms(): Promise<StudioRoom[]> {
     const { data, error } = await supabase
       .from('studio_rooms')
       .select('*')
-      .eq('active', true);
+      .eq('active', true)
+      .order('code', { ascending: true });
 
     if (error) {
       console.error('Failed to load studio rooms from database:', error.message);

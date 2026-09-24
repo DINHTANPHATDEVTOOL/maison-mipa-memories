@@ -888,7 +888,7 @@ export const CollectionDetailPage: React.FC<CollectionDetailPageProps> = ({ onOp
             Lưu giữ khoảnh khắc theo phong cách này
           </h3>
           <p className="vc-copy" style={{ maxWidth: '580px', margin: '0 auto 1.8rem' }}>
-            Đặt lịch trực tiếp để Maison MIPA chuẩn bị không gian, ánh sáng và bối cảnh chuẩn xác cho buổi chụp của bạn.
+            Đặt lịch trực tiếp để Maison MIPA chuẩn bị không gian và ánh sáng chuẩn xác cho buổi chụp của bạn.
           </p>
           <button
             onClick={handleBookConcept}

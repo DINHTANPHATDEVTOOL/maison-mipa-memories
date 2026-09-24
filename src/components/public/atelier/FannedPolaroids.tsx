@@ -61,13 +61,13 @@ export const FannedPolaroids: React.FC<FannedPolaroidsProps> = ({
   // Cascading fanned deck spilling gracefully across the lower-left studio table, completely clear of the Canon camera
   const cards = [
     {
-      img: '/hero-bride.jpg',
+      img: '/concept-aodai.webp',
       pos: [-1.82, -0.48, 0.82] as [number, number, number],
       rot: [-0.62, 0.38, -0.45] as [number, number, number],
       offset: 0,
     },
     {
-      img: '/hero-baby.jpg',
+      img: '/concept-tet.webp',
       pos: [-1.66, -0.50, 0.90] as [number, number, number],
       rot: [-0.60, 0.28, -0.32] as [number, number, number],
       offset: 0.4,

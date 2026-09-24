@@ -190,7 +190,10 @@ export const CORE_RPCS = [
   },
   {
     name: 'submit_photo_selection',
-    params: { p_booking_id: '00000000-0000-0000-0000-000000000000' },
+    params: {
+      p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_selected_proof_ids: [],
+    },
   },
   {
     name: 'reopen_photo_selection',
@@ -202,7 +205,7 @@ export const CORE_RPCS = [
   },
   {
     name: 'request_booking_revision',
-    params: { p_booking_id: '00000000-0000-0000-0000-000000000000', p_notes: 'QA Audit' },
+    params: { p_booking_id: '00000000-0000-0000-0000-000000000000', p_revision_notes: 'QA Audit' },
   },
   {
     name: 'complete_booking',
@@ -213,8 +216,9 @@ export const CORE_RPCS = [
     name: 'record_booking_payment_receipt',
     params: {
       p_booking_id: '00000000-0000-0000-0000-000000000000',
+      p_transaction_type: 'DEPOSIT',
+      p_direction: 'INFLOW',
       p_amount: 100000,
-      p_receipt_type: 'DEPOSIT',
     },
   },
   { name: 'get_crm_customers', params: {} },
@@ -234,6 +238,8 @@ export const CORE_RPCS = [
       p_booking_id: '00000000-0000-0000-0000-000000000000',
       p_employee_id: '00000000-0000-0000-0000-000000000000',
       p_assignment_role: 'PHOTOGRAPHER',
+      p_start_at: '2026-09-18T09:00:00Z',
+      p_end_at: '2026-09-18T11:00:00Z',
     },
   },
   {
@@ -269,13 +275,20 @@ export const CORE_RPCS = [
     name: 'return_booking_resource',
     params: {
       p_reservation_id: '00000000-0000-0000-0000-000000000000',
+      p_condition_after: 'GOOD',
+      p_damage_notes: 'None',
+      p_is_damaged: false,
+      p_damage_severity: 'NONE',
+      p_damage_description: 'None',
+      p_notes: 'Checked return',
+      p_returned_by_staff: '00000000-0000-0000-0000-000000000000',
     },
   },
   {
     name: 'get_operations_calendar_events',
     params: {
-      p_start_date: '2026-09-01',
-      p_end_date: '2026-09-30',
+      p_start_at: '2026-09-01T00:00:00Z',
+      p_end_at: '2026-09-30T23:59:59Z',
     },
   },
   {

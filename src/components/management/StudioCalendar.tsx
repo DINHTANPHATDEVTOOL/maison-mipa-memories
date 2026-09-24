@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import type { Booking, StudioRoom } from '../../types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, RefreshCw, X, User, Phone, Mail, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, RefreshCw, X, User, Phone, Mail, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface StudioCalendarProps {
   bookings: Booking[];
   studios: StudioRoom[];
-  onOpenBooking: () => void;
+  onOpenBooking?: () => void;
 }
 
 export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studios, onOpenBooking }) => {
@@ -194,9 +194,6 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
               {mode.label}
             </button>
           ))}
-          <button onClick={onOpenBooking} className="btn-mipa-gold" style={{ fontSize: '0.85rem' }}>
-            <Plus size={16} /> Đặt Lịch Mới
-          </button>
         </div>
       </div>
 

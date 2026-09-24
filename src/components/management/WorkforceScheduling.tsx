@@ -29,7 +29,6 @@ import {
   rejectStaffLeave,
   getStaffRegisteredShifts,
   type StaffShiftRegistrationRecord,
-  SHIFT_CONFIGS,
 } from '../../services/staffSchedulingService';
 import { getEmployees } from '../../services/catalogService';
 import { supabase, isDemoModeEnabled, isSupabaseConfigured } from '../../lib/supabase';
@@ -41,7 +40,7 @@ interface WorkforceSchedulingProps {
 
 export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
   employees: propEmployees,
-  onOpenEmployeeDetails,
+  onOpenEmployeeDetails: _onOpenEmployeeDetails,
 }) => {
   const [shiftWeekDate, setShiftWeekDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<'SHIFTS' | 'ROSTER' | 'LEAVE'>('SHIFTS');

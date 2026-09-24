@@ -21,7 +21,6 @@ import {
   Plus,
   Link as LinkIcon,
   X,
-  Edit2,
 } from 'lucide-react';
 
 export const SiteMediaManager: React.FC = () => {

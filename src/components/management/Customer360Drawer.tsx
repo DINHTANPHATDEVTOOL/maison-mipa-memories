@@ -702,8 +702,13 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({
                           <div style={{ fontSize: '1rem', fontWeight: 700, color: '#604634' }}>
                             {Number(b.totalAmount || 0).toLocaleString('vi-VN')}đ
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: '#047857' }}>
-                            Đã cọc: {Number(b.depositAmount || 0).toLocaleString('vi-VN')}đ
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: (b.depositConfirmedAt || ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.status)) ? '#047857' : '#D97706',
+                          }}>
+                            {(b.depositConfirmedAt || ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.status))
+                              ? `✓ Đã cọc: ${Number(b.depositAmount || 0).toLocaleString('vi-VN')}đ`
+                              : `Cọc dự tính: ${Number(b.depositAmount || 0).toLocaleString('vi-VN')}đ (Chưa cọc)`}
                           </div>
                         </div>
                       </div>

@@ -3,10 +3,9 @@
 // Dedicated workspace for Makeup Artists & Stylists.
 // Authority: Assigned tasks only. Manages task workflow (TODO -> IN_PROGRESS -> DONE).
 // ==============================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Booking, User } from '../../types';
-import { Sparkles, CheckCircle2, Clock, Check, Calendar, AlertCircle } from 'lucide-react';
-import { getStaffTasks, updateStaffTask } from '../../services/bookingService';
+import { Sparkles, Calendar } from 'lucide-react';
 import { StaffShiftRegistration } from './StaffShiftRegistration';
 
 interface MakeupPortalProps {

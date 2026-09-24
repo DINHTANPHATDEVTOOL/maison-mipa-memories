@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculatePricing, validatePromotion } from '../pricingService';
+import { calculatePricing, validatePromotion, getExtraSlotPrice, setExtraSlotPrice } from '../pricingService';
 
 describe('Pricing Engine (Single Source of Truth)', () => {
   const basePackage = {
@@ -188,6 +188,78 @@ describe('Promotion Validation Usage Limit Parity', () => {
 
     expect(result.valid).toBe(false);
     expect(result.error).toMatch(/không hợp lệ/i);
+  });
+});
+
+describe('Extra Slot Pricing Rules (Ca đầu giá bình thường, thêm ca +100k hoặc giá admin set)', () => {
+  const testPkg = {
+    price: 1500000,
+    durationMinutes: 90,
+  };
+
+  it('charges standard package price for 1 slot (0 extra slot fee)', () => {
+    const result = calculatePricing({
+      packageItem: testPkg,
+      slotsCount: 1,
+    });
+
+    expect(result.extraSlotsCount).toBe(0);
+    expect(result.extraSlotUnitPrice).toBe(100000);
+    expect(result.extraSlotTotal).toBe(0);
+    expect(result.subtotal).toBe(1500000);
+    expect(result.totalAmount).toBe(1500000);
+  });
+
+  it('charges +100,000 VND for 2 slots (1 extra slot)', () => {
+    const result = calculatePricing({
+      packageItem: testPkg,
+      slotsCount: 2,
+    });
+
+    expect(result.extraSlotsCount).toBe(1);
+    expect(result.extraSlotTotal).toBe(100000);
+    expect(result.subtotal).toBe(1600000);
+    expect(result.totalAmount).toBe(1600000);
+  });
+
+  it('charges +200,000 VND for 3 slots (2 extra slots)', () => {
+    const result = calculatePricing({
+      packageItem: testPkg,
+      slotsCount: 3,
+    });
+
+    expect(result.extraSlotsCount).toBe(2);
+    expect(result.extraSlotTotal).toBe(200000);
+    expect(result.subtotal).toBe(1700000);
+    expect(result.totalAmount).toBe(1700000);
+  });
+
+  it('supports admin setting custom extra slot price', () => {
+    // Admin configures 150,000 VND per extra slot
+    const result = calculatePricing({
+      packageItem: testPkg,
+      slotsCount: 3,
+      extraSlotPrice: 150000,
+    });
+
+    expect(result.extraSlotsCount).toBe(2);
+    expect(result.extraSlotUnitPrice).toBe(150000);
+    expect(result.extraSlotTotal).toBe(300000);
+    expect(result.subtotal).toBe(1800000);
+    expect(result.totalAmount).toBe(1800000);
+  });
+
+  it('handles getExtraSlotPrice and setExtraSlotPrice with localStorage and event dispatching', () => {
+    // Test initial default
+    expect(getExtraSlotPrice()).toBeGreaterThanOrEqual(0);
+
+    // Admin updates price to 120,000 VND
+    setExtraSlotPrice(120000);
+    expect(getExtraSlotPrice()).toBe(120000);
+
+    // Reset back to default 100,000 VND
+    setExtraSlotPrice(100000);
+    expect(getExtraSlotPrice()).toBe(100000);
   });
 });
 

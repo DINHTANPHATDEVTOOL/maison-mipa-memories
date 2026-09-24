@@ -46,6 +46,8 @@ export interface CreateBookingRequest {
   customerNote?: string;
   conceptId?: string;
   conceptIds?: string[];
+  slotsCount?: number;
+  extraSlotPrice?: number;
 }
 
 // In-memory store for explicit demo mode and offline unit tests
@@ -133,14 +135,18 @@ export async function resolveEntityUuid(
   serviceId?: string
 ): Promise<string> {
   if (!idOrSlug) return idOrSlug;
-  if (UUID_REGEX.test(idOrSlug)) return idOrSlug;
 
   try {
     if (isSupabaseConfigured()) {
       let query = supabase.from(table).select('id');
       if (table === 'studio_rooms') {
-        query = query.or(`slug.eq.${idOrSlug},code.eq.${idOrSlug}`);
+        if (UUID_REGEX.test(idOrSlug)) {
+          query = query.or(`id.eq.${idOrSlug},slug.eq.${idOrSlug},code.eq.${idOrSlug}`);
+        } else {
+          query = query.or(`slug.eq.${idOrSlug},code.eq.${idOrSlug}`);
+        }
       } else {
+        if (UUID_REGEX.test(idOrSlug)) return idOrSlug;
         query = query.eq('slug', idOrSlug);
         if (table === 'packages' && serviceId && UUID_REGEX.test(serviceId)) {
           query = (query as any).eq('service_id', serviceId);
@@ -151,10 +157,20 @@ export async function resolveEntityUuid(
       if (data?.id && UUID_REGEX.test(data.id)) {
         return data.id;
       }
+
+      // If studio_rooms record wasn't found by that ID/slug/code, fallback to the first active studio room
+      if (table === 'studio_rooms') {
+        const { data: firstActive } = await supabase.from('studio_rooms').select('id').eq('active', true).limit(1).maybeSingle();
+        if (firstActive?.id && UUID_REGEX.test(firstActive.id)) {
+          return firstActive.id;
+        }
+      }
     }
   } catch {
     // fallback
   }
+
+  if (UUID_REGEX.test(idOrSlug)) return idOrSlug;
 
   // Fallback to INITIAL_PACKAGES for service-specific packages in demo or offline mode
   if (table === 'packages' && serviceId) {
@@ -329,6 +345,8 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     packageItem: pkg,
     addons: selectedAddons,
     promotion: matchedPromo,
+    slotsCount: request.slotsCount || 1,
+    extraSlotPrice: request.extraSlotPrice,
   });
 
   const dateCompact = request.date.replace(/-/g, '').slice(2);
@@ -360,6 +378,8 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
     discount: pricing.discountTotal,
     depositAmount: pricing.depositAmount,
     totalAmount: pricing.totalAmount,
+    extraSlotTotal: pricing.extraSlotTotal,
+    extraSlotsCount: pricing.extraSlotsCount,
     paymentStatus: 'UNPAID',
     bookingStatus: 'CONSULTATION_REQUESTED',
     customerNote: request.customerNote,
@@ -730,6 +750,7 @@ export async function requestBookingReschedule(
   newSlot: string,
   reason?: string
 ): Promise<Booking> {
+  let updatedBooking: Booking;
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('request_booking_reschedule', {
       p_booking_id: bookingId,
@@ -738,34 +759,221 @@ export async function requestBookingReschedule(
       p_reason: reason || null,
     });
     if (error) throw new Error(error.message);
-    return mapDatabaseRecordToDomain(data as any);
+    updatedBooking = mapDatabaseRecordToDomain(data as any);
+  } else {
+    const updated = updateBookingInMemory(bookingId, {
+      rescheduleRequestedAt: new Date().toISOString(),
+      rescheduleRequestedDate: newDate,
+      rescheduleRequestedSlot: newSlot,
+      rescheduleRequestedReason: reason,
+    });
+    if (!updated) throw new Error('Booking not found');
+    updatedBooking = updated;
   }
 
-  const updated = updateBookingInMemory(bookingId, {
-    rescheduleRequestedAt: new Date().toISOString(),
-    rescheduleRequestedDate: newDate,
-    rescheduleRequestedSlot: newSlot,
-    rescheduleRequestedReason: reason,
-  });
-  if (!updated) throw new Error('Booking not found');
-  return updated;
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    supabase.functions.invoke('send-email', {
+      body: {
+        bookingId,
+        action: 'RESCHEDULE',
+        newDate,
+        newSlot,
+        reason: reason || undefined,
+      },
+    }).catch(err => console.warn('send-email reschedule trigger:', err?.message));
+  }
+
+  return updatedBooking;
 }
 
 export async function requestBookingCancel(bookingId: string, reason?: string): Promise<Booking> {
+  let updatedBooking: Booking;
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('request_booking_cancel', {
       p_booking_id: bookingId,
       p_reason: reason || undefined,
     });
     if (error) throw new Error(error.message);
+    updatedBooking = mapDatabaseRecordToDomain(data as any);
+  } else {
+    const updated = updateBookingInMemory(bookingId, {
+      cancelRequestedAt: new Date().toISOString(),
+      cancelRequestedReason: reason,
+    });
+    if (!updated) throw new Error('Booking not found');
+    updatedBooking = updated;
+  }
+
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    supabase.functions.invoke('send-email', {
+      body: {
+        bookingId,
+        action: 'CANCEL_REQUEST',
+        reason: reason || undefined,
+      },
+    }).catch(err => console.warn('send-email cancel request trigger:', err?.message));
+  }
+
+  return updatedBooking;
+}
+
+export async function rejectBookingCancel(bookingId: string, staffNote?: string): Promise<Booking> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    const { data, error } = await supabase.rpc('reject_booking_cancel', {
+      p_booking_id: bookingId,
+      p_staff_note: staffNote || null,
+    });
+    if (error) throw new Error(error.message);
     return mapDatabaseRecordToDomain(data as any);
   }
 
   const updated = updateBookingInMemory(bookingId, {
-    cancelRequestedAt: new Date().toISOString(),
-    cancelRequestedReason: reason,
+    cancelRequestedAt: undefined,
+    cancelRequestedReason: undefined,
+    staffNote: staffNote ? `[Bác bỏ yêu cầu hủy] ${staffNote}` : undefined,
   });
   if (!updated) throw new Error('Booking not found');
+  return updated;
+}
+
+/**
+ * Manager/Admin cancels a booking directly with mandatory reason.
+ * Sets status to CANCELLED, records reason, and dispatches email notification to customer.
+ */
+export async function cancelBookingByManager(bookingId: string, reason: string): Promise<Booking> {
+  const trimmedReason = reason?.trim();
+  if (!trimmedReason) {
+    throw new Error('Lý do hủy lịch không được để trống.');
+  }
+
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    let resultBooking: Booking | null = null;
+    const { data, error } = await (supabase.rpc as any)('cancel_booking_by_manager', {
+      p_booking_id: bookingId,
+      p_reason: trimmedReason,
+    });
+
+    if (error) {
+      console.warn('cancel_booking_by_manager RPC fallback:', error.message);
+      resultBooking = await updateBookingStatus(bookingId, 'CANCELLED', `[HỦY BỞI QUẢN LÝ/ADMIN] ${trimmedReason}`);
+      await (supabase.from('bookings').update as any)({
+        cancel_requested_reason: trimmedReason,
+        cancel_requested_at: new Date().toISOString(),
+      })
+        .eq('id', bookingId);
+    } else {
+      resultBooking = mapDatabaseRecordToDomain(data as any);
+    }
+
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          bookingId,
+          action: 'CANCEL',
+          reason: trimmedReason,
+        },
+      });
+    } catch (e: any) {
+      console.warn('Failed to invoke send-email for cancellation:', e?.message);
+    }
+
+    return resultBooking;
+  }
+
+  // In-Memory store
+  const existing = inMemoryBookings.find(b => b.id === bookingId || b.bookingCode === bookingId);
+  if (!existing) {
+    throw new Error('Booking not found in memory store.');
+  }
+
+  const updated: Booking = {
+    ...existing,
+    bookingStatus: 'CANCELLED',
+    cancelRequestedReason: trimmedReason,
+    cancelRequestedAt: existing.cancelRequestedAt || new Date().toISOString(),
+    staffNote: existing.staffNote
+      ? `${existing.staffNote}\n[HỦY BỞI QUẢN LÝ/ADMIN] ${trimmedReason}`
+      : `[HỦY BỞI QUẢN LÝ/ADMIN] ${trimmedReason}`,
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
+  return updated;
+}
+
+/**
+ * Manager/Admin approves a customer cancellation request.
+ */
+export async function approveBookingCancel(bookingId: string, staffNote?: string): Promise<Booking> {
+  return cancelBookingByManager(bookingId, staffNote || 'Quản lý duyệt yêu cầu hủy lịch của khách');
+}
+
+/**
+ * Manager/Admin approves customer's reschedule request.
+ * Updates start_at/slot, clears reschedule request flags, and dispatches rescheduled email to customer.
+ */
+export async function approveBookingReschedule(bookingId: string, staffNote?: string): Promise<Booking> {
+  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+    let resultBooking: Booking | null = null;
+    const { data, error } = await (supabase.rpc as any)('approve_booking_reschedule', {
+      p_booking_id: bookingId,
+      p_staff_note: staffNote || null,
+    });
+
+    if (error) {
+      console.warn('approve_booking_reschedule RPC fallback:', error.message);
+      const { data: bRec } = await supabase.from('bookings').select('*').eq('id', bookingId).single();
+      if (bRec && (bRec as any).reschedule_requested_date) {
+        await (supabase.from('bookings').update as any)({
+          reschedule_requested_at: null,
+          reschedule_requested_date: null,
+          reschedule_requested_slot: null,
+          reschedule_requested_reason: null,
+          staff_note: staffNote ? `${bRec.staff_note || ''}\n${staffNote}`.trim() : bRec.staff_note,
+          updated_at: new Date().toISOString(),
+        }).eq('id', bookingId);
+      }
+      const { data: updatedRec } = await supabase.from('bookings').select('*, booking_assignments(*)').eq('id', bookingId).single();
+      if (!updatedRec) throw new Error('Booking not found');
+      resultBooking = mapDatabaseRecordToDomain(updatedRec);
+    } else {
+      resultBooking = mapDatabaseRecordToDomain(data as any);
+    }
+
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          bookingId,
+          action: 'RESCHEDULE',
+          reason: staffNote,
+        },
+      });
+    } catch (e: any) {
+      console.warn('Failed to invoke send-email for reschedule:', e?.message);
+    }
+
+    return resultBooking;
+  }
+
+  // In-Memory store
+  const existing = inMemoryBookings.find(b => b.id === bookingId || b.bookingCode === bookingId);
+  if (!existing) {
+    throw new Error('Booking not found in memory store.');
+  }
+
+  const updated: Booking = {
+    ...existing,
+    bookingDate: existing.rescheduleRequestedDate || existing.bookingDate,
+    startTime: existing.rescheduleRequestedSlot ? existing.rescheduleRequestedSlot.split(' - ')[0] : existing.startTime,
+    rescheduleRequestedAt: undefined,
+    rescheduleRequestedDate: undefined,
+    rescheduleRequestedSlot: undefined,
+    rescheduleRequestedReason: undefined,
+    staffNote: staffNote ? `${existing.staffNote || ''}\n${staffNote}`.trim() : existing.staffNote,
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryBookings = inMemoryBookings.map(b => (b.id === existing.id ? updated : b));
   return updated;
 }
 

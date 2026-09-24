@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  Filter,
   RefreshCw,
-  Clock,
   Sparkles,
   Layers,
 } from 'lucide-react';

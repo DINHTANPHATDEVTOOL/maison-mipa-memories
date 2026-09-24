@@ -266,6 +266,12 @@ export const CrmFollowUpDashboard: React.FC = () => {
           {' '}({displayedTasks.length})
         </h3>
 
+        {error && (
+          <div style={{ padding: '0.8rem 1rem', marginBottom: '1rem', backgroundColor: '#FEE2E2', border: '1px solid #F87171', borderRadius: '10px', color: '#991B1B', fontSize: '0.9rem' }}>
+            {error}
+          </div>
+        )}
+
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem 0', color: '#8C6E53' }}>
             Đang tải dữ liệu nhiệm vụ...

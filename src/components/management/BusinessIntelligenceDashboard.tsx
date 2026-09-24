@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
-  BarChart3,
   Calendar,
-  Users,
-  DollarSign,
-  Camera,
   Layers,
   Clock,
-  ArrowRight,
-  Filter,
   RefreshCw,
   AlertCircle,
-  CheckCircle2,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -34,8 +27,8 @@ import type {
 
 export const BusinessIntelligenceDashboard: React.FC = () => {
   const [preset, setPreset] = useState<DateRangePreset>('this_month');
-  const [customStart, setCustomStart] = useState<string>('');
-  const [customEnd, setCustomEnd] = useState<string>('');
+  const [customStart, _setCustomStart] = useState<string>('');
+  const [customEnd, _setCustomEnd] = useState<string>('');
 
   const [summary, setSummary] = useState<BusinessDashboardSummary | null>(null);
   const [funnel, setFunnel] = useState<BookingFunnelMetrics | null>(null);

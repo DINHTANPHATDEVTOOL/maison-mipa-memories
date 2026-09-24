@@ -37,6 +37,11 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260921000002_site_media_and_custom_concepts.sql',
     '20260921000003_restrict_site_assets_to_root_owner.sql',
     '20260921000004_allow_authenticated_avatar_upload.sql',
+    '20260924000001_fix_rpc_aggregates_and_overloads.sql',
+    '20260924000002_add_admin_booking_email_alert.sql',
+    '20260924000003_enrich_booking_email_alert_and_direct_link.sql',
+    '20260924000004_cancellation_request_alert_and_admin_workflow.sql',
+    '20260924000005_admin_cancel_and_email_notification.sql',
   ];
 
   const EXPECTED_TABLES = [

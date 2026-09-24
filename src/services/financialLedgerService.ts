@@ -59,11 +59,11 @@ export async function recordPaymentReceipt(
     const { data, error } = await supabase.rpc('record_booking_payment_receipt', {
       p_booking_id: input.bookingId,
       p_transaction_type: input.transactionType,
+      p_direction: input.transactionType === 'REFUND' ? 'OUTFLOW' : 'INFLOW',
       p_amount: input.amount,
       p_method: input.method,
       p_reference_note: input.referenceNote || null,
       p_idempotency_key: input.idempotencyKey || null,
-      p_received_at: input.receivedAt || null,
     });
 
     if (error) {

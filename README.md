@@ -1,181 +1,182 @@
 # Maison MIPA Memories 📸
 
-> Studio Chụp Ảnh Phong Cách Pháp & Nền Tảng Đặt Lịch Online
+> **Tiệm Ảnh Nghệ Thuật Phong Cách Pháp — Living French Atelier**  
+> *"Nhà là nơi lưu giữ ký ức"*
 
-![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?logo=vite)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)
-![AI Code Review](https://img.shields.io/badge/AI%20Review-GPT--4o-00A67E?logo=openai)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-Maison MIPA Memories là nền tảng web ứng dụng dành cho studio chụp ảnh phong cách Pháp ấm áp & tinh tế, tích hợp quy trình đặt lịch trực tuyến, quản lý lịch chụp, CRM khách hàng, và cổng thông tin dành cho Staff / Admin / Khách hàng.
-
----
-
-## 🤖 Tích Hợp AI & GPT Code Review
-
-Repository này được cấu hình sẵn để **GPT (ChatGPT, GitHub Actions, AI Agent)** có thể:
-1. **Tự động Review Pull Request**: Thông qua [GitHub Actions AI Code Review](.github/workflows/ai-code-review.yml).
-2. **Thao tác quyền đầy đủ (Đọc, Commit, Tạo PR, Merge)**: Cấp quyền qua GitHub Fine-grained Personal Access Token.
-3. **Tương tác trực tiếp qua CodeRabbit AI hoặc ChatGPT web**.
-
-👉 **Xem hướng dẫn chi tiết tại**: [GPT_INTEGRATION_GUIDE.md](GPT_INTEGRATION_GUIDE.md)
+[![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?logo=vite)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%20%2F%20Supabase-3ECF8E?logo=supabase)](https://supabase.com/)
+[![Tests](https://img.shields.io/badge/Tests-Vitest%20%7C%20620%20Passed-green?logo=vitest)](https://vitest.dev/)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 ---
 
-## ✨ Tính Năng Nổi Bật
+## 🏛️ Giới Thiệu Thương Hiệu & Định Vị
 
-- **Booking Wizard**: Quy trình đặt lịch chụp ảnh trực quan (chọn gói, dịch vụ thêm, chọn ngày/giờ, thông tin cá nhân & gửi yêu cầu tư vấn). Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
-- **Public Showcase**: Hero section sang trọng, danh mục dịch vụ (Couple, Portrait, Family, Graduation, Concept Signature), portfolio ảnh chất lượng cao.
-- **Portals Đa Vai Trò**:
-  - **Khách hàng**: Tra cứu lịch hẹn, trạng thái hợp đồng, link tải album ảnh.
-  - **Nhân viên (Staff)**: Xem lịch làm việc theo ngày, check-in buổi chụp, cập nhật trạng thái trả ảnh.
-  - **Quản lý (Admin & Manager)**: Studio calendar, doanh thu, thống kê, CRM khách hàng.
-- **State Machine & SMS Gateway Mock**: Mô phỏng gửi SMS xác nhận và quy trình xử lý đơn đặt lịch chuẩn.
+Trong tiếng Pháp, **Maison** có nghĩa là *Ngôi Nhà*. **Maison MIPA Memories** định vị là một **tiệm ảnh nghệ thuật (Atelier)** mang phong cách Pháp cổ điển, ấm cúng và tinh tế tại Sài Gòn, nơi từng khung hình là một tác phẩm ghi dấu cảm xúc chân thật, độc bản và trường tồn cùng thời gian.
 
----
-
-## 🛠️ Công Nghệ Sử Dụng
-
-- **Frontend**: React 19, TypeScript
-- **Bundler**: Vite
-- **Styling**: Vanilla CSS (tối ưu hiệu năng, responsive mượt mà)
-- **Icons**: Lucide React
-- **Hiệu ứng**: Canvas Confetti
-- **Linter**: Oxlint
+- **Không gian**: Tiệm ảnh nghệ thuật riêng tư với ánh sáng tự nhiên, góc cửa sổ Pháp lãng mạn và tone màu nâu ấm cinematic.
+- **Địa chỉ**: 88 Phan Sào Nam, Phường 11, Quận Tân Bình, TP. Hồ Chí Minh
+- **Hotline / Zalo**: 0966 616 546
+- **Email**: maisonmipamemories@gmail.com
+- **Website chính thức**: [https://maisonmipa.io.vn](https://maisonmipa.io.vn)
 
 ---
 
-## 🚀 Khởi Chạy Dự Án
+## 🎨 Danh Mục Dịch Vụ Nghệ Thuật
 
-### Cài đặt thư viện:
+Tiệm ảnh tập trung chuyên sâu vào các dòng nhiếp ảnh nghệ thuật mang chiều sâu cảm xúc:
+
+1. **Chân Dung Nghệ Thuật & Nàng Thơ**: Tôn vinh nét đẹp, thần thái và cá tính độc bản qua ánh sáng tự nhiên dịu dàng.
+2. **Couple & Kỷ Niệm Tình Yêu**: Khung hình tự nhiên, ngọt ngào và rung cảm lãng mạn của hai bạn.
+3. **Áo Dài Truyền Thống & Duyên Dáng**: Nét đẹp thanh lịch, trang nhã của tà áo dài Việt Nam kết hợp cùng không gian hoài niệm.
+4. **Kỷ Yếu & Tốt Nghiệp Thanh Xuân**: Đánh dấu mốc son rực rỡ tuổi trẻ trong trang phục cử nhân thanh lịch.
+5. **Tiệc Sinh Nhật & Tuổi Mới**: Ánh nến lung linh, hoa tươi và bánh kem xinh xắn ghi dấu ngày sinh nhật đáng nhớ.
+6. **Gia Đình Sum Vầy**: Gắn kết các thế hệ trong không gian ấm áp, thân thuộc như chính phòng khách ngôi nhà bạn.
+
+---
+
+## 📅 Quy Trình Đặt Lịch V2 (Booking Flow V2)
+
+Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
+
+```text
+Khách hàng chọn Dịch vụ & Concept
+      ↓
+Chọn Ngày & Giờ chụp tại Tiệm ảnh (Atelier)
+      ↓
+Nhập Thông tin & Gửi Yêu Cầu Tư Vấn (CONSULTATION_REQUESTED)
+      ↓
+Nhân viên tư vấn liên hệ, trao đổi chi tiết & hướng dẫn cọc
+      ↓
+Nhân viên ủy quyền xác nhận cọc thủ công (CONFIRMED)
+      ↓
+Buổi chụp diễn ra tại Tiệm ảnh → Hậu kỳ → Bàn giao Album
+```
+
+- **Tối ưu hóa trải nghiệm**: Khách hàng không cần phải chọn phòng chụp hay setup bối cảnh phức tạp; toàn bộ không gian atelier được tiệm chuẩn bị riêng tư và chu đáo theo từng lịch hẹn.
+- **Bảo toàn tính liên tục (Booking Continuity)**: Lưu trữ bản nháp (draft session) an toàn, cho phép khách hàng đăng nhập và tiếp tục hoàn thiện đơn đặt lịch mà không bị mất dữ liệu.
+
+---
+
+## 🛡️ Kiến Trúc Kỹ Thuật & Cơ Sở Dữ Liệu
+
+### 1. Công nghệ (Technology Stack)
+- **Frontend Core**: React 19, TypeScript 6, Vite 8
+- **Styling**: Vanilla CSS tối ưu tải trang, responsive mượt mà trên mọi thiết bị
+- **Animation & 3D**: Three.js, React Three Fiber, GSAP
+- **Database & Backend**: PostgreSQL 15+ trên nền tảng Supabase
+- **Kiểm thử**: Vitest (72 test suites, 620 tests), Playwright (E2E Smoke Tests)
+- **Code Quality**: Oxlint (High-performance linter), TypeCheck nghiêm ngặt (`tsc -b`)
+
+### 2. An toàn dữ liệu & Concurrency Control
+- **Chống Đặt Trùng Giờ (Anti-Double-Booking)**: Sử dụng PostgreSQL GiST Exclusion Constraint trên khoảng thời gian nửa mở `[start_at, end_at)` kết hợp phòng atelier, ngăn chặn triệt để xung đột lịch chụp ở tầng database.
+- **Advisory Locks**: Sử dụng `pg_advisory_xact_lock` cho các giao dịch phân bổ nhân sự và tài nguyên thiết bị, tránh tình trạng race-condition khi nhiều quản lý cùng thao tác đồng thời.
+- **Row-Level Security (RLS)**: Phân quyền dữ liệu nghiêm ngặt giữa Khách hàng (Customer), Tiếp tân (Receptionist), Nhiếp ảnh gia (Photographer), Quản lý (Manager) và Quản trị viên (Admin).
+- **PostgREST RPC Architecture**: Các hàm nghiệp vụ báo cáo, phân tích tài chính và vận hành được tối ưu bằng Common Table Expressions (CTE) ngăn ngừa lỗi Nested Aggregates.
+
+---
+
+## 🚀 Hướng Dẫn Cài Đặt & Phát Triển
+
+### 1. Yêu cầu môi trường
+- **Node.js**: >= 20.x
+- **npm**: >= 10.x
+
+### 2. Cài đặt thư viện
 ```bash
 npm install
 ```
 
-### Chạy môi trường phát triển (Dev):
+### 3. Cấu hình biến môi trường (`.env`)
+Sao chép `.env.example` sang `.env.local` hoặc cấu hình các biến cơ bản:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_ENABLE_DEMO_MODE=true
+```
+
+### 4. Chạy môi trường phát triển (Dev)
 ```bash
 npm run dev
 ```
+Ứng dụng sẽ khởi chạy tại: `http://localhost:5173`
 
-### Build cho môi trường sản phẩm:
+### 5. Build cho Production
 ```bash
 npm run build
 ```
+Quá trình build bao gồm:
+1. `tsc -b`: Kiểm tra toàn bộ kiểu dữ liệu TypeScript
+2. `scripts/generate-sitemap.js`: Tạo sitemap.xml động với đầy đủ canonical routes
+3. `vite build`: Đóng gói bundle tối ưu (Index bundle trong giới hạn cho phép)
 
-### Typecheck độc lập:
+---
+
+## 🧪 Kiểm Thử & Quality Gates
+
+Dự án áp dụng bộ quy chuẩn kiểm thử toàn diện:
+
 ```bash
-npm run typecheck
-```
-
-### Kiểm thử Unit & Integration (Vitest):
-```bash
-# Chạy interactive
-npm run test
-
-# Chạy một lần (CI mode)
+# Chạy toàn bộ 72 test suites bằng Vitest
 npm run test:run
-```
 
-### Kiểm thử E2E Smoke Tests (Playwright):
-```bash
+# Kiểm tra cú pháp và kiểu dữ liệu TypeScript
+npm run typecheck
+
+# Quét mã nguồn với linter tốc độ cao
+npm run lint
+
+# Xác minh toàn vẹn migrations và hợp đồng RPC với Supabase
+npm run verify:db-contracts
+
+# Kiểm tra tính tương thích giữa kiểu Typescript và Database Schema
+npm run db:types:check
+
+# Kiểm tra ngân sách dung lượng bundle (Bundle Budget Check)
+npm run check:budget
+
+# Quét phát hiện mã bí mật và secrets trước khi commit
+npm run scan:secrets
+
+# Chạy kiểm thử End-to-End với Playwright
 npm run test:e2e
 ```
 
 ---
 
-## 🗄️ Kiến Trúc Cơ Sở Dữ Liệu & Supabase (Issue #1 & #2)
-
-Hệ thống sử dụng **PostgreSQL + Supabase** làm nguồn dữ liệu chính thức duy nhất (Single Source of Truth) cho Đặt lịch, Catalog, RBAC và Ngăn chặn Đặt lịch trùng lặp.
-
-### 1. Biến Môi Trường Cần Thiết (`.env`):
-Sao chép `.env.example` sang `.env.local` hoặc `.env`:
-```bash
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-VITE_ENABLE_DEMO_MODE=false
-```
-
-### 2. Chuỗi Migration:
-- Migration #1: `supabase/migrations/20260908000001_auth_rbac_schema.sql` (Auth, Profiles, RBAC, RLS).
-- Migration #2: `supabase/migrations/20260908000002_booking_persistence_schema.sql` (Services, Packages, Addons, Studio Rooms, Bookings, Anti-Double-Booking Exclusion Constraint, Authoritative RPC `create_booking`).
-- Migration #3: `supabase/migrations/20260908000003_otp_payment_schema.sql` (OTP Challenges with attempt locks/expiry, Payments table with backend-enforced amounts, RPC `create_deposit_payment`, `mark_transfer_submitted`, and idempotent `confirm_manual_payment`).
-
-### 3. Thiết Lập Local Supabase & Reset Database:
-```bash
-# Khởi chạy local Supabase
-npx supabase start
-
-# Áp dụng toàn bộ migrations
-npx supabase migration up
-
-# Reset database về trạng thái sạch kèm seed data
-npx supabase db reset
-```
-
-### 4. Supabase Edge Functions & Server Secrets:
-Hệ thống sử dụng các Edge Functions server-side đảm bảo an toàn secrets và xử lý logic tự động:
-- `supabase/functions/request-otp/`: Tạo OTP 6 số CSPRNG, hash SHA-256 kèm server pepper, kiểm tra rate limit & cooldown 60s, dispatch qua SMS Provider (eSMS / SpeedSMS).
-- `supabase/functions/verify-otp/`: Xác thực OTP, khóa challenge sau 5 lần nhập sai, kiểm tra hạn 5 phút và chống dùng lại mã đã tiêu thụ.
-- `supabase/functions/send-email/`: Gửi email xác nhận đặt lịch & thông tin ca chụp khi đơn được xác nhận cọc.
-- `supabase/functions/drive-delivery/`: Tự động khởi tạo thư mục Google Drive workspace cho khách hàng.
-
-Thiết lập secrets trên Supabase:
-```bash
-npx supabase secrets set \
-  SMS_PROVIDER=esms \
-  SMS_API_KEY=your_esms_key \
-  SMS_SECRET=your_esms_secret \
-  SMS_BRANDNAME=MIPA \
-  OTP_PEPPER=your_secure_server_pepper
-```
-
-### 5. Cơ Chế Chống Double-Booking (P0):
-Được bảo vệ trực tiếp ở tầng Database thông qua **PostgreSQL Exclusion Constraint**:
-```sql
-ALTER TABLE public.bookings
-ADD CONSTRAINT prevent_double_booking
-EXCLUDE USING gist (
-  studio_room_id WITH =,
-  tstzrange(start_at, end_at, '[)') WITH &&
-)
-WHERE (booking_status NOT IN ('CANCELLED'));
-```
-- **Interval nửa mở `[)`**: Cho phép các ca chụp liền kề (10:00–11:00 và 11:00–12:00) hoạt động trơn tru.
-- **Filter `booking_status NOT IN ('CANCELLED')`**: Tự động giải phóng khung giờ khi đơn trước bị huỷ.
-- **RPC `create_booking`**: Tính toán giá dịch vụ, tiền cọc và thời lượng authoritatively trên server. Booking Flow V2 uses consultation-first booking with manual deposit confirmation by authorized staff. Online payment integrations are legacy and are not part of the active customer workflow.
-
-
----
-
-## 🛡️ CI Quality Gate & Quy Trình Đóng Góp
-
-Dự án áp dụng **Quality Gate** bắt buộc trên mọi Pull Request:
-- **GitHub Actions CI Workflow** (`.github/workflows/ci.yml`): Tự động chạy `npm ci`, `npm run lint`, `npm run build`, `npm run test:run`, `npm run test:e2e`.
-- **Merge Contract**: Chỉ merge khi toàn bộ checks xanh và review đạt chuẩn qua phương thức **Squash Merge**.
-
-👉 **Xem hướng dẫn chi tiết tại**: [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## 📂 Cấu Trúc Thư Mục
+## 📁 Cấu Trúc Thư Mục Dự Án
 
 ```
-├── public/                 # Favicon, robots.txt, sitemap, hình ảnh tĩnh
+├── public/                 # Favicon, robots.txt, sitemap.xml, assets tĩnh chính thức
+├── scripts/                # Scripts kiểm thử schema, sitemap, bundle budget, security scan
 ├── src/
-│   ├── assets/             # Hình ảnh và media
-│   ├── components/         # Các components React (Navbar, Footer, Wizard, Portals)
-│   │   ├── admin/          # Giao diện Admin
-│   │   ├── auth/           # Modal đăng nhập / Demo role
-│   │   ├── booking/        # Wizard đặt lịch
-│   │   ├── customer/       # Giao diện khách hàng
-│   │   ├── management/     # CRM & Studio Calendar
-│   │   ├── public/         # Giao diện trang chủ (Hero, Packages, Portfolio...)
-│   │   └── staff/          # Giao diện nhân viên
-│   ├── types/              # TypeScript definitions
-│   ├── utils/              # State machine, SMS Gateway
-│   ├── App.tsx             # Component chính điều phối view
-│   └── main.tsx            # Entry point
-├── .github/workflows/      # GitHub Actions CI & AI Code Review
-└── GPT_INTEGRATION_GUIDE.md # Hướng dẫn cấp quyền và tương tác với GPT
+│   ├── components/         # Các components React theo phân hệ chức năng
+│   │   ├── admin/          # Giao diện quản trị hệ thống
+│   │   ├── auth/           # Quản lý phiên đăng nhập & phân quyền RBAC
+│   │   ├── booking/        # Quy trình Booking Wizard 6 bước V2
+│   │   ├── common/         # Image Editor, Dialogs, FocusTrap a11y
+│   │   ├── customer/       # Cổng thông tin khách hàng & tra cứu album
+│   │   ├── management/     # CRM, Lịch vận hành, Quản lý tài chính, BI Dashboard
+│   │   ├── public/         # Giao diện công khai: Trang chủ, 3D Atelier, Portfolio, FAQ
+│   │   └── staff/          # Giao diện dành riêng cho Photographer & Tiếp tân
+│   ├── config/             # Cấu hình website, metadata, pricing source of truth
+│   ├── context/            # React Contexts (Auth, Site Assets)
+│   ├── lib/                # Khởi tạo Supabase client & utilities
+│   ├── pages/              # Các trang chính của ứng dụng
+│   ├── services/           # Tầng nghiệp vụ (Booking, Portfolio, CRM, Ledger, Staff)
+│   ├── types/              # Định nghĩa Typescript toàn diện
+│   └── utils/              # Helper functions, format tiền tệ, Correlation ID
+├── supabase/
+│   ├── functions/          # Edge Functions (request-otp, verify-otp, send-email)
+│   └── migrations/         # 32 tệp SQL migrations kiểm soát toàn bộ vòng đời cơ sở dữ liệu
+└── README.md
 ```
+
+---
+
+## 📄 Bản Quyền & Giấy Phép
+
+Dự án thuộc sở hữu của **Tiệm Ảnh Maison MIPA Memories**. Mọi quyền được bảo lưu.
+Mã nguồn phát hành theo giấy phép MIT.

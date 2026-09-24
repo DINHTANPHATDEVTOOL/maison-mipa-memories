@@ -20,6 +20,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const INTERNAL_WORKER_SECRET = Deno.env.get('INTERNAL_WORKER_SECRET') || '';
 
+const STUDIO_NOTIFICATION_EMAIL = Deno.env.get('STUDIO_NOTIFICATION_EMAIL') || Deno.env.get('EMAIL_REPLY_TO') || 'maisonmipamemories@gmail.com';
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -71,13 +73,217 @@ serve(async (req: Request) => {
     // Read payload if triggered by database webhook, client dispatch, or batch worker
     let targetOutboxId: string | null = null;
     let targetBookingId: string | null = null;
+    let targetAction: string | null = null;
+    let targetReason: string | null = null;
+    let targetNewDate: string | null = null;
+    let targetNewSlot: string | null = null;
+
     if (req.headers.get('content-type')?.includes('application/json')) {
       try {
         const body = await req.json();
         targetOutboxId = body.outboxId || body.record?.id || null;
         targetBookingId = body.bookingId || null;
+        targetAction = (body.action || body.eventType || '').toUpperCase().trim();
+        targetReason = body.reason || null;
+        targetNewDate = body.newDate || body.date || null;
+        targetNewSlot = body.newSlot || body.slot || null;
       } catch {
         // Ignored, proceed to queue scan
+      }
+    }
+
+    // Customer authorization check if targetBookingId is provided
+    if (!isStaffOrAdmin && authenticatedUser && targetBookingId) {
+      const { data: bOwner } = await supabaseAdmin
+        .from('bookings')
+        .select('id, customer_id, customer_email')
+        .eq('id', targetBookingId)
+        .maybeSingle();
+
+      if (!bOwner || (bOwner.customer_id !== authenticatedUser.id && bOwner.customer_email !== authenticatedUser.email)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized: Booking does not belong to you' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Helper to fetch rich booking record for generating outbox items
+    let cachedBookingRecord: any = null;
+    const getBookingRecord = async (bId: string) => {
+      if (cachedBookingRecord && cachedBookingRecord.id === bId) return cachedBookingRecord;
+      const { data: rec } = await supabaseAdmin
+        .from('bookings')
+        .select(`
+          id, booking_code, customer_id, customer_name, customer_phone, customer_email,
+          customer_note, cancel_requested_reason, start_at, total_amount, deposit_amount, subtotal,
+          services:service_id(name), packages:package_id(name), studio_rooms:studio_room_id(name),
+          booking_concepts(concepts(name)), booking_addons(addons(name, price))
+        `)
+        .eq('id', bId)
+        .maybeSingle();
+      cachedBookingRecord = rec;
+      return rec;
+    };
+
+    // If an explicit action is provided (e.g. CANCEL, RESCHEDULE, CANCEL_REQUEST), enqueue targeted notifications
+    if (targetBookingId && targetAction) {
+      const bRec = await getBookingRecord(targetBookingId);
+      if (bRec) {
+        const rawConcepts = (bRec.booking_concepts as any[]) || [];
+        const conceptList = rawConcepts.map(c => c.concepts?.name).filter(Boolean);
+        const rawAddons = (bRec.booking_addons as any[]) || [];
+        const addonList = rawAddons.map(a => a.addons?.name).filter(Boolean);
+
+        const basePayload = {
+          bookingId: bRec.id,
+          bookingCode: bRec.booking_code,
+          customerName: bRec.customer_name || 'Quý khách',
+          customerPhone: bRec.customer_phone || '',
+          customerEmail: bRec.customer_email || '',
+          customerNote: bRec.customer_note || '',
+          serviceName: (bRec.services as any)?.name || 'Dịch Vụ Tiệm Ảnh',
+          packageName: (bRec.packages as any)?.name || 'Gói Chụp Tiệm Ảnh',
+          studioName: (bRec.studio_rooms as any)?.name || 'Không gian Tiệm Ảnh',
+          conceptNames: conceptList.length > 0 ? conceptList.join(', ') : 'Theo tư vấn studio',
+          addonNames: addonList.length > 0 ? addonList.join(', ') : 'Không có',
+          startAt: bRec.start_at,
+          totalAmount: bRec.total_amount || bRec.subtotal || 0,
+          depositAmount: bRec.deposit_amount || 0,
+          directLink: `https://maisonmipa.io.vn/account?tab=bookings&bookingCode=${bRec.booking_code}`,
+        };
+
+        if ((targetAction === 'CANCEL' || targetAction === 'BOOKING_CANCELLED') && bRec.customer_email) {
+          const finalReason = targetReason || bRec.cancel_requested_reason || 'Đã duyệt hủy theo yêu cầu';
+          await supabaseAdmin.from('notification_outbox').insert({
+            event_type: 'BOOKING_CANCELLED',
+            recipient_user_id: bRec.customer_id,
+            recipient_email: bRec.customer_email,
+            entity_type: 'BOOKING',
+            entity_id: bRec.id,
+            template_key: 'booking_cancelled',
+            payload: { ...basePayload, cancelReason: finalReason, reason: finalReason },
+            idempotency_key: `booking-cancelled-direct:${bRec.id}:${Date.now()}`,
+            status: 'PENDING',
+          });
+        } else if ((targetAction === 'RESCHEDULE' || targetAction === 'BOOKING_RESCHEDULED') && bRec.customer_email) {
+          await supabaseAdmin.from('notification_outbox').insert({
+            event_type: 'BOOKING_RESCHEDULED',
+            recipient_user_id: bRec.customer_id,
+            recipient_email: bRec.customer_email,
+            entity_type: 'BOOKING',
+            entity_id: bRec.id,
+            template_key: 'booking_rescheduled',
+            payload: {
+              ...basePayload,
+              newDate: targetNewDate || basePayload.startAt,
+              newSlot: targetNewSlot || 'Theo khung giờ đã thỏa thuận',
+              rescheduleRequestedDate: targetNewDate,
+              rescheduleRequestedSlot: targetNewSlot,
+              reason: targetReason,
+            },
+            idempotency_key: `booking-rescheduled-direct:${bRec.id}:${Date.now()}`,
+            status: 'PENDING',
+          });
+        } else if (targetAction === 'CANCEL_REQUEST' || targetAction === 'BOOKING_CANCEL_REQUESTED') {
+          const reason = targetReason || bRec.cancel_requested_reason || 'Khách gửi yêu cầu hủy';
+          // 1. Studio alert
+          await supabaseAdmin.from('notification_outbox').insert({
+            event_type: 'BOOKING_CANCEL_REQUESTED',
+            recipient_user_id: null,
+            recipient_email: STUDIO_NOTIFICATION_EMAIL,
+            entity_type: 'BOOKING',
+            entity_id: bRec.id,
+            template_key: 'studio_cancel_request_notification',
+            payload: { ...basePayload, cancelReason: reason, reason },
+            idempotency_key: `cancel-request-studio:${bRec.id}:${Date.now()}`,
+            status: 'PENDING',
+          });
+          // 2. Customer ack
+          if (bRec.customer_email) {
+            await supabaseAdmin.from('notification_outbox').insert({
+              event_type: 'CUSTOMER_CANCEL_REQUEST_ACK',
+              recipient_user_id: bRec.customer_id,
+              recipient_email: bRec.customer_email,
+              entity_type: 'BOOKING',
+              entity_id: bRec.id,
+              template_key: 'customer_cancel_request_ack',
+              payload: { ...basePayload, cancelReason: reason, reason },
+              idempotency_key: `cancel-ack-customer:${bRec.id}:${Date.now()}`,
+              status: 'PENDING',
+            });
+          }
+        }
+      }
+    }
+
+    // If targetBookingId is provided without explicit action, ensure initial creation emails exist
+    if (targetBookingId && !targetAction) {
+      const { data: existingOutbox } = await supabaseAdmin
+        .from('notification_outbox')
+        .select('id, template_key')
+        .eq('entity_id', targetBookingId);
+
+      const hasCustomerEmail = existingOutbox?.some((o: any) => o.template_key === 'booking_consultation_requested' || o.template_key === 'booking_created');
+      const hasStudioAlert = existingOutbox?.some((o: any) => o.template_key === 'admin_new_booking_alert' || o.template_key === 'studio_new_booking_notification');
+
+      if (!hasCustomerEmail || !hasStudioAlert) {
+        const bookingRecord = await getBookingRecord(targetBookingId);
+
+        if (bookingRecord) {
+          const rawConcepts = (bookingRecord.booking_concepts as any[]) || [];
+          const conceptList = rawConcepts.map((c: any) => c.concepts?.name).filter(Boolean);
+          const rawAddons = (bookingRecord.booking_addons as any[]) || [];
+          const addonList = rawAddons.map((a: any) => a.addons?.name).filter(Boolean);
+
+          const basePayload = {
+            bookingId: bookingRecord.id,
+            bookingCode: bookingRecord.booking_code,
+            customerName: bookingRecord.customer_name || 'Quý khách',
+            customerPhone: bookingRecord.customer_phone || '',
+            customerEmail: bookingRecord.customer_email || '',
+            customerNote: bookingRecord.customer_note || '',
+            serviceName: (bookingRecord.services as any)?.name || 'Dịch Vụ Tiệm Ảnh',
+            packageName: (bookingRecord.packages as any)?.name || 'Gói Chụp Tiệm Ảnh',
+            studioName: (bookingRecord.studio_rooms as any)?.name || 'Không gian Tiệm Ảnh',
+            conceptNames: conceptList.length > 0 ? conceptList.join(', ') : 'Theo tư vấn studio',
+            addonNames: addonList.length > 0 ? addonList.join(', ') : 'Không có',
+            startAt: bookingRecord.start_at,
+            totalAmount: bookingRecord.total_amount || bookingRecord.subtotal || 0,
+            depositAmount: bookingRecord.deposit_amount || 0,
+            directLink: `https://maisonmipa.io.vn/management?tab=dashboard&bookingCode=${bookingRecord.booking_code}&bookingId=${bookingRecord.id}`,
+          };
+
+          // 1. Enqueue customer consultation email if missing
+          if (!hasCustomerEmail && bookingRecord.customer_email) {
+            await supabaseAdmin.from('notification_outbox').insert({
+              event_type: 'BOOKING_CONSULTATION_REQUESTED',
+              recipient_user_id: bookingRecord.customer_id,
+              recipient_email: bookingRecord.customer_email,
+              entity_type: 'BOOKING',
+              entity_id: bookingRecord.id,
+              template_key: 'booking_consultation_requested',
+              payload: basePayload,
+              idempotency_key: `booking-consultation-customer:${bookingRecord.id}`,
+              status: 'PENDING',
+            });
+          }
+
+          // 2. Enqueue studio admin alert to MIPA email if missing
+          if (!hasStudioAlert) {
+            await supabaseAdmin.from('notification_outbox').insert({
+              event_type: 'ADMIN_NEW_BOOKING_ALERT',
+              recipient_user_id: null,
+              recipient_email: STUDIO_NOTIFICATION_EMAIL,
+              entity_type: 'BOOKING',
+              entity_id: bookingRecord.id,
+              template_key: 'admin_new_booking_alert',
+              payload: basePayload,
+              idempotency_key: `booking-admin-alert:${bookingRecord.id}`,
+              status: 'PENDING',
+            });
+          }
+        }
       }
     }
 
@@ -95,10 +301,8 @@ serve(async (req: Request) => {
       query = query.eq('id', targetOutboxId);
     } else if (targetBookingId) {
       query = query.eq('entity_id', targetBookingId);
-    }
-
-    if (!isStaffOrAdmin && authenticatedUser) {
-      // Regular customers can only trigger delivery of notifications addressed to themselves
+    } else if (!isStaffOrAdmin && authenticatedUser) {
+      // Regular customers poll: only their own notifications
       query = query.or(`recipient_user_id.eq.${authenticatedUser.id},recipient_email.eq.${authenticatedUser.email}`);
     }
 
@@ -243,7 +447,47 @@ serve(async (req: Request) => {
         }
       }
 
-      const { subject, html } = renderEmailHtml(item.template_key, payload);
+      // Smart template key resolution:
+      // If template_key is missing or generic, infer from event_type and recipient
+      let resolvedKey = (item.template_key || payload.template_key || '').trim();
+      const ev = (item.event_type || payload.event_type || '').toUpperCase().trim();
+      const isStudioRecipient = Boolean(
+        item.recipient_email === STUDIO_NOTIFICATION_EMAIL ||
+        item.recipient_email === 'maisonmipamemories@gmail.com' ||
+        (!item.recipient_user_id && (ev.startsWith('ADMIN_') || ev.startsWith('STUDIO_')))
+      );
+
+      if (!resolvedKey || resolvedKey === 'system_notification' || resolvedKey === 'default') {
+        if (ev === 'BOOKING_CANCEL_REQUESTED') {
+          resolvedKey = isStudioRecipient ? 'studio_cancel_request_notification' : 'customer_cancel_request_ack';
+        } else if (ev === 'ADMIN_NEW_BOOKING_ALERT') {
+          resolvedKey = 'admin_new_booking_alert';
+        } else if (ev === 'BOOKING_CONFIRMED' || ev === 'DEPOSIT_CONFIRMED') {
+          resolvedKey = 'booking_confirmed';
+        } else if (ev === 'BOOKING_RESCHEDULED') {
+          resolvedKey = 'booking_rescheduled';
+        } else if (ev === 'BOOKING_CANCELLED') {
+          resolvedKey = 'booking_cancelled';
+        } else if (ev === 'ALBUM_READY' || ev === 'DELIVERED') {
+          resolvedKey = 'album_ready';
+        } else if (ev === 'BOOKING_CONSULTATION_REQUESTED' || ev === 'BOOKING_CREATED') {
+          resolvedKey = isStudioRecipient ? 'admin_new_booking_alert' : 'booking_consultation_requested';
+        } else if (ev === 'DEPOSIT_RECEIVED') {
+          resolvedKey = 'deposit_received';
+        } else {
+          resolvedKey = item.event_type || item.template_key || '';
+        }
+      }
+
+      const { subject, html } = renderEmailHtml(resolvedKey, {
+        ...payload,
+        event_type: item.event_type,
+        eventType: item.event_type,
+        recipient_email: item.recipient_email,
+        directLink: payload.directLink || (isStudioRecipient
+          ? `https://maisonmipa.io.vn/management?tab=dashboard&bookingCode=${encodeURIComponent(payload.bookingCode || payload.booking_code || '')}&bookingId=${item.entity_id || payload.bookingId || ''}`
+          : `https://maisonmipa.io.vn/account?tab=bookings&bookingCode=${encodeURIComponent(payload.bookingCode || payload.booking_code || '')}`),
+      });
 
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {

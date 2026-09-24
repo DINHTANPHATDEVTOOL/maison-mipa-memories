@@ -2472,6 +2472,13 @@ export interface Database {
         };
         Returns: unknown;
       };
+      reject_booking_cancel: {
+        Args: {
+          p_booking_id: string;
+          p_staff_note?: string | null;
+        };
+        Returns: unknown;
+      };
       update_staff_task_status: {
         Args: {
           p_task_id: string;

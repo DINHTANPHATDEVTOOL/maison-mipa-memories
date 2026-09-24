@@ -4,15 +4,63 @@
 // ==============================================================================
 import type { PackageItem, Addon, Promotion } from '../types';
 
+export const DEFAULT_EXTRA_SLOT_PRICE = 100000; // 100,000 VNĐ per additional slot
+export const EXTRA_SLOT_PRICE_STORAGE_KEY = 'mipa_extra_slot_price';
+
+/**
+ * Gets configured price for each additional consecutive shoot slot.
+ * Default: 100,000 VND per extra slot.
+ */
+export function getExtraSlotPrice(): number {
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(EXTRA_SLOT_PRICE_STORAGE_KEY);
+      if (stored !== null) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read extra slot price from storage:', err);
+  }
+  return DEFAULT_EXTRA_SLOT_PRICE;
+}
+
+/**
+ * Sets configured price for each additional consecutive shoot slot (Admin only).
+ * Dispatches 'mipa_pricing_updated' event to synchronize all active components.
+ */
+export function setExtraSlotPrice(price: number): number {
+  const safePrice = Math.max(0, Math.floor(price));
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(EXTRA_SLOT_PRICE_STORAGE_KEY, String(safePrice));
+      window.dispatchEvent(new CustomEvent('mipa_pricing_updated', {
+        detail: { extraSlotPrice: safePrice },
+      }));
+    }
+  } catch (err) {
+    console.warn('Could not save extra slot price to storage:', err);
+  }
+  return safePrice;
+}
+
 export interface PricingInput {
   packageItem: Pick<PackageItem, 'price' | 'durationMinutes'> & { depositAmount?: number };
   addons?: (Pick<Addon, 'price'> & { durationMinutes?: number })[];
   promotion?: Partial<Pick<Promotion, 'discountPercent' | 'discountAmount' | 'minOrder' | 'maxDiscount' | 'isActive'>> | null;
+  slotsCount?: number;
+  extraSlotPrice?: number;
 }
 
 export interface PricingBreakdown {
   packagePrice: number;
   addonTotal: number;
+  extraSlotTotal: number;
+  extraSlotsCount: number;
+  extraSlotUnitPrice: number;
   subtotal: number;
   discountTotal: number;
   totalAmount: number;
@@ -34,7 +82,15 @@ export function calculatePricing(input: PricingInput): PricingBreakdown {
   const addonDuration = addons.reduce((sum, addon) => sum + Math.max(0, Math.floor(addon.durationMinutes || 0)), 0);
   const totalDurationMinutes = packageDuration + addonDuration;
 
-  const subtotal = packagePrice + addonTotal;
+  // Extra consecutive slots calculation (Ca đầu giá bình thường, mỗi ca thêm +100k hoặc theo cấu hình admin)
+  const slotsCount = Math.max(1, Math.floor(input.slotsCount || 1));
+  const extraSlotsCount = Math.max(0, slotsCount - 1);
+  const extraSlotUnitPrice = typeof input.extraSlotPrice === 'number' && input.extraSlotPrice >= 0
+    ? input.extraSlotPrice
+    : getExtraSlotPrice();
+  const extraSlotTotal = extraSlotsCount * extraSlotUnitPrice;
+
+  const subtotal = packagePrice + addonTotal + extraSlotTotal;
 
   // Promotion discount calculation
   let discountTotal = 0;
@@ -69,6 +125,9 @@ export function calculatePricing(input: PricingInput): PricingBreakdown {
   return {
     packagePrice,
     addonTotal,
+    extraSlotTotal,
+    extraSlotsCount,
+    extraSlotUnitPrice,
     subtotal,
     discountTotal,
     totalAmount,

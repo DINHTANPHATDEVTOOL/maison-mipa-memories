@@ -54,7 +54,7 @@ export const DailyOperationsBoard: React.FC<DailyOperationsBoardProps> = ({
     );
   }
 
-  const { todayShoots, upcomingCheckIns, crewIssues, postProductionDue } = boardData || {
+  const { todayShoots, upcomingCheckIns: _upcomingCheckIns, crewIssues, postProductionDue } = boardData || {
     todayShoots: [],
     upcomingCheckIns: [],
     crewIssues: [],

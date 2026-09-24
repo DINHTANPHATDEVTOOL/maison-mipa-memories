@@ -96,7 +96,7 @@ describe('Full Application Routing & SEO Integration Tests', () => {
 
   it('renders family service detail at /dich-vu/family', async () => {
     renderRoute('/dich-vu/family');
-    expect(screen.getByRole('heading', { name: /Chụp Ảnh Gia Đình & Em Bé Ấm Áp/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Chụp Ảnh Gia Đình/i })).toBeInTheDocument();
   });
 
   it('renders graduation service detail at /dich-vu/graduation', async () => {

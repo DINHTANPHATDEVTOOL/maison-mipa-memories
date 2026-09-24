@@ -2,9 +2,7 @@
 // Maison MIPA Memories — Flagship Visual Experience V4 (Hardening & Polish Pass)
 // THE LIVING FRENCH ATELIER — True 3D Interactive WebGL Studio Diorama
 // ==============================================================================
-import React, { useState, useEffect, useMemo } from 'react';
-import { useReducedMotion } from '../../motion/useReducedMotion';
-import { Compass } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import type {
   AtelierArtwork,
   AtelierCameraMode,
@@ -28,7 +26,6 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
   onOpenBooking,
   artworks: propArtworks,
 }) => {
-  const prefersReduced = useReducedMotion();
   const { getAssetUrl } = useSiteAssets();
 
   // State
@@ -36,40 +33,6 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
   const [lightingMode, setLightingMode] = useState<AtelierLightingMode>('SUNSET');
   const [selectedArtwork, setSelectedArtwork] = useState<AtelierArtwork | null>(null);
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [webglAvailable, setWebglAvailable] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      const canvas = document.createElement('canvas');
-      return !!(
-        (window as unknown as { WebGLRenderingContext?: unknown }).WebGLRenderingContext &&
-        (canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
-      );
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Verify WebGL context availability on mount
-  useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return;
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      if (!gl) {
-        setWebglAvailable(false);
-      }
-    } catch {
-      setWebglAvailable(false);
-    }
-  }, []);
 
   const currentLighting = useMemo(() => LIGHTING_PRESETS[lightingMode], [lightingMode]);
   const isDemo = typeof window !== 'undefined' && localStorage.getItem('mipa_demo_mode') === 'true';
@@ -97,32 +60,32 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
     if (!hasInteracted) setHasInteracted(true);
   };
 
-  // Curated filmstrip data matching user mockup
+  // Curated filmstrip data matching atelier artistic showcase
   const filmstripItems = useMemo(() => [
     {
       id: 'film-1',
       title: 'Nàng Thơ Paris',
-      category: 'Cô dâu',
-      imageUrl: getAssetUrl('atelier_room_1', '/hero-bride.jpg'),
+      category: 'Nàng thơ',
+      imageUrl: getAssetUrl('service_portrait', '/hero-camera.jpg'),
       artworkIndex: 1,
     },
     {
       id: 'film-2',
-      title: 'Nụ Cười Tuổi Thơ',
-      category: 'Em bé',
-      imageUrl: getAssetUrl('atelier_room_2', '/hero-baby.jpg'),
+      title: 'Dáng Ngọc Áo Dài',
+      category: 'Áo dài',
+      imageUrl: getAssetUrl('concept_aodai', '/concept-aodai.webp'),
       artworkIndex: 2,
     },
     {
       id: 'film-3',
       title: 'Nghệ Thuật Cổ Điển',
-      category: 'Máy ảnh',
-      imageUrl: getAssetUrl('atelier_room_3', '/hero-camera.jpg'),
+      category: 'Chân dung',
+      imageUrl: getAssetUrl('service_portrait', '/hero-camera.jpg'),
       artworkIndex: 0,
     },
     {
       id: 'film-4',
-      title: 'Hôn Lễ Vượt Thời Gian',
+      title: 'Khoảnh Khắc Lãng Mạn',
       category: 'Couple',
       imageUrl: getAssetUrl('home_hero_banner', '/hero-couple.jpg'),
       artworkIndex: 0,
@@ -130,7 +93,7 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
     {
       id: 'film-5',
       title: 'Không Gian Atelier',
-      category: 'Studio',
+      category: 'Tiệm ảnh',
       imageUrl: getAssetUrl('home_atelier_showcase', '/studio.png'),
       artworkIndex: 0,
     },

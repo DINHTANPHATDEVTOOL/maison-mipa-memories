@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { FocusTrap } from '../ui/FocusTrap';
 import {
-  Camera,
   Search,
-  Filter,
-  Plus,
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
-  Package,
-  Layers,
   Sparkles,
   ArrowUpRight,
   ArrowDownLeft,
-  Wrench,
 } from 'lucide-react';
 import type {
   StudioResource,

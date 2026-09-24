@@ -165,7 +165,7 @@ export const FeaturedConceptsSection: React.FC<FeaturedConceptsSectionProps> = (
       <div className="editorial-container">
         {/* Section Header */}
         <div style={{ marginBottom: '3.5rem', maxWidth: '640px' }}>
-          <span className="editorial-overline">BỘ SƯU TẬP & BỐI CẢNH</span>
+          <span className="editorial-overline">BỘ SƯU TẬP CONCEPT ĐẶC TRƯNG</span>
           <h2 className="editorial-h2" style={{ marginBottom: '1rem' }}>
             Bộ sưu tập concept chọn lọc
           </h2>

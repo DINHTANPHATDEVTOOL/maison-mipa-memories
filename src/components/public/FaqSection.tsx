@@ -13,7 +13,7 @@ interface FaqItem {
 export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Có cần chuẩn bị trang phục trước khi đến chụp không?',
-    answer: 'Tiệm ảnh có sẵn bộ sưu tập trang phục và phụ kiện phong cách thơ mộng, nhẹ nhàng (áo dài, váy nàng thơ, sơ mi lụa, vest tone trầm). Bạn cũng có thể mang theo trang phục cá nhân yêu thích, chuyên viên sẽ tư vấn phối hợp hài hòa với bối cảnh.',
+    answer: 'Tiệm ảnh có sẵn bộ sưu tập trang phục và phụ kiện phong cách thơ mộng, nhẹ nhàng (áo dài, váy nàng thơ, sơ mi lụa, vest tone trầm). Bạn cũng có thể mang theo trang phục cá nhân yêu thích, chuyên viên sẽ tư vấn phối hợp hài hòa với không gian tiệm ảnh.',
   },
   {
     question: 'Bao lâu sau buổi chụp thì tôi nhận được ảnh?',

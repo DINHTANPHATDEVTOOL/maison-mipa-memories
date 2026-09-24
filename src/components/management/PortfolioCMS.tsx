@@ -115,7 +115,6 @@ export const PortfolioCMS: React.FC = () => {
   // Upload state
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [uploadStats, setUploadStats] = useState<{ originalTotal: number; optimizedTotal: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Replace photo state
@@ -405,7 +404,6 @@ export const PortfolioCMS: React.FC = () => {
 
       setActiveCollection(updatedCol);
       setCollections((prev) => prev.map((c) => (c.id === updatedCol.id ? updatedCol : c)));
-      setUploadStats({ originalTotal: origBytes, optimizedTotal: optBytes });
       setUploadProgress(100);
       setSuccessMessage(
         `Đã lưu trữ ${files.length} ảnh WebP thành công! Dung lượng: ${(origBytes / 1024 / 1024).toFixed(2)} MB -> ${(optBytes / 1024).toFixed(0)} KB.`
@@ -1774,7 +1772,7 @@ export const PortfolioCMS: React.FC = () => {
                   rows={3}
                   value={conceptFormData.description}
                   onChange={(e) => setConceptFormData({ ...conceptFormData, description: e.target.value })}
-                  placeholder="Mô tả bối cảnh, ánh sáng, tone màu chủ đạo..."
+                  placeholder="Mô tả không gian, ánh sáng, tone màu chủ đạo..."
                   style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid var(--mipa-beige)', backgroundColor: '#FAF8F5', fontSize: '0.85rem', resize: 'vertical' }}
                 />
               </div>

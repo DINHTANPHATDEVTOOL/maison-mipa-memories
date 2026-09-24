@@ -806,7 +806,7 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
                   rows={3}
-                  placeholder="Mô tả bối cảnh, đạo cụ, trang phục và cảm xúc..."
+                  placeholder="Mô tả không gian, ánh sáng, trang phục và cảm xúc..."
                   style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '8px', border: '1px solid #D3C2B3', outline: 'none', resize: 'vertical' }}
                 />
               </div>

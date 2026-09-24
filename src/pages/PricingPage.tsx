@@ -22,19 +22,24 @@ import {
   ShieldCheck,
   AlertCircle,
   Save,
-  Sparkles,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import {
+  getExtraSlotPrice,
+  setExtraSlotPrice,
+  DEFAULT_EXTRA_SLOT_PRICE,
+} from '../services/pricingService';
 
 function formatVnd(amount: number): string {
   return `Chỉ từ ${new Intl.NumberFormat('vi-VN').format(amount)} VNĐ`;
 }
 
 interface PricingPageProps {
-  onOpenBooking: () => void;
+  onOpenBooking?: () => void;
 }
 
-export const PricingPage: React.FC<PricingPageProps> = () => {
+export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking }) => {
   const navigate = useNavigate();
 
   // Root Admin / Admin Auth Check (safe fallback)
@@ -74,6 +79,51 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
   const [formRecommended, setFormRecommended] = useState<boolean>(false);
   const [formFeaturesText, setFormFeaturesText] = useState<string>('');
 
+  // Extra Slot Price State (Admin Configurable)
+  const [extraSlotPrice, setExtraSlotPriceState] = useState<number>(getExtraSlotPrice);
+  const [isEditingSlotPrice, setIsEditingSlotPrice] = useState<boolean>(false);
+  const [formSlotPriceInput, setFormSlotPriceInput] = useState<number>(getExtraSlotPrice);
+  const [isSavingSlotPrice, setIsSavingSlotPrice] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handlePricingUpdated = () => {
+      const updated = getExtraSlotPrice();
+      setExtraSlotPriceState(updated);
+      setFormSlotPriceInput(updated);
+    };
+    window.addEventListener('mipa_pricing_updated', handlePricingUpdated);
+    window.addEventListener('storage', handlePricingUpdated);
+    return () => {
+      window.removeEventListener('mipa_pricing_updated', handlePricingUpdated);
+      window.removeEventListener('storage', handlePricingUpdated);
+    };
+  }, []);
+
+  const handleSaveSlotPrice = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formSlotPriceInput < 0) {
+      setAlertMessage({ type: 'error', text: 'Giá tiền phụ thu ca không thể âm.' });
+      return;
+    }
+    setIsSavingSlotPrice(true);
+    try {
+      const saved = setExtraSlotPrice(formSlotPriceInput);
+      setExtraSlotPriceState(saved);
+      setIsEditingSlotPrice(false);
+      setAlertMessage({
+        type: 'success',
+        text: `✓ Đã cập nhật thành công giá phụ thu ca chụp thêm: ${saved.toLocaleString('vi-VN')} VNĐ/ca!`,
+      });
+    } catch (err: any) {
+      setAlertMessage({
+        type: 'error',
+        text: `Lỗi khi lưu giá ca: ${err?.message || 'Không thể thực hiện.'}`,
+      });
+    } finally {
+      setIsSavingSlotPrice(false);
+    }
+  };
+
   const loadData = useCallback(async () => {
     try {
       const [srvs, pkgs, adds] = await Promise.all([getServices(), getPackages(), getAddons()]);
@@ -110,7 +160,7 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
     setFormPopularTag('');
     setFormRecommended(false);
     setFormFeaturesText(
-      '90 phút chụp hình tận tâm\n1 Concept bối cảnh tiệm ảnh\n15 Ảnh chỉnh sửa hậu kỳ tỉ mỉ\nTặng toàn bộ file ảnh gốc chất lượng cao'
+      '90 phút chụp hình tận tâm\n1 Concept không gian tiệm ảnh\n15 Ảnh chỉnh sửa hậu kỳ tỉ mỉ\nTặng toàn bộ file ảnh gốc chất lượng cao'
     );
     setIsModalOpen(true);
   };
@@ -406,8 +456,191 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
             >
               <Plus size={16} /> + Thêm Gói Chụp Mới
             </button>
+
+            {/* Mục Set Giá Tiền Ca Chụp Thêm (Admin) */}
+            <div
+              style={{
+                width: '100%',
+                paddingTop: '1rem',
+                borderTop: '1px dashed #D6C7B2',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Clock size={18} color="#8C6E53" />
+                <div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#29231F' }}>
+                    Mức giá phụ thu ca chụp thêm: <span style={{ color: '#047857', fontWeight: 700 }}>{extraSlotPrice.toLocaleString('vi-VN')} VNĐ / ca</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                    (Quy tắc: Ca đầu tiên theo giá gói tiêu chuẩn; khi khách chọn thêm ca liên tiếp sẽ phụ thu thêm mức giá này / ca)
+                  </div>
+                </div>
+              </div>
+
+              {!isEditingSlotPrice ? (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormSlotPriceInput(extraSlotPrice);
+                      setIsEditingSlotPrice(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: '#604634',
+                      backgroundColor: '#FAF6EE',
+                      border: '1px solid #D6C7B2',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Edit3 size={14} /> Chỉnh sửa giá ca
+                  </button>
+                  {extraSlotPrice !== DEFAULT_EXTRA_SLOT_PRICE && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExtraSlotPrice(DEFAULT_EXTRA_SLOT_PRICE);
+                        setExtraSlotPriceState(DEFAULT_EXTRA_SLOT_PRICE);
+                        setAlertMessage({ type: 'success', text: '✓ Đã đặt lại giá ca về mặc định 100.000 VNĐ / ca!' });
+                      }}
+                      style={{
+                        padding: '0.45rem 0.8rem',
+                        fontSize: '0.78rem',
+                        color: '#8C6E53',
+                        background: 'none',
+                        border: 'none',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Đặt lại 100k
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleSaveSlotPrice}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}
+                >
+                  <label htmlFor="admin-slot-price-input" style={{ fontSize: '0.82rem', color: '#604634', fontWeight: 600 }}>
+                    Giá mới (VNĐ):
+                  </label>
+                  <input
+                    id="admin-slot-price-input"
+                    type="number"
+                    step="10000"
+                    min="0"
+                    value={formSlotPriceInput}
+                    onChange={(e) => setFormSlotPriceInput(Number(e.target.value) || 0)}
+                    style={{
+                      width: '130px',
+                      padding: '0.4rem 0.6rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      border: '1px solid #8C6E53',
+                      borderRadius: '4px',
+                      backgroundColor: '#FFFFFF',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSavingSlotPrice}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.45rem 0.9rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: '#FFFFFF',
+                      backgroundColor: '#047857',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Save size={13} /> {isSavingSlotPrice ? 'Đang lưu...' : 'Lưu giá ca'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingSlotPrice(false)}
+                    style={{
+                      padding: '0.45rem 0.75rem',
+                      fontSize: '0.82rem',
+                      color: '#604634',
+                      backgroundColor: '#FAF6EE',
+                      border: '1px solid #EFE6C9',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Hủy
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         )}
+
+        {/* Banner Chính Sách Chụp Thêm Ca Linh Hoạt */}
+        <div
+          style={{
+            padding: '1.25rem 1.75rem',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #EFE6C9',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 2px 10px rgba(140, 110, 83, 0.05)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: '#FAF6EE',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--editorial-brown)',
+              flexShrink: 0,
+              border: '1px solid #EFE6C9',
+            }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.98rem', color: '#604634' }}>
+                Chính Sách Chụp Thêm Ca Linh Hoạt
+              </div>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.86rem', color: '#8C6E53', lineHeight: 1.5 }}>
+                Ca đầu tiên được tính trọn gói theo biểu phí niêm yết. Khi bạn muốn chụp thảnh thơi hơn và chọn các ca liên tiếp nhau, tiệm chỉ phụ thu thêm <strong style={{ color: '#047857' }}>+{extraSlotPrice.toLocaleString('vi-VN')} VNĐ / ca</strong> phát sinh.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/booking')}
+            className="public-btn-secondary"
+            style={{ fontSize: '0.85rem', padding: '0.55rem 1.25rem', whiteSpace: 'nowrap' }}
+          >
+            Đặt lịch chụp ngay
+          </button>
+        </div>
 
         {/* Action Alert Banner */}
         {alertMessage && (
@@ -1145,7 +1378,7 @@ export const PricingPage: React.FC<PricingPageProps> = () => {
                   rows={4}
                   value={formFeaturesText}
                   onChange={(e) => setFormFeaturesText(e.target.value)}
-                  placeholder="90 phút chụp hình tận tâm&#10;1 Concept bối cảnh tiệm ảnh&#10;15 Ảnh chỉnh sửa hậu kỳ kĩ lưỡng&#10;Tặng toàn bộ file ảnh gốc full HD"
+                  placeholder="90 phút chụp hình tận tâm&#10;1 Concept không gian tiệm ảnh&#10;15 Ảnh chỉnh sửa hậu kỳ kĩ lưỡng&#10;Tặng toàn bộ file ảnh gốc full HD"
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',

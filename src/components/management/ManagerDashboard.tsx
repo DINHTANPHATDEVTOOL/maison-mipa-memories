@@ -12,9 +12,9 @@ import { FocusTrap } from '../ui/FocusTrap';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../../types';
 import { getOperationsInboxStats, getNextActionForBooking } from '../../utils/bookingStateMachine';
 import {
-  Calendar,
   Search,
   AlertTriangle,
+  AlertCircle,
   FolderDown,
   Plus,
   X,
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_EMPLOYEES } from '../../mockData';
 import { isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
-import { confirmBookingDeposit, updateBookingConsultation } from '../../services/bookingService';
+import { confirmBookingDeposit, updateBookingConsultation, rejectBookingCancel, cancelBookingByManager, approveBookingReschedule } from '../../services/bookingService';
 import {
   determineShiftFromTime,
   SHIFT_CONFIGS,
@@ -48,28 +48,54 @@ interface ManagerDashboardProps {
   bookings: Booking[];
   employees: Employee[];
   studios: StudioRoom[];
+  targetBookingCode?: string | null;
+  targetBookingId?: string | null;
   onOpenBooking: () => void;
   onUpdateStatus: (bookingId: string, newStatus: BookingStatus, note?: string) => void;
   onAssignStaff: (bookingId: string, employeeId: string, role?: string) => void;
-  onNavigateTab: (tab: string) => void;
+  onNavigateTab?: (tab: string) => void;
   onConfirmDeposit?: (bookingId: string, depositAmount: number, depositNote?: string, finalTotalAmount?: number) => Promise<void>;
   onUpdateConsultation?: (bookingId: string, data: any) => Promise<void>;
+  onUpdateBooking?: (updated: Booking) => void;
 }
 
 export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   bookings,
   employees,
   studios: _studios,
+  targetBookingCode,
+  targetBookingId,
   onOpenBooking,
   onUpdateStatus,
   onAssignStaff,
   onNavigateTab,
   onConfirmDeposit,
   onUpdateConsultation,
+  onUpdateBooking,
 }) => {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeBookingTimeline, setActiveBookingTimeline] = useState<Booking | null>(bookings[0] || null);
+
+  useEffect(() => {
+    if (targetBookingCode || targetBookingId) {
+      const matched = bookings.find(b =>
+        (targetBookingId && b.id === targetBookingId) ||
+        (targetBookingCode && b.bookingCode?.toLowerCase() === targetBookingCode.toLowerCase())
+      );
+      if (matched) {
+        setActiveBookingTimeline(matched);
+        setSelectedStatusFilter('ALL');
+        setSearchQuery(targetBookingCode || matched.bookingCode);
+        setTimeout(() => {
+          const el = document.getElementById(`booking-card-${matched.bookingCode}`) || document.getElementById(`booking-card-${matched.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+      }
+    }
+  }, [targetBookingCode, targetBookingId, bookings]);
 
   // Assign staff modal/popover state
   const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
@@ -207,9 +233,105 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     }
   };
 
+  const cancelRequestedBookings = bookings.filter((b) => Boolean(b.cancelRequestedAt) && b.bookingStatus !== 'CANCELLED');
+  const cancelledCount = bookings.filter((b) => b.bookingStatus === 'CANCELLED').length;
+
+  // Cancellation modal state (for Manager/Admin with mandatory reason & customer email dispatch)
+  const [cancelModalBooking, setCancelModalBooking] = useState<Booking | null>(null);
+  const [cancelModalReason, setCancelModalReason] = useState<string>('');
+  const [cancelModalError, setCancelModalError] = useState<string>('');
+
+  const handleOpenCancelModal = (b: Booking) => {
+    setCancelModalBooking(b);
+    setCancelModalReason(b.cancelRequestedReason || '');
+    setCancelModalError('');
+  };
+
+  const handleConfirmCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelModalBooking) return;
+    const trimmed = cancelModalReason.trim();
+    if (!trimmed) {
+      setCancelModalError('Vui lòng nhập lý do hủy lịch để gửi thông báo cho khách hàng.');
+      return;
+    }
+
+    try {
+      setWorkflowActionLoading(cancelModalBooking.id);
+      setCancelModalError('');
+      const updated = await cancelBookingByManager(cancelModalBooking.id, trimmed);
+      onUpdateBooking?.(updated);
+      setWorkflowNotice(`✓ Đã hủy lịch đơn #${cancelModalBooking.bookingCode} và gửi email thông báo hủy kèm lý do cho khách hàng.`);
+      if (activeBookingTimeline?.id === cancelModalBooking.id) {
+        setActiveBookingTimeline(updated);
+      }
+      setCancelModalBooking(null);
+      setCancelModalReason('');
+      setTimeout(() => setWorkflowNotice(''), 6000);
+    } catch (err: any) {
+      setCancelModalError(err.message || 'Không thể hủy lịch.');
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleApproveCancel = async (b: Booking) => {
+    handleOpenCancelModal(b);
+  };
+
+  const handleApproveReschedule = async (b: Booking) => {
+    const confirmMsg = `Bạn có chắc chắn muốn DUYỆT ĐỔI LỊCH cho đơn #${b.bookingCode} sang ngày ${b.rescheduleRequestedDate} (${b.rescheduleRequestedSlot})?\nHệ thống sẽ cập nhật ngày chụp mới và tự động gửi email xác nhận cho khách hàng.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      const updated = await approveBookingReschedule(b.id, 'Quản lý duyệt yêu cầu đổi lịch');
+      onUpdateBooking?.(updated);
+      setWorkflowNotice(`✓ Đã duyệt đổi lịch cho đơn #${b.bookingCode} và gửi email thông báo cho khách hàng.`);
+      if (activeBookingTimeline?.id === b.id) {
+        setActiveBookingTimeline(updated);
+      }
+      setTimeout(() => setWorkflowNotice(''), 5000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể duyệt đổi lịch.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleRejectCancel = async (b: Booking) => {
+    const confirmMsg = `Bác bỏ yêu cầu hủy của khách và tiếp tục giữ lịch cho đơn #${b.bookingCode}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setWorkflowActionLoading(b.id);
+      setWorkflowError('');
+      const updated = await rejectBookingCancel(b.id, 'Quản lý đã liên hệ trao đổi và tiếp tục giữ lịch');
+      onUpdateBooking?.(updated);
+      setWorkflowNotice(`✓ Đã bác bỏ yêu cầu hủy cho đơn ${b.bookingCode}. Lịch chụp được giữ nguyên.`);
+      if (activeBookingTimeline?.id === b.id) {
+        setActiveBookingTimeline(updated);
+      }
+      setTimeout(() => setWorkflowNotice(''), 5000);
+    } catch (err: any) {
+      setWorkflowError(err.message || 'Không thể xử lý yêu cầu hủy.');
+      setTimeout(() => setWorkflowError(''), 5000);
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
   // Search & Filter bookings
   const filteredBookings = bookings.filter((b) => {
-    const matchesFilter = selectedStatusFilter === 'ALL' || b.bookingStatus === selectedStatusFilter;
+    const matchesFilter =
+      selectedStatusFilter === 'ALL'
+        ? true
+        : selectedStatusFilter === 'CANCEL_REQUESTS'
+        ? Boolean(b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED')
+        : b.bookingStatus === selectedStatusFilter;
+
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch = query.length === 0 ||
       b.bookingCode.toLowerCase().includes(query) ||
@@ -468,10 +590,17 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={() => onNavigateTab('studio_calendar')} className="btn-mipa-secondary" style={{ fontSize: '0.85rem' }}>
-            <Calendar size={15} /> Lịch Studio
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setSelectedStatusFilter('CANCELLED')}
+            className="btn-mipa-secondary"
+            style={{ fontSize: '0.85rem' }}
+            title="Xem danh sách đơn đặt lịch đã hủy"
+          >
+            Danh Sách Hủy ({cancelledCount})
           </button>
+
           <button onClick={onOpenBooking} className="btn-mipa-gold" style={{ fontSize: '0.85rem' }}>
             <Plus size={16} /> Tạo Đơn Trực Tiếp
           </button>
@@ -514,6 +643,67 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
       )}
 
+      {/* CANCELLATION REQUESTS URGENT ALERT BANNER */}
+      {cancelRequestedBookings.length > 0 && (
+        <div style={{
+          padding: '1rem 1.4rem',
+          backgroundColor: '#FEF2F2',
+          border: '2px solid #F87171',
+          borderRadius: '16px',
+          color: '#991B1B',
+          marginBottom: '1.2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.8rem',
+          boxShadow: '0 4px 16px rgba(239, 68, 68, 0.12)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              backgroundColor: '#FEE2E2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#DC2626',
+              flexShrink: 0,
+            }}>
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '0.02em', color: '#991B1B' }}>
+                🚨 CÓ {cancelRequestedBookings.length} ĐƠN ĐẶT LỊCH ĐANG YÊU CẦU HỦY TỪ KHÁCH HÀNG
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#7F1D1D', marginTop: '0.15rem' }}>
+                Khách hàng đã gửi yêu cầu hủy lịch. Vui lòng bấm kiểm tra và duyệt hủy (để giải phóng slot phòng) hoặc liên hệ khách giữ lịch.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setSelectedStatusFilter('CANCEL_REQUESTS')}
+            style={{
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '0.55rem 1.2rem',
+              borderRadius: '10px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+            }}
+          >
+            Lọc {cancelRequestedBookings.length} Đơn Yêu Cầu Hủy →
+          </button>
+        </div>
+      )}
+
       {/* OPERATIONS INBOX BANNER - 9 Operational Queues (Phase 18) */}
       <div style={{
         backgroundColor: '#FFFDF6',
@@ -529,11 +719,11 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             <span>HÀNG ĐỢI VẬN HÀNH STUDIO (OPERATIONS PIPELINE):</span>
           </div>
           <span style={{ fontSize: '0.78rem', backgroundColor: '#F8F3E6', color: '#8C6E53', padding: '0.2rem 0.6rem', borderRadius: '10px', fontWeight: 700, border: '1px solid #E6D7B9' }}>
-            9 Hàng đợi theo chuẩn Shoot-to-Delivery
+            10 Hàng đợi theo chuẩn Shoot-to-Delivery
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.6rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
           {[
             { id: 'CONFIRMED', label: '1. SẮP CHỤP', count: inboxStats.confirmedCount, unit: 'đơn' },
             { id: 'CHECKED_IN', label: '2. ĐÃ CHECK-IN', count: inboxStats.checkedInCount, unit: 'ca' },
@@ -544,6 +734,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             { id: 'READY_FOR_REVIEW', label: '7. CHỜ DUYỆT', count: inboxStats.readyForReviewCount, unit: 'bộ' },
             { id: 'DELIVERED', label: '8. ĐÃ GIAO', count: inboxStats.deliveredCount, unit: 'đơn' },
             { id: 'COMPLETED', label: '9. HOÀN TẤT', count: inboxStats.completedCount, unit: 'đơn' },
+            { id: 'CANCELLED', label: '10. ĐÃ HỦY', count: cancelledCount, unit: 'đơn' },
           ].map((queue) => (
             <button
               key={queue.id}
@@ -590,6 +781,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               {[
                 { id: 'ALL', label: 'Tất cả' },
+                { id: 'CANCELLED', label: `Đã hủy (${cancelledCount})` },
+                ...(cancelRequestedBookings.length > 0 ? [{ id: 'CANCEL_REQUESTS', label: `🚨 Yêu cầu hủy (${cancelRequestedBookings.length})`, isAlert: true }] : []),
                 { id: 'CONFIRMED', label: 'Sắp chụp' },
                 { id: 'CHECKED_IN', label: 'Đã check-in' },
                 { id: 'SHOOTING', label: 'Đang chụp' },
@@ -601,29 +794,68 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 { id: 'COMPLETED', label: 'Hoàn tất' },
                 { id: 'CONSULTATION_REQUESTED', label: 'Tư vấn mới' },
                 { id: 'CONSULTING', label: 'Đang tư vấn' },
-              ].map((filterItem) => (
-                <button
-                  key={filterItem.id}
-                  onClick={() => setSelectedStatusFilter(filterItem.id)}
-                  style={{
-                    border: '1px solid',
-                    borderColor: selectedStatusFilter === filterItem.id ? '#8C6E53' : '#EFE6C9',
-                    background: selectedStatusFilter === filterItem.id ? 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)' : '#FFFDF6',
-                    color: selectedStatusFilter === filterItem.id ? '#FFFDF6' : '#604634',
-                    padding: '0.3rem 0.65rem',
-                    borderRadius: '16px',
-                    fontSize: '0.73rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    boxShadow: selectedStatusFilter === filterItem.id ? '0 2px 6px rgba(96, 70, 52, 0.2)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {filterItem.label}
-                </button>
-              ))}
+              ].map((filterItem) => {
+                const isSelected = selectedStatusFilter === filterItem.id;
+                const isAlert = (filterItem as any).isAlert;
+                return (
+                  <button
+                    key={filterItem.id}
+                    onClick={() => setSelectedStatusFilter(filterItem.id)}
+                    style={{
+                      border: '1px solid',
+                      borderColor: isAlert
+                        ? (isSelected ? '#991B1B' : '#FCA5A5')
+                        : (isSelected ? '#8C6E53' : '#EFE6C9'),
+                      background: isSelected
+                        ? (isAlert ? '#DC2626' : 'linear-gradient(135deg, #8C6E53 0%, #604634 100%)')
+                        : (isAlert ? '#FEF2F2' : '#FFFDF6'),
+                      color: isSelected
+                        ? '#FFFDF6'
+                        : (isAlert ? '#DC2626' : '#604634'),
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '16px',
+                      fontSize: '0.73rem',
+                      fontWeight: isAlert ? 700 : 600,
+                      cursor: 'pointer',
+                      boxShadow: isSelected ? '0 2px 6px rgba(96, 70, 52, 0.2)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {filterItem.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Dedicated Cancelled Bookings List Banner */}
+          {selectedStatusFilter === 'CANCELLED' && (
+            <div style={{
+              padding: '0.75rem 1.2rem',
+              backgroundColor: '#FAF6EE',
+              border: '1px solid #E6D7B9',
+              borderRadius: '12px',
+              color: '#604634',
+              marginBottom: '1.2rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.8rem',
+            }}>
+              <div style={{ fontSize: '0.88rem' }}>
+                Đang xem <strong>Danh sách đơn đã hủy ({cancelledCount} đơn)</strong>.
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedStatusFilter('ALL')}
+                className="btn-mipa-secondary"
+                style={{ fontSize: '0.78rem', padding: '0.3rem 0.75rem' }}
+              >
+                ✕ Xem tất cả
+              </button>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {filteredBookings.length === 0 ? (
@@ -638,12 +870,21 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 return (
                   <div
                     key={b.id}
+                    id={`booking-card-${b.bookingCode}`}
                     onClick={() => setActiveBookingTimeline(b)}
                     style={{
                       padding: '1.2rem',
                       borderRadius: '14px',
-                      border: isSelectedForTimeline ? '2px solid #C6A45F' : '1px solid var(--mipa-beige)',
-                      backgroundColor: isSelectedForTimeline ? '#FFFDF6' : '#FFFFFF',
+                      border: (b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED')
+                        ? '2px solid #F87171'
+                        : isSelectedForTimeline
+                        ? '2px solid #C6A45F'
+                        : '1px solid var(--mipa-beige)',
+                      backgroundColor: (b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED')
+                        ? '#FFFDFD'
+                        : isSelectedForTimeline
+                        ? '#FFFDF6'
+                        : '#FFFFFF',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.8rem',
@@ -656,6 +897,25 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         <span className={`badge-status badge-${b.bookingStatus.toLowerCase()}`}>
                           ● {b.bookingStatus}
                         </span>
+                        {b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED' && (
+                          <span
+                            style={{
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1.5px solid #F87171',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.55rem',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              boxShadow: '0 2px 6px rgba(220, 38, 38, 0.15)',
+                            }}
+                          >
+                            <AlertTriangle size={12} /> YÊU CẦU HỦY
+                          </span>
+                        )}
                         {(() => {
                           const todayVn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
                           const isOverdue = Boolean(b.bookingDate && b.bookingDate < todayVn && ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus));
@@ -681,8 +941,29 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         })()}
                       </div>
 
-                      <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-                        🗓️ <strong>{b.bookingDate}</strong> lúc <strong>{b.startTime}</strong> ({b.studioName})
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
+                          🗓️ <strong>{b.bookingDate}</strong> lúc <strong>{b.startTime}</strong> ({b.studioName})
+                        </div>
+                        {b.bookingStatus !== 'CANCELLED' && b.bookingStatus !== 'COMPLETED' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCancelModal(b);
+                            }}
+                            className="btn-mipa-secondary"
+                            style={{
+                              fontSize: '0.74rem',
+                              padding: '0.2rem 0.55rem',
+                              marginLeft: '0.4rem',
+                              color: '#8C6E53',
+                            }}
+                            title="Hủy đơn đặt lịch này kèm lý do và gửi mail"
+                          >
+                            Hủy đơn
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -710,10 +991,92 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                       </div>
                     </div>
 
+                    {/* Hiển thị chi tiết đơn đã hủy */}
+                    {b.bookingStatus === 'CANCELLED' && (
+                      <div style={{
+                        padding: '0.75rem 0.95rem',
+                        backgroundColor: '#FAF8F5',
+                        border: '1px solid #E6D7B9',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        color: '#604634',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.35rem',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                          <span style={{ fontWeight: 700, color: '#8C6E53' }}>
+                            Đơn đã hủy
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#8C6E53' }}>
+                            {b.updatedAt ? new Date(b.updatedAt).toLocaleString('vi-VN') : ''}
+                          </span>
+                        </div>
+                        <div style={{ backgroundColor: '#FFFFFF', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #EFE6C9', marginTop: '0.1rem' }}>
+                          Lý do hủy: <strong style={{ color: '#604634' }}>"{b.cancelRequestedReason || (b as any).notes || 'Hủy bởi Quản lý/Admin hoặc Khách hàng'}"</strong>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.1rem' }}>
+                          <Check size={14} color="#059669" /> Đã gửi email thông báo hủy kèm lý do đến: <strong>{b.customerEmail || b.customerPhone}</strong>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Pending Requests Alert */}
+                    {b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED' && (
+                      <div style={{
+                        padding: '0.75rem 0.95rem',
+                        backgroundColor: '#FEF2F2',
+                        border: '1.5px solid #FCA5A5',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        color: '#991B1B',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.35rem',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#991B1B' }}>
+                            <AlertTriangle size={15} color="#DC2626" /> KHÁCH GỬI YÊU CẦU HỦY ĐƠN:
+                          </strong>
+                          <span style={{ fontSize: '0.73rem', color: '#7F1D1D' }}>
+                            {new Date(b.cancelRequestedAt).toLocaleString('vi-VN')}
+                          </span>
+                        </div>
+                        <div>
+                          Lý do hủy: <strong style={{ color: '#7F1D1D' }}>"{b.cancelRequestedReason || 'Khách không cung cấp lý do'}"</strong>
+                        </div>
+                      </div>
+                    )}
+
                     {b.rescheduleRequestedAt && (
-                      <div style={{ padding: '0.5rem 0.8rem', backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '0.8rem', color: '#92400E' }}>
-                        ⚠️ Khách yêu cầu đổi lịch sang ngày: <strong>{b.rescheduleRequestedDate} ({b.rescheduleRequestedSlot})</strong>
+                      <div style={{ padding: '0.6rem 0.8rem', backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '0.8rem', color: '#92400E', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div>
+                          ⚠️ Khách yêu cầu đổi lịch sang ngày: <strong>{b.rescheduleRequestedDate} ({b.rescheduleRequestedSlot})</strong>
+                          {b.rescheduleRequestedReason && (
+                            <div style={{ fontSize: '0.75rem', marginTop: '2px', color: '#78350F' }}>
+                              Lý do: <em>"{b.rescheduleRequestedReason}"</em>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApproveReschedule(b);
+                          }}
+                          style={{
+                            backgroundColor: '#059669',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '0.28rem 0.65rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✓ Duyệt Đổi Lịch
+                        </button>
                       </div>
                     )}
 
@@ -725,7 +1088,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         <span>🎨 Editor: <strong>{b.assignments.find((a) => a.assignmentRole === 'EDITOR')?.employeeName || 'Chưa gán'}</strong></span>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -736,6 +1099,60 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         >
                           👤 Gán Kíp
                         </button>
+
+                        {b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED' ? (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveCancel(b);
+                              }}
+                              style={{
+                                backgroundColor: '#DC2626',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '0.35rem 0.75rem',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ✓ Duyệt Hủy
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRejectCancel(b);
+                              }}
+                              className="btn-mipa-secondary"
+                              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                            >
+                              ✕ Bác Bỏ
+                            </button>
+                          </>
+                        ) : b.bookingStatus !== 'CANCELLED' && b.bookingStatus !== 'COMPLETED' ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCancelModal(b);
+                            }}
+                            style={{
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1px solid #FCA5A5',
+                              borderRadius: '8px',
+                              padding: '0.35rem 0.75rem',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                            title="Hủy đơn đặt lịch này và gửi email thông báo kèm lý do cho khách hàng"
+                          >
+                            🚫 Hủy Lịch
+                          </button>
+                        ) : null}
 
                         {(b.bookingStatus === 'CONSULTATION_REQUESTED' || b.bookingStatus === 'CONSULTING') && (
                           <>
@@ -827,6 +1244,153 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div style={{ marginTop: '0.5rem', borderTop: '1px solid #EFE6C9', paddingTop: '0.8rem' }}>
                   <div style={{ fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>Hành động vận hành:</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+
+                    {/* Trạng thái đơn đã hủy */}
+                    {activeBookingTimeline.bookingStatus === 'CANCELLED' && (
+                      <div style={{
+                        padding: '0.8rem 1rem',
+                        backgroundColor: '#FAF8F5',
+                        border: '1px solid #E6D7B9',
+                        borderRadius: '10px',
+                        marginBottom: '0.6rem',
+                        color: '#604634',
+                      }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#8C6E53', marginBottom: '0.3rem' }}>
+                          Đơn đặt lịch đã hủy
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#8C6E53', marginBottom: '0.4rem' }}>
+                          Thời gian: <strong>{activeBookingTimeline.updatedAt ? new Date(activeBookingTimeline.updatedAt).toLocaleString('vi-VN') : 'Đã ghi nhận'}</strong>
+                        </div>
+                        <div style={{
+                          fontSize: '0.82rem',
+                          color: '#604634',
+                          backgroundColor: '#FFFFFF',
+                          padding: '0.5rem 0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid #EFE6C9',
+                          marginBottom: '0.4rem',
+                          lineHeight: 1.4,
+                        }}>
+                          Lý do hủy: <strong>"{activeBookingTimeline.cancelRequestedReason || (activeBookingTimeline as any).notes || 'Hủy bởi Quản lý/Admin hoặc Khách hàng'}"</strong>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Check size={14} color="#059669" /> Đã gửi email thông báo hủy kèm lý do tới khách hàng.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Nút chủ động hủy đơn cho Manager & Admin (Bắt buộc lý do & tự động gửi mail) */}
+                    {activeBookingTimeline.bookingStatus !== 'CANCELLED' && activeBookingTimeline.bookingStatus !== 'COMPLETED' && !activeBookingTimeline.cancelRequestedAt && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCancelModal(activeBookingTimeline)}
+                        className="btn-mipa-secondary"
+                        style={{
+                          fontSize: '0.82rem',
+                          padding: '0.5rem',
+                          width: '100%',
+                          color: '#8C6E53',
+                          marginBottom: '0.3rem',
+                        }}
+                      >
+                        Hủy đơn đặt lịch (kèm lý do & gửi mail)
+                      </button>
+                    )}
+                    {activeBookingTimeline.rescheduleRequestedAt && (
+                      <div style={{
+                        padding: '0.8rem',
+                        backgroundColor: '#FFFBEB',
+                        border: '1.5px solid #FCD34D',
+                        borderRadius: '10px',
+                        marginBottom: '0.6rem',
+                      }}>
+                        <div style={{ color: '#92400E', fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <AlertTriangle size={15} color="#D97706" />
+                          <span>KHÁCH XIN ĐỔI LỊCH CHỤP</span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#78350F', marginBottom: '0.4rem' }}>
+                          Ngày & giờ mới: <strong>{activeBookingTimeline.rescheduleRequestedDate} ({activeBookingTimeline.rescheduleRequestedSlot})</strong>
+                          {activeBookingTimeline.rescheduleRequestedReason && (
+                            <div style={{ fontSize: '0.75rem', marginTop: '2px', fontStyle: 'italic' }}>
+                              "{activeBookingTimeline.rescheduleRequestedReason}"
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleApproveReschedule(activeBookingTimeline)}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            backgroundColor: '#059669',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✓ Duyệt Đổi Lịch & Gửi Mail Cho Khách
+                        </button>
+                      </div>
+                    )}
+
+                    {activeBookingTimeline.cancelRequestedAt && activeBookingTimeline.bookingStatus !== 'CANCELLED' && (
+                      <div style={{
+                        padding: '0.9rem',
+                        backgroundColor: '#FEF2F2',
+                        border: '2px solid #DC2626',
+                        borderRadius: '12px',
+                        marginBottom: '0.6rem',
+                      }}>
+                        <div style={{ color: '#991B1B', fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <AlertTriangle size={17} color="#DC2626" />
+                          <span>KHÁCH YÊU CẦU HỦY ĐƠN</span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#7F1D1D', marginBottom: '0.4rem' }}>
+                          Gửi lúc: <strong>{new Date(activeBookingTimeline.cancelRequestedAt).toLocaleString('vi-VN')}</strong>
+                        </div>
+                        <div style={{
+                          fontSize: '0.82rem',
+                          color: '#450A0A',
+                          backgroundColor: '#FFFFFF',
+                          padding: '0.5rem 0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid #FECDD3',
+                          marginBottom: '0.7rem',
+                          lineHeight: 1.4,
+                        }}>
+                          Lý do: <em>"{activeBookingTimeline.cancelRequestedReason || 'Khách không cung cấp lý do'}"</em>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleApproveCancel(activeBookingTimeline)}
+                            style={{
+                              flex: 1,
+                              padding: '0.55rem',
+                              backgroundColor: '#DC2626',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✓ Duyệt Hủy Đơn
+                          </button>
+                          <button
+                            onClick={() => handleRejectCancel(activeBookingTimeline)}
+                            className="btn-mipa-secondary"
+                            style={{ flex: 1, padding: '0.55rem', fontSize: '0.8rem' }}
+                          >
+                            ✕ Bác Bỏ
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {activeBookingTimeline.bookingStatus === 'CONSULTATION_REQUESTED' && (
                       <button
                         onClick={() => onUpdateStatus(activeBookingTimeline.id, 'CONSULTING', 'Bắt đầu tư vấn')}
@@ -1005,6 +1569,31 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                       <div style={{ padding: '0.5rem', backgroundColor: '#ECFDF5', color: '#065F46', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, textAlign: 'center' }}>
                         ✓ Đơn đặt lịch đã hoàn tất trọn vẹn
                       </div>
+                    )}
+
+                    {activeBookingTimeline.bookingStatus !== 'CANCELLED' && activeBookingTimeline.bookingStatus !== 'COMPLETED' && !activeBookingTimeline.cancelRequestedAt && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCancelModal(activeBookingTimeline)}
+                        style={{
+                          backgroundColor: '#FEF2F2',
+                          color: '#DC2626',
+                          border: '1px solid #FCA5A5',
+                          borderRadius: '8px',
+                          padding: '0.55rem',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                          marginTop: '0.4rem',
+                        }}
+                      >
+                        <AlertCircle size={15} /> 🚫 HỦY ĐƠN ĐẶT LỊCH NÀY (BẮT BUỘC LÝ DO)
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1951,6 +2540,142 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 </button>
               </div>
             </form>
+          </FocusTrap>
+        </div>
+      )}
+
+      {/* Cancellation Modal (Manager / Admin Mandatory Reason & Customer Email Dispatch) */}
+      {cancelModalBooking && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-modal-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(44, 34, 30, 0.7)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem',
+          }}
+        >
+          <FocusTrap>
+            <div
+              style={{
+                backgroundColor: '#FFFDF6',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '540px',
+                padding: '1.75rem',
+                boxShadow: '0 20px 50px rgba(44, 34, 30, 0.3)',
+                border: '1.5px solid #E6D7B9',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={15} /> QUYỀN QUẢN TRỊ • HỦY ĐƠN ĐẶT LỊCH
+                  </div>
+                  <h3 id="cancel-modal-title" style={{ margin: '0.25rem 0 0 0', color: '#604634', fontSize: '1.25rem', fontFamily: 'Playfair Display, serif' }}>
+                    #{cancelModalBooking.bookingCode} — {cancelModalBooking.customerName}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  disabled={Boolean(workflowActionLoading)}
+                  onClick={() => setCancelModalBooking(null)}
+                  style={{
+                    background: '#F3EDE2',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#604634',
+                  }}
+                  aria-label="Đóng"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ padding: '0.75rem 0.9rem', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '10px', fontSize: '0.82rem', color: '#991B1B', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                ⚠️ <strong>Cảnh báo:</strong> Thao tác này sẽ giải phóng slot phòng chụp và <strong>tự động gửi email thông báo hủy chính thức kèm lý do</strong> đến khách hàng <strong>{cancelModalBooking.customerEmail || cancelModalBooking.customerName}</strong>.
+              </div>
+
+              <div style={{ backgroundColor: '#FAF6EE', border: '1px solid #E6D7B9', borderRadius: '8px', padding: '0.7rem 0.85rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#4A3525' }}>
+                <div>📸 <strong>Gói:</strong> {cancelModalBooking.packageName} ({cancelModalBooking.serviceName})</div>
+                <div>📍 <strong>Phòng:</strong> {cancelModalBooking.studioName} • <strong>Lịch:</strong> {cancelModalBooking.bookingDate} {cancelModalBooking.startTime}</div>
+                {cancelModalBooking.customerPhone && <div>📞 <strong>SĐT khách:</strong> {cancelModalBooking.customerPhone}</div>}
+              </div>
+
+              <form onSubmit={handleConfirmCancelSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label htmlFor="cancel-reason-textarea" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#604634', marginBottom: '0.4rem' }}>
+                    Lý do hủy lịch (Bắt buộc để gửi email cho khách) <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <textarea
+                    id="cancel-reason-textarea"
+                    rows={4}
+                    required
+                    disabled={Boolean(workflowActionLoading)}
+                    value={cancelModalReason}
+                    onChange={(e) => {
+                      setCancelModalReason(e.target.value);
+                      if (cancelModalError) setCancelModalError('');
+                    }}
+                    placeholder="Vui lòng nhập chi tiết lý do hủy (ví dụ: Khách gọi điện xin hủy lịch vì việc đột xuất, studio bảo trì cơ sở vật chất, v.v.)..."
+                    className="mipa-input"
+                    style={{ width: '100%', borderRadius: '8px', border: '1.5px solid #D1C2A5', padding: '0.75rem', fontSize: '0.9rem', resize: 'vertical' }}
+                  />
+                  {cancelModalError && (
+                    <div style={{ color: '#DC2626', fontSize: '0.8rem', marginTop: '0.35rem', fontWeight: 700 }}>
+                      ⚠️ {cancelModalError}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    disabled={Boolean(workflowActionLoading)}
+                    onClick={() => setCancelModalBooking(null)}
+                    className="btn-mipa-secondary"
+                    style={{ flex: 1, padding: '0.75rem' }}
+                  >
+                    Quay Lại
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={Boolean(workflowActionLoading) || !cancelModalReason.trim()}
+                    style={{
+                      flex: 1.6,
+                      padding: '0.75rem',
+                      backgroundColor: '#DC2626',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: Boolean(workflowActionLoading) || !cancelModalReason.trim() ? 'not-allowed' : 'pointer',
+                      opacity: Boolean(workflowActionLoading) || !cancelModalReason.trim() ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    {workflowActionLoading ? 'Đang xử lý & gửi mail...' : 'XÁC NHẬN HỦY & GỬI MAIL'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </FocusTrap>
         </div>
       )}

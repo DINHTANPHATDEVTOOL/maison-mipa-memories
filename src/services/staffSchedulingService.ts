@@ -19,11 +19,11 @@ import { INITIAL_EMPLOYEES } from '../mockData';
 // Initial default skills for studio staff
 const DEFAULT_SKILLS: StaffSkill[] = [
   { id: 'skill-1', code: 'PORTRAIT', name: 'Chân dung nghệ thuật', category: 'PHOTOGRAPHY', active: true },
-  { id: 'skill-2', code: 'COUPLE', name: 'Concept Cặp đôi / Pre-wedding', category: 'PHOTOGRAPHY', active: true },
-  { id: 'skill-3', code: 'WEDDING', name: 'Đám cưới / Tiệc cưới', category: 'PHOTOGRAPHY', active: true },
-  { id: 'skill-4', code: 'FAMILY', name: 'Gia đình & Em bé', category: 'PHOTOGRAPHY', active: true },
-  { id: 'skill-5', code: 'STUDIO_LIGHTING', name: 'Setup Ánh sáng Studio chuẩn', category: 'LIGHTING', active: true },
-  { id: 'skill-6', code: 'MAKEUP_BRIDAL', name: 'Trang điểm Cô dâu Haute', category: 'MAKEUP', active: true },
+  { id: 'skill-2', code: 'COUPLE', name: 'Concept Cặp đôi & Kỷ niệm', category: 'PHOTOGRAPHY', active: true },
+  { id: 'skill-3', code: 'GRADUATION', name: 'Kỷ yếu & Tốt nghiệp', category: 'PHOTOGRAPHY', active: true },
+  { id: 'skill-4', code: 'FAMILY', name: 'Gia đình sum vầy', category: 'PHOTOGRAPHY', active: true },
+  { id: 'skill-5', code: 'STUDIO_LIGHTING', name: 'Ánh sáng nghệ thuật tự nhiên', category: 'LIGHTING', active: true },
+  { id: 'skill-6', code: 'MAKEUP_NATURAL', name: 'Trang điểm Nhẹ nhàng / Nàng thơ', category: 'MAKEUP', active: true },
   { id: 'skill-7', code: 'MAKEUP_EDITORIAL', name: 'Makeup Editorial / Thời trang', category: 'MAKEUP', active: true },
   { id: 'skill-8', code: 'RETOUCH_HIGH_END', name: 'Chấm sửa da High-end Fashion', category: 'POST_PRODUCTION', active: true },
   { id: 'skill-9', code: 'COLOR_GRADING', name: 'Cân chỉnh màu Cine tone Pháp', category: 'POST_PRODUCTION', active: true },

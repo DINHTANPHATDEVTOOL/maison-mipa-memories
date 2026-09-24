@@ -75,13 +75,6 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     description: 'Ảnh đại diện gói chụp đôi lãng mạn',
     imageUrl: '/hero-couple.jpg',
   },
-  service_wedding: {
-    id: 'service_wedding',
-    page: 'SERVICES',
-    label: 'Ảnh Dịch Vụ: Cưới & Pre-Wedding',
-    description: 'Ảnh đại diện gói chụp ảnh cưới phong cách Pháp',
-    imageUrl: '/hero-bride.jpg',
-  },
   service_portrait: {
     id: 'service_portrait',
     page: 'SERVICES',
@@ -94,14 +87,7 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     page: 'SERVICES',
     label: 'Ảnh Dịch Vụ: Gia Đình',
     description: 'Ảnh đại diện gói chụp gia đình đa thế hệ',
-    imageUrl: '/hero-baby.jpg',
-  },
-  service_baby: {
-    id: 'service_baby',
-    page: 'SERVICES',
-    label: 'Ảnh Dịch Vụ: Em Bé & Baby',
-    description: 'Ảnh đại diện gói chụp em bé sơ sinh & thôi nôi',
-    imageUrl: '/hero-baby.jpg',
+    imageUrl: '/hero.webp',
   },
   service_graduation: {
     id: 'service_graduation',

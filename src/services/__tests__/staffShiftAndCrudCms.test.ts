@@ -6,7 +6,6 @@ import {
   getAvailableStaffForSlot,
   assignStaffAndSendEmailNotification,
   getStaffEmailNotifications,
-  SHIFT_CONFIGS,
 } from '../staffSchedulingService';
 import {
   createConcept,

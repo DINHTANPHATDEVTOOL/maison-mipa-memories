@@ -5,6 +5,7 @@ import {
   type BusinessBankConfig,
 } from '../paymentSettingsService';
 import { generateVietQrUrl } from '../../config/bankConfig';
+import { renderEmailHtml } from '../../../supabase/functions/_shared/emailTemplates';
 
 describe('Real VietQR & Server-Only Notification Architecture (Phase F & G)', () => {
   describe('Phase G: VietQR Authority & Placeholder Account Blocking', () => {
@@ -149,6 +150,74 @@ describe('Real VietQR & Server-Only Notification Architecture (Phase F & G)', ()
       expect(outboxItem.status).toBe('PENDING'); // Retries pending
       expect(outboxItem.lastError).toContain('key=REDACTED');
       expect(outboxItem.lastError).not.toContain('re_123secretKey');
+    });
+
+    it('renders real studio contact info and never renders mock placeholders', () => {
+      const templates = [
+        'booking_consultation_requested',
+        'booking_confirmed',
+        'booking_rescheduled',
+        'booking_cancelled',
+        'customer_cancel_request_ack',
+        'admin_cancel_request_alert',
+        'admin_new_booking_alert',
+        'album_ready',
+        'default',
+      ];
+
+      for (const t of templates) {
+        const { subject, html } = renderEmailHtml(t, {
+          customerName: 'Phat Dinh Tan',
+          bookingCode: 'MIPA-260924-9955',
+          packageName: 'Chân Dung Nghệ Thuật',
+          serviceName: 'Chân Dung Cá Nhân',
+          startAt: '13:00 Ngày 25/09/2026',
+          cancelReason: 'Bận việc đột xuất',
+          totalAmount: 900000,
+          depositAmount: 270000,
+        });
+
+        expect(subject).toBeTruthy();
+        expect(html).toContain('0966 616 546');
+        expect(html).toContain('maisonmipamemories@gmail.com');
+        expect(html).toContain('88 Phan Sào Nam');
+        expect(html).not.toContain('0908 123 456');
+        expect(html).not.toContain('contact@maisonmipa.io.vn');
+      }
+    });
+
+    it('includes direct deep-link CTA buttons for customer and admin actions', () => {
+      // 1. Customer consultation request
+      const custReq = renderEmailHtml('booking_consultation_requested', {
+        bookingCode: 'MIPA-260924-9955',
+      });
+      expect(custReq.html).toContain('https://maisonmipa.io.vn/account?tab=bookings&bookingCode=MIPA-260924-9955');
+
+      // 2. Booking rescheduled
+      const resched = renderEmailHtml('booking_rescheduled', {
+        bookingCode: 'MIPA-260924-9955',
+        startAt: '14:00 Ngày 28/09/2026',
+      });
+      expect(resched.subject).toContain('MIPA-260924-9955');
+      expect(resched.html).toContain('14:00 Ngày 28/09/2026');
+      expect(resched.html).toContain('https://maisonmipa.io.vn/account?tab=bookings&bookingCode=MIPA-260924-9955');
+
+      // 3. Booking cancelled
+      const cancel = renderEmailHtml('booking_cancelled', {
+        bookingCode: 'MIPA-260924-9955',
+      });
+      expect(cancel.html).toContain('ĐƠN ĐẶT LỊCH ĐÃ ĐƯỢC DUYỆT HỦY');
+      expect(cancel.html).toContain('https://maisonmipa.io.vn/account?tab=bookings&bookingCode=MIPA-260924-9955');
+
+      // 4. Admin cancel request alert
+      const adminAlert = renderEmailHtml('admin_cancel_request_alert', {
+        bookingCode: 'MIPA-260924-9955',
+        bookingId: 'uuid-1234',
+        cancelReason: 'Khách bận lịch công tác',
+      });
+      expect(adminAlert.html).toContain('KHÁCH HÀNG YÊU CẦU HỦY ĐƠN');
+      expect(adminAlert.html).toContain('Khách bận lịch công tác');
+      expect(adminAlert.html).toContain('management?tab=dashboard');
     });
   });
 });

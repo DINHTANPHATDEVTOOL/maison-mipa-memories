@@ -188,7 +188,7 @@ export const DEFAULT_ATELIER_ARTWORKS: AtelierArtwork[] = [
     id: 'c1000000-0000-0000-0000-000000000001',
     title: 'Parisian Romance',
     conceptSlug: 'parisian-romance',
-    imageUrl: '/hero-bride.jpg',
+    imageUrl: '/hero-couple.jpg',
     description: 'Ánh sáng cửa sổ thơ mộng, hoa tươi tone pastel và phong cách cổ điển lãng mạn nước Pháp.',
     wallPosition: 'left',
     position: [-3.0, 1.45, -3.42],

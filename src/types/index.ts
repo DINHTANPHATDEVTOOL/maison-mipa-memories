@@ -177,6 +177,8 @@ export interface Booking {
   discount: number;
   depositAmount: number;
   totalAmount: number;
+  extraSlotTotal?: number;
+  extraSlotsCount?: number;
   paymentStatus: PaymentStatus;
   bookingStatus: BookingStatus;
   customerNote?: string;
@@ -354,6 +356,9 @@ export interface NotificationItem {
   read: boolean;
   type: 'booking' | 'payment' | 'album' | 'system';
   targetRole?: UserRole;
+  link?: string;
+  bookingCode?: string;
+  bookingId?: string;
 }
 
 // ==============================================================================

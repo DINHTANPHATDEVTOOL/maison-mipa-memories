@@ -80,17 +80,6 @@ export const DEMO_CONCEPTS: Concept[] = [
     displayOrder: 5,
   },
   {
-    id: 'c1000000-0000-0000-0000-000000000004',
-    slug: 'la-famille-douce',
-    name: 'Gia Đình Sum Vầy & Tổ Ấm',
-    description: 'Không gian ấm áp, lưu giữ nụ cười và sự gắn kết tự nhiên của mọi thành viên trong gia đình.',
-    serviceId: 'c0000000-0000-0000-0000-000000000003',
-    coverPhotoUrl: '/hero.webp',
-    active: true,
-    bookable: true,
-    displayOrder: 6,
-  },
-  {
     id: 'c1000000-0000-0000-0000-000000000006',
     slug: 'sinh-nhat-lung-linh',
     name: 'Tiệc Sinh Nhật Rực Rỡ',
@@ -99,7 +88,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     coverPhotoUrl: '/concept-noel.webp',
     active: true,
     bookable: true,
-    displayOrder: 7,
+    displayOrder: 6,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000011',
@@ -110,18 +99,18 @@ export const DEMO_CONCEPTS: Concept[] = [
     coverPhotoUrl: '/hero-camera.jpg',
     active: true,
     bookable: true,
-    displayOrder: 8,
+    displayOrder: 7,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000012',
     slug: 'chup-le-tet-sum-vay',
-    name: 'Chụp Lễ Tết Sum Vầy & Du Xuân',
-    description: 'Sắc xuân rạng ngời, câu đối đỏ và ấm trà đầu năm ghi lại niềm vui sum họp đong đầy yêu thương cho gia đình và bạn bè.',
-    serviceId: 'c0000000-0000-0000-0000-000000000003',
+    name: 'Chụp Lễ Tết Du Xuân & Áo Dài',
+    description: 'Sắc xuân rạng ngời, câu đối đỏ và ấm trà đầu năm ghi lại nét đẹp du xuân thanh lịch trong tà áo dài truyền thống.',
+    serviceId: 'c0000000-0000-0000-0000-000000000005',
     coverPhotoUrl: '/concept-tet.webp',
     active: true,
     bookable: true,
-    displayOrder: 9,
+    displayOrder: 8,
   },
   {
     id: 'c1000000-0000-0000-0000-000000000013',
@@ -132,7 +121,7 @@ export const DEMO_CONCEPTS: Concept[] = [
     coverPhotoUrl: '/concept-noel.webp',
     active: true,
     bookable: true,
-    displayOrder: 10,
+    displayOrder: 9,
   },
 ];
 
@@ -377,14 +366,14 @@ export const DEMO_PHOTOS: PortfolioPhoto[] = [
   {
     id: 'c3000000-0000-0000-0000-000000000007',
     collectionId: 'c2000000-0000-0000-0000-000000000005',
-    url: '/hero-baby.jpg',
-    filename: 'l-ange-baby-1.webp',
+    url: '/concept-noel.webp',
+    filename: 'birthday-1.webp',
     width: 1920,
     height: 1080,
     focalX: 50.0,
     focalY: 50.0,
-    altText: 'Em bé ngủ say trong chiếc nôi mây vintage bồng bềnh',
-    caption: 'Giấc ngủ thiên thần của bé',
+    altText: 'Tiệc sinh nhật ấm áp lung linh Maison MIPA',
+    caption: 'Tuổi mới rạng rỡ và tràn đầy niềm vui',
     sortOrder: 1,
     featured: true,
   },
@@ -505,7 +494,6 @@ function resolveCollectionCoverUrl(
   if (hint.includes('ao-dai')) return '/concept-aodai.webp';
   if (hint.includes('tet') || hint.includes('xuan')) return '/concept-tet.webp';
   if (hint.includes('noel') || hint.includes('giang-sinh')) return '/concept-noel.webp';
-  if (hint.includes('ange') || hint.includes('baby')) return '/hero-baby.jpg';
   if (hint.includes('famille') || hint.includes('family')) return '/hero.webp';
   if (hint.includes('wedding') || hint.includes('couple') || hint.includes('parisian')) return '/hero-couple.jpg';
   if (hint.includes('portrait') || hint.includes('chan-dung') || hint.includes('monochrome') || hint.includes('do-an')) return '/hero-camera.jpg';

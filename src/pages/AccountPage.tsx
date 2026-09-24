@@ -7,12 +7,14 @@ import type { Booking } from '../types';
 interface AccountPageProps {
   bookings: Booking[];
   onOpenBooking: () => void;
+  onUpdateBooking?: (updated: Booking) => void;
   onRequireAuth?: () => void;
 }
 
 export const AccountPage: React.FC<AccountPageProps> = ({
   bookings,
   onOpenBooking,
+  onUpdateBooking,
   onRequireAuth,
 }) => {
   return (
@@ -28,6 +30,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       <CustomerPortal
         bookings={bookings}
         onOpenBooking={onOpenBooking}
+        onUpdateBooking={onUpdateBooking}
       />
     </RoleGuard>
   );

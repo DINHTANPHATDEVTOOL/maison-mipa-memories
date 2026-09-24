@@ -178,7 +178,7 @@ export const EditorialGuidePage: React.FC<EditorialGuidePageProps> = ({ onOpenBo
             Ấn bản cẩm nang mùa mới đang được hoàn thiện
           </h3>
           <p style={{ fontSize: '0.92rem', lineHeight: 1.6, color: '#604634', margin: '0 0 1.5rem 0' }}>
-            Chúng tôi đang hoàn thiện các chuyên đề chi tiết về trang phục mùa cưới và cách chọn bối cảnh ánh sáng tự nhiên.
+            Chúng tôi đang hoàn thiện các chuyên đề chi tiết về trang phục chụp ảnh nghệ thuật và cách cảm nhận ánh sáng tự nhiên.
           </p>
           <Link to="/concept" className="public-btn-primary" style={{ padding: '0.75rem 1.75rem', textDecoration: 'none' }}>
             Khám phá danh mục concept

@@ -9,7 +9,7 @@ import { getServices, getPackages, getAddons, getStudioRooms, getPromotions } fr
 import { getPublicConcepts, DEMO_CONCEPTS } from '../../services/portfolioService';
 import { getAvailableSlots, getAvailableSlotsSync, type TimeSlot } from '../../services/availabilityService';
 import { isSupabaseConfigured, isDemoModeEnabled } from '../../lib/supabase';
-import { calculatePricing, validatePromotion } from '../../services/pricingService';
+import { calculatePricing, validatePromotion, getExtraSlotPrice } from '../../services/pricingService';
 import { createBooking, createBookingInMemory, BookingConflictError } from '../../services/bookingService';
 import { useAuth } from '../../context/AuthContext';
 import { X, Check, Clock, ChevronRight, ChevronLeft, ShieldCheck, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
@@ -63,6 +63,8 @@ export type PendingBookingDraft = {
   customerNote?: string;
   voucherCode?: string;
 };
+
+export const DEFAULT_SHOOT_LOCATION = 'Tiệm ảnh Maison MIPA (Atelier cá nhân ánh sáng tự nhiên tone ấm phong cách Pháp)';
 
 interface BookingWizardProps {
   isOpen: boolean;
@@ -121,9 +123,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   );
   const [selectedDate, setSelectedDate] = useState<string>(getInitialBookingDate);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
+  const [consecutiveNotice, setConsecutiveNotice] = useState<string | null>(null);
+  const [shootLocation, setShootLocation] = useState<string>(DEFAULT_SHOOT_LOCATION);
   const [selectedStudio, setSelectedStudio] = useState<StudioRoom | null>(demoMode ? INITIAL_STUDIO_ROOMS[0] : null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; email?: string }>({});
+  const [extraSlotPrice, setExtraSlotPriceState] = useState<number>(() => getExtraSlotPrice());
+
+  useEffect(() => {
+    const handlePricingUpdated = () => {
+      setExtraSlotPriceState(getExtraSlotPrice());
+    };
+    window.addEventListener('mipa_pricing_updated', handlePricingUpdated);
+    return () => window.removeEventListener('mipa_pricing_updated', handlePricingUpdated);
+  }, []);
 
   // Availability State
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>(() =>
@@ -288,10 +302,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       // 4. Flexible cross-service concepts:
       if (initialServiceId) {
         targetService = srvs.find(s => s.id === initialServiceId || s.slug === initialServiceId) || null;
-      } else if (demoMode && presentation !== 'PAGE') {
+      } else if (!targetService && demoMode && presentation !== 'PAGE') {
         targetService = srvs[0] || null;
       }
       setSelectedService(targetService);
+      if (stds.length > 0) {
+        setSelectedStudio(stds[0]);
+      }
 
       // 5. Package param validation
       if (initialPackageId) {
@@ -649,14 +666,27 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         activePromo = appliedPromotion;
       }
     }
+    const slotsCount = selectedTimeSlots.length > 0 ? selectedTimeSlots.length : (selectedTimeSlot ? 1 : 1);
     return calculatePricing({
       packageItem: selectedPackage || { price: 0, durationMinutes: 60 },
       addons: selectedAddons,
       promotion: activePromo,
+      slotsCount,
+      extraSlotPrice,
     });
-  }, [selectedPackage, selectedAddons, isVoucherApplied, appliedPromotion, selectedService]);
+  }, [selectedPackage, selectedAddons, isVoucherApplied, appliedPromotion, selectedService, selectedTimeSlots, selectedTimeSlot, extraSlotPrice]);
 
-  const { subtotal, addonTotal, discountTotal, totalAmount, depositAmount, totalDurationMinutes } = pricing;
+  const {
+    subtotal,
+    addonTotal,
+    discountTotal,
+    totalAmount,
+    depositAmount,
+    totalDurationMinutes,
+    extraSlotTotal,
+    extraSlotsCount,
+    extraSlotUnitPrice,
+  } = pricing;
 
   // Load availability slots whenever Date, Studio or Duration changes
   const loadSlots = useCallback(async () => {
@@ -725,6 +755,116 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [selectedDate, selectedStudio, totalDurationMinutes, existingBookings, selectedTimeSlot, demoMode, presentation]);
 
+  // Computed formatted time range for consecutive slots
+  const formattedTimeRange = useMemo(() => {
+    if (selectedTimeSlots.length === 0) return selectedTimeSlot || '';
+    const firstSlot = selectedTimeSlots[0];
+    const lastSlot = selectedTimeSlots[selectedTimeSlots.length - 1];
+    const lastSlotObj = availableSlots.find(s => s.time === lastSlot);
+    const endStr = lastSlotObj?.endTime || lastSlot;
+    return `${firstSlot} - ${endStr}`;
+  }, [selectedTimeSlots, selectedTimeSlot, availableSlots]);
+
+  // Handle toggling slots ensuring CONSECUTIVE slots only
+  const handleSlotToggle = useCallback((slot: TimeSlot) => {
+    if (slot.status === 'BOOKED') return;
+
+    setConsecutiveNotice(null);
+    draftSlotRejectedRef.current = false;
+    userSlotChoiceClearedRef.current = false;
+
+    // Nếu chưa chọn slot nào
+    if (selectedTimeSlots.length === 0) {
+      setSelectedTimeSlots([slot.time]);
+      setSelectedTimeSlot(slot.time);
+      return;
+    }
+
+    // Lấy indices của các slot hiện đang chọn trong availableSlots
+    const currentIndices = selectedTimeSlots
+      .map(t => availableSlots.findIndex(s => s.time === t))
+      .filter(idx => idx !== -1)
+      .sort((a, b) => a - b);
+
+    if (currentIndices.length === 0) {
+      setSelectedTimeSlots([slot.time]);
+      setSelectedTimeSlot(slot.time);
+      return;
+    }
+
+    const minIdx = currentIndices[0];
+    const maxIdx = currentIndices[currentIndices.length - 1];
+    const clickedIdx = availableSlots.findIndex(s => s.time === slot.time);
+
+    if (clickedIdx === -1) return;
+
+    // TH 1: Click vào slot đã có trong danh sách đang chọn
+    if (selectedTimeSlots.includes(slot.time)) {
+      if (selectedTimeSlots.length === 1) {
+        // Đang chọn đúng 1 slot, click lại để bỏ chọn
+        setSelectedTimeSlots([]);
+        setSelectedTimeSlot('');
+        return;
+      }
+      // Click vào slot đầu dải -> bỏ slot đầu
+      if (clickedIdx === minIdx) {
+        const nextSlots = availableSlots.slice(minIdx + 1, maxIdx + 1).map(s => s.time);
+        setSelectedTimeSlots(nextSlots);
+        setSelectedTimeSlot(nextSlots[0] || '');
+        return;
+      }
+      // Click vào slot cuối dải -> bỏ slot cuối
+      if (clickedIdx === maxIdx) {
+        const nextSlots = availableSlots.slice(minIdx, maxIdx).map(s => s.time);
+        setSelectedTimeSlots(nextSlots);
+        setSelectedTimeSlot(nextSlots[0] || '');
+        return;
+      }
+      // Click vào slot ở giữa: thu hẹp dải đến slot vừa click
+      const nextSlots = availableSlots.slice(minIdx, clickedIdx + 1).map(s => s.time);
+      setSelectedTimeSlots(nextSlots);
+      setSelectedTimeSlot(nextSlots[0] || '');
+      return;
+    }
+
+    // TH 2: Click vào slot mới nằm sau dải hiện tại
+    if (clickedIdx > maxIdx) {
+      const intermediateSlots = availableSlots.slice(maxIdx + 1, clickedIdx + 1);
+      const hasBooked = intermediateSlots.some(s => s.status === 'BOOKED');
+      if (!hasBooked) {
+        // Mở rộng dải liên tiếp về phía sau
+        const newSlots = availableSlots.slice(minIdx, clickedIdx + 1).map(s => s.time);
+        setSelectedTimeSlots(newSlots);
+        setSelectedTimeSlot(newSlots[0]);
+      } else {
+        // Bị ngắt quãng bởi slot đã kín -> Chuyển sang chọn ca mới và thông báo
+        setConsecutiveNotice('Lưu ý: Các ca chụp cần phải liên tiếp nhau. Do có ca ở giữa đã kín lịch nên tiệm đã chuyển sang chọn ca mới này giúp bạn nhé!');
+        setSelectedTimeSlots([slot.time]);
+        setSelectedTimeSlot(slot.time);
+      }
+    } else if (clickedIdx < minIdx) {
+      // Click vào slot mới nằm trước dải hiện tại
+      const intermediateSlots = availableSlots.slice(clickedIdx, minIdx);
+      const hasBooked = intermediateSlots.some(s => s.status === 'BOOKED');
+      if (!hasBooked) {
+        // Mở rộng dải liên tiếp về phía trước
+        const newSlots = availableSlots.slice(clickedIdx, maxIdx + 1).map(s => s.time);
+        setSelectedTimeSlots(newSlots);
+        setSelectedTimeSlot(newSlots[0]);
+      } else {
+        setConsecutiveNotice('Lưu ý: Các ca chụp cần phải liên tiếp nhau. Do có ca ở giữa đã kín lịch nên tiệm đã chuyển sang chọn ca mới này giúp bạn nhé!');
+        setSelectedTimeSlots([slot.time]);
+        setSelectedTimeSlot(slot.time);
+      }
+    }
+  }, [selectedTimeSlots, availableSlots]);
+
+  // Keep selectedTimeSlots in sync when selectedTimeSlot is updated externally (e.g. initial demo load)
+  useEffect(() => {
+    if (selectedTimeSlot && !selectedTimeSlots.includes(selectedTimeSlot)) {
+      setSelectedTimeSlots([selectedTimeSlot]);
+    }
+  }, [selectedTimeSlot, selectedTimeSlots]);
 
   const consumePendingBookingDraft = useCallback(() => {
     try {
@@ -934,8 +1074,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setFormErrors({});
 
     // Check slot availability locally before advancing
-    const initialSlot = availableSlots.find(s => s.time === selectedTimeSlot);
+    const activeTimeSlot = selectedTimeSlots[0] || selectedTimeSlot;
+    const initialSlot = availableSlots.find(s => s.time === activeTimeSlot);
     if (!initialSlot || initialSlot.status !== 'AVAILABLE') {
+      setSelectedTimeSlots([]);
       setSelectedTimeSlot('');
       userSlotChoiceClearedRef.current = true;
       setErrorMessage('Khung giờ đã thay đổi hoặc không còn khả dụng. Vui lòng chọn lại.');
@@ -980,8 +1122,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       }
       setAvailableSlots(freshSlots);
 
-      const authoritativeSlot = freshSlots.find(s => s.time === selectedTimeSlot);
+      const authoritativeSlot = freshSlots.find(s => s.time === activeTimeSlot);
       if (!authoritativeSlot || authoritativeSlot.status !== 'AVAILABLE') {
+        setSelectedTimeSlots([]);
         setSelectedTimeSlot('');
         userSlotChoiceClearedRef.current = true;
         setErrorMessage('Khung giờ đã thay đổi hoặc không còn khả dụng. Vui lòng chọn lại.');
@@ -1001,12 +1144,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         refreshedVoucherCode = promoCheck.refreshedPromo?.code;
       }
 
+      let finalCustomerNote = customerNote || '';
+      const locationNote = shootLocation && shootLocation !== DEFAULT_SHOOT_LOCATION
+        ? `[Địa điểm: ${shootLocation}]`
+        : `[Địa điểm: ${shootLocation}]`;
+      const multiSlotsNote = selectedTimeSlots.length > 1
+        ? `[Ca chụp liên tiếp: ${formattedTimeRange} (${selectedTimeSlots.join(', ')}) | Phụ thu ${extraSlotsCount} ca thêm: +${extraSlotTotal.toLocaleString('vi-VN')}đ]`
+        : '';
+      const extraNotes = [locationNote, multiSlotsNote].filter(Boolean).join(' ');
+      if (extraNotes) {
+        finalCustomerNote = finalCustomerNote ? `${extraNotes}\n${finalCustomerNote}` : extraNotes;
+      }
+
       const payload = {
         serviceId: selectedService.id,
         packageId: selectedPackage.id,
         studioId: selectedStudio.id,
         date: selectedDate,
-        timeSlot: selectedTimeSlot,
+        timeSlot: activeTimeSlot,
         addonIds: selectedAddons.map(a => a.id),
         conceptIds: selectedConcepts.map(c => c.id),
         voucherCode: refreshedVoucherCode,
@@ -1014,7 +1169,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         customerPhone,
         customerEmail,
         occasion,
-        customerNote,
+        customerNote: finalCustomerNote,
+        slotsCount: selectedTimeSlots.length || 1,
+        extraSlotPrice,
       };
 
       if (!isSupabaseConfigured() || demoMode) {
@@ -1595,7 +1752,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     type="date"
                     min={getTodayVn()}
                     value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setSelectedTimeSlots([]);
+                      setSelectedTimeSlot('');
+                      setConsecutiveNotice(null);
+                    }}
                     className="mipa-input"
                     style={{
                       fontSize: '0.95rem',
@@ -1607,45 +1769,53 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     }}
                   />
 
-                  <div style={{ marginTop: '1.8rem' }}>
-                    <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      2. Chọn không gian chụp tại tiệm
-                    </label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      {studios.map((std) => {
-                        const isSel = selectedStudio?.id === std.id;
-                        return (
-                          <button
-                            type="button"
-                            role="radio"
-                            aria-checked={isSel}
-                            key={std.id}
-                            onClick={() => setSelectedStudio(std)}
-                            style={{
-                              padding: '0.85rem 1rem',
-                              borderRadius: '4px',
-                              border: isSel ? '2px solid var(--editorial-brown)' : '1px solid var(--editorial-divider)',
-                              backgroundColor: isSel ? '#FAF6EE' : '#FFFFFF',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              transition: 'border-color 0.2s ease, background-color 0.2s ease',
-                              textAlign: 'left',
-                              fontFamily: 'inherit',
-                              width: '100%',
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontWeight: 600, color: 'var(--editorial-brown)', fontSize: '0.92rem' }}>{std.name}</div>
-                              <div style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', marginTop: '0.15rem' }}>
-                                Sức chứa: {std.capacity} người • {std.description ? `${std.description.slice(0, 48)}...` : ''}
-                              </div>
-                            </div>
-                            {isSel && <Check size={16} color="var(--editorial-brown)" />}
-                          </button>
-                        );
-                      })}
+                  {/* Ô nhập địa điểm chụp / Không gian trải nghiệm */}
+                  <div style={{ marginTop: '1.5rem', padding: '1.1rem', backgroundColor: '#FAF6EE', borderRadius: '6px', border: '1px solid var(--editorial-divider)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                      <label htmlFor="booking-shoot-location" style={{ fontWeight: 600, color: 'var(--editorial-brown)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        📍 Không gian / Địa điểm chụp:
+                      </label>
+                      {shootLocation !== DEFAULT_SHOOT_LOCATION && (
+                        <button
+                          type="button"
+                          onClick={() => setShootLocation(DEFAULT_SHOOT_LOCATION)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: 'var(--editorial-brown-accent)',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          Đặt lại địa chỉ tiệm
+                        </button>
+                      )}
+                    </div>
+                    <textarea
+                      id="booking-shoot-location"
+                      value={shootLocation}
+                      onChange={(e) => setShootLocation(e.target.value)}
+                      rows={2}
+                      className="mipa-input"
+                      placeholder="Nhập địa điểm chụp bạn mong muốn..."
+                      style={{
+                        width: '100%',
+                        fontSize: '0.84rem',
+                        lineHeight: 1.5,
+                        padding: '0.65rem 0.8rem',
+                        borderRadius: '4px',
+                        border: '1px solid var(--editorial-divider)',
+                        backgroundColor: '#FFFFFF',
+                        color: 'var(--editorial-text-primary)',
+                        resize: 'vertical',
+                        fontFamily: 'inherit',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <div style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', marginTop: '0.4rem', lineHeight: 1.45 }}>
+                      ✨ <em>Mặc định là không gian ấm cúng của tiệm. Bạn có thể chỉnh sửa hoặc nhập địa điểm ngoại cảnh/địa chỉ mong muốn nhé!</em>
                     </div>
                   </div>
                 </div>
@@ -1653,7 +1823,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <label className="mipa-label" style={{ color: 'var(--editorial-brown)', fontWeight: 600, margin: 0 }}>
-                      3. Chọn giờ chụp
+                      2. Chọn giờ chụp (có thể chọn các ca liên tiếp)
                     </label>
                     {isLoadingSlots && (
                       <span style={{ fontSize: '0.75rem', color: 'var(--editorial-brown-accent)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -1661,9 +1831,76 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--editorial-text-secondary)', marginBottom: '0.85rem', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--editorial-text-secondary)', marginBottom: '0.65rem', lineHeight: 1.4 }}>
                     Tổng thời lượng: <strong>{totalDurationMinutes} phút</strong> (Gói {selectedPackage?.durationMinutes || 0}p{pricing.totalDurationMinutes > (selectedPackage?.durationMinutes || 0) ? ` + dịch vụ thêm ${pricing.totalDurationMinutes - (selectedPackage?.durationMinutes || 0)}p` : ''}).
                   </p>
+
+                  {/* Banner tóm tắt các ca đang chọn */}
+                  {selectedTimeSlots.length > 0 && (
+                    <div style={{
+                      padding: '0.55rem 0.85rem',
+                      backgroundColor: '#FAF6EE',
+                      border: '1px solid #EFE6C9',
+                      borderRadius: '4px',
+                      marginBottom: '0.65rem',
+                      fontSize: '0.82rem',
+                      color: 'var(--editorial-brown)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem',
+                    }}>
+                      <span>
+                        ✨ {selectedTimeSlots.length > 1 ? (
+                          <>
+                            Đang chọn <strong>{selectedTimeSlots.length} ca liên tiếp</strong>: <strong>{formattedTimeRange}</strong>{' '}
+                            <span style={{ color: '#8F341A', fontWeight: 600 }}>
+                              (+{extraSlotTotal.toLocaleString('vi-VN')}đ phụ thu {extraSlotsCount} ca thêm)
+                            </span>
+                          </>
+                        ) : (
+                          <>Đã chọn ca: <strong>{formattedTimeRange}</strong></>
+                        )}
+                      </span>
+                      {selectedTimeSlots.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const first = selectedTimeSlots[0];
+                            setSelectedTimeSlots([first]);
+                            setSelectedTimeSlot(first);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: 'var(--editorial-brown-accent)',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          Chỉ giữ 1 ca
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Thông báo nhắc nhở chọn ca liên tiếp nếu có */}
+                  {consecutiveNotice && (
+                    <div style={{
+                      padding: '0.5rem 0.8rem',
+                      backgroundColor: '#FFFBEB',
+                      border: '1px solid #FDE68A',
+                      borderRadius: '4px',
+                      marginBottom: '0.65rem',
+                      fontSize: '0.78rem',
+                      color: '#92400E',
+                      lineHeight: 1.4,
+                    }}>
+                      {consecutiveNotice}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '340px', overflowY: 'auto' }}>
                     {availabilityError ? (
@@ -1696,19 +1933,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     ) : (
                       availableSlots.map((slot) => {
                         const isBooked = slot.status === 'BOOKED';
-                        const isSel = !isBooked && selectedTimeSlot === slot.time;
+                        const isSel = !isBooked && selectedTimeSlots.includes(slot.time);
+                        const slotOrder = isSel ? selectedTimeSlots.indexOf(slot.time) + 1 : 0;
                         return (
                           <button
                             key={slot.time}
                             type="button"
                             disabled={isBooked}
                             aria-disabled={isBooked}
-                            onClick={() => {
-                              if (isBooked) return;
-                              setSelectedTimeSlot(slot.time);
-                              draftSlotRejectedRef.current = false;
-                              userSlotChoiceClearedRef.current = false;
-                            }}
+                            onClick={() => handleSlotToggle(slot)}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -1751,7 +1984,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                               </div>
                             </div>
 
-                            <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              {isSel && selectedTimeSlots.length > 1 && (
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  padding: '2px 7px',
+                                  backgroundColor: 'var(--editorial-brown)',
+                                  color: '#FFFFFF',
+                                  borderRadius: '10px',
+                                  fontWeight: 600,
+                                }}>
+                                  Ca {slotOrder}
+                                </span>
+                              )}
                               {isBooked ? (
                                 <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 500 }}>
                                   Đã kín lịch
@@ -1767,6 +2012,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       })
                     )}
                   </div>
+                  <p style={{
+                    marginTop: '0.65rem',
+                    fontSize: '0.78rem',
+                    color: 'var(--editorial-text-secondary)',
+                    lineHeight: 1.4,
+                  }}>
+                    💡 <em>Ca đầu tiên được tính theo giá gói tiêu chuẩn. Bạn có thể chọn thêm các ca liên tiếp để có thêm thời gian chụp thảnh thơi hơn, mỗi ca thêm chỉ phụ thu nhẹ +{extraSlotPrice.toLocaleString('vi-VN')}đ.</em>
+                  </p>
                 </div>
               </div>
             </div>
@@ -1841,7 +2094,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               }}>
                 <div>
                   <div style={{ fontSize: '0.88rem', color: 'var(--editorial-brown)' }}>
-                    Gói <strong>{selectedPackage?.name || ''}</strong> ({selectedPackage ? selectedPackage.price.toLocaleString('vi-VN') : '0'}đ) + Dịch vụ thêm ({addonTotal.toLocaleString('vi-VN')}đ)
+                    Gói <strong>{selectedPackage?.name || ''}</strong> ({selectedPackage ? selectedPackage.price.toLocaleString('vi-VN') : '0'}đ) + Dịch vụ thêm ({addonTotal.toLocaleString('vi-VN')}đ){extraSlotTotal > 0 ? ` + Phụ thu ${extraSlotsCount} ca thêm (+${extraSlotTotal.toLocaleString('vi-VN')}đ)` : ''}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--editorial-text-secondary)', marginTop: '0.2rem' }}>
                     Tiền cọc giữ lịch (30%): <strong>{depositAmount.toLocaleString('vi-VN')}đ</strong>
@@ -2180,18 +2433,36 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     <span style={{ color: 'var(--editorial-text-secondary)' }}>Ngày mong muốn:</span>
                     <strong>{selectedDate}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--editorial-text-secondary)' }}>Khung giờ mong muốn:</span>
-                    <strong>{selectedTimeSlot} ({totalDurationMinutes} phút)</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.8rem' }}>
+                    <span style={{ color: 'var(--editorial-text-secondary)', flexShrink: 0 }}>Khung giờ mong muốn:</span>
+                    <strong style={{ textAlign: 'right' }}>
+                      {selectedTimeSlots.length > 1 ? (
+                        <>
+                          {formattedTimeRange}
+                          <br />
+                          <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--editorial-brown-accent)' }}>
+                            ({selectedTimeSlots.length} ca liên tiếp: {selectedTimeSlots.join(', ')})
+                          </span>
+                        </>
+                      ) : (
+                        `${selectedTimeSlot || formattedTimeRange} (${totalDurationMinutes} phút)`
+                      )}
+                    </strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--editorial-text-secondary)' }}>Không gian chụp:</span>
-                    <strong>{selectedStudio?.name || ''}</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.8rem' }}>
+                    <span style={{ color: 'var(--editorial-text-secondary)', flexShrink: 0 }}>Địa điểm chụp:</span>
+                    <strong style={{ textAlign: 'right', fontSize: '0.86rem', color: 'var(--editorial-brown)' }}>{shootLocation}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--editorial-text-secondary)' }}>Khách hàng:</span>
                     <strong>{customerName} ({customerPhone})</strong>
                   </div>
+                  {extraSlotTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8F341A', fontSize: '0.86rem' }}>
+                      <span>Phụ thu ca thêm ({extraSlotsCount} ca x {extraSlotUnitPrice.toLocaleString('vi-VN')}đ):</span>
+                      <strong>+{extraSlotTotal.toLocaleString('vi-VN')}đ</strong>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{
@@ -2217,15 +2488,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
                 <div style={{
                   marginTop: '1rem',
-                  padding: '0.75rem 0.9rem',
+                  padding: '0.8rem 1rem',
                   backgroundColor: '#FAF6EE',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   border: '1px solid var(--editorial-divider)',
-                  fontSize: '0.8rem',
-                  color: 'var(--editorial-text-secondary)',
+                  fontSize: '0.82rem',
+                  color: 'var(--editorial-brown)',
                   lineHeight: 1.5,
                 }}>
-                  ℹ️ <em>Lưu ý: Lịch chụp và chi phí dự kiến chưa phải là lịch giữ chính thức. Maison MIPA sẽ liên hệ để tư vấn chi tiết, xác nhận lịch phòng và hướng dẫn đặt cọc.</em>
+                  🌸 <em>Lưu ý thương gửi: Lịch hẹn và chi phí dự kiến chưa phải là lịch giữ chính thức. Tiệm ảnh Maison MIPA tụi mình sẽ sớm liên hệ cùng bạn để tư vấn concept thật xinh, chuẩn bị không gian chụp chu đáo và hướng dẫn bạn giữ chỗ nhé!</em>
                 </div>
               </div>
 
@@ -2309,20 +2580,26 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       return;
                     }
                     if (!selectedStudio) {
-                      setErrorMessage('Vui lòng chọn không gian phòng chụp để tiếp tục.');
-                      return;
+                      const defaultStd = studios[0] || INITIAL_STUDIO_ROOMS[0];
+                      if (defaultStd) {
+                        setSelectedStudio(defaultStd);
+                      }
                     }
                     if (isLoadingSlots) {
                       setErrorMessage('Đang kiểm tra lịch khả dụng. Vui lòng đợi trong giây lát...');
                       return;
                     }
-                    if (!selectedTimeSlot || selectedTimeSlot.trim() === '') {
+                    const activeSlots = selectedTimeSlots.length > 0 ? selectedTimeSlots : (selectedTimeSlot ? [selectedTimeSlot] : []);
+                    if (activeSlots.length === 0) {
                       setErrorMessage('Vui lòng chọn một khung giờ chụp ảnh còn trống trước khi tiếp tục.');
                       return;
                     }
-                    const currentSlot = availableSlots.find(s => s.time === selectedTimeSlot);
-                    if (!currentSlot || currentSlot.status === 'BOOKED') {
-                      setErrorMessage('Khung giờ bạn chọn đã có khách đặt lịch. Vui lòng chọn một khung giờ khác còn trống.');
+                    const hasBooked = activeSlots.some(t => {
+                      const currentSlot = availableSlots.find(s => s.time === t);
+                      return !currentSlot || currentSlot.status === 'BOOKED';
+                    });
+                    if (hasBooked) {
+                      setErrorMessage('Khung giờ bạn chọn đã có khách đặt lịch. Vui lòng chọn khung giờ khác còn trống nhé.');
                       return;
                     }
                   }

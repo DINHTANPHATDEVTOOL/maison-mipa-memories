@@ -267,8 +267,8 @@ export async function getServicePerformance(
   return [
     {
       serviceId: 'srv-1',
-      serviceName: 'Chụp ảnh Cưới - Wedding Editorial',
-      category: 'Wedding',
+      serviceName: 'Chụp ảnh Couple & Kỷ Niệm Tình Yêu',
+      category: 'Couple',
       consultationRequests: 18,
       confirmedBookings: 12,
       completedBookings: 10,
@@ -289,7 +289,7 @@ export async function getServicePerformance(
     },
     {
       serviceId: 'srv-3',
-      serviceName: 'Chụp ảnh Gia đình & Bé',
+      serviceName: 'Chụp ảnh Gia đình Sum Vầy',
       category: 'Family',
       consultationRequests: 9,
       confirmedBookings: 4,

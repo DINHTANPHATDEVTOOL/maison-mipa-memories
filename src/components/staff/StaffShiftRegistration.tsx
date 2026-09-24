@@ -11,7 +11,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { User, StaffRole } from '../../types';
 import {
   type ShiftType,
-  SHIFT_CONFIGS,
   type StaffShiftRegistrationRecord,
   getStaffRegisteredShifts,
   registerStaffShifts,
@@ -49,7 +48,7 @@ export const StaffShiftRegistration: React.FC<StaffShiftRegistrationProps> = ({
 
   // Base date for navigation
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
+  const [_registeredShifts, setRegisteredShifts] = useState<StaffShiftRegistrationRecord[]>([]);
   const [emailAlerts, setEmailAlerts] = useState<StaffEmailNotification[]>([]);
   const [localSelections, setLocalSelections] = useState<Record<string, { MORNING: boolean; AFTERNOON: boolean }>>({});
   const [isSaving, setIsSaving] = useState(false);

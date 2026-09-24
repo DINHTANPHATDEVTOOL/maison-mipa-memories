@@ -96,7 +96,7 @@ export const HomeBrandStorySection: React.FC = () => {
               </p>
 
               <p style={{ margin: 0 }}>
-                Chúng tôi nâng niu từng khoảnh khắc nguyên bản: cái tựa đầu êm đềm của đôi uyên ương, nụ cười trong veo của em bé khi được cha bế bổng, hay ánh mắt bao dung của người mẹ. Thời gian rồi sẽ trôi đi, nhưng những gì được gìn giữ trong ngôi nhà MIPA sẽ mãi ở lại — như một lời nhắc nhở dịu dàng về tình thân và nơi chốn bình yên ta thuộc về.
+                Chúng tôi nâng niu từng khoảnh khắc nguyên bản: cái tựa đầu êm đềm của đôi bạn trẻ, nụ cười rạng rỡ của người con gái trong tà áo dài, hay ánh mắt bao dung của người mẹ. Thời gian rồi sẽ trôi đi, nhưng những gì được gìn giữ trong ngôi nhà MIPA sẽ mãi ở lại — như một lời nhắc nhở dịu dàng về tình thân và nơi chốn bình yên ta thuộc về.
               </p>
             </div>
 

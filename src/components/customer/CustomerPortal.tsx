@@ -37,19 +37,23 @@ import {
   Trash2,
   Loader2,
   Upload,
+  XCircle,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
   bookings: Booking[];
   onOpenBooking: () => void;
+  onUpdateBooking?: (updated: Booking) => void;
 }
 
-export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpenBooking }) => {
+export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpenBooking, onUpdateBooking }) => {
   const { user, isRootOwner, updateProfile, resetPassword } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeSubTab, setActiveSubTab] = useState<'bookings' | 'profile'>(
-    searchParams.get('tab') === 'profile' ? 'profile' : 'bookings'
-  );
+  const targetBookingCode = searchParams.get('bookingCode');
+  const [activeSubTab, setActiveSubTab] = useState<'bookings' | 'profile'>(() => {
+    if (searchParams.get('tab') === 'profile') return 'profile';
+    return 'bookings';
+  });
   const [actionNotice, setActionNotice] = useState<string>('');
   const [selectedProofBooking, setSelectedProofBooking] = useState<Booking | null>(null);
 
@@ -148,8 +152,22 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
   useEffect(() => {
     if (searchParams.get('tab') === 'profile') {
       setActiveSubTab('profile');
+    } else if (searchParams.get('tab') === 'bookings' || targetBookingCode) {
+      setActiveSubTab('bookings');
     }
-  }, [searchParams]);
+  }, [searchParams, targetBookingCode]);
+
+  useEffect(() => {
+    if (targetBookingCode && activeSubTab === 'bookings') {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`customer-booking-${targetBookingCode}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [targetBookingCode, activeSubTab, bookings.length]);
 
   const handleTabChange = (tab: 'bookings' | 'profile') => {
     setActiveSubTab(tab);
@@ -280,9 +298,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
 
     try {
       setActionError('');
-      await requestBookingCancel(cancelBooking.id, cancelReason);
+      const updated = await requestBookingCancel(cancelBooking.id, cancelReason);
       setCancelBooking(null);
       setCancelReason('');
+      onUpdateBooking?.(updated);
       setActionNotice('✓ Đã gửi yêu cầu hủy lịch tới quản lý studio.');
       setTimeout(() => setActionNotice(''), 5000);
     } catch (err: any) {
@@ -443,8 +462,21 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
               </button>
             </div>
           ) : (
-            customerBookings.map((b) => (
-              <div key={b.id} className="mipa-card" style={{ padding: '1.8rem', borderRadius: '18px' }}>
+            customerBookings.map((b) => {
+              const isTarget = Boolean(targetBookingCode && b.bookingCode?.toLowerCase() === targetBookingCode.toLowerCase());
+              return (
+                <div
+                  key={b.id}
+                  id={`customer-booking-${b.bookingCode}`}
+                  className="mipa-card"
+                  style={{
+                    padding: '1.8rem',
+                    borderRadius: '18px',
+                    border: isTarget ? '2.5px solid #C6A45F' : '1px solid var(--mipa-beige)',
+                    boxShadow: isTarget ? '0 0 25px rgba(198, 164, 95, 0.45)' : undefined,
+                    transition: 'all 0.3s ease',
+                  }}
+                >
                 {/* Header Info */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem', borderBottom: '1px solid #EFE6C9', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
@@ -492,181 +524,207 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                     <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#8C6E53', marginTop: '0.4rem' }}>
                       {b.totalAmount.toLocaleString('vi-VN')} đ
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: (b.depositAmount > 0 || b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID') ? '#047857' : '#D97706', fontWeight: 600 }}>
-                      {b.depositAmount > 0 || b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID'
-                        ? `Đã cọc: ${b.depositAmount.toLocaleString('vi-VN')} đ`
+                    <div style={{
+                      fontSize: '0.82rem',
+                      color: b.bookingStatus === 'CANCELLED' ? '#DC2626' : (b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID') ? '#047857' : '#D97706',
+                      fontWeight: 600,
+                      marginTop: '0.2rem',
+                    }}>
+                      {b.bookingStatus === 'CANCELLED'
+                        ? 'Đơn đã hủy'
                         : b.paymentStatus === 'FULLY_PAID'
-                        ? 'Đã thanh toán đủ 100%'
+                        ? '✓ Đã thanh toán đủ 100%'
+                        : (b.depositConfirmedAt || b.paymentStatus === 'DEPOSIT_PAID')
+                        ? `✓ Đã cọc: ${b.depositAmount.toLocaleString('vi-VN')} đ`
                         : b.bookingStatus === 'CONSULTATION_REQUESTED' || b.bookingStatus === 'CONSULTING'
-                        ? 'Chờ xác nhận cọc'
+                        ? (b.depositAmount > 0 ? `Cọc dự tính: ${b.depositAmount.toLocaleString('vi-VN')} đ (Chờ studio xác nhận cọc)` : 'Chờ xác nhận cọc')
+                        : b.depositAmount > 0
+                        ? `Cọc dự tính: ${b.depositAmount.toLocaleString('vi-VN')} đ (Chờ thanh toán cọc)`
                         : 'Chờ thanh toán cọc'}
                     </div>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div style={{ backgroundColor: '#FFFDF6', padding: '1.2rem', borderRadius: '12px', border: '1px solid var(--mipa-beige)', marginBottom: '1.2rem' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#8C6E53', marginBottom: '0.8rem' }}>
-                    TIẾN ĐỘ BUỔI CHỤP:
+                {/* Progress Bar / Cancellation Notice */}
+                {b.bookingStatus !== 'CANCELLED' ? (
+                  <div style={{ backgroundColor: '#FFFDF6', padding: '1.2rem', borderRadius: '12px', border: '1px solid var(--mipa-beige)', marginBottom: '1.2rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#8C6E53', marginBottom: '0.8rem' }}>
+                      TIẾN ĐỘ BUỔI CHỤP:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
+                      {[
+                        { label: '1. Đã Nhận Cọc', done: ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
+                        { label: '2. Đã Check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                        { label: '3. Buổi Chụp', done: ['SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                        { label: '4. Chọn Ảnh', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                        { label: '5. Hậu Kỳ', done: ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
+                        { label: '6. Đã Giao Ảnh', done: ['DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || Boolean(b.driveReadyForCustomer) },
+                      ].map((step, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: step.done ? '#047857' : '#A39385', fontWeight: step.done ? 600 : 400 }}>
+                          <Check size={14} color={step.done ? '#047857' : '#A39385'} />
+                          <span>{step.label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
-                    {[
-                      { label: '1. Đã Nhận Cọc', done: ['CONFIRMED', 'CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || b.paymentStatus === 'DEPOSIT_PAID' || b.paymentStatus === 'FULLY_PAID' },
-                      { label: '2. Đã Check-in', done: ['CHECKED_IN', 'SHOOTING', 'SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '3. Buổi Chụp', done: ['SHOOT_COMPLETED', 'AWAITING_SELECTION', 'EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '4. Chọn Ảnh', done: ['EDITING', 'READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '5. Hậu Kỳ', done: ['READY_FOR_REVIEW', 'DELIVERED', 'COMPLETED'].includes(b.bookingStatus) },
-                      { label: '6. Đã Giao Ảnh', done: ['DELIVERED', 'COMPLETED'].includes(b.bookingStatus) || Boolean(b.driveReadyForCustomer) },
-                    ].map((step, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: step.done ? '#047857' : '#A39385', fontWeight: step.done ? 600 : 400 }}>
-                        <Check size={14} color={step.done ? '#047857' : '#A39385'} />
-                        <span>{step.label}</span>
+                ) : (
+                  <div style={{ backgroundColor: '#FEF2F2', padding: '1rem 1.25rem', borderRadius: '12px', border: '1.5px solid #FECACA', display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.2rem' }}>
+                    <XCircle size={22} color="#DC2626" style={{ flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#991B1B', fontSize: '0.9rem' }}>
+                        ĐƠN ĐẶT LỊCH ĐÃ ĐƯỢC DUYỆT HỦY
                       </div>
-                    ))}
+                      <div style={{ fontSize: '0.82rem', color: '#7F1D1D', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                        Lịch hẹn này đã được studio hoàn tất thủ tục hủy trên hệ thống. Quý khách có nhu cầu đặt lịch ngày khác vui lòng bấm Đặt Lịch Chụp Mới.
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Customer Acknowledgements & Delivery Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem' }}>
-                  <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {/* Schedule confirmation acknowledgement (DEF-D012) */}
-                    {b.bookingStatus === 'CONFIRMED' && !b.customerScheduleConfirmedAt && (
-                      <button
-                        onClick={() => handleAcknowledgeSchedule(b.id)}
-                        className="btn-mipa-gold"
-                        style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
-                      >
-                        ✓ Tôi Đã Nắm Rõ Giờ Hẹn Chụp
-                      </button>
-                    )}
+                {b.bookingStatus !== 'CANCELLED' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px dashed #EFE6C9', paddingTop: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {/* Schedule confirmation acknowledgement (DEF-D012) */}
+                      {b.bookingStatus === 'CONFIRMED' && !b.customerScheduleConfirmedAt && (
+                        <button
+                          onClick={() => handleAcknowledgeSchedule(b.id)}
+                          className="btn-mipa-gold"
+                          style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                        >
+                          ✓ Tôi Đã Nắm Rõ Giờ Hẹn Chụp
+                        </button>
+                      )}
 
-                    {b.customerScheduleConfirmedAt && (
-                      <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Check size={15} /> Bạn đã xác nhận sẽ tham gia đúng giờ
-                      </span>
-                    )}
+                      {b.customerScheduleConfirmedAt && (
+                        <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Check size={15} /> Bạn đã xác nhận sẽ tham gia đúng giờ
+                        </span>
+                      )}
 
-                    {/* Shoot completed acknowledgement */}
-                    {(b.bookingStatus === 'SHOOT_COMPLETED' || b.bookingStatus === 'EDITING') && !b.customerShootAckAt && (
-                      <button
-                        onClick={() => handleAcknowledgeShoot(b.id)}
-                        className="btn-mipa-secondary"
-                        style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
-                      >
-                        📷 Xác Nhận Đã Chụp Xong
-                      </button>
-                    )}
+                      {/* Shoot completed acknowledgement */}
+                      {(b.bookingStatus === 'SHOOT_COMPLETED' || b.bookingStatus === 'EDITING') && !b.customerShootAckAt && (
+                        <button
+                          onClick={() => handleAcknowledgeShoot(b.id)}
+                          className="btn-mipa-secondary"
+                          style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                        >
+                          📷 Xác Nhận Đã Chụp Xong
+                        </button>
+                      )}
 
-                    {/* Customer Photo Selection Action (Phase 9) */}
-                    {b.bookingStatus === 'AWAITING_SELECTION' && (
-                      <button
-                        onClick={() => setSelectedProofBooking(b)}
-                        className="btn-mipa-gold"
-                        style={{
-                          fontSize: '0.88rem',
-                          padding: '0.5rem 1.3rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                        }}
-                      >
-                        <Camera size={16} /> Chọn Ảnh Hậu Kỳ
-                      </button>
-                    )}
-
-                    {/* Google Drive Final Delivery Button (Phase 16, DEF-D016) */}
-                    {(() => {
-                      const rawUrl = b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl;
-                      const hasDelivery = (b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && Boolean(rawUrl);
-                      if (!hasDelivery) {
-                        return b.bookingStatus !== 'AWAITING_SELECTION' ? (
-                          <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
-                            ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
-                          </span>
-                        ) : null;
-                      }
-
-                      const finalLink = (rawUrl && rawUrl !== 'https://drive.google.com' && rawUrl !== 'https://drive.google.com/')
-                        ? rawUrl
-                        : `https://drive.google.com/drive/search?q=${encodeURIComponent(b.bookingCode)}`;
-
-                      return (
-                        <a
-                          href={finalLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {/* Customer Photo Selection Action (Phase 9) */}
+                      {b.bookingStatus === 'AWAITING_SELECTION' && (
+                        <button
+                          onClick={() => setSelectedProofBooking(b)}
                           className="btn-mipa-gold"
                           style={{
                             fontSize: '0.88rem',
-                            padding: '0.5rem 1.2rem',
+                            padding: '0.5rem 1.3rem',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.4rem',
-                            backgroundColor: '#047857',
-                            color: '#FFFFFF',
-                            textDecoration: 'none',
-                            fontWeight: 700,
                           }}
                         >
-                          <FolderDown size={16} /> XEM ẢNH TRÊN DRIVE
-                        </a>
-                      );
-                    })()}
-                  </div>
+                          <Camera size={16} /> Chọn Ảnh Hậu Kỳ
+                        </button>
+                      )}
 
-                  {/* Reschedule / Cancel options (DEF-D011: Hide on past dates) */}
-                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                    {(() => {
-                      const todayVn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-                      const isPast = Boolean(b.bookingDate && b.bookingDate < todayVn);
-                      const isEligibleStatus = ['CONSULTATION_REQUESTED', 'CONSULTING', 'PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED'].includes(b.bookingStatus);
+                      {/* Google Drive Final Delivery Button (Phase 16, DEF-D016) */}
+                      {(() => {
+                        const rawUrl = b.finalFolderUrl || b.driveFolderUrl || (b as any).deliveryFolderUrl || (b as any).delivery?.finalFolderUrl;
+                        const hasDelivery = (b.bookingStatus === 'DELIVERED' || b.bookingStatus === 'COMPLETED' || b.driveReadyForCustomer) && Boolean(rawUrl);
+                        if (!hasDelivery) {
+                          return b.bookingStatus !== 'AWAITING_SELECTION' ? (
+                            <span style={{ fontSize: '0.8rem', color: '#8C6E53' }}>
+                              ⏳ Ảnh đang được chuẩn bị & hậu kỳ kỹ lưỡng
+                            </span>
+                          ) : null;
+                        }
 
-                      if (!isEligibleStatus) return null;
+                        const finalLink = (rawUrl && rawUrl !== 'https://drive.google.com' && rawUrl !== 'https://drive.google.com/')
+                          ? rawUrl
+                          : `https://drive.google.com/drive/search?q=${encodeURIComponent(b.bookingCode)}`;
 
-                      if (isPast) {
                         return (
-                          <span style={{ fontSize: '0.78rem', color: '#8C6E53', fontStyle: 'italic' }}>
-                            Đã qua ngày hẹn • Liên hệ hotline để đổi lịch
-                          </span>
+                          <a
+                            href={finalLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-mipa-gold"
+                            style={{
+                              fontSize: '0.88rem',
+                              padding: '0.5rem 1.2rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              backgroundColor: '#047857',
+                              color: '#FFFFFF',
+                              textDecoration: 'none',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <FolderDown size={16} /> XEM ẢNH TRÊN DRIVE
+                          </a>
                         );
-                      }
+                      })()}
+                    </div>
 
-                      return (
-                        <>
-                          <button
-                            onClick={() => setRescheduleBooking(b)}
-                            className="btn-mipa-secondary"
-                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                          >
-                            Yêu cầu đổi lịch
-                          </button>
-                          <button
-                            onClick={() => setCancelBooking(b)}
-                            style={{ background: 'none', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}
-                          >
-                            Yêu cầu hủy
-                          </button>
-                        </>
-                      );
-                    })()}
+                    {/* Reschedule / Cancel options (DEF-D011: Hide on past dates) */}
+                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                      {(() => {
+                        const todayVn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+                        const isPast = Boolean(b.bookingDate && b.bookingDate < todayVn);
+                        const isEligibleStatus = ['CONSULTATION_REQUESTED', 'CONSULTING', 'PENDING_PAYMENT', 'DEPOSIT_PAID', 'CONFIRMED'].includes(b.bookingStatus);
+
+                        if (!isEligibleStatus) return null;
+
+                        if (isPast) {
+                          return (
+                            <span style={{ fontSize: '0.78rem', color: '#8C6E53', fontStyle: 'italic' }}>
+                              Đã qua ngày hẹn • Liên hệ hotline để đổi lịch
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <>
+                            <button
+                              onClick={() => setRescheduleBooking(b)}
+                              className="btn-mipa-secondary"
+                              style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                            >
+                              Yêu cầu đổi lịch
+                            </button>
+                            <button
+                              onClick={() => setCancelBooking(b)}
+                              style={{ background: 'none', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                              Yêu cầu hủy
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Notice if reschedule/cancel requested */}
-                {b.rescheduleRequestedAt && (
+                {b.rescheduleRequestedAt && b.bookingStatus !== 'CANCELLED' && (
                   <div style={{ marginTop: '0.8rem', padding: '0.6rem 1rem', backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '0.82rem', color: '#92400E' }}>
                     ⚠️ Yêu cầu đổi sang ngày <strong>{b.rescheduleRequestedDate}</strong> lúc <strong>{b.rescheduleRequestedSlot}</strong> đang được quản lý xử lý.
                   </div>
                 )}
-                {b.cancelRequestedAt && (
+                {b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED' && (
                   <div style={{ marginTop: '0.8rem', padding: '0.6rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', fontSize: '0.82rem', color: '#991B1B' }}>
                     ⚠️ Yêu cầu hủy đơn đang chờ quản lý xem xét theo chính sách hoàn cọc.
                   </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            );
+          })
+        )}
+      </div>
       )}
 
       {/* SUBTAB 2: PROFILE & SECURITY */}

@@ -27,7 +27,7 @@ const INITIAL_CRM_CUSTOMERS: CrmCustomerListItem[] = [
     lifecycleStage: 'BOOKED',
     tags: [
       { id: 'tag-3', name: 'VIP', slug: 'vip', color: '#d97706', description: 'Khách hàng đặc biệt thân thiết', createdAt: new Date().toISOString() },
-      { id: 'tag-5', name: 'Couple', slug: 'couple', color: '#db2777', description: 'Concept cặp đôi/cưới', createdAt: new Date().toISOString() },
+      { id: 'tag-5', name: 'Couple', slug: 'couple', color: '#db2777', description: 'Concept cặp đôi & kỷ niệm', createdAt: new Date().toISOString() },
     ],
     totalBookings: 3,
     confirmedBookings: 2,
@@ -72,7 +72,7 @@ let inMemoryTags: CrmTag[] = [
   { id: 'tag-2', name: 'Khách quay lại', slug: 'khach-quay-lai', color: '#2563eb', description: 'Có nhiều hơn 1 booking', createdAt: new Date().toISOString() },
   { id: 'tag-3', name: 'VIP', slug: 'vip', color: '#d97706', description: 'Khách hàng đặc biệt thân thiết', createdAt: new Date().toISOString() },
   { id: 'tag-4', name: 'Gia đình', slug: 'gia-dinh', color: '#16a34a', description: 'Concept gia đình', createdAt: new Date().toISOString() },
-  { id: 'tag-5', name: 'Couple', slug: 'couple', color: '#db2777', description: 'Concept cặp đôi/cưới', createdAt: new Date().toISOString() },
+  { id: 'tag-5', name: 'Couple', slug: 'couple', color: '#db2777', description: 'Concept cặp đôi & kỷ niệm', createdAt: new Date().toISOString() },
   { id: 'tag-6', name: 'Cần follow-up', slug: 'can-follow-up', color: '#dc2626', description: 'Cần chăm sóc ngay', createdAt: new Date().toISOString() },
 ];
 

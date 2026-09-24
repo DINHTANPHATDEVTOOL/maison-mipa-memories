@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ManagerDashboard } from '../components/management/ManagerDashboard';
 import { StudioCalendar } from '../components/management/StudioCalendar';
 import { CustomerCRM } from '../components/management/CustomerCRM';
@@ -17,19 +17,12 @@ import { BookingCrewAndResourcePlanner } from '../components/management/BookingC
 import { RoleGuard } from '../components/routing/RoleGuard';
 import { SeoHead } from '../components/seo/SeoHead';
 import {
-  LayoutDashboard,
-  Clock,
   Users,
-  CheckCircle2,
   DollarSign,
-  TrendingUp,
   Camera,
   Shield,
   Crown,
-  Sparkles,
   CalendarCheck,
-  Calendar as CalendarIcon,
-  Package,
   Image as ImageIcon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -42,6 +35,7 @@ interface ManagementPageProps {
   onOpenBooking: () => void;
   onUpdateStatus: (bookingId: string, newStatus: BookingStatus, note?: string) => Promise<void>;
   onAssignStaff: (bookingId: string, employeeId: string, role?: string) => Promise<void>;
+  onUpdateBooking?: (updated: Booking) => void;
   onRequireAuth?: () => void;
 }
 
@@ -52,9 +46,15 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
   onOpenBooking,
   onUpdateStatus,
   onAssignStaff,
+  onUpdateBooking,
   onRequireAuth,
 }) => {
   const { user, isRootOwner } = useAuth();
+  const [searchParams] = useSearchParams();
+  const targetBookingCode = searchParams.get('bookingCode');
+  const targetBookingId = searchParams.get('bookingId');
+  const urlTab = searchParams.get('tab');
+
   const [subTab, setSubTab] = useState<
     | 'dashboard'
     | 'operations'
@@ -69,7 +69,19 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
     | 'analytics'
     | 'portfolio'
     | 'media'
-  >('dashboard');
+  >(() => {
+    if (targetBookingCode || targetBookingId) return 'dashboard';
+    if (urlTab && ['dashboard', 'operations', 'tomorrow', 'calendar', 'ops_calendar', 'workforce', 'resources', 'crm', 'followup', 'finance', 'analytics', 'portfolio', 'media'].includes(urlTab)) {
+      return urlTab as any;
+    }
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    if (targetBookingCode || targetBookingId) {
+      setSubTab('dashboard');
+    }
+  }, [targetBookingCode, targetBookingId]);
 
   const [plannerBooking, setPlannerBooking] = useState<Booking | null>(null);
 
@@ -230,9 +242,12 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           bookings={bookings}
           employees={employees}
           studios={studios}
+          targetBookingCode={targetBookingCode}
+          targetBookingId={targetBookingId}
           onOpenBooking={onOpenBooking}
           onUpdateStatus={onUpdateStatus}
           onAssignStaff={onAssignStaff}
+          onUpdateBooking={onUpdateBooking}
           onNavigateTab={(tab) => {
             if (tab === 'studio_calendar' || tab === 'calendar') setSubTab('calendar');
             else if (tab === 'customer_crm' || tab === 'crm') setSubTab('crm');

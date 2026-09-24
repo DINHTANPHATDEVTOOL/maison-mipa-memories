@@ -8,7 +8,6 @@ import { getServices, getPackages } from '../../services/catalogService';
 import { SeoHead } from '../seo/SeoHead';
 import { NotFoundPage } from '../../pages/NotFoundPage';
 import { ServiceDetailPage } from '../../pages/ServiceDetailPage';
-import * as supabaseModule from '../../lib/supabase';
 
 vi.mock('../../lib/supabase', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/supabase')>();
