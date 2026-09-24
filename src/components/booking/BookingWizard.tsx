@@ -182,6 +182,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [packageMismatchError, setPackageMismatchError] = useState<string | null>(null);
+  const emailDispatchedRef = useRef<Set<string>>(new Set());
 
   // Load catalog and concepts on mount
   const loadInitialData = useCallback(async () => {
@@ -1196,10 +1197,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       consumePendingBookingDraft();
       onBookingSuccess(newBooking);
 
-      // Trigger asynchronous consultation received email dispatch in background
-      dispatchBookingEmail(newBooking.id).catch((dispatchErr) => {
-        console.warn('Notice: Background booking email dispatch:', dispatchErr);
-      });
+      // Trigger asynchronous consultation received email dispatch in background (deduplicated)
+      if (!emailDispatchedRef.current.has(newBooking.id)) {
+        emailDispatchedRef.current.add(newBooking.id);
+        dispatchBookingEmail(newBooking.id).catch((dispatchErr) => {
+          console.warn('Notice: Background booking email dispatch:', dispatchErr);
+        });
+      }
 
       setStep(6);
       try {

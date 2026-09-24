@@ -360,6 +360,9 @@ export async function getUserNotifications(
  * Triggers asynchronous server-side dispatch of booking emails (confirmation, cancellation, reschedule)
  * through the Supabase Edge Function `send-email`.
  */
+// In-memory guard to deduplicate concurrent or quick double invocations
+const inFlightDispatches = new Set<string>();
+
 export async function dispatchBookingEmail(
   bookingId: string,
   options?: {
@@ -372,6 +375,12 @@ export async function dispatchBookingEmail(
   if (!isSupabaseConfigured() || !bookingId) {
     return { success: true };
   }
+
+  const dispatchKey = `${bookingId}:${options?.action || 'CREATE'}`;
+  if (inFlightDispatches.has(dispatchKey)) {
+    return { success: true };
+  }
+  inFlightDispatches.add(dispatchKey);
 
   try {
     const { data, error } = await supabase.functions.invoke('send-email', {
@@ -387,6 +396,8 @@ export async function dispatchBookingEmail(
   } catch (err: any) {
     console.warn('Failed to invoke send-email Edge Function:', err?.message);
     return { success: false, error: err?.message };
+  } finally {
+    setTimeout(() => inFlightDispatches.delete(dispatchKey), 5000);
   }
 }
 

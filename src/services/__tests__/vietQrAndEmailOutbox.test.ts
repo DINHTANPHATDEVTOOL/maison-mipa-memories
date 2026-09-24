@@ -219,5 +219,18 @@ describe('Real VietQR & Server-Only Notification Architecture (Phase F & G)', ()
       expect(adminAlert.html).toContain('Khách bận lịch công tác');
       expect(adminAlert.html).toContain('management?tab=dashboard');
     });
+
+    it('prevents duplicate emails: verifies deduplication migration drops legacy trigger', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const migrationFile = path.resolve(__dirname, '../../../supabase/migrations/20260924000006_prevent_duplicate_booking_emails.sql');
+      expect(fs.existsSync(migrationFile)).toBe(true);
+
+      const content = fs.readFileSync(migrationFile, 'utf8');
+      expect(content).toContain('DROP TRIGGER IF EXISTS on_booking_created_notification ON public.bookings;');
+      expect(content).toContain('cancel-admin-cust:');
+      expect(content).toContain('cancel-request-studio:');
+      expect(content).toContain('Deduplicated: superseded by primary email record');
+    });
   });
 });

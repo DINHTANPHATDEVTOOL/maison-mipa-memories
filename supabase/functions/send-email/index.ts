@@ -154,64 +154,94 @@ serve(async (req: Request) => {
         };
 
         if ((targetAction === 'CANCEL' || targetAction === 'BOOKING_CANCELLED') && bRec.customer_email) {
-          const finalReason = targetReason || bRec.cancel_requested_reason || 'Đã duyệt hủy theo yêu cầu';
-          await supabaseAdmin.from('notification_outbox').insert({
-            event_type: 'BOOKING_CANCELLED',
-            recipient_user_id: bRec.customer_id,
-            recipient_email: bRec.customer_email,
-            entity_type: 'BOOKING',
-            entity_id: bRec.id,
-            template_key: 'booking_cancelled',
-            payload: { ...basePayload, cancelReason: finalReason, reason: finalReason },
-            idempotency_key: `booking-cancelled-direct:${bRec.id}:${Date.now()}`,
-            status: 'PENDING',
-          });
-        } else if ((targetAction === 'RESCHEDULE' || targetAction === 'BOOKING_RESCHEDULED') && bRec.customer_email) {
-          await supabaseAdmin.from('notification_outbox').insert({
-            event_type: 'BOOKING_RESCHEDULED',
-            recipient_user_id: bRec.customer_id,
-            recipient_email: bRec.customer_email,
-            entity_type: 'BOOKING',
-            entity_id: bRec.id,
-            template_key: 'booking_rescheduled',
-            payload: {
-              ...basePayload,
-              newDate: targetNewDate || basePayload.startAt,
-              newSlot: targetNewSlot || 'Theo khung giờ đã thỏa thuận',
-              rescheduleRequestedDate: targetNewDate,
-              rescheduleRequestedSlot: targetNewSlot,
-              reason: targetReason,
-            },
-            idempotency_key: `booking-rescheduled-direct:${bRec.id}:${Date.now()}`,
-            status: 'PENDING',
-          });
-        } else if (targetAction === 'CANCEL_REQUEST' || targetAction === 'BOOKING_CANCEL_REQUESTED') {
-          const reason = targetReason || bRec.cancel_requested_reason || 'Khách gửi yêu cầu hủy';
-          // 1. Studio alert
-          await supabaseAdmin.from('notification_outbox').insert({
-            event_type: 'BOOKING_CANCEL_REQUESTED',
-            recipient_user_id: null,
-            recipient_email: STUDIO_NOTIFICATION_EMAIL,
-            entity_type: 'BOOKING',
-            entity_id: bRec.id,
-            template_key: 'studio_cancel_request_notification',
-            payload: { ...basePayload, cancelReason: reason, reason },
-            idempotency_key: `cancel-request-studio:${bRec.id}:${Date.now()}`,
-            status: 'PENDING',
-          });
-          // 2. Customer ack
-          if (bRec.customer_email) {
+          const { data: existingCancel } = await supabaseAdmin
+            .from('notification_outbox')
+            .select('id')
+            .eq('entity_id', bRec.id)
+            .eq('event_type', 'BOOKING_CANCELLED')
+            .in('status', ['PENDING', 'PROCESSING', 'SENT'])
+            .limit(1);
+
+          if (!existingCancel || existingCancel.length === 0) {
+            const finalReason = targetReason || bRec.cancel_requested_reason || 'Đã duyệt hủy theo yêu cầu';
             await supabaseAdmin.from('notification_outbox').insert({
-              event_type: 'CUSTOMER_CANCEL_REQUEST_ACK',
+              event_type: 'BOOKING_CANCELLED',
               recipient_user_id: bRec.customer_id,
               recipient_email: bRec.customer_email,
               entity_type: 'BOOKING',
               entity_id: bRec.id,
-              template_key: 'customer_cancel_request_ack',
-              payload: { ...basePayload, cancelReason: reason, reason },
-              idempotency_key: `cancel-ack-customer:${bRec.id}:${Date.now()}`,
+              template_key: 'booking_cancelled',
+              payload: { ...basePayload, cancelReason: finalReason, reason: finalReason },
+              idempotency_key: `booking-cancelled-direct:${bRec.id}`,
               status: 'PENDING',
             });
+          }
+        } else if ((targetAction === 'RESCHEDULE' || targetAction === 'BOOKING_RESCHEDULED') && bRec.customer_email) {
+          const { data: existingResched } = await supabaseAdmin
+            .from('notification_outbox')
+            .select('id')
+            .eq('entity_id', bRec.id)
+            .eq('event_type', 'BOOKING_RESCHEDULED')
+            .in('status', ['PENDING', 'PROCESSING', 'SENT'])
+            .limit(1);
+
+          if (!existingResched || existingResched.length === 0) {
+            await supabaseAdmin.from('notification_outbox').insert({
+              event_type: 'BOOKING_RESCHEDULED',
+              recipient_user_id: bRec.customer_id,
+              recipient_email: bRec.customer_email,
+              entity_type: 'BOOKING',
+              entity_id: bRec.id,
+              template_key: 'booking_rescheduled',
+              payload: {
+                ...basePayload,
+                newDate: targetNewDate || basePayload.startAt,
+                newSlot: targetNewSlot || 'Theo khung giờ đã thỏa thuận',
+                rescheduleRequestedDate: targetNewDate,
+                rescheduleRequestedSlot: targetNewSlot,
+                reason: targetReason,
+              },
+              idempotency_key: `booking-rescheduled-direct:${bRec.id}`,
+              status: 'PENDING',
+            });
+          }
+        } else if (targetAction === 'CANCEL_REQUEST' || targetAction === 'BOOKING_CANCEL_REQUESTED') {
+          const { data: existingReq } = await supabaseAdmin
+            .from('notification_outbox')
+            .select('id')
+            .eq('entity_id', bRec.id)
+            .in('event_type', ['BOOKING_CANCEL_REQUESTED', 'CUSTOMER_CANCEL_REQUEST_ACK'])
+            .in('status', ['PENDING', 'PROCESSING', 'SENT'])
+            .limit(1);
+
+          if (!existingReq || existingReq.length === 0) {
+            const reason = targetReason || bRec.cancel_requested_reason || 'Khách gửi yêu cầu hủy';
+            // 1. Studio alert
+            await supabaseAdmin.from('notification_outbox').insert({
+              event_type: 'BOOKING_CANCEL_REQUESTED',
+              recipient_user_id: null,
+              recipient_email: STUDIO_NOTIFICATION_EMAIL,
+              entity_type: 'BOOKING',
+              entity_id: bRec.id,
+              template_key: 'studio_cancel_request_notification',
+              payload: { ...basePayload, cancelReason: reason, reason },
+              idempotency_key: `cancel-request-studio:${bRec.id}`,
+              status: 'PENDING',
+            });
+            // 2. Customer ack
+            if (bRec.customer_email) {
+              await supabaseAdmin.from('notification_outbox').insert({
+                event_type: 'CUSTOMER_CANCEL_REQUEST_ACK',
+                recipient_user_id: bRec.customer_id,
+                recipient_email: bRec.customer_email,
+                entity_type: 'BOOKING',
+                entity_id: bRec.id,
+                template_key: 'customer_cancel_request_ack',
+                payload: { ...basePayload, cancelReason: reason, reason },
+                idempotency_key: `cancel-ack-customer:${bRec.id}`,
+                status: 'PENDING',
+              });
+            }
           }
         }
       }
@@ -333,6 +363,8 @@ serve(async (req: Request) => {
     }
 
     // 2. Process each outbox item with idempotency
+    const processedDedupKeys = new Set<string>();
+
     for (const item of outboxItems) {
       // Mark as PROCESSING
       await supabaseAdmin
@@ -479,6 +511,30 @@ serve(async (req: Request) => {
         }
       }
 
+      // Strict Deduplication Check across current batch:
+      // Normalize category (booking_created and booking_consultation_requested are identical customer emails)
+      let dedupCategory = resolvedKey;
+      if (resolvedKey === 'booking_created' || resolvedKey === 'booking_consultation_requested') {
+        dedupCategory = isStudioRecipient ? 'admin_new_booking_alert' : 'booking_consultation_requested';
+      }
+      const dedupKey = `${(item.recipient_email || '').toLowerCase().trim()}:${item.entity_id || 'global'}:${dedupCategory}`;
+
+      if (processedDedupKeys.has(dedupKey)) {
+        console.warn(`[send-email] Deduplicating redundant outbox entry ${item.id} for key ${dedupKey}`);
+        await supabaseAdmin
+          .from('notification_outbox')
+          .update({
+            status: 'CANCELLED',
+            last_error: 'Deduplicated: redundant email entry prevented in batch execution',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', item.id);
+
+        results.push({ id: item.id, status: 'SKIPPED_DUPLICATE', dedupKey });
+        continue;
+      }
+      processedDedupKeys.add(dedupKey);
+
       const { subject, html } = renderEmailHtml(resolvedKey, {
         ...payload,
         event_type: item.event_type,
@@ -495,7 +551,7 @@ serve(async (req: Request) => {
           headers: {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
             'Content-Type': 'application/json',
-            'Idempotency-Key': item.idempotency_key,
+            'Idempotency-Key': item.idempotency_key || `mipa-email:${dedupKey}`,
           },
           body: JSON.stringify({
             from: EMAIL_FROM,
