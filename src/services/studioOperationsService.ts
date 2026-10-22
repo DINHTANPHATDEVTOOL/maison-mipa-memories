@@ -226,34 +226,46 @@ export async function getOperationsCalendarEvents(
   endAt: string
 ): Promise<OperationsCalendarEvent[]> {
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase.rpc('get_operations_calendar_events', {
-      p_start_at: startAt,
-      p_end_at: endAt,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_operations_calendar_events', {
+        p_start_at: startAt,
+        p_end_at: endAt,
+      });
 
-    if (error) {
-      throw normalizeError(error, 'getOperationsCalendarEvents');
+      if (!error && Array.isArray(data)) {
+        return data.map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          type: e.type,
+          startAt: e.start_at,
+          endAt: e.end_at,
+          studioRoomId: e.studio_room_id,
+          studioRoomName: e.studio_room_name,
+          bookingCode: e.booking_code,
+          serviceName: e.service_name,
+          customerName: e.customer_name,
+          bookingStatus: e.booking_status,
+          crewStatus: e.crew_status,
+          resourceStatus: e.resource_status,
+          staffName: e.staff_name,
+          staffRole: e.staff_role,
+          leaveType: e.leave_type,
+          metadata: e.metadata,
+        }));
+      }
+
+      if (error) {
+        if (!isDemoModeEnabled()) {
+          throw normalizeError(error, 'getOperationsCalendarEvents');
+        }
+        console.warn('[Calendar] Fallback to demo events due to RPC error:', error.message);
+      }
+    } catch (rpcErr) {
+      if (!isDemoModeEnabled()) {
+        throw rpcErr;
+      }
+      console.warn('[Calendar] RPC call failed, falling back to demo calendar events:', rpcErr);
     }
-
-    return ((data || []) as any[]).map(e => ({
-      id: e.id,
-      title: e.title,
-      type: e.type,
-      startAt: e.start_at,
-      endAt: e.end_at,
-      studioRoomId: e.studio_room_id,
-      studioRoomName: e.studio_room_name,
-      bookingCode: e.booking_code,
-      serviceName: e.service_name,
-      customerName: e.customer_name,
-      bookingStatus: e.booking_status,
-      crewStatus: e.crew_status,
-      resourceStatus: e.resource_status,
-      staffName: e.staff_name,
-      staffRole: e.staff_role,
-      leaveType: e.leave_type,
-      metadata: e.metadata,
-    }));
   }
 
   // In-memory fallback only when Supabase is unconfigured and demo mode enabled

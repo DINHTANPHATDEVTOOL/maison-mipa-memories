@@ -37,6 +37,7 @@ import {
   Trash2,
   Loader2,
   XCircle,
+  Clock,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -545,6 +546,48 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                     </div>
                   </div>
                 </div>
+
+                {/* Pending Cancel Request Notice */}
+                {b.cancelRequestedAt && b.bookingStatus !== 'CANCELLED' && (
+                  <div
+                    style={{
+                      backgroundColor: '#FFFBEB',
+                      padding: '0.85rem 1.1rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #FCD34D',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.84rem', color: '#92400E' }}>
+                      <span style={{ fontWeight: 700 }}>ĐANG CHỜ XÉT DUYỆT HỦY ĐƠN:</span> Quý khách đã gửi yêu cầu hủy lịch chụp ({b.cancelRequestedReason ? `Lý do: "${b.cancelRequestedReason}"` : 'Đang chờ xử lý'}). Nhân viên studio đang kiểm tra và sẽ phản hồi sớm nhất.
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending Reschedule Request Notice */}
+                {b.rescheduleRequestedAt && b.bookingStatus !== 'RESCHEDULED' && b.bookingStatus !== 'CANCELLED' && (
+                  <div
+                    style={{
+                      backgroundColor: '#EFF6FF',
+                      padding: '0.85rem 1.1rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #93C5FD',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    <Clock size={20} color="#2563EB" style={{ flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.84rem', color: '#1E40AF' }}>
+                      <span style={{ fontWeight: 700 }}>ĐANG CHỜ DUYỆT ĐỔI LỊCH:</span> Quý khách đã gửi yêu cầu dời sang {b.rescheduleRequestedDate ? `ngày ${b.rescheduleRequestedDate}` : 'ngày khác'}. Quản lý studio đang sắp xếp phòng và kíp chụp để xác nhận lại với bạn.
+                    </div>
+                  </div>
+                )}
 
                 {/* Progress Bar / Cancellation Notice */}
                 {b.bookingStatus !== 'CANCELLED' ? (

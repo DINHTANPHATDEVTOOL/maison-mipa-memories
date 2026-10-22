@@ -17,7 +17,6 @@ import {
   submitPhotoSelection,
   reopenPhotoSelection,
   bypassPhotoSelection,
-  syncFinalImages,
   completeBookingEditing,
   requestBookingRevision,
   approveAndDeliverBooking,
@@ -32,7 +31,7 @@ import {
 } from '../../mockData';
 import { CustomerPortal } from '../../components/customer/CustomerPortal';
 import { CustomerProofGallery } from '../../components/customer/CustomerProofGallery';
-import type { Booking, BookingProofImage, User } from '../../types';
+import type { Booking, User } from '../../types';
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
@@ -56,15 +55,6 @@ describe('Shoot-to-Delivery Workflow V1 — 38 Required Acceptance Criteria Test
   const service = INITIAL_SERVICES[0];
   const pkg = INITIAL_PACKAGES[0];
   const studio = INITIAL_STUDIO_ROOMS[0];
-
-  const adminActor: User = {
-    id: 'user_admin_01',
-    fullName: 'Admin Tổng',
-    email: 'admin@maisonmipa.vn',
-    phone: '0901111111',
-    role: 'ADMIN',
-    status: 'ACTIVE',
-  };
 
   const managerActor: User = {
     id: 'user_mgr_01',

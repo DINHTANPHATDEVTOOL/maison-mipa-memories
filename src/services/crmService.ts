@@ -200,7 +200,13 @@ export async function getCrmCustomers(
       } catch (fbErr) {
         console.error('[CRM] Fallback failed:', fbErr);
       }
-      throw new Error(`Không thể tải danh sách khách hàng CRM: ${error.message}`);
+
+      if (isDemoModeEnabled() || import.meta.env.DEV) {
+        console.warn('[CRM] Falling back to in-memory customers due to database error:', error.message);
+        // Allow fallthrough to in-memory customer list
+      } else {
+        throw new Error(`Không thể tải danh sách khách hàng CRM: ${error.message}`);
+      }
     }
 
     const rows = Array.isArray(data) ? data : [];

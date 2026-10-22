@@ -68,7 +68,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   onOpenBooking,
   onUpdateStatus,
   onAssignStaff,
-  onNavigateTab,
+  onNavigateTab: _onNavigateTab,
   onConfirmDeposit,
   onUpdateConsultation,
   onUpdateBooking,

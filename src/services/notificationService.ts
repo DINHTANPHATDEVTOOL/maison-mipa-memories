@@ -93,19 +93,23 @@ export async function getUserNotifications(
   // 1. Fetch real notifications from Supabase notification_outbox if configured
   if (isSupabaseConfigured()) {
     try {
-      let query = supabase
-        .from('notification_outbox')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(25);
+      const isUuid = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
 
-      if (userId && userRole === 'CUSTOMER') {
-        query = query.eq('recipient_user_id', userId);
-      }
+      // Only query remote notification_outbox if customer has a valid UUID, or if role is non-customer
+      if (userRole !== 'CUSTOMER' || isUuid) {
+        let query = supabase
+          .from('notification_outbox')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(25);
 
-      const { data, error } = await query;
+        if (userId && userRole === 'CUSTOMER' && isUuid) {
+          query = query.eq('recipient_user_id', userId);
+        }
 
-      if (!error && data && data.length > 0) {
+        const { data, error } = await query;
+
+        if (!error && data && data.length > 0) {
         data.forEach((item: any) => {
           const bCode = item.payload?.bookingCode || item.payload?.booking_code;
           const bId = item.entity_id || item.payload?.bookingId || item.payload?.booking_id;
@@ -136,22 +140,28 @@ export async function getUserNotifications(
           });
         });
       }
-    } catch (err) {
-      console.warn('Error fetching notification_outbox:', err);
     }
+  } catch (err) {
+    console.warn('Error fetching notification_outbox:', err);
   }
+}
 
   // 2. Derive real notifications from active bookings
   try {
     let bookings = [];
+    const isUuid = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
     try {
-      bookings = await getBookings(userRole === 'CUSTOMER' && userId ? userId : undefined);
+      bookings = await getBookings(userRole === 'CUSTOMER' && isUuid ? userId : undefined);
     } catch {
-      bookings = !isSupabaseConfigured() && isDemoModeEnabled() ? getBookingsInMemory() : [];
+      bookings = (isDemoModeEnabled() || import.meta.env.DEV) ? getBookingsInMemory() : [];
     }
 
-    if ((!bookings || bookings.length === 0) && !isSupabaseConfigured() && isDemoModeEnabled()) {
+    if ((!bookings || bookings.length === 0) && (isDemoModeEnabled() || import.meta.env.DEV)) {
       bookings = getBookingsInMemory();
+    }
+
+    if (userRole === 'CUSTOMER' && userId && !isUuid) {
+      bookings = bookings.filter((b: any) => b.customerId === userId || b.customerEmail === userId);
     }
 
     const isAdminOrManager = userRole === 'ADMIN' || userRole === 'MANAGER' || !userRole;

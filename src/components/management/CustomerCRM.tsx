@@ -19,7 +19,7 @@ import {
 import { getCrmCustomers, getCrmTags } from '../../services/crmService';
 import { Customer360Drawer } from './Customer360Drawer';
 import { generateCsv, downloadCsv } from '../../utils/csvExport';
-import type { CrmCustomerListItem, CrmTag, CrmLifecycleStage, Booking } from '../../types';
+import type { CrmCustomerListItem, CrmTag, Booking } from '../../types';
 
 interface CustomerCRMProps {
   bookings?: Booking[];

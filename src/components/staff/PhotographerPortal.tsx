@@ -5,7 +5,7 @@
 // ==============================================================================
 import React, { useState } from 'react';
 import type { Booking, BookingStatus, User } from '../../types';
-import { Camera, Clock, CheckSquare, Upload, FolderUp, MapPin, Sparkles, Calendar } from 'lucide-react';
+import { Camera, CheckSquare, FolderUp, Calendar } from 'lucide-react';
 import { StaffShiftRegistration } from './StaffShiftRegistration';
 
 interface PhotographerPortalProps {

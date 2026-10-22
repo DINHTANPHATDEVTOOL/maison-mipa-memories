@@ -90,6 +90,15 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
 
   const [plannerBooking, setPlannerBooking] = useState<Booking | null>(null);
 
+  const pendingCancelCount = bookings.filter((b) => Boolean(b.cancelRequestedAt) && b.bookingStatus !== 'CANCELLED').length;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrowObj = new Date();
+  tomorrowObj.setDate(tomorrowObj.getDate() + 1);
+  const tomorrowStr = tomorrowObj.toISOString().split('T')[0];
+
+  const todayCount = bookings.filter((b) => b.bookingDate === todayStr && b.bookingStatus !== 'CANCELLED').length;
+  const tomorrowCount = bookings.filter((b) => b.bookingDate === tomorrowStr && b.bookingStatus !== 'CANCELLED').length;
+
   return (
     <RoleGuard
       allowedRoles={['MANAGER', 'ADMIN']}
@@ -132,7 +141,12 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           }}
         >
           <CalendarCheck size={16} color={subTab === 'dashboard' ? '#FFFDF6' : '#EFE6C9'} />
-          Lịch Booking & Vận Hành
+          <span>Lịch Booking & Vận Hành</span>
+          {pendingCancelCount > 0 && (
+            <span style={{ backgroundColor: '#EF4444', color: '#FFF', fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '10px', fontWeight: 800 }}>
+              {pendingCancelCount} hủy
+            </span>
+          )}
         </button>
 
         <button
@@ -152,7 +166,12 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           }}
         >
           <Clock size={16} color={subTab === 'operations' ? '#FFFDF6' : '#EFE6C9'} />
-          Hôm nay
+          <span>Hôm nay</span>
+          {todayCount > 0 && (
+            <span style={{ backgroundColor: '#10B981', color: '#FFF', fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '10px', fontWeight: 800 }}>
+              {todayCount}
+            </span>
+          )}
         </button>
 
         <button
@@ -172,7 +191,12 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           }}
         >
           <CheckCircle2 size={16} color={subTab === 'tomorrow' ? '#FFFDF6' : '#EFE6C9'} />
-          Chuẩn bị ngày mai
+          <span>Chuẩn bị ngày mai</span>
+          {tomorrowCount > 0 && (
+            <span style={{ backgroundColor: '#F59E0B', color: '#FFF', fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '10px', fontWeight: 800 }}>
+              {tomorrowCount}
+            </span>
+          )}
         </button>
 
         <button

@@ -129,20 +129,44 @@ function AppContent() {
       if (!active) return;
 
       if (bksResult.status === 'fulfilled') {
-        setBookings(bksResult.value);
+        const loaded = bksResult.value;
+        if (loaded.length === 0 && (isDemoModeEnabled() || import.meta.env.DEV)) {
+          setBookings(INITIAL_BOOKINGS);
+        } else {
+          setBookings(loaded);
+        }
       } else {
+        if (isDemoModeEnabled() || import.meta.env.DEV) {
+          setBookings(INITIAL_BOOKINGS);
+        }
         console.warn('Failed to load bookings:', bksResult.reason);
       }
 
       if (stdsResult.status === 'fulfilled') {
-        setStudios(stdsResult.value);
+        const loaded = stdsResult.value;
+        if (loaded.length === 0 && (isDemoModeEnabled() || import.meta.env.DEV)) {
+          setStudios(INITIAL_STUDIO_ROOMS);
+        } else {
+          setStudios(loaded);
+        }
       } else {
+        if (isDemoModeEnabled() || import.meta.env.DEV) {
+          setStudios(INITIAL_STUDIO_ROOMS);
+        }
         console.warn('Failed to load studio rooms:', stdsResult.reason);
       }
 
       if (empsResult.status === 'fulfilled') {
-        setEmployees(empsResult.value);
+        const loaded = empsResult.value;
+        if (loaded.length === 0 && (isDemoModeEnabled() || import.meta.env.DEV)) {
+          setEmployees(INITIAL_EMPLOYEES);
+        } else {
+          setEmployees(loaded);
+        }
       } else {
+        if (isDemoModeEnabled() || import.meta.env.DEV) {
+          setEmployees(INITIAL_EMPLOYEES);
+        }
         console.warn('Failed to load employees:', empsResult.reason);
       }
     }

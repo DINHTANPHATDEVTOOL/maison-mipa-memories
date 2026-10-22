@@ -136,8 +136,6 @@ export function renderEmailHtml(templateKey: string, data: TemplateData): { subj
     case 'booking_consultation_requested':
     case 'booking_created':
     case 'consultation_requested': {
-      const serviceTitle = serviceName ? ` - ${serviceName}` : '';
-      const packageTitle = packageName ? ` (${packageName})` : '';
       subject = `[Maison MIPA] Tụi mình đã nhận yêu cầu lịch chụp #${bookingCode} từ bạn nè ✨`;
 
       const conceptDisplay = Array.isArray(conceptNames) && conceptNames.length > 0
