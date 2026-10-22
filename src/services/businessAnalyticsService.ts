@@ -94,7 +94,7 @@ export async function getBusinessDashboardSummary(
   startAt?: string,
   endAt?: string
 ): Promise<BusinessDashboardSummary> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.rpc('get_crm_dashboard_summary', {
         p_start_at: startAt || null,
@@ -188,7 +188,7 @@ export async function getBookingFunnelMetrics(
   startAt?: string,
   endAt?: string
 ): Promise<BookingFunnelMetrics> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.rpc('get_booking_funnel_metrics', {
         p_start_at: startAt || null,
@@ -236,7 +236,7 @@ export async function getServicePerformance(
   startAt?: string,
   endAt?: string
 ): Promise<ServicePerformanceMetric[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.rpc('get_service_performance', {
         p_start_at: startAt || null,
@@ -308,7 +308,7 @@ export async function getConceptPerformance(
   startAt?: string,
   endAt?: string
 ): Promise<ConceptPerformanceMetric[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.rpc('get_concept_performance', {
         p_start_at: startAt || null,
@@ -372,7 +372,7 @@ export async function getStudioUtilization(
   startAt?: string,
   endAt?: string
 ): Promise<StudioUtilizationMetric[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.rpc('get_studio_utilization_metrics', {
         p_start_at: startAt || null,

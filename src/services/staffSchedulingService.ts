@@ -91,7 +91,7 @@ export async function getStaffSkills(): Promise<StaffSkill[]> {
  * Fetch weekly working hours for an employee
  */
 export async function getStaffWorkingHours(employeeId: string): Promise<StaffWorkingHours[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('staff_working_hours')
       .select('*')
@@ -132,7 +132,7 @@ export async function getStaffWorkingHours(employeeId: string): Promise<StaffWor
  * Fetch all leave requests (for managers) or for a specific employee
  */
 export async function getStaffLeaveRequests(employeeId?: string): Promise<StaffLeaveRequest[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     let query = supabase
       .from('staff_leave_requests')
       .select(`
@@ -182,7 +182,7 @@ export async function requestStaffLeave(params: {
   endAt: string;
   reason: string;
 }): Promise<StaffLeaveRequest> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('staff_leave_requests')
       .insert({
@@ -236,7 +236,7 @@ export async function approveStaffLeave(
   leaveId: string,
   managerNote?: string
 ): Promise<{ success: boolean; message?: string }> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('approve_staff_leave', {
       p_leave_id: leaveId,
       p_manager_note: managerNote || null,
@@ -271,7 +271,7 @@ export async function rejectStaffLeave(
   leaveId: string,
   managerNote?: string
 ): Promise<{ success: boolean }> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('reject_staff_leave', {
       p_leave_id: leaveId,
       p_manager_note: managerNote || null,
@@ -302,7 +302,7 @@ export async function assignBookingStaffV2(params: {
   assignmentRole: string;
   notes?: string;
 }): Promise<BookingAssignment> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('assign_booking_staff_v2', {
       p_booking_id: params.bookingId,
       p_employee_id: params.employeeId,
@@ -705,7 +705,7 @@ export async function getStaffRegisteredShifts(params?: {
   startDate?: string;
   endDate?: string;
 }): Promise<StaffShiftRegistrationRecord[]> {
-  if (isDemoModeEnabled() || import.meta.env.DEV) {
+  if (!isSupabaseConfigured() && (isDemoModeEnabled() || import.meta.env.DEV)) {
     initializeDefaultShifts();
   }
 
@@ -716,7 +716,7 @@ export async function getStaffRegisteredShifts(params?: {
     try {
       let query = supabase
         .from('staff_shifts')
-        .select('id, employee_id, studio_room_id, start_at, end_at, shift_type, notes, created_at');
+        .select('id, employee_id, studio_room_id, start_at, end_at, shift_type, notes, created_at, profiles:employee_id(id, full_name, email, role, staff_role)');
 
       if (params?.employeeId && isUUID(params.employeeId)) {
         query = query.eq('employee_id', params.employeeId);
@@ -740,11 +740,16 @@ export async function getStaffRegisteredShifts(params?: {
             slot = h >= 13 ? 'AFTERNOON' : 'MORNING';
           }
 
+          const profile = row.profiles;
+          const employeeName = profile?.full_name || profile?.email?.split('@')[0] || 'Nhân sự MIPA';
+          let role: StaffRole = (profile?.staff_role || profile?.role || 'PHOTOGRAPHER') as StaffRole;
+          if (role === 'ADMIN' || role === 'MANAGER') role = 'MANAGER' as StaffRole;
+
           return {
             id: row.id,
             employeeId: row.employee_id,
-            employeeName: 'Nhân sự MIPA',
-            role: 'PHOTOGRAPHER' as StaffRole,
+            employeeName,
+            role,
             shiftDate,
             shiftType: slot,
             startAt: row.start_at,
@@ -765,10 +770,14 @@ export async function getStaffRegisteredShifts(params?: {
   for (const s of dbShifts) {
     shiftMap.set(`${s.employeeId}_${s.shiftDate}_${s.shiftType}`, s);
   }
-  for (const s of stored) {
-    const key = `${s.employeeId}_${s.shiftDate}_${s.shiftType}`;
-    if (!shiftMap.has(key)) {
-      shiftMap.set(key, s);
+
+  // Only overlay local shifts if Supabase is unconfigured or if explicitly in local state
+  if (!isSupabaseConfigured()) {
+    for (const s of stored) {
+      const key = `${s.employeeId}_${s.shiftDate}_${s.shiftType}`;
+      if (!shiftMap.has(key)) {
+        shiftMap.set(key, s);
+      }
     }
   }
 
@@ -898,7 +907,7 @@ export async function getAvailableStaffForSlot(params: {
   const targetDate = params.date.split('T')[0];
 
   // 1. Production Supabase query for real employees
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     let empQuery = supabase.from('employees').select('*').eq('active', true);
     if (params.role) {
       empQuery = empQuery.eq('staff_role', params.role);
@@ -1119,7 +1128,7 @@ export async function assignBookingStaffAndNotify(params: {
   }
 
   // 3. Durable notification_outbox event in production mode
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const idempotencyKey = `staff-assignment:${params.bookingId}:${params.employeeId}:${params.role}`;
     try {
       const { error: outboxErr } = await supabase.from('notification_outbox').upsert({

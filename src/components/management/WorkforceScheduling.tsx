@@ -117,8 +117,8 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
 
       const mergedList: Employee[] = [...baseEmployees];
 
-      // Fallback to INITIAL_EMPLOYEES if in demo or dev mode and no real employees exist
-      if (mergedList.length === 0 && (isDemoModeEnabled() || import.meta.env.DEV || !isSupabaseConfigured())) {
+      // Fallback to INITIAL_EMPLOYEES only if Supabase is unconfigured (offline / demo mode)
+      if (mergedList.length === 0 && !isSupabaseConfigured() && isDemoModeEnabled()) {
         mergedList.push(...INITIAL_EMPLOYEES);
       }
 

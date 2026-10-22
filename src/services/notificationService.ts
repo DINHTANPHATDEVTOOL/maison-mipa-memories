@@ -147,10 +147,10 @@ export async function getUserNotifications(
     try {
       bookings = await getBookings(userRole === 'CUSTOMER' && userId ? userId : undefined);
     } catch {
-      bookings = getBookingsInMemory();
+      bookings = !isSupabaseConfigured() && isDemoModeEnabled() ? getBookingsInMemory() : [];
     }
 
-    if (!bookings || bookings.length === 0) {
+    if ((!bookings || bookings.length === 0) && !isSupabaseConfigured() && isDemoModeEnabled()) {
       bookings = getBookingsInMemory();
     }
 

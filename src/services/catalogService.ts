@@ -140,14 +140,6 @@ export async function getServices(): Promise<ServiceCategory[]> {
         badge: item.badge || undefined,
       }));
 
-      // DEF-009: Guarantee Graduation service is present if database has active services in demo mode
-      if (isDemoModeEnabled()) {
-        const graduationService = INITIAL_SERVICES.find(s => s.slug === 'graduation');
-        if (graduationService && !mapped.some(s => s.slug === 'graduation' || s.id === graduationService.id)) {
-          mapped.push(graduationService);
-        }
-      }
-
       if (!isTestEnv) {
         servicesCache = { data: mapped, timestamp: Date.now() };
       }
@@ -341,11 +333,6 @@ export async function getPackages(serviceId?: string): Promise<PackageItem[]> {
       }
 
       if (!data || data.length === 0) {
-        // If query was for graduation service specifically and DB returned 0, provide graduation packages
-        if (serviceId === 'c0000000-0000-0000-0000-000000000007') {
-          const gradPkgs = INITIAL_PACKAGES.filter(p => p.serviceId === serviceId);
-          if (gradPkgs.length > 0) return gradPkgs;
-        }
         return [];
       }
 
@@ -361,16 +348,6 @@ export async function getPackages(serviceId?: string): Promise<PackageItem[]> {
         recommended: Boolean(p.recommended),
         popularTag: p.popular_tag || undefined,
       }));
-
-      // DEF-009: Ensure Graduation packages are available if in demo mode
-      if (isDemoModeEnabled() && (!serviceId || serviceId === 'c0000000-0000-0000-0000-000000000007')) {
-        const gradPkgs = INITIAL_PACKAGES.filter(p => p.serviceId === 'c0000000-0000-0000-0000-000000000007');
-        for (const gPkg of gradPkgs) {
-          if (!mapped.some(p => p.id === gPkg.id)) {
-            mapped.push(gPkg);
-          }
-        }
-      }
 
       if (!isTestEnv) {
         packagesCache.set(cacheKey, { data: mapped, timestamp: Date.now() });

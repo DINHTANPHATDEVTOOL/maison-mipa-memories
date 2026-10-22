@@ -402,7 +402,7 @@ export async function getBookings(customerId?: string): Promise<Booking[]> {
   if (isSupabaseConfigured()) {
     let query = supabase
       .from('bookings')
-      .select('*, booking_assignments(*)');
+      .select('*, booking_assignments(*), services:service_id(id, name, slug), packages:package_id(id, name, price, edited_photos_count), studio_rooms:studio_room_id(id, name, code), concepts:concept_id(id, name, slug)');
 
     if (customerId) {
       query = query.eq('customer_id', customerId);
@@ -456,7 +456,7 @@ export function subscribeBookings(
     }
   };
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const channelName = `realtime-bookings-${customerId || 'all'}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -509,7 +509,7 @@ export async function updateBookingStatus(
   newStatus: BookingStatus,
   staffNote?: string
 ): Promise<Booking> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('update_booking_status', {
       p_booking_id: bookingId,
       p_new_status: newStatus,
@@ -589,7 +589,7 @@ export async function updateBookingConsultation(
   bookingId: string,
   params: UpdateBookingConsultationParams
 ): Promise<Booking> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('update_booking_consultation', {
       p_booking_id: bookingId,
       p_service_id: params.serviceId || null,
@@ -644,7 +644,7 @@ export async function confirmBookingDeposit(
     throw new Error('Số tiền cọc không được nhỏ hơn 0.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('confirm_booking_deposit', {
       p_booking_id: bookingId,
       p_deposit_amount: depositAmount,
@@ -771,7 +771,7 @@ export async function requestBookingReschedule(
     updatedBooking = updated;
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     supabase.functions.invoke('send-email', {
       body: {
         bookingId,
@@ -804,7 +804,7 @@ export async function requestBookingCancel(bookingId: string, reason?: string): 
     updatedBooking = updated;
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     supabase.functions.invoke('send-email', {
       body: {
         bookingId,
@@ -818,7 +818,7 @@ export async function requestBookingCancel(bookingId: string, reason?: string): 
 }
 
 export async function rejectBookingCancel(bookingId: string, staffNote?: string): Promise<Booking> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('reject_booking_cancel', {
       p_booking_id: bookingId,
       p_staff_note: staffNote || null,
@@ -846,7 +846,7 @@ export async function cancelBookingByManager(bookingId: string, reason: string):
     throw new Error('Lý do hủy lịch không được để trống.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     let resultBooking: Booking | null = null;
     const { data, error } = await (supabase.rpc as any)('cancel_booking_by_manager', {
       p_booking_id: bookingId,
@@ -913,7 +913,7 @@ export async function approveBookingCancel(bookingId: string, staffNote?: string
  * Updates start_at/slot, clears reschedule request flags, and dispatches rescheduled email to customer.
  */
 export async function approveBookingReschedule(bookingId: string, staffNote?: string): Promise<Booking> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     let resultBooking: Booking | null = null;
     const { data, error } = await (supabase.rpc as any)('approve_booking_reschedule', {
       p_booking_id: bookingId,
@@ -1015,7 +1015,7 @@ export async function assignBookingStaff(
   assignmentRole: string = 'PHOTOGRAPHER',
   allowMultiple: boolean = false
 ): Promise<BookingAssignment> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     return assignBookingStaffV2({
       bookingId,
       employeeId,
@@ -1121,42 +1121,51 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     customerEmail: record.customer_email || record.customerEmail || '',
     serviceId: record.service_id || record.serviceId,
     serviceName: (() => {
+      if (record.services?.name) return record.services.name;
       if (record.service_name && record.service_name !== 'Dịch Vụ MIPA') return record.service_name;
       if (record.serviceName && record.serviceName !== 'Dịch Vụ MIPA') return record.serviceName;
-      if (record.services?.name) return record.services.name;
-      const sId = record.service_id || record.serviceId;
-      const uuid = SLUG_TO_UUID_MAP[sId] || sId;
-      const found = INITIAL_SERVICES.find(s => s.id === sId || s.slug === sId || s.id === uuid);
-      return found?.name || 'Dịch Vụ MIPA';
+      if (!isSupabaseConfigured()) {
+        const sId = record.service_id || record.serviceId;
+        const uuid = SLUG_TO_UUID_MAP[sId] || sId;
+        const found = INITIAL_SERVICES.find(s => s.id === sId || s.slug === sId || s.id === uuid);
+        if (found?.name) return found.name;
+      }
+      return 'Dịch Vụ MIPA';
     })(),
     packageId: record.package_id || record.packageId,
     packageName: (() => {
+      if (record.packages?.name) return record.packages.name;
       if (record.package_name && record.package_name !== 'Gói Chụp MIPA') return record.package_name;
       if (record.packageName && record.packageName !== 'Gói Chụp MIPA') return record.packageName;
-      if (record.packages?.name) return record.packages.name;
-      const pId = record.package_id || record.packageId;
-      const uuid = SLUG_TO_UUID_MAP[pId] || pId;
-      const found = INITIAL_PACKAGES.find(p => p.id === pId || p.id === uuid);
-      return found?.name || 'Gói Chụp MIPA';
+      if (!isSupabaseConfigured()) {
+        const pId = record.package_id || record.packageId;
+        const uuid = SLUG_TO_UUID_MAP[pId] || pId;
+        const found = INITIAL_PACKAGES.find(p => p.id === pId || p.id === uuid);
+        if (found?.name) return found.name;
+      }
+      return 'Gói Chụp MIPA';
     })(),
-    packagePrice: Number(record.package_price || record.packagePrice || record.subtotal || 0),
+    packagePrice: Number(record.packages?.price || record.package_price || record.packagePrice || record.subtotal || 0),
     bookingDate,
     startTime,
     endTime,
     studioId: record.studio_room_id || record.studio_id || record.studioId || '',
     studioName: (() => {
+      if (record.studio_rooms?.name) return record.studio_rooms.name;
       if (record.studio_name && record.studio_name !== 'Phòng Studio MIPA' && record.studio_name !== 'Phòng Studio') return record.studio_name;
       if (record.studioName && record.studioName !== 'Phòng Studio MIPA' && record.studioName !== 'Phòng Studio') return record.studioName;
-      if (record.studio_rooms?.name) return record.studio_rooms.name;
-      const stId = record.studio_room_id || record.studio_id || record.studioId;
-      const uuid = SLUG_TO_UUID_MAP[stId] || stId;
-      const found = INITIAL_STUDIO_ROOMS.find(r => r.id === stId || r.code === stId || r.id === uuid);
-      return found?.name || 'Ngoại cảnh Maison MIPA';
+      if (!isSupabaseConfigured()) {
+        const stId = record.studio_room_id || record.studio_id || record.studioId;
+        const uuid = SLUG_TO_UUID_MAP[stId] || stId;
+        const found = INITIAL_STUDIO_ROOMS.find(r => r.id === stId || r.code === stId || r.id === uuid);
+        if (found?.name) return found.name;
+      }
+      return 'Ngoại cảnh Maison MIPA';
     })(),
     addons: record.addons || [],
     conceptId: record.concept_id || record.conceptId,
     conceptIds: record.concept_ids || (record.concept_id ? [record.concept_id] : []),
-    conceptName: record.concept_name || record.conceptName,
+    conceptName: record.concepts?.name || record.concept_name || record.conceptName,
     subtotal: Number(record.subtotal || 0),
     discount: Number(record.discount_total || record.discount || 0),
     depositAmount: Number(record.deposit_amount || record.depositAmount || 0),

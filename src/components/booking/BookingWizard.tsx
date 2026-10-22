@@ -2611,7 +2611,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       return;
                     }
                     if (!selectedStudio) {
-                      const defaultStd = studios[0] || INITIAL_STUDIO_ROOMS[0];
+                      const defaultStd = studios[0] || (demoMode ? INITIAL_STUDIO_ROOMS[0] : null);
                       if (defaultStd) {
                         setSelectedStudio(defaultStd);
                       }

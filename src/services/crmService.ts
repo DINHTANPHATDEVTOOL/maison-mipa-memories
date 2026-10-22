@@ -128,7 +128,7 @@ export async function getCrmCustomers(
     pageSize = 20,
   } = params;
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('get_crm_customers', {
       p_search: search || null,
       p_lifecycle: lifecycle || null,
@@ -291,7 +291,7 @@ export async function getCustomer360(customerId: string): Promise<Customer360> {
     throw new Error('Mã khách hàng không được để trống.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('get_customer_360', {
       p_customer_id: customerId,
     });
@@ -381,7 +381,7 @@ export async function recordCrmInteraction(input: {
 
   const occurredAt = input.occurredAt || new Date().toISOString();
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data: userData } = await supabase.auth.getUser();
     const actorId = userData?.user?.id;
 
@@ -455,7 +455,7 @@ export async function createFollowUpTask(input: {
     throw new Error('Thông tin follow-up không hợp lệ (thiếu khách hàng, tiêu đề, hoặc hạn xử lý).');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data: userData } = await supabase.auth.getUser();
     const createdBy = userData?.user?.id;
 
@@ -528,7 +528,7 @@ export async function updateFollowUpTaskStatus(
     throw new Error('Mã nhiệm vụ không được để trống.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
 
@@ -579,7 +579,7 @@ export async function getFollowUpTasks(filters?: {
   overdueOnly?: boolean;
   todayOnly?: boolean;
 }): Promise<CrmFollowUpTask[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     let query = supabase
       .from('crm_follow_up_tasks')
       .select(`
@@ -655,7 +655,7 @@ export async function getFollowUpTasks(filters?: {
  * Retrieves all available CRM tags.
  */
 export async function getCrmTags(): Promise<CrmTag[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('crm_tags')
       .select('*')
@@ -685,7 +685,7 @@ export async function getCrmTags(): Promise<CrmTag[]> {
 export async function assignCustomerTag(customerId: string, tagId: string): Promise<void> {
   if (!customerId || !tagId) return;
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase
       .from('crm_customer_tags')
@@ -708,7 +708,7 @@ export async function assignCustomerTag(customerId: string, tagId: string): Prom
 export async function removeCustomerTag(customerId: string, tagId: string): Promise<void> {
   if (!customerId || !tagId) return;
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { error } = await supabase
       .from('crm_customer_tags')
       .delete()

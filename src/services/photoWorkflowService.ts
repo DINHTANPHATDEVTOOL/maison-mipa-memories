@@ -42,7 +42,7 @@ export async function checkInBooking(bookingId: string, staffNoteOrActorId?: str
     throw new Error('Unauthorized: Khách hàng không có quyền thực hiện check-in.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('check_in_booking', {
       p_booking_id: bookingId,
       p_staff_note: staffNoteOrActorId && !staffNoteOrActorId.startsWith('user_') ? staffNoteOrActorId : null,
@@ -75,7 +75,7 @@ export async function startBookingShoot(bookingId: string, staffNoteOrActorId?: 
     throw new Error('Unauthorized: Khách hàng không có quyền bắt đầu buổi chụp.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('start_booking_shoot', {
       p_booking_id: bookingId,
       p_staff_note: staffNoteOrActorId && !staffNoteOrActorId.startsWith('user_') ? staffNoteOrActorId : null,
@@ -108,7 +108,7 @@ export async function completeBookingShoot(bookingId: string, staffNoteOrActorId
     throw new Error('Unauthorized: Khách hàng không có quyền hoàn tất buổi chụp.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('complete_booking_shoot', {
       p_booking_id: bookingId,
       p_staff_note: staffNoteOrActorId && !staffNoteOrActorId.startsWith('user_') ? staffNoteOrActorId : null,
@@ -142,7 +142,7 @@ export async function syncBookingProofs(
 ): Promise<{ success: boolean; proofFileCount: number; syncedCount: number; bookingStatus: string }> {
   const customFiles = Array.isArray(actorIdOrMockFiles) ? actorIdOrMockFiles : maybeMockFiles;
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.functions.invoke('drive-delivery', {
       body: { action: 'SYNC_PROOFS', booking_id: bookingId },
     });
@@ -247,7 +247,7 @@ export async function syncBookingProofs(
  * 5. Sync final deliverables from Google Drive folder 03_FINAL (Phase 12)
  */
 export async function syncFinalAssets(bookingId: string): Promise<{ success: boolean; finalFileCount: number }> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.functions.invoke('drive-delivery', {
       body: { action: 'SYNC_FINAL', booking_id: bookingId },
     });
@@ -277,7 +277,7 @@ export async function syncFinalAssets(bookingId: string): Promise<{ success: boo
 export async function getBookingProofs(
   bookingId: string
 ): Promise<{ proofs: BookingProofImage[]; selections: BookingPhotoSelection[]; selectionLimit: number }> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const [proofsRes, selRes, bRes] = await Promise.all([
       supabase
         .from('booking_proof_images')
@@ -291,7 +291,7 @@ export async function getBookingProofs(
         .eq('booking_id', bookingId),
       supabase
         .from('bookings')
-        .select('package_id, selection_limit, packages(photos_count)')
+        .select('package_id, selection_limit, packages(edited_photos_count)')
         .eq('id', bookingId)
         .single(),
     ]);
@@ -302,7 +302,7 @@ export async function getBookingProofs(
     const bookingData = bRes.data;
     const selectionLimit =
       bookingData?.selection_limit ||
-      (bookingData?.packages as any)?.photos_count ||
+      (bookingData?.packages as any)?.edited_photos_count ||
       10;
 
     const proofs: BookingProofImage[] = (proofsRes.data || []).map((p: any) => ({
@@ -361,7 +361,7 @@ export async function submitPhotoSelection(
   const selectedProofIds = Array.isArray(selectedProofIdsArg) ? selectedProofIdsArg : (typeof bookingIdOrPayload === 'object' ? bookingIdOrPayload.selectedProofIds : []);
   const customerId = typeof bookingIdOrPayload === 'object' ? bookingIdOrPayload.customerId : undefined;
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('submit_photo_selection', {
       p_booking_id: bookingId,
       p_selected_proof_ids: selectedProofIds,
@@ -452,7 +452,7 @@ export async function reopenPhotoSelection(
     throw new Error('Mở lại khâu chọn ảnh phải có lý do chi tiết.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('reopen_photo_selection', {
       p_booking_id: bookingId,
       p_reason: reason,
@@ -491,7 +491,7 @@ export async function completeBookingEditing(
     throw new Error('Unauthorized: Khách hàng không có quyền hoàn tất hậu kỳ.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('complete_booking_editing', {
       p_booking_id: bookingId,
       p_staff_note: staffNoteOrActorId && !staffNoteOrActorId.startsWith('user_') && !staffNoteOrActorId.startsWith('emp_') ? staffNoteOrActorId : null,
@@ -536,7 +536,7 @@ export async function requestBookingRevision(
     throw new Error('Ghi chú yêu cầu chỉnh sửa là bắt buộc.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('request_booking_revision', {
       p_booking_id: bookingId,
       p_revision_notes: revisionNotes,
@@ -567,7 +567,7 @@ export async function requestBookingRevision(
  * Grants reader access strictly to 03_FINAL. Fails closed if zero final assets.
  */
 export async function approveAndDeliverFinals(bookingId: string, _actorId?: string): Promise<Booking> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.functions.invoke('drive-delivery', {
       body: { action: 'MARK_READY', booking_id: bookingId },
     });
@@ -617,7 +617,7 @@ export async function completeBooking(
     throw new Error('Unauthorized: Khách hàng không có quyền hoàn tất đơn hàng.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('complete_booking', {
       p_booking_id: bookingId,
       p_staff_note: staffNoteOrActorId && !staffNoteOrActorId.startsWith('user_') ? staffNoteOrActorId : null,
@@ -664,7 +664,7 @@ export async function bypassCustomerSelection(
     throw new Error('Bỏ qua khâu chọn ảnh phải có lý do xác thực.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('update_booking_status', {
       p_booking_id: bookingId,
       p_new_status: 'EDITING',

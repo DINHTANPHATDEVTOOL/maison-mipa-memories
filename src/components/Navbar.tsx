@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { User, UserRole, NotificationItem } from '../types';
 import { CURRENT_USER_PROFILES } from '../mockData';
+import { isSupabaseConfigured, isDemoModeEnabled } from '../lib/supabase';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -291,7 +292,17 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const displayUser = currentUser || CURRENT_USER_PROFILES[currentRole];
+  const displayUser: User = currentUser || (!isSupabaseConfigured() && isDemoModeEnabled()
+    ? CURRENT_USER_PROFILES[currentRole]
+    : {
+        id: 'unauthenticated',
+        fullName: 'Người dùng MIPA',
+        email: '',
+        phone: '',
+        role: currentRole as UserRole,
+        avatar: '/hero.png',
+        isRootOwner: false,
+      });
 
   const saveNotifications = (items: NotificationItem[]) => {
     setNotifications(items);

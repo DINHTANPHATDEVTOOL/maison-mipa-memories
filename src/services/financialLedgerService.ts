@@ -55,7 +55,7 @@ export async function recordPaymentReceipt(
     throw new Error('Số tiền ghi nhận phải là số dương lớn hơn 0.');
   }
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('record_booking_payment_receipt', {
       p_booking_id: input.bookingId,
       p_transaction_type: input.transactionType,
@@ -133,7 +133,7 @@ export async function getFinancialTransactions(
 ): Promise<FinancialTransaction[]> {
   const { limit = 50, offset = 0 } = params;
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       let query = supabase
         .from('booking_financial_transactions')
@@ -291,7 +291,7 @@ export async function getFinancialLedgerSummary(
   startAt?: string,
   endAt?: string
 ): Promise<FinancialSummary> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.rpc('get_crm_dashboard_summary', {
         p_start_at: startAt || null,

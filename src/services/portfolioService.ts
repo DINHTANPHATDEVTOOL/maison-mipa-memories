@@ -840,11 +840,8 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
 
       const { data, error } = await query;
       if (error) {
-        if (!isDemoModeEnabled()) {
-          console.error('Failed to query concepts from database:', error.message);
-          throw new Error(`Không thể tải danh sách concept: ${error.message}`);
-        }
-        console.warn('Supabase concepts query notice, falling back to local/demo:', error.message);
+        console.error('Failed to query concepts from database:', error.message);
+        throw new Error(`Không thể tải danh sách concept: ${error.message}`);
       }
 
       const rows = data || [];
@@ -885,15 +882,6 @@ export async function getPublicConcepts(serviceId?: string): Promise<Concept[]> 
         }
         return mapConceptRow(row, coverUrl);
       });
-
-      // Guarantee brand concepts from DEMO_CONCEPTS are merged ONLY in demo mode
-      if (isDemoModeEnabled()) {
-        for (const dCnc of DEMO_CONCEPTS) {
-          if (dCnc.active && !mapped.some((c) => c.slug === dCnc.slug || c.id === dCnc.id)) {
-            mapped.push(dCnc);
-          }
-        }
-      }
 
       const finalConcepts = applyConceptOverrides(mapped, serviceId);
 
@@ -1126,8 +1114,8 @@ export async function getPublicCollections(
 
       const { data, error } = await query;
       if (error) {
-        console.warn('Query collections from Supabase warned, falling back to local:', error.message);
-        return applyCollectionOverrides(DEMO_COLLECTIONS.filter(c => c.status === 'PUBLISHED'), conceptId, featuredOnly);
+        console.error('Failed to query collections from database:', error.message);
+        throw new Error(`Không thể tải danh sách bộ sưu tập: ${error.message}`);
       }
 
       if (!data || data.length === 0) {
@@ -1160,17 +1148,6 @@ export async function getPublicCollections(
         );
         return col;
       });
-
-      // Merge brand collections from DEMO_COLLECTIONS ONLY in demo mode
-      if (isDemoModeEnabled()) {
-        for (const dCol of DEMO_COLLECTIONS) {
-          if (dCol.status === 'PUBLISHED' && !mappedCollections.some((c) => c.slug === dCol.slug || c.id === dCol.id)) {
-            if ((!conceptId || dCol.conceptId === conceptId) && (!featuredOnly || dCol.featured)) {
-              mappedCollections.push(dCol);
-            }
-          }
-        }
-      }
 
       const finalCols = applyCollectionOverrides(mappedCollections, conceptId, featuredOnly);
 

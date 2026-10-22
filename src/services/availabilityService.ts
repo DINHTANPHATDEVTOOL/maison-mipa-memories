@@ -273,7 +273,7 @@ export async function resolveStudioRoomUuid(studioIdOrSlug: string): Promise<str
  * RPC errors, network errors, or malformed data will throw AvailabilityUnavailableError.
  */
 export async function getAvailableSlots(params: AvailabilityParams): Promise<TimeSlot[]> {
-  if (isDemoModeEnabled() || !isSupabaseConfigured()) {
+  if (!isSupabaseConfigured()) {
     return getAvailableSlotsSync(params);
   }
 

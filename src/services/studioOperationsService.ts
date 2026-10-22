@@ -56,7 +56,7 @@ export interface TomorrowPrepItem {
 export async function getDailyOperationsBoardData(targetDate?: string): Promise<DailyOperationsBoardData> {
   const dateStr = targetDate || new Date().toISOString().slice(0, 10);
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('get_daily_operations_board', {
       p_target_date: dateStr,
     });
@@ -65,16 +65,14 @@ export async function getDailyOperationsBoardData(targetDate?: string): Promise<
       throw normalizeError(error, 'getDailyOperationsBoardData');
     }
 
-    if (data) {
-      const res = data as any;
-      return {
-        todayShoots: (res.todayShoots || []) as Booking[],
-        upcomingCheckIns: (res.upcomingCheckIns || []) as Booking[],
-        crewIssues: res.crewIssues || [],
-        resourceIssues: res.resourceIssues || [],
-        postProductionDue: res.postProductionDue || [],
-      };
-    }
+    const res = (data || {}) as any;
+    return {
+      todayShoots: (res.todayShoots || []) as Booking[],
+      upcomingCheckIns: (res.upcomingCheckIns || []) as Booking[],
+      crewIssues: res.crewIssues || [],
+      resourceIssues: res.resourceIssues || [],
+      postProductionDue: res.postProductionDue || [],
+    };
   }
 
   // In-memory fallback
@@ -124,100 +122,100 @@ export async function getDailyOperationsBoardData(targetDate?: string): Promise<
 export async function getTomorrowPrepBoardData(): Promise<TomorrowPrepItem[]> {
   const tomorrowDateStr = getTomorrowVn();
 
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    try {
-      const allBookings = await getBookings();
-      const tomorrowBookings = allBookings.filter(
-        b => b.bookingDate === tomorrowDateStr && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus)
-      );
+  if (isSupabaseConfigured()) {
+    const allBookings = await getBookings();
+    const tomorrowBookings = allBookings.filter(
+      b => b.bookingDate === tomorrowDateStr && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus)
+    );
 
-      return tomorrowBookings.map((b) => {
-        const photo = b.assignments?.find(a => a.assignmentRole === 'PHOTOGRAPHER');
-        const makeup = b.assignments?.find(a => a.assignmentRole === 'MAKEUP');
+    return tomorrowBookings.map((b) => {
+      const photo = b.assignments?.find(a => a.assignmentRole === 'PHOTOGRAPHER');
+      const makeup = b.assignments?.find(a => a.assignmentRole === 'MAKEUP');
 
-        const studioReady = Boolean(b.studioId && b.studioId.trim() !== '');
-        const photographerReady = Boolean(photo);
-        const makeupReady = Boolean(makeup) || Boolean(b.serviceId?.includes('single')) || false;
-        const equipmentReady = true;
-        const propsReady = true;
-        const customerAckReady = Boolean((b as any).customerScheduleConfirmedAt || (b as any).customer_schedule_confirmed_at);
-        const driveReady = Boolean(b.driveFolderUrl && b.driveFolderUrl !== 'https://drive.google.com');
+      const studioReady = Boolean(b.studioId && b.studioId.trim() !== '');
+      const photographerReady = Boolean(photo);
+      const makeupReady = Boolean(makeup) || Boolean(b.serviceId?.includes('single')) || false;
+      const equipmentReady = true;
+      const propsReady = true;
+      const customerAckReady = Boolean((b as any).customerScheduleConfirmedAt || (b as any).customer_schedule_confirmed_at);
+      const driveReady = Boolean(b.driveFolderUrl && b.driveFolderUrl !== 'https://drive.google.com');
 
-        const isAllGreen =
-          studioReady &&
-          photographerReady &&
-          makeupReady &&
-          equipmentReady &&
-          customerAckReady &&
-          driveReady;
+      const isAllGreen =
+        studioReady &&
+        photographerReady &&
+        makeupReady &&
+        equipmentReady &&
+        customerAckReady &&
+        driveReady;
 
-        return {
-          bookingId: b.id,
-          bookingCode: b.bookingCode,
-          customerName: b.customerName,
-          serviceName: b.serviceName || 'Dịch Vụ MIPA',
-          shootDate: tomorrowDateStr,
-          startTime: b.startTime,
-          endTime: b.endTime,
-          studioReady,
-          studioName: b.studioName || 'Ngoại cảnh Maison MIPA',
-          photographerReady,
-          photographerName: photo?.employeeName,
-          makeupReady,
-          makeupName: makeup?.employeeName,
-          equipmentReady,
-          reservedEquipmentCount: 2,
-          propsReady,
-          customerAckReady,
-          driveReady,
-          driveFolderUrl: b.driveFolderUrl && b.driveFolderUrl !== 'https://drive.google.com'
-            ? b.driveFolderUrl
-            : `https://drive.google.com/drive/folders/mipa_${(b.bookingCode || b.id).toLowerCase()}`,
-          isAllGreen,
-        };
-      });
-    } catch (err) {
-      console.warn('Fallback in getTomorrowPrepBoardData:', err);
-    }
+      return {
+        bookingId: b.id,
+        bookingCode: b.bookingCode,
+        customerName: b.customerName,
+        serviceName: b.serviceName || 'Dịch Vụ MIPA',
+        shootDate: tomorrowDateStr,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        studioReady,
+        studioName: b.studioName || 'Ngoại cảnh Maison MIPA',
+        photographerReady,
+        photographerName: photo?.employeeName,
+        makeupReady,
+        makeupName: makeup?.employeeName,
+        equipmentReady,
+        reservedEquipmentCount: 2,
+        propsReady,
+        customerAckReady,
+        driveReady,
+        driveFolderUrl: b.driveFolderUrl && b.driveFolderUrl !== 'https://drive.google.com'
+          ? b.driveFolderUrl
+          : `https://drive.google.com/drive/folders/mipa_${(b.bookingCode || b.id).toLowerCase()}`,
+        isAllGreen,
+      };
+    });
   }
 
-  // In-memory fallback
-  const matched = INITIAL_BOOKINGS.filter(
-    b => b.bookingDate === tomorrowDateStr && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus)
-  );
-  const tomorrowBookings = matched.length > 0 ? matched : INITIAL_BOOKINGS.slice(0, 3);
-  return tomorrowBookings.map((b, idx) => {
-    const photo = b.assignments?.find(a => a.assignmentRole === 'PHOTOGRAPHER');
-    const makeup = b.assignments?.find(a => a.assignmentRole === 'MAKEUP');
+  // In-memory fallback only when Supabase is unconfigured and demo mode enabled
+  if (isDemoModeEnabled()) {
+    const matched = INITIAL_BOOKINGS.filter(
+      b => b.bookingDate === tomorrowDateStr && ['CONFIRMED', 'CHECKED_IN', 'SHOOTING'].includes(b.bookingStatus)
+    );
+    const tomorrowBookings = matched.length > 0 ? matched : INITIAL_BOOKINGS.slice(0, 3);
+    return tomorrowBookings.map((b, idx) => {
+      const photo = b.assignments?.find(a => a.assignmentRole === 'PHOTOGRAPHER');
+      const makeup = b.assignments?.find(a => a.assignmentRole === 'MAKEUP');
 
-    const photographerReady = idx !== 1; // Simulated missing photographer on booking #2
-    const equipmentReady = idx !== 2; // Simulated missing equipment on booking #3
+      const photographerReady = idx !== 1; // Simulated missing photographer on booking #2
+      const equipmentReady = idx !== 2; // Simulated missing equipment on booking #3
 
-    const isAllGreen = photographerReady && equipmentReady;
+      const isAllGreen = photographerReady && equipmentReady;
 
-    return {
-      bookingId: b.id,
-      bookingCode: b.bookingCode,
-      customerName: b.customerName,
-      serviceName: b.serviceName,
-      shootDate: tomorrowDateStr,
-      startTime: b.startTime,
-      endTime: b.endTime,
-      studioReady: true,
-      studioName: b.studioName,
-      photographerReady,
-      photographerName: photo?.employeeName,
-      makeupReady: Boolean(makeup),
-      makeupName: makeup?.employeeName,
-      equipmentReady,
-      reservedEquipmentCount: 2,
-      propsReady: true,
-      customerAckReady: true,
-      driveReady: true,
-      driveFolderUrl: b.driveFolderUrl,
-      isAllGreen,
-    };
-  });
+      return {
+        bookingId: b.id,
+        bookingCode: b.bookingCode,
+        customerName: b.customerName,
+        serviceName: b.serviceName,
+        shootDate: tomorrowDateStr,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        studioReady: true,
+        studioName: b.studioName,
+        photographerReady,
+        photographerName: photo?.employeeName,
+        makeupReady: Boolean(makeup),
+        makeupName: makeup?.employeeName,
+        equipmentReady,
+        reservedEquipmentCount: 2,
+        propsReady: true,
+        customerAckReady: true,
+        driveReady: true,
+        driveFolderUrl: b.driveFolderUrl,
+        isAllGreen,
+      };
+    });
+  }
+
+  return [];
 }
 
 /**
@@ -227,7 +225,7 @@ export async function getOperationsCalendarEvents(
   startAt: string,
   endAt: string
 ): Promise<OperationsCalendarEvent[]> {
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
+  if (isSupabaseConfigured()) {
     const { data, error } = await supabase.rpc('get_operations_calendar_events', {
       p_start_at: startAt,
       p_end_at: endAt,
@@ -237,60 +235,60 @@ export async function getOperationsCalendarEvents(
       throw normalizeError(error, 'getOperationsCalendarEvents');
     }
 
-    if (data) {
-      return (data as any[]).map(e => ({
-        id: e.id,
-        title: e.title,
-        type: e.type,
-        startAt: e.start_at,
-        endAt: e.end_at,
-        studioRoomId: e.studio_room_id,
-        studioRoomName: e.studio_room_name,
-        bookingCode: e.booking_code,
-        serviceName: e.service_name,
-        customerName: e.customer_name,
-        bookingStatus: e.booking_status,
-        crewStatus: e.crew_status,
-        resourceStatus: e.resource_status,
-        staffName: e.staff_name,
-        staffRole: e.staff_role,
-        leaveType: e.leave_type,
-        metadata: e.metadata,
-      }));
-    }
+    return ((data || []) as any[]).map(e => ({
+      id: e.id,
+      title: e.title,
+      type: e.type,
+      startAt: e.start_at,
+      endAt: e.end_at,
+      studioRoomId: e.studio_room_id,
+      studioRoomName: e.studio_room_name,
+      bookingCode: e.booking_code,
+      serviceName: e.service_name,
+      customerName: e.customer_name,
+      bookingStatus: e.booking_status,
+      crewStatus: e.crew_status,
+      resourceStatus: e.resource_status,
+      staffName: e.staff_name,
+      staffRole: e.staff_role,
+      leaveType: e.leave_type,
+      metadata: e.metadata,
+    }));
   }
 
-  // In-memory fallback
-  const events: OperationsCalendarEvent[] = INITIAL_BOOKINGS.map(b => ({
-    id: `event-book-${b.id}`,
-    title: `[${b.bookingCode}] ${b.customerName} - ${b.serviceName}`,
-    type: 'BOOKING',
-    startAt: `${b.bookingDate}T${b.startTime}:00+07:00`,
-    endAt: `${b.bookingDate}T${b.endTime}:00+07:00`,
-    studioRoomId: b.studioId,
-    studioRoomName: b.studioName,
-    bookingCode: b.bookingCode,
-    serviceName: b.serviceName,
-    customerName: b.customerName,
-    bookingStatus: b.bookingStatus,
-    crewStatus: b.crewStatus || 'CREW_READY',
-    resourceStatus: b.resourceStatus || 'RESOURCE_READY',
-    staffName: b.assignments?.[0]?.employeeName,
-  }));
+  // In-memory fallback only when Supabase is unconfigured and demo mode enabled
+  if (isDemoModeEnabled()) {
+    const events: OperationsCalendarEvent[] = INITIAL_BOOKINGS.map(b => ({
+      id: `event-book-${b.id}`,
+      title: `[${b.bookingCode}] ${b.customerName} - ${b.serviceName}`,
+      type: 'BOOKING',
+      startAt: `${b.bookingDate}T${b.startTime}:00+07:00`,
+      endAt: `${b.bookingDate}T${b.endTime}:00+07:00`,
+      studioRoomId: b.studioId,
+      studioRoomName: b.studioName,
+      bookingCode: b.bookingCode,
+      serviceName: b.serviceName,
+      customerName: b.customerName,
+      bookingStatus: b.bookingStatus,
+      crewStatus: b.crewStatus || 'CREW_READY',
+      resourceStatus: 'RESOURCE_READY',
+    }));
 
-  // Add leave events
-  events.push({
-    id: 'event-leave-001',
-    title: 'Lê Hoàng Long - Nghỉ phép thường niên',
-    type: 'STAFF_LEAVE',
-    startAt: '2026-09-22T08:00:00+07:00',
-    endAt: '2026-09-23T18:00:00+07:00',
-    staffName: 'Lê Hoàng Long',
-    staffRole: 'PHOTOGRAPHER',
-    leaveType: 'ANNUAL',
-  });
+    events.push({
+      id: 'event-leave-001',
+      title: 'Lê Hoàng Long - Nghỉ phép thường niên',
+      type: 'STAFF_LEAVE',
+      startAt: '2026-09-22T08:00:00+07:00',
+      endAt: '2026-09-23T18:00:00+07:00',
+      staffName: 'Lê Hoàng Long',
+      staffRole: 'PHOTOGRAPHER',
+      leaveType: 'ANNUAL',
+    });
 
-  return events;
+    return events;
+  }
+
+  return [];
 }
 
 /**
