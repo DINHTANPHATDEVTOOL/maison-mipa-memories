@@ -43,6 +43,7 @@ describe('Production Schema & Migration Comprehensive Audit', () => {
     '20260924000004_cancellation_request_alert_and_admin_workflow.sql',
     '20260924000005_admin_cancel_and_email_notification.sql',
     '20260924000006_prevent_duplicate_booking_emails.sql',
+    '20261022000001_remediation_core_crm_financial_rpc_fixes.sql',
   ];
 
   const EXPECTED_TABLES = [

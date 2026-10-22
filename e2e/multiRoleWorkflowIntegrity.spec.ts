@@ -35,11 +35,10 @@ test.describe('Maison MIPA — Comprehensive Multi-Role Workflow & Shift Schedul
 
     // Test clicking an interactive shift button (+ Sáng or + Chiều or remove)
     const assignShiftBtn = page.locator('button:has-text("+ Sáng"), button:has-text("+ Chiều")').first();
-    if (await assignShiftBtn.isVisible()) {
-      await assignShiftBtn.click();
-      // Verify toast confirmation or toggle state
-      await expect(page.locator('text=✓ Đã').first()).toBeVisible({ timeout: 5000 });
-    }
+    await expect(assignShiftBtn).toBeVisible({ timeout: 10000 });
+    await assignShiftBtn.click();
+    // Verify toast confirmation or toggle state
+    await expect(page.locator('text=✓ Đã').first()).toBeVisible({ timeout: 5000 });
 
     // =========================================================================
     // STEP 2: TEST PHOTOGRAPHER ROLE & SHIFT REGISTRATION
@@ -78,10 +77,9 @@ test.describe('Maison MIPA — Comprehensive Multi-Role Workflow & Shift Schedul
 
     // Verify Receptionist can also switch to Shift Registration tab
     const receptShiftBtn = page.getByRole('button', { name: /Đăng ký ca làm việc/i });
-    if (await receptShiftBtn.isVisible()) {
-      await receptShiftBtn.click();
-      await expect(page.locator('text=Ca Sáng').first()).toBeVisible({ timeout: 8000 });
-    }
+    await expect(receptShiftBtn).toBeVisible({ timeout: 10000 });
+    await receptShiftBtn.click();
+    await expect(page.locator('text=Ca Sáng').first()).toBeVisible({ timeout: 8000 });
 
     // =========================================================================
     // STEP 4: TEST MAKEUP ROLE
@@ -138,10 +136,9 @@ test.describe('Maison MIPA — Comprehensive Multi-Role Workflow & Shift Schedul
 
     // Find and click any "+ Sáng" button for Hoàng Minh or first employee
     const addMorningShiftBtn = page.locator('button:has-text("+ Sáng (08-13h)")').first();
-    if (await addMorningShiftBtn.isVisible()) {
-      await addMorningShiftBtn.click();
-      await expect(page.locator('text=✓ Đã').first()).toBeVisible({ timeout: 5000 });
-    }
+    await expect(addMorningShiftBtn).toBeVisible({ timeout: 10000 });
+    await addMorningShiftBtn.click();
+    await expect(page.locator('text=✓ Đã').first()).toBeVisible({ timeout: 5000 });
 
     // Step B: Switch to Photographer
     await roleSwitcherBtn.click();

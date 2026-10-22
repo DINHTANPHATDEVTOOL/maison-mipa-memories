@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "title": "Đăng ký, đăng nhập và khôi phục mật khẩu",
+    "status": "PASS",
+    "duration": 65,
+    "details": "Created user 6b6a523a-bc92-4181-a979-2933775d33c0 with role CUSTOMER, verified profile trigger and OTP token single-use lifecycle.",
+    "error": null
+  },
+  {
+    "id": 2,
+    "title": "Booking từ chọn dịch vụ đến ghi database",
+    "status": "PASS",
+    "duration": 85,
+    "details": "Created booking MIPA-261022-B740 (a1508e24-0147-4fd9-bce7-69a265111322), booking_status=CONSULTATION_REQUESTED, payment_rows=0.",
+    "error": null
+  },
+  {
+    "id": 3,
+    "title": "Hai khách hàng đặt cùng slot đồng thời (Anti-Double Booking)",
+    "status": "PASS",
+    "duration": 8865,
+    "details": "Client 1 confirmed booking MIPA-261022-504E. Slot verified in get_studio_booked_slots (AVAILABLE). Collision rejected: Slot blocked.",
+    "error": null
+  },
+  {
+    "id": 4,
+    "title": "Admin xác nhận tư vấn, đặt cọc, thay đổi trạng thái",
+    "status": "PASS",
+    "duration": 67,
+    "details": "Manager 44444444-4444-4444-8444-444444444444 confirmed deposit 500,000 VND; status transitioned to CONFIRMED.",
+    "error": null
+  },
+  {
+    "id": 5,
+    "title": "Customer chỉ xem được dữ liệu của mình (RLS Isolation)",
+    "status": "PASS",
+    "duration": 101,
+    "details": "Customer A saw only own records (19 bookings); Booking B access returned 0 rows (RLS enforced).",
+    "error": null
+  },
+  {
+    "id": 6,
+    "title": "Nhân viên đăng ký ca làm & Manager đồng bộ dữ liệu",
+    "status": "PASS",
+    "duration": 49,
+    "details": "Photographer 33333333-3333-4333-8333-333333333333 registered shift; Manager retrieved verified schedule: {\"morning\":true,\"afternoon\":false}.",
+    "error": null
+  },
+  {
+    "id": 7,
+    "title": "Kiểm tra phân quyền và RLS 5 vai trò (Guest, Customer, Staff, Manager, Root)",
+    "status": "PASS",
+    "duration": 56,
+    "details": "Anon sees 0 bookings (0 expected); Customer role escalation blocked by trigger; Staff photographer root_owner_config count = 0 (isolated); Manager sees all 49 studio bookings; is_root_owner(55555555-5555-4555-8555-555555555555) = true",
+    "error": null
+  },
+  {
+    "id": 8,
+    "title": "Shoot-to-Delivery Lifecycle: Chụp, Proofs, Hậu kỳ & Giao ảnh",
+    "status": "PASS",
+    "duration": 78,
+    "details": "Lifecycle progressed from CHECKED_IN -> SHOOT_COMPLETED -> PROOFS (3) -> SELECTION (2) -> EDITING -> READY_FOR_REVIEW -> DELIVERED -> REVOKED successfully.",
+    "error": null
+  },
+  {
+    "id": 9,
+    "title": "Transactional Email Outbox & Chống gửi trùng (Idempotency)",
+    "status": "PASS",
+    "duration": 85,
+    "details": "Verified unique idempotency key booking-confirmed:a1508e24-0147-4fd9-bce7-69a265111322: exactly 1 email queued, duplicate safely rejected.",
+    "error": null
+  },
+  {
+    "id": 10,
+    "title": "Đối chiếu số liệu Dashboard với dữ liệu DB",
+    "status": "PASS",
+    "duration": 3823,
+    "details": "DB Reconciliation: 49 total bookings, 22.420.000 VND total cash inflow reconciled 100%.",
+    "error": null
+  }
+]

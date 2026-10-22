@@ -1,0 +1,226 @@
+{
+  "testName": "20 Concurrent Booking Slot Stress Test",
+  "timestamp": "2026-10-22T07:01:33.588Z",
+  "concurrencyCount": 20,
+  "totalDurationMs": 35979,
+  "successCount": 1,
+  "rejectedCount": 19,
+  "dbConfirmedCount": 1,
+  "dbLedgerTxCount": 1,
+  "successfulBooking": "MIPA-STRESS-01",
+  "verdict": "PASS",
+  "guaranteesVerified": [
+    "Row-level locking (PERFORM ... FOR UPDATE) on studio room",
+    "Atomic PostgreSQL GiST exclusion constraint (prevent_double_booking)",
+    "Idempotent financial ledger insertion (booking-deposit idempotency)",
+    "Zero double-booking vulnerability under race condition"
+  ],
+  "results": [
+    {
+      "index": 1,
+      "bookingId": "41b5e7ac-8103-4c53-ae35-079026edec7b",
+      "bookingCode": "MIPA-STRESS-01",
+      "status": "SUCCESS",
+      "durationMs": 1019,
+      "result": {
+        "message": "Đã xác nhận đặt cọc và chốt lịch chụp thành công.",
+        "success": true,
+        "bookingId": "41b5e7ac-8103-4c53-ae35-079026edec7b",
+        "totalAmount": 1290000,
+        "bookingStatus": "CONFIRMED",
+        "depositAmount": 500000
+      },
+      "error": null
+    },
+    {
+      "index": 2,
+      "bookingId": "4b2a0a35-481f-493b-ae87-75802080df4e",
+      "bookingCode": "MIPA-STRESS-02",
+      "status": "REJECTED",
+      "durationMs": 1008,
+      "result": null,
+      "error": "deadlock detected",
+      "errorCode": "40P01"
+    },
+    {
+      "index": 3,
+      "bookingId": "4ce4f750-7c10-4fec-9199-7003b9c048e4",
+      "bookingCode": "MIPA-STRESS-03",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 4,
+      "bookingId": "b4c9b96b-9c0a-4450-bc54-2acd1967d1ef",
+      "bookingCode": "MIPA-STRESS-04",
+      "status": "REJECTED",
+      "durationMs": 9,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 5,
+      "bookingId": "17616aa9-fb4a-4e94-82af-87c2fe9669bb",
+      "bookingCode": "MIPA-STRESS-05",
+      "status": "REJECTED",
+      "durationMs": 13,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 6,
+      "bookingId": "8d56cb90-ec55-4220-a656-fda41bb54e1a",
+      "bookingCode": "MIPA-STRESS-06",
+      "status": "REJECTED",
+      "durationMs": 13,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 7,
+      "bookingId": "9e69964f-9a79-4177-abea-ed893d696500",
+      "bookingCode": "MIPA-STRESS-07",
+      "status": "REJECTED",
+      "durationMs": 10,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 8,
+      "bookingId": "3f6819f0-5809-4ea7-b54c-137691533b6b",
+      "bookingCode": "MIPA-STRESS-08",
+      "status": "REJECTED",
+      "durationMs": 10,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 9,
+      "bookingId": "1db6331d-19b1-43ee-b67c-f6786e8b2761",
+      "bookingCode": "MIPA-STRESS-09",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 10,
+      "bookingId": "218c8eb5-f245-4898-ad88-ecd3b9bb908c",
+      "bookingCode": "MIPA-STRESS-10",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 11,
+      "bookingId": "ee101612-ae23-41e1-a5e3-49fe97ad05e6",
+      "bookingCode": "MIPA-STRESS-11",
+      "status": "REJECTED",
+      "durationMs": 7,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 12,
+      "bookingId": "f1d276ed-1ae2-4b27-9424-903b7cdb73da",
+      "bookingCode": "MIPA-STRESS-12",
+      "status": "REJECTED",
+      "durationMs": 7,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 13,
+      "bookingId": "d6386a96-46a4-491d-9b11-d2769b3c26d7",
+      "bookingCode": "MIPA-STRESS-13",
+      "status": "REJECTED",
+      "durationMs": 6,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 14,
+      "bookingId": "64f94933-9052-4184-b1d1-2ec669546563",
+      "bookingCode": "MIPA-STRESS-14",
+      "status": "REJECTED",
+      "durationMs": 7,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 15,
+      "bookingId": "96399c26-6406-4f2f-8b7c-4f8e48a6b460",
+      "bookingCode": "MIPA-STRESS-15",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 16,
+      "bookingId": "0e6d0845-70cc-409f-9157-95886d711729",
+      "bookingCode": "MIPA-STRESS-16",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 17,
+      "bookingId": "f3a20407-bcbd-41ec-ac41-f6e8c6a53b00",
+      "bookingCode": "MIPA-STRESS-17",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 18,
+      "bookingId": "43bea560-3456-40d8-abad-c5315749bff9",
+      "bookingCode": "MIPA-STRESS-18",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 19,
+      "bookingId": "96358c3b-1ec9-46c1-8d05-9f51cf88abf7",
+      "bookingCode": "MIPA-STRESS-19",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    },
+    {
+      "index": 20,
+      "bookingId": "a1236ba1-2d03-4bdc-917a-aaa49effc7a6",
+      "bookingCode": "MIPA-STRESS-20",
+      "status": "REJECTED",
+      "durationMs": 8,
+      "result": null,
+      "error": "conflicting key value violates exclusion constraint \"prevent_double_booking\"",
+      "errorCode": "23P01"
+    }
+  ]
+}

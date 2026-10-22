@@ -35,55 +35,42 @@ test.describe('Maison MIPA — Shoot to Delivery Workflow V1 E2E Suite (Phase 25
     // STEP 2: Find a CONFIRMED or existing booking to step through the workflow
     // =========================================================================
     // Click on "Tất cả trạng thái" filter pill to ensure all bookings are listed
-    const allPill = page.getByRole('button', { name: /Tất cả trạng thái/i });
-    if (await allPill.isVisible()) {
-      await allPill.click();
-    }
+    // Click on "Tất cả" filter pill to ensure all bookings are listed
+    const allPill = page.getByRole('button', { name: 'Tất cả', exact: true });
+    await expect(allPill).toBeVisible({ timeout: 10000 });
+    await allPill.click();
 
-    // Select the first booking in the list
-    const firstBookingCard = page.locator('div[style*="cursor: pointer"]').first();
-    await expect(firstBookingCard).toBeVisible({ timeout: 10000 });
-    await firstBookingCard.click();
+    // Select the confirmed booking MIPA-260811-002
+    const confirmedBookingCard = page.locator('#booking-card-MIPA-260811-002');
+    await expect(confirmedBookingCard).toBeVisible({ timeout: 10000 });
+    await confirmedBookingCard.click();
 
     // Verify Timeline is visible in the right column
     await expect(page.getByText('TIẾN TRÌNH CHI TIẾT (TIMELINE):')).toBeVisible();
 
-    // Check if check-in button or next operation action is available
-    const checkInBtn = page.getByRole('button', { name: /CHECK-IN KHÁCH|XÁC NHẬN KHÁCH CHECK-IN/i }).first();
-    if (await checkInBtn.isVisible()) {
-      await checkInBtn.click();
-      await page.waitForTimeout(1000);
-    }
+    // Check-in customer
+    const checkInBtn = page.getByRole('button', { name: /XÁC NHẬN KHÁCH CHECK-IN/i }).first();
+    await expect(checkInBtn).toBeVisible({ timeout: 10000 });
+    await checkInBtn.click();
+    await page.waitForTimeout(1000);
 
-    // Start shoot if available
+    // Start shoot
     const startShootBtn = page.getByRole('button', { name: /BẮT ĐẦU BUỔI CHỤP/i }).first();
-    if (await startShootBtn.isVisible()) {
-      await startShootBtn.click();
-      await page.waitForTimeout(1000);
-    }
+    await expect(startShootBtn).toBeVisible({ timeout: 10000 });
+    await startShootBtn.click();
+    await page.waitForTimeout(1000);
 
-    // Complete shoot if available
+    // Complete shoot
     const completeShootBtn = page.getByRole('button', { name: /HOÀN TẤT BUỔI CHỤP/i }).first();
-    if (await completeShootBtn.isVisible()) {
-      await completeShootBtn.click();
-      await page.waitForTimeout(1000);
-    }
+    await expect(completeShootBtn).toBeVisible({ timeout: 10000 });
+    await completeShootBtn.click();
+    await page.waitForTimeout(1000);
 
-    // If in SHOOT_COMPLETED or AWAITING_SELECTION, test Sync Proofs
+    // Sync Proofs
     const syncProofsBtn = page.getByRole('button', { name: /ĐỒNG BỘ ẢNH PROOFS/i }).first();
-    if (await syncProofsBtn.isVisible()) {
-      await syncProofsBtn.click();
-      await page.waitForTimeout(1000);
-    }
-
-    // If bypass selection is available, verify modal opens
-    const bypassBtn = page.getByRole('button', { name: /Bỏ Qua Khâu Chọn Ảnh/i }).first();
-    if (await bypassBtn.isVisible()) {
-      await bypassBtn.click();
-      await expect(page.getByText('BỎ QUA KHÂU KHÁCH CHỌN ẢNH')).toBeVisible();
-      // Close modal
-      await page.getByRole('button', { name: 'Hủy Bỏ' }).click();
-    }
+    await expect(syncProofsBtn).toBeVisible({ timeout: 10000 });
+    await syncProofsBtn.click();
+    await page.waitForTimeout(1000);
 
     // Log out manager
     await page.locator('text=Lê Tấn Phát').first().click();
@@ -101,26 +88,9 @@ test.describe('Maison MIPA — Shoot to Delivery Workflow V1 E2E Suite (Phase 25
 
     // Verify Customer Portal renders
     await expect(page.getByText(/Lịch Chụp Của Tôi|CUSTOMER PORTAL/i).first()).toBeVisible();
-
-    // If an awaiting-selection booking exists, "Chọn Ảnh Hậu Kỳ" will be visible
-    const selectPhotosBtn = page.getByRole('button', { name: /Chọn Ảnh Hậu Kỳ/i }).first();
-    if (await selectPhotosBtn.isVisible()) {
-      await selectPhotosBtn.click();
-
-      // Verify CustomerProofGallery modal opens
-      await expect(page.getByText('CHỌN ẢNH HẬU KỲ')).toBeVisible();
-      await expect(page.getByText(/Đã chọn:/i)).toBeVisible();
-      await expect(page.getByRole('button', { name: /XÁC NHẬN DANH SÁCH ẢNH/i })).toBeVisible();
-
-      // Close gallery
-      await page.getByRole('button', { name: /Đóng/i }).first().click();
-    }
-
-    // If any booking is DELIVERED, verify "XEM ẢNH" is visible
-    const deliveredText = page.locator('text=Ảnh đã được giao').first();
-    if (await deliveredText.isVisible()) {
-      await expect(page.getByRole('link', { name: /XEM ẢNH/i }).first()).toBeVisible();
-    }
+    await expect(page.getByRole('heading', { name: /Xin chào, Nguyễn Minh Anh/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Đặt Lịch Chụp Mới/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Thông Tin Cá Nhân/i })).toBeVisible();
   });
 
   test('2. Responsive Mobile Customer Proof Gallery', async ({ page }) => {

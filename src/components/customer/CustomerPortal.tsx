@@ -36,7 +36,6 @@ import {
   CheckCircle,
   Trash2,
   Loader2,
-  Upload,
   XCircle,
 } from 'lucide-react';
 
@@ -244,8 +243,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
   const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  // Filter bookings strictly by authenticated user's ID
-  const customerBookings = user ? bookings.filter(b => b.customerId === user.id) : [];
+  // Filter bookings strictly by authenticated user's ID or email
+  const customerBookings = user 
+    ? bookings.filter(b => b.customerId === user.id || (b.customerEmail && user.email && b.customerEmail.toLowerCase() === user.email.toLowerCase())) 
+    : [];
 
   const [actionError, setActionError] = useState<string>('');
 
