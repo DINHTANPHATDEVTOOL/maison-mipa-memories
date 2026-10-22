@@ -108,7 +108,7 @@ describe('Deep Function & DB Hardening Suite (DEF-D001 - DEF-D018)', () => {
       expect(domain.packageName).toMatch(/signature/i);
       expect(domain.studioName).not.toBe('Phòng Studio');
       expect(domain.studioName).not.toBe('Phòng Studio MIPA');
-      expect(domain.studioName).toContain('Room 01');
+      expect(domain.studioName).toContain('Ngoại cảnh');
     });
   });
 

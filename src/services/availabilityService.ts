@@ -194,7 +194,7 @@ export function getAvailableSlotsSync(params: AvailabilityParams): TimeSlot[] {
         status: 'BOOKED',
         reason: isPastToday
           ? 'Khung giờ này đã qua trong ngày'
-          : 'Phòng đã có lịch đặt trong khung giờ này',
+          : 'Khung giờ này đã có khách đặt lịch',
       });
     } else {
       let tag: string | undefined;

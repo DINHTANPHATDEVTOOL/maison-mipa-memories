@@ -111,7 +111,7 @@ export const Hero3DExhibitionSection: React.FC<Hero3DExhibitionSectionProps> = (
       id="atelier-3d"
       data-testid="hero-3d-exhibition"
       className="editorial-section hero-3d-section living-french-atelier"
-      aria-label="Căn phòng atelier Maison MIPA"
+      aria-label="Không gian atelier Maison MIPA"
     >
       <div className="editorial-container-wide">
         {/* Semantic H1 for SEO and screen readers */}

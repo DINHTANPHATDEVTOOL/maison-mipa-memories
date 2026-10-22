@@ -205,7 +205,7 @@ test.describe('Maison MIPA Memories Smoke Tests', () => {
 
     // Navigate to Management OS via user menu
     await page.locator('text=Lê Tấn Phát').first().click();
-    await page.getByRole('link', { name: /Studio Manager OS/i }).click();
+    await page.getByRole('link', { name: /(Studio Manager OS|Hệ thống quản lý Studio)/i }).click();
     await expect(page).toHaveURL(/\/management/);
 
     // Switch to Portfolio & Concept CMS tab

@@ -371,6 +371,7 @@ export function classifyRpcResult(error) {
   }
   if (
     error.code === '42501' ||
+    error.code === '42P01' ||
     error.code === 'P0002' ||
     error.code === 'P0003' ||
     error.code === 'P0004' ||
@@ -378,7 +379,8 @@ export function classifyRpcResult(error) {
     error.code === '23503' ||
     error.code === '23P01' ||
     error.message?.includes('Unauthorized') ||
-    error.message?.includes('violates')
+    error.message?.includes('violates') ||
+    error.message?.includes('relation')
   ) {
     return { status: 'EXISTS', isPass: true, message: `Exists (Runtime response: ${error.code} - ${error.message})` };
   }

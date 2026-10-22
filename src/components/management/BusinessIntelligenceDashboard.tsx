@@ -387,10 +387,10 @@ export const BusinessIntelligenceDashboard: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <h3 style={{ margin: 0, color: '#604634', fontSize: '1.2rem', fontFamily: 'Cinzel, serif', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Clock size={18} color="#8C6E53" /> Hiệu Suất & Công Suất Phòng Studio (Room Utilization)
+              <Clock size={18} color="#8C6E53" /> Hiệu Suất Lịch Chụp Ngoại Cảnh (Schedule Utilization)
             </h3>
             <div style={{ fontSize: '0.78rem', color: '#8C6E53', marginTop: '0.2rem' }}>
-              Dựa trên giờ chụp thực tế từ các booking đã chốt cọc (8h-18h hàng ngày)
+              Dựa trên giờ chụp ngoại cảnh thực tế từ các booking đã chốt cọc (8h-18h hàng ngày)
             </div>
           </div>
         </div>
@@ -408,7 +408,7 @@ export const BusinessIntelligenceDashboard: React.FC = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, color: '#604634', fontSize: '0.95rem' }}>
-                  {std.roomName}
+                  {std.roomName.replace(/room\s*\d+|phòng\s*\d+|phòng\s*studio/gi, 'Khu Vực Ngoại Cảnh')}
                 </span>
                 <span style={{
                   padding: '0.15rem 0.5rem',
@@ -424,7 +424,7 @@ export const BusinessIntelligenceDashboard: React.FC = () => {
 
               <div style={{ marginTop: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#8C6E53' }}>Tỷ lệ lấp đầy phòng:</div>
+                  <div style={{ fontSize: '0.75rem', color: '#8C6E53' }}>Tỷ lệ lấp đầy lịch chụp:</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#047857' }}>
                     {std.utilizationRate}%
                   </div>

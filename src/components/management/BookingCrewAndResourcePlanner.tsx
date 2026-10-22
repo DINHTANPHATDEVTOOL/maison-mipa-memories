@@ -195,7 +195,7 @@ export const BookingCrewAndResourcePlanner: React.FC<BookingCrewAndResourcePlann
             Booking {booking.bookingCode} — {booking.customerName}
           </h2>
           <p style={{ margin: '0.3rem 0 0', fontSize: '0.88rem', color: '#666' }}>
-            Gói: <strong>{booking.packageName}</strong> • Thời gian: {booking.bookingDate} ({booking.startTime} - {booking.endTime}) • Phòng: {booking.studioName}
+            Gói: <strong>{booking.packageName}</strong> • Thời gian: {booking.bookingDate} ({booking.startTime} - {booking.endTime}) • Ngoại cảnh: {booking.conceptName || booking.studioName || 'Maison MIPA'}
             {loading && <span style={{ marginLeft: '0.5rem', color: '#B8860B' }}>• Đang đồng bộ...</span>}
           </p>
         </div>

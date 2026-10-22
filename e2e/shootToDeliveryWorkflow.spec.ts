@@ -17,7 +17,7 @@ test.describe('Maison MIPA — Shoot to Delivery Workflow V1 E2E Suite (Phase 25
 
     // Go to Management Dashboard
     await page.locator('text=Lê Tấn Phát').first().click();
-    await page.getByRole('link', { name: /Studio Manager OS/i }).click();
+    await page.getByRole('link', { name: /(Studio Manager OS|Hệ thống quản lý Studio)/i }).click();
     await expect(page).toHaveURL(/\/management/);
 
     // Verify 9 Operations Queues are rendered

@@ -168,11 +168,11 @@ export const MaisonStorySection: React.FC = () => {
             <span className="editorial-overline">MAISON MIPA</span>
 
             <h2 className="editorial-h2" style={{ marginBottom: '1.5rem' }}>
-              Một căn phòng ngập tràn ánh sáng và những câu chuyện của bạn.
+              Một không gian nghệ thuật ngập tràn ánh sáng và những câu chuyện của bạn.
             </h2>
 
             <p className="editorial-copy" style={{ marginBottom: '1.25rem' }}>
-              Maison MIPA được xây dựng từ mong muốn có một không gian chụp ảnh yên tĩnh và ấm cúng giữa Sài Gòn. Ở đây, ánh sáng tự nhiên từ những khung cửa sổ lớn luôn là chất liệu chủ đạo cho mọi khung hình.
+              Maison MIPA được xây dựng từ mong muốn mang đến những buổi chụp ngoại cảnh tự nhiên, ấm cúng và đầy chất thơ. Ở đây, ánh sáng tự nhiên của đất trời luôn là chất liệu chủ đạo cho mọi khung hình.
             </p>
 
             <p className="editorial-copy">

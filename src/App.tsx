@@ -53,6 +53,7 @@ import { CustomCursor } from './motion/CustomCursor';
 import { PageTransition } from './motion/PageTransition';
 import { FilmGrainOverlay } from './components/public/FilmGrainOverlay';
 import { GlobalImageQuickEditor } from './components/common/GlobalImageQuickEditor';
+import { RoleSwitcherBar } from './components/common/RoleSwitcherBar';
 
 function AppContent() {
   const { user: currentUser, role: currentRole, logout } = useAuth();
@@ -581,6 +582,9 @@ function AppContent() {
 
       {/* Global In-Place Image Quick Editor (Root Owner / Admin Visual OS) */}
       <GlobalImageQuickEditor />
+
+      {/* Multi-Role Interactive Testing Switcher */}
+      <RoleSwitcherBar />
 
     </div>
   );

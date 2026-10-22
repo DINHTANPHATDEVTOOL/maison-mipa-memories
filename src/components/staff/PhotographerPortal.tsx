@@ -129,7 +129,7 @@ export const PhotographerPortal: React.FC<PhotographerPortalProps> = ({
                       {b.serviceName} — {b.packageName}
                     </h4>
                     <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-                      Khách hàng: <strong>{b.customerName}</strong> • Phòng: <strong>{b.studioName}</strong> • Dịp: <strong>{b.occasion || 'Kỷ niệm'}</strong>
+                      Khách hàng: <strong>{b.customerName}</strong> • Địa điểm: <strong>{b.conceptName || b.studioName || 'Ngoại cảnh Maison MIPA'}</strong> • Dịp: <strong>{b.occasion || 'Kỷ niệm'}</strong>
                     </div>
                   </div>
 

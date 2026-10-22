@@ -231,7 +231,7 @@ describe('Authoritative Draft Restoration & Fail-Closed Validation', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Bước 3\/6/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/Phòng studio trước đó không còn khả dụng/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Địa điểm ngoại cảnh trước đó không còn khả dụng/i).length).toBeGreaterThan(0);
     });
 
     expect(screen.queryByText(/Bước 5\/6/i)).not.toBeInTheDocument();

@@ -64,7 +64,7 @@ export type PendingBookingDraft = {
   voucherCode?: string;
 };
 
-export const DEFAULT_SHOOT_LOCATION = 'Tiệm ảnh Maison MIPA (Atelier cá nhân ánh sáng tự nhiên tone ấm phong cách Pháp)';
+export const DEFAULT_SHOOT_LOCATION = 'Chụp ngoại cảnh tự nhiên Maison MIPA (TP. Hồ Chí Minh & các điểm ngoại cảnh theo concept)';
 
 interface BookingWizardProps {
   isOpen: boolean;
@@ -458,7 +458,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         if (!draft.studioId) {
           setSelectedStudio(null);
           setStep(3);
-          setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
+          setErrorMessage('Địa điểm ngoại cảnh trước đó không còn khả dụng. Vui lòng chọn địa điểm khác.');
           setDraftRestoreStatus('INVALID');
           return;
         }
@@ -466,7 +466,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         if (!std) {
           setSelectedStudio(null);
           setStep(3);
-          setErrorMessage('Phòng studio trước đó không còn khả dụng. Vui lòng chọn phòng chụp khác.');
+          setErrorMessage('Địa điểm ngoại cảnh trước đó không còn khả dụng. Vui lòng chọn địa điểm khác.');
           setDraftRestoreStatus('INVALID');
           return;
         }
@@ -1216,7 +1216,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       } catch {}
     } catch (err: any) {
       if (err instanceof BookingConflictError || err.name === 'BookingConflictError') {
-        setErrorMessage(`⚠️ TRÙNG LỊCH: ${err.message || 'Phòng studio đã có người đặt trong khung giờ này.'} Vui lòng quay lại Bước 3 để chọn khung giờ khác.`);
+        setErrorMessage(`⚠️ TRÙNG LỊCH: ${err.message || 'Khung giờ này đã có người đặt lịch chụp ngoại cảnh.'} Vui lòng quay lại Bước 3 để chọn khung giờ khác.`);
         setStep(3);
       } else {
         setErrorMessage(err.message || 'Không thể tạo đơn đặt lịch. Vui lòng kiểm tra lại thông tin.');
@@ -1793,7 +1793,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             textDecoration: 'underline',
                           }}
                         >
-                          Đặt lại địa chỉ tiệm
+                          Đặt lại địa chỉ ngoại cảnh mặc định
                         </button>
                       )}
                     </div>
@@ -1803,7 +1803,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       onChange={(e) => setShootLocation(e.target.value)}
                       rows={2}
                       className="mipa-input"
-                      placeholder="Nhập địa điểm chụp bạn mong muốn..."
+                      placeholder="Nhập địa điểm ngoại cảnh bạn mong muốn tại TP.HCM (Thảo Cầm Viên, Bến Bạch Đằng, Thủ Thiêm, Bưu điện TP, cafe sân vườn vintage, Quận 7...)"
                       style={{
                         width: '100%',
                         fontSize: '0.84rem',
@@ -1818,8 +1818,35 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         boxSizing: 'border-box',
                       }}
                     />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.45rem' }}>
+                      {[
+                        'Thảo Cầm Viên (Q.1)',
+                        'Bến Bạch Đằng & Thủ Thiêm',
+                        'Nhà Hát Lớn & Bưu Điện TP',
+                        'Cầu Ánh Sao & Phú Mỹ Hưng (Q.7)',
+                        'Cafe sân vườn phong cách Pháp (TP.HCM)',
+                      ].map((loc) => (
+                        <button
+                          key={loc}
+                          type="button"
+                          onClick={() => setShootLocation(`Ngoại cảnh ${loc}`)}
+                          style={{
+                            padding: '0.2rem 0.55rem',
+                            fontSize: '0.73rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(140, 110, 83, 0.25)',
+                            backgroundColor: '#FFFFFF',
+                            color: '#604634',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          + {loc}
+                        </button>
+                      ))}
+                    </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--editorial-text-secondary)', marginTop: '0.4rem', lineHeight: 1.45 }}>
-                      ✨ <em>Mặc định là không gian ấm cúng của tiệm. Bạn có thể chỉnh sửa hoặc nhập địa điểm ngoại cảnh/địa chỉ mong muốn nhé!</em>
+                      ✨ <em>Tiệm ảnh Maison MIPA chuyên thực hiện các buổi chụp ngoại cảnh thiên nhiên, đường phố, cafe hoặc địa điểm bạn chọn tại TP. Hồ Chí Minh. Bạn có thể chọn nhanh gợi ý hoặc điền địa điểm mong muốn tại đây nhé!</em>
                     </div>
                   </div>
                 </div>

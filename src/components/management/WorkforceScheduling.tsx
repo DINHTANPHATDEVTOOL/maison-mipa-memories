@@ -28,6 +28,7 @@ import {
   approveStaffLeave,
   rejectStaffLeave,
   getStaffRegisteredShifts,
+  registerStaffShifts,
   type StaffShiftRegistrationRecord,
 } from '../../services/staffSchedulingService';
 import { getEmployees } from '../../services/catalogService';
@@ -116,8 +117,8 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
 
       const mergedList: Employee[] = [...baseEmployees];
 
-      // Only fallback to INITIAL_EMPLOYEES in offline demo mode if no real employees exist
-      if (mergedList.length === 0 && !isSupabaseConfigured() && isDemoModeEnabled()) {
+      // Fallback to INITIAL_EMPLOYEES if in demo or dev mode and no real employees exist
+      if (mergedList.length === 0 && (isDemoModeEnabled() || import.meta.env.DEV || !isSupabaseConfigured())) {
         mergedList.push(...INITIAL_EMPLOYEES);
       }
 
@@ -227,6 +228,32 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
       setActionError(err.message || 'Thao tác thất bại.');
     } finally {
       setProcessingLeaveId(null);
+    }
+  };
+
+  const handleToggleShift = async (
+    employeeId: string,
+    dateStr: string,
+    shiftType: 'MORNING' | 'AFTERNOON',
+    currentState: boolean
+  ) => {
+    try {
+      const emp = employees.find(e => e.id === employeeId);
+      await registerStaffShifts(
+        employeeId,
+        [{ date: dateStr, shiftType, selected: !currentState }],
+        { employeeName: emp?.name, role: emp?.role }
+      );
+      // Reload shifts to refresh state immediately
+      const refreshed = await getStaffRegisteredShifts({
+        startDate: currentWeekDays[0]?.dateStr,
+        endDate: currentWeekDays[6]?.dateStr,
+      });
+      setRegisteredShifts(refreshed);
+      setActionSuccess(`✓ Đã ${!currentState ? 'thêm' : 'hủy'} ca ${shiftType === 'MORNING' ? 'Sáng' : 'Chiều'} cho ${emp?.name || 'nhân sự'} ngày ${dateStr}`);
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err: any) {
+      setActionError(`Lỗi khi sắp ca: ${err.message}`);
     }
   };
 
@@ -541,20 +568,104 @@ export const WorkforceScheduling: React.FC<WorkforceSchedulingProps> = ({
                       const hasAfternoon = dayShifts.some(s => s.shiftType === 'AFTERNOON');
 
                       return (
-                        <td key={day.dateStr} style={{ padding: '0.6rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'center' }}>
-                            {hasMorning && (
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '6px', backgroundColor: '#FEFCE8', color: '#854D0E', border: '1px solid #FEF08A', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: '90px', justifyContent: 'center' }}>
-                                <Sun size={11} color="#EAB308" /> Sáng (08-13h)
-                              </span>
+                        <td key={day.dateStr} style={{ padding: '0.6rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', alignItems: 'center' }}>
+                            {hasMorning ? (
+                              <button
+                                type="button"
+                                title="Bấm để hủy ca Sáng (08:00 - 13:00)"
+                                onClick={() => handleToggleShift(emp.id, day.dateStr, 'MORNING', true)}
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#FEFCE8',
+                                  color: '#854D0E',
+                                  border: '1px solid #FEF08A',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  width: '96px',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <Sun size={11} color="#EAB308" /> Sáng (08-13h) ×
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                title="Bấm để gán ca Sáng (08:00 - 13:00)"
+                                onClick={() => handleToggleShift(emp.id, day.dateStr, 'MORNING', false)}
+                                style={{
+                                  fontSize: '0.68rem',
+                                  padding: '0.2rem 0.4rem',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'transparent',
+                                  color: '#A8998A',
+                                  border: '1px dashed #D1C7BD',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.2rem',
+                                  width: '96px',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  opacity: 0.85,
+                                }}
+                              >
+                                + Sáng (08-13h)
+                              </button>
                             )}
-                            {hasAfternoon && (
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '6px', backgroundColor: '#FFF7ED', color: '#9A3412', border: '1px solid #FED7AA', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: '90px', justifyContent: 'center' }}>
-                                <Sunset size={11} color="#F97316" /> Chiều (13-19h)
-                              </span>
-                            )}
-                            {!hasMorning && !hasAfternoon && (
-                              <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>—</span>
+
+                            {hasAfternoon ? (
+                              <button
+                                type="button"
+                                title="Bấm để hủy ca Chiều (13:00 - 19:00)"
+                                onClick={() => handleToggleShift(emp.id, day.dateStr, 'AFTERNOON', true)}
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#FFF7ED',
+                                  color: '#9A3412',
+                                  border: '1px solid #FED7AA',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  width: '96px',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <Sunset size={11} color="#F97316" /> Chiều (13-19h) ×
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                title="Bấm để gán ca Chiều (13:00 - 19:00)"
+                                onClick={() => handleToggleShift(emp.id, day.dateStr, 'AFTERNOON', false)}
+                                style={{
+                                  fontSize: '0.68rem',
+                                  padding: '0.2rem 0.4rem',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'transparent',
+                                  color: '#A8998A',
+                                  border: '1px dashed #D1C7BD',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.2rem',
+                                  width: '96px',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  opacity: 0.85,
+                                }}
+                              >
+                                + Chiều (13-19h)
+                              </button>
                             )}
                           </div>
                         </td>

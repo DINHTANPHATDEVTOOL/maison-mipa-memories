@@ -84,7 +84,7 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#8C6E53', fontWeight: 700 }}>
-                MAISON MIPA RESOURCE SCHEDULER
+                MAISON MIPA OUTDOOR SCHEDULE
               </span>
               {/* Realtime Pulsing Badge */}
               <div style={{
@@ -110,7 +110,7 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginTop: '0.2rem' }}>
-              <h2 style={{ fontSize: '1.6rem', color: '#604634', margin: 0 }}>Lịch Trình Studio & Phân Khu Chụp</h2>
+              <h2 style={{ fontSize: '1.6rem', color: '#604634', margin: 0 }}>Lịch Trình & Ca Chụp Ngoại Cảnh</h2>
               <span style={{ fontSize: '0.85rem', color: '#8C6E53', fontWeight: 500 }}>
                 ({dayBookings.length} ca chụp trong ngày)
               </span>
@@ -171,7 +171,7 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
         {/* View Switchers */}
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {[
-            { id: 'ROOM', label: 'Theo Phòng Studio' },
+            { id: 'ROOM', label: 'Theo Lịch Chi Tiết' },
             { id: 'DAY', label: 'Theo Ngày' },
             { id: 'WEEK', label: 'Theo Tuần' },
             { id: 'MONTH', label: 'Theo Tháng' },
@@ -204,11 +204,11 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--mipa-beige)' }}>
-              <th style={{ padding: '1rem', textAlign: 'left', width: '100px', color: '#8C6E53', fontSize: '0.85rem' }}>THỜI GIAN</th>
+              <th style={{ padding: '1rem', textAlign: 'left', width: '120px', color: '#8C6E53', fontSize: '0.85rem' }}>THỜI GIAN</th>
               {studios.map((std) => (
                 <th key={std.id} style={{ padding: '1rem', textAlign: 'center', color: '#604634', fontSize: '1rem' }}>
-                  <div style={{ fontWeight: 700 }}>{std.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6E5F55', fontWeight: 400 }}>Sức chứa: {std.capacity} người</div>
+                  <div style={{ fontWeight: 700 }}>LỊCH TRÌNH NGOẠI CẢNH MAISON MIPA</div>
+                  <div style={{ fontSize: '0.75rem', color: '#6E5F55', fontWeight: 400 }}>Chuyên chụp ngoại cảnh tự nhiên phong cách Pháp</div>
                 </th>
               ))}
             </tr>
@@ -392,8 +392,8 @@ export const StudioCalendar: React.FC<StudioCalendarProps> = ({ bookings, studio
                   <strong style={{ fontFamily: 'monospace', color: '#604634' }}>#{selectedBooking.bookingCode}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#8C6E53' }}>Phòng studio: </span>
-                  <strong>{selectedBooking.studioName}</strong>
+                  <span style={{ color: '#8C6E53' }}>Địa điểm ngoại cảnh: </span>
+                  <strong>{selectedBooking.conceptName || selectedBooking.studioName || 'Ngoại cảnh Maison MIPA'}</strong>
                 </div>
                 <div>
                   <span style={{ color: '#8C6E53' }}>Ngày chụp: </span>

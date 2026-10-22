@@ -134,7 +134,7 @@ export const MakeupPortal: React.FC<MakeupPortalProps> = ({
                       Khách hàng: {b.customerName}
                     </h4>
                     <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-                      Gói: <strong>{b.packageName}</strong> • Studio: <strong>{b.studioName}</strong>
+                      Gói: <strong>{b.packageName}</strong> • Địa điểm: <strong>{b.conceptName || b.studioName || 'Ngoại cảnh Maison MIPA'}</strong>
                     </div>
                   </div>
 

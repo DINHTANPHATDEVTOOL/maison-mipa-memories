@@ -487,7 +487,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ bookings, onOpen
                       {b.packageName} — {b.serviceName}
                     </h3>
                     <div style={{ fontSize: '0.88rem', color: '#6E5F55' }}>
-                      🗓️ Ngày chụp: <strong>{b.bookingDate}</strong> ({b.startTime} - {b.endTime}) • Phòng: <strong>{b.studioName}</strong>
+                      🗓️ Ngày chụp: <strong>{b.bookingDate}</strong> ({b.startTime} - {b.endTime}) • Địa điểm: <strong>{b.conceptName || b.studioName || 'Ngoại cảnh Maison MIPA'}</strong>
                     </div>
                   </div>
 

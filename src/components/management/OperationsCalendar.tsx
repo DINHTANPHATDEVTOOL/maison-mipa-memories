@@ -88,10 +88,10 @@ export const OperationsCalendar: React.FC<OperationsCalendarProps> = ({ onOpenBo
       }}>
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#8C6E53', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
-            <Sparkles size={14} color="#C6A45F" /> Tổng Thể Lịch Studio
+            <Sparkles size={14} color="#C6A45F" /> Tổng Thể Lịch Vận Hành
           </div>
           <h1 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.75rem', margin: '0.3rem 0 0', fontWeight: 700, color: '#2C2420' }}>
-            Operations Calendar — Lịch Vận Hành Studio
+            Operations Calendar — Lịch Vận Hành Ngoại Cảnh
           </h1>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', color: '#666' }}>
             Tích hợp nhiều lớp thông tin: Lịch chụp, Nhân sự được phân công, Lịch nghỉ phép & Lịch bảo trì máy.
@@ -173,7 +173,7 @@ export const OperationsCalendar: React.FC<OperationsCalendarProps> = ({ onOpenBo
             checked={showBookings}
             onChange={e => setShowBookings(e.target.checked)}
           />
-          <span>Lịch Chụp Studio (Bookings)</span>
+          <span>Lịch Chụp Ngoại Cảnh (Bookings)</span>
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
           <input
@@ -260,7 +260,7 @@ export const OperationsCalendar: React.FC<OperationsCalendarProps> = ({ onOpenBo
                     </div>
                     <div style={{ fontSize: '0.82rem', color: '#666' }}>
                       ⏰ {evt.startAt.slice(11, 16)} → {evt.endAt.slice(11, 16)} (Ngày {evt.startAt.slice(0, 10)})
-                      {evt.studioRoomName && ` • Phòng: ${evt.studioRoomName}`}
+                      {evt.studioRoomName && ` • Ngoại cảnh: ${evt.studioRoomName}`}
                       {evt.staffName && ` • Nhân sự: ${evt.staffName}`}
                     </div>
                   </div>

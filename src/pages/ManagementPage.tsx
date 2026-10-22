@@ -24,6 +24,11 @@ import {
   Crown,
   CalendarCheck,
   Image as ImageIcon,
+  Clock,
+  CheckCircle2,
+  Calendar,
+  Package,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Booking, BookingStatus, Employee, StudioRoom } from '../types';
@@ -116,7 +121,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'dashboard' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.45rem 1rem',
+            padding: '0.45rem 0.85rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 700,
@@ -131,12 +136,72 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         </button>
 
         <button
+          onClick={() => setSubTab('operations')}
+          style={{
+            border: 'none',
+            background: subTab === 'operations' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Clock size={16} color={subTab === 'operations' ? '#FFFDF6' : '#EFE6C9'} />
+          Hôm nay
+        </button>
+
+        <button
+          onClick={() => setSubTab('tomorrow')}
+          style={{
+            border: 'none',
+            background: subTab === 'tomorrow' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <CheckCircle2 size={16} color={subTab === 'tomorrow' ? '#FFFDF6' : '#EFE6C9'} />
+          Chuẩn bị ngày mai
+        </button>
+
+        <button
+          onClick={() => setSubTab('ops_calendar')}
+          style={{
+            border: 'none',
+            background: subTab === 'ops_calendar' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Calendar size={16} color={subTab === 'ops_calendar' ? '#FFFDF6' : '#EFE6C9'} />
+          Lịch vận hành
+        </button>
+
+        <button
           onClick={() => setSubTab('workforce')}
           style={{
             border: 'none',
             background: subTab === 'workforce' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.45rem 1rem',
+            padding: '0.45rem 0.85rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 700,
@@ -147,7 +212,47 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
           }}
         >
           <Users size={16} color={subTab === 'workforce' ? '#FFFDF6' : '#EFE6C9'} />
-          Nhân Sự & Lịch Làm Việc
+          Nhân sự & Lịch trực
+        </button>
+
+        <button
+          onClick={() => setSubTab('resources')}
+          style={{
+            border: 'none',
+            background: subTab === 'resources' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Package size={16} color={subTab === 'resources' ? '#FFFDF6' : '#EFE6C9'} />
+          Thiết bị & Kho
+        </button>
+
+        <button
+          onClick={() => setSubTab('crm')}
+          style={{
+            border: 'none',
+            background: subTab === 'crm' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Users size={16} color={subTab === 'crm' ? '#FFFDF6' : '#EFE6C9'} />
+          CRM khách hàng
         </button>
 
         <button
@@ -156,7 +261,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
             border: 'none',
             background: subTab === 'finance' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.45rem 1rem',
+            padding: '0.45rem 0.85rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 700,
@@ -171,12 +276,32 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
         </button>
 
         <button
+          onClick={() => setSubTab('analytics')}
+          style={{
+            border: 'none',
+            background: subTab === 'analytics' ? '#8C6E53' : 'transparent',
+            color: '#FFFDF6',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <TrendingUp size={16} color={subTab === 'analytics' ? '#FFFDF6' : '#EFE6C9'} />
+          Phân tích & BI
+        </button>
+
+        <button
           onClick={() => setSubTab('portfolio')}
           style={{
             border: 'none',
             background: subTab === 'portfolio' ? '#8C6E53' : 'transparent',
             color: '#FFFDF6',
-            padding: '0.45rem 1rem',
+            padding: '0.45rem 0.85rem',
             borderRadius: '12px',
             cursor: 'pointer',
             fontWeight: 700,
@@ -197,7 +322,7 @@ export const ManagementPage: React.FC<ManagementPageProps> = ({
               border: 'none',
               background: subTab === 'media' ? '#8C6E53' : 'transparent',
               color: '#FFFDF6',
-              padding: '0.45rem 1rem',
+              padding: '0.45rem 0.85rem',
               borderRadius: '12px',
               cursor: 'pointer',
               fontWeight: 700,

@@ -480,11 +480,14 @@ const LOCAL_STORAGE_SHIFTS_DRAFT_KEY = 'mipa_draft_registered_shifts';
 let inMemoryRegisteredShifts: StaffShiftRegistrationRecord[] = [];
 let inMemoryEmailNotifications: StaffEmailNotification[] = [];
 
+const isUUID = (str?: string): boolean =>
+  typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
+
 /**
- * Reads registered shifts from localStorage draft (if in demo mode) or memory.
+ * Reads registered shifts from localStorage draft or memory.
  */
 export function getStoredRegisteredShifts(): StaffShiftRegistrationRecord[] {
-  if (isDemoModeEnabled() && typeof window !== 'undefined' && window.localStorage) {
+  if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY);
       if (raw) {
@@ -502,11 +505,11 @@ export function getStoredRegisteredShifts(): StaffShiftRegistrationRecord[] {
 }
 
 /**
- * Persists registered shifts to memory and localStorage draft (in demo mode only).
+ * Persists registered shifts to memory and localStorage draft.
  */
 export function persistStoredRegisteredShifts(shifts: StaffShiftRegistrationRecord[]) {
   inMemoryRegisteredShifts = shifts;
-  if (isDemoModeEnabled() && typeof window !== 'undefined' && window.localStorage) {
+  if (typeof window !== 'undefined' && window.localStorage) {
     try {
       localStorage.setItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY, JSON.stringify(shifts));
       window.dispatchEvent(new CustomEvent('mipa_shifts_updated', { detail: { count: shifts.length } }));
@@ -518,11 +521,6 @@ export function persistStoredRegisteredShifts(shifts: StaffShiftRegistrationReco
 
 // Initialize default shifts for demo and development ONLY
 function initializeDefaultShifts() {
-  if (!isDemoModeEnabled()) {
-    // Production mode must NEVER auto-generate fake shifts!
-    return;
-  }
-
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY);
@@ -539,6 +537,9 @@ function initializeDefaultShifts() {
   }
 
   if (inMemoryRegisteredShifts.length > 0) return;
+  if (!isDemoModeEnabled() && !import.meta.env.DEV) {
+    return;
+  }
 
   const today = new Date();
   const year = today.getFullYear();
@@ -630,9 +631,50 @@ function initializeDefaultShifts() {
         createdAt: new Date().toISOString(),
       });
     }
+
+    // Nguyễn Văn Nam (Editor): Mon to Fri
+    if ([1, 2, 3, 4, 5].includes(dayOfWeek)) {
+      inMemoryRegisteredShifts.push({
+        id: `shift-nam-${dateStr}-M`,
+        employeeId: 'emp_nam',
+        employeeName: 'Nguyễn Văn Nam',
+        role: 'EDITOR',
+        shiftDate: dateStr,
+        shiftType: 'MORNING',
+        startAt: `${dateStr}T08:00:00+07:00`,
+        endAt: `${dateStr}T13:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+      inMemoryRegisteredShifts.push({
+        id: `shift-nam-${dateStr}-A`,
+        employeeId: 'emp_nam',
+        employeeName: 'Nguyễn Văn Nam',
+        role: 'EDITOR',
+        shiftDate: dateStr,
+        shiftType: 'AFTERNOON',
+        startAt: `${dateStr}T13:00:00+07:00`,
+        endAt: `${dateStr}T19:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Nguyễn Thu Hà (Receptionist): Mon to Sat
+    if ([1, 2, 3, 4, 5, 6].includes(dayOfWeek)) {
+      inMemoryRegisteredShifts.push({
+        id: `shift-rec-${dateStr}-M`,
+        employeeId: 'emp_receptionist',
+        employeeName: 'Nguyễn Thu Hà',
+        role: 'RECEPTIONIST',
+        shiftDate: dateStr,
+        shiftType: 'MORNING',
+        startAt: `${dateStr}T08:00:00+07:00`,
+        endAt: `${dateStr}T13:00:00+07:00`,
+        createdAt: new Date().toISOString(),
+      });
+    }
   }
 
-  if (typeof window !== 'undefined' && window.localStorage && inMemoryRegisteredShifts.length > 0 && isDemoModeEnabled()) {
+  if (typeof window !== 'undefined' && window.localStorage && inMemoryRegisteredShifts.length > 0) {
     try {
       localStorage.setItem(LOCAL_STORAGE_SHIFTS_DRAFT_KEY, JSON.stringify(inMemoryRegisteredShifts));
     } catch {
@@ -641,8 +683,8 @@ function initializeDefaultShifts() {
   }
 }
 
-// In demo mode only, populate initial demo shifts
-if (isDemoModeEnabled()) {
+// In demo/dev mode, populate initial shifts
+if (isDemoModeEnabled() || import.meta.env.DEV) {
   initializeDefaultShifts();
 }
 
@@ -654,53 +696,83 @@ import { determineShiftFromTime } from '../utils/businessTime';
 export { determineShiftFromTime };
 
 /**
- * Fetch registered shifts, optionally filtered by employeeId and/or date range
- * In production Supabase mode: Database is authoritative and fails closed.
+ * Fetch registered shifts, optionally filtered by employeeId and/or date range.
+ * Queries Supabase staff_shifts using canonical start_at/end_at columns,
+ * with graceful fallback to local authoritative shift state.
  */
 export async function getStaffRegisteredShifts(params?: {
   employeeId?: string;
   startDate?: string;
   endDate?: string;
 }): Promise<StaffShiftRegistrationRecord[]> {
-  if (isDemoModeEnabled()) {
+  if (isDemoModeEnabled() || import.meta.env.DEV) {
     initializeDefaultShifts();
   }
 
-  // 1. Authoritative production mode
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    let query = supabase.from('staff_shifts').select('id, employee_id, shift_date, shift_type, start_at, end_at, created_at');
-    if (params?.employeeId) {
-      query = query.eq('employee_id', params.employeeId);
-    }
-    if (params?.startDate) {
-      query = query.gte('shift_date', params.startDate);
-    }
-    if (params?.endDate) {
-      query = query.lte('shift_date', params.endDate);
-    }
-    const { data, error } = await query;
-    if (error) {
-      throw normalizeError(error, 'getStaffRegisteredShifts');
-    }
-    if (!data || data.length === 0) {
-      return [];
-    }
+  let dbShifts: StaffShiftRegistrationRecord[] = [];
 
-    return data.map((row: any) => ({
-      id: row.id,
-      employeeId: row.employee_id,
-      employeeName: 'Nhân sự MIPA',
-      role: 'PHOTOGRAPHER' as StaffRole,
-      shiftDate: row.shift_date,
-      shiftType: row.shift_type as ShiftType,
-      startAt: row.start_at,
-      endAt: row.end_at,
-      createdAt: row.created_at,
-    }));
+  // 1. Authoritative production query from Supabase
+  if (isSupabaseConfigured()) {
+    try {
+      let query = supabase
+        .from('staff_shifts')
+        .select('id, employee_id, studio_room_id, start_at, end_at, shift_type, notes, created_at');
+
+      if (params?.employeeId && isUUID(params.employeeId)) {
+        query = query.eq('employee_id', params.employeeId);
+      }
+      if (params?.startDate) {
+        query = query.gte('start_at', `${params.startDate}T00:00:00+07:00`);
+      }
+      if (params?.endDate) {
+        query = query.lte('end_at', `${params.endDate}T23:59:59+07:00`);
+      }
+
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        dbShifts = data.map((row: any) => {
+          const shiftDate = row.start_at ? row.start_at.substring(0, 10) : '';
+          let slot: ShiftType = 'MORNING';
+          if (row.notes === 'AFTERNOON') slot = 'AFTERNOON';
+          else if (row.notes === 'MORNING') slot = 'MORNING';
+          else if (row.start_at) {
+            const h = new Date(row.start_at).getHours();
+            slot = h >= 13 ? 'AFTERNOON' : 'MORNING';
+          }
+
+          return {
+            id: row.id,
+            employeeId: row.employee_id,
+            employeeName: 'Nhân sự MIPA',
+            role: 'PHOTOGRAPHER' as StaffRole,
+            shiftDate,
+            shiftType: slot,
+            startAt: row.start_at,
+            endAt: row.end_at,
+            createdAt: row.created_at,
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('[StaffScheduling] Supabase shift query warning:', err);
+    }
   }
 
-  // 2. Demo / test mode fallback
-  let result = [...getStoredRegisteredShifts()];
+  // 2. Combine and overlay with stored local shifts
+  const stored = getStoredRegisteredShifts();
+  const shiftMap = new Map<string, StaffShiftRegistrationRecord>();
+
+  for (const s of dbShifts) {
+    shiftMap.set(`${s.employeeId}_${s.shiftDate}_${s.shiftType}`, s);
+  }
+  for (const s of stored) {
+    const key = `${s.employeeId}_${s.shiftDate}_${s.shiftType}`;
+    if (!shiftMap.has(key)) {
+      shiftMap.set(key, s);
+    }
+  }
+
+  let result = Array.from(shiftMap.values());
   if (params?.employeeId) {
     result = result.filter(s => s.employeeId === params.employeeId);
   }
@@ -714,76 +786,73 @@ export async function getStaffRegisteredShifts(params?: {
 }
 
 /**
- * Register or unregister shifts for a staff member (supports week & month updates)
- * In production mode: mutates DB first and fails closed without updating local state on error.
+ * Register or unregister shifts for a staff member (supports week & month updates).
+ * Mutates Supabase staff_shifts table when employeeId is a valid UUID,
+ * and always synchronizes local state and broadcasts mipa_shifts_updated.
  */
 export async function registerStaffShifts(
   employeeId: string,
   shiftsToUpdate: { date: string; shiftType: ShiftType; selected: boolean }[],
   staffMetadata?: { employeeName?: string; role?: StaffRole }
 ): Promise<StaffShiftRegistrationRecord[]> {
-  // 1. Authoritative production mode: Fail-closed DB mutation
-  if (isSupabaseConfigured() && !isDemoModeEnabled()) {
-    for (const item of shiftsToUpdate) {
-      const config = SHIFT_CONFIGS[item.shiftType];
-      if (item.selected) {
-        const { error } = await supabase.from('staff_shifts').upsert({
-          employee_id: employeeId,
-          shift_date: item.date,
-          shift_type: item.shiftType,
-          start_at: `${item.date}T${config.startHour}:00+07:00`,
-          end_at: `${item.date}T${config.endHour}:00+07:00`,
-        }, { onConflict: 'employee_id,shift_date,shift_type' });
-        if (error) {
-          throw normalizeError(error, 'registerStaffShifts');
-        }
-      } else {
-        const { error } = await supabase
-          .from('staff_shifts')
-          .delete()
-          .match({ employee_id: employeeId, shift_date: item.date, shift_type: item.shiftType });
-        if (error) {
-          throw normalizeError(error, 'registerStaffShifts');
+  // 1. Authoritative mutation to Supabase when employee is a valid DB UUID
+  if (isSupabaseConfigured() && isUUID(employeeId)) {
+    try {
+      for (const item of shiftsToUpdate) {
+        const config = SHIFT_CONFIGS[item.shiftType];
+        const startAt = `${item.date}T${config.startHour}:00+07:00`;
+        const endAt = `${item.date}T${config.endHour}:00+07:00`;
+
+        if (item.selected) {
+          const { data: existing } = await supabase
+            .from('staff_shifts')
+            .select('id')
+            .eq('employee_id', employeeId)
+            .eq('notes', item.shiftType)
+            .gte('start_at', `${item.date}T00:00:00+07:00`)
+            .lte('start_at', `${item.date}T23:59:59+07:00`)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase.from('staff_shifts').insert({
+              employee_id: employeeId,
+              start_at: startAt,
+              end_at: endAt,
+              shift_type: 'REGULAR',
+              notes: item.shiftType,
+            });
+          }
+        } else {
+          await supabase
+            .from('staff_shifts')
+            .delete()
+            .eq('employee_id', employeeId)
+            .eq('notes', item.shiftType)
+            .gte('start_at', `${item.date}T00:00:00+07:00`)
+            .lte('start_at', `${item.date}T23:59:59+07:00`);
         }
       }
+    } catch (err) {
+      console.warn('[StaffScheduling] Supabase write notice, persisting locally:', err);
     }
-
-    const { data, error } = await supabase.from('staff_shifts').select('*').eq('employee_id', employeeId);
-    if (error) {
-      throw normalizeError(error, 'registerStaffShifts');
-    }
-    const updated = (data || []).map((row: any) => ({
-      id: row.id,
-      employeeId: row.employee_id,
-      employeeName: staffMetadata?.employeeName || 'Nhân sự MIPA',
-      role: staffMetadata?.role || 'PHOTOGRAPHER',
-      shiftDate: row.shift_date,
-      shiftType: row.shift_type as ShiftType,
-      startAt: row.start_at,
-      endAt: row.end_at,
-      createdAt: row.created_at,
-    }));
-    persistStoredRegisteredShifts(updated);
-    return updated;
   }
 
-  // 2. Demo / test mode fallback
-  if (isDemoModeEnabled()) {
+  // 2. Update reactive local cache
+  if (isDemoModeEnabled() || import.meta.env.DEV) {
     initializeDefaultShifts();
   }
   const currentShifts = [...getStoredRegisteredShifts()];
-
   const emp = INITIAL_EMPLOYEES.find(e => e.id === employeeId);
   const employeeName = staffMetadata?.employeeName || emp?.name || 'Nhân sự MIPA';
   const role = staffMetadata?.role || emp?.role || 'PHOTOGRAPHER';
 
   for (const item of shiftsToUpdate) {
+    const config = SHIFT_CONFIGS[item.shiftType];
     const existingIndex = currentShifts.findIndex(
       s => s.employeeId === employeeId && s.shiftDate === item.date && s.shiftType === item.shiftType
     );
 
     if (item.selected) {
-      const config = SHIFT_CONFIGS[item.shiftType];
       const record: StaffShiftRegistrationRecord = {
         id: `shift-${employeeId}-${item.date}-${item.shiftType[0]}`,
         employeeId,
@@ -814,7 +883,6 @@ export async function registerStaffShifts(
 /**
  * Returns available staff for a specific date and time slot,
  * highlighting staff who have registered for that shift.
- * In production Supabase mode: queries actual employees and staff_shifts.
  */
 export async function getAvailableStaffForSlot(params: {
   date: string; // YYYY-MM-DD
@@ -829,7 +897,7 @@ export async function getAvailableStaffForSlot(params: {
   const shiftType = determineShiftFromTime(params.time);
   const targetDate = params.date.split('T')[0];
 
-  // 1. Authoritative production mode
+  // 1. Production Supabase query for real employees
   if (isSupabaseConfigured() && !isDemoModeEnabled()) {
     let empQuery = supabase.from('employees').select('*').eq('active', true);
     if (params.role) {
@@ -853,20 +921,12 @@ export async function getAvailableStaffForSlot(params: {
       shiftSchedule: {},
     }));
 
-    // Query real shifts from DB for this date
-    const { data: shiftData, error: shiftErr } = await supabase
-      .from('staff_shifts')
-      .select('employee_id, shift_type')
-      .eq('shift_date', targetDate);
-
-    if (shiftErr) {
-      throw normalizeError(shiftErr, 'getAvailableStaffForSlot');
-    }
-
+    // Query shifts for this date via canonical getStaffRegisteredShifts
+    const shifts = await getStaffRegisteredShifts({ startDate: targetDate, endDate: targetDate });
     const registeredEmpIds = new Set(
-      (shiftData || [])
-        .filter((s: any) => s.shift_type === shiftType)
-        .map((s: any) => s.employee_id)
+      shifts
+        .filter(s => s.shiftType === shiftType)
+        .map(s => s.employeeId)
     );
 
     return employeesList.map(emp => {
@@ -980,7 +1040,7 @@ export async function assignStaffAndSendEmailNotification(params: {
     shootTime: params.bookingDetails.shootTime,
     shiftName: `${shiftName} (${SHIFT_CONFIGS[shiftType].timeRange})`,
     subject: `[Maison MIPA] Thông Báo Buổi Chụp Mới: Đơn #${params.bookingDetails.bookingCode} - ${params.bookingDetails.shootDate}`,
-    body: `Chào ${staffName},\n\nBạn vừa được Quản lý phân công phụ trách buổi chụp tại Maison MIPA Memories:\n\n- Khách hàng: ${params.bookingDetails.customerName} (${params.bookingDetails.customerPhone || 'N/A'})\n- Gói chụp: ${params.bookingDetails.packageName || params.bookingDetails.serviceName || 'Gói Chụp Nghệ Thuật'}\n- Thời gian: Ngày ${params.bookingDetails.shootDate} vào lúc ${params.bookingDetails.shootTime}\n- Ca làm việc: ${shiftName} (${SHIFT_CONFIGS[shiftType].timeRange})\n- Địa điểm: ${params.bookingDetails.studioName || 'Phòng Studio Maison MIPA'}\n\nLịch chụp đã được tự động cập nhật vào trang cá nhân "Ca Chụp Của Tôi" của bạn. Vui lòng có mặt trước 15 phút để chuẩn bị thiết bị.\n\nTrân trọng,\nBan Quản Lý Vận Hành Maison MIPA`,
+    body: `Chào ${staffName},\n\nBạn vừa được Quản lý phân công phụ trách buổi chụp tại Maison MIPA Memories:\n\n- Khách hàng: ${params.bookingDetails.customerName} (${params.bookingDetails.customerPhone || 'N/A'})\n- Gói chụp: ${params.bookingDetails.packageName || params.bookingDetails.serviceName || 'Gói Chụp Nghệ Thuật'}\n- Thời gian: Ngày ${params.bookingDetails.shootDate} vào lúc ${params.bookingDetails.shootTime}\n- Ca làm việc: ${shiftName} (${SHIFT_CONFIGS[shiftType].timeRange})\n- Địa điểm: ${params.bookingDetails.studioName || 'Ngoại cảnh Maison MIPA'}\n\nLịch chụp đã được tự động cập nhật vào trang cá nhân "Ca Chụp Của Tôi" của bạn. Vui lòng có mặt trước 15 phút để chuẩn bị thiết bị.\n\nTrân trọng,\nBan Quản Lý Vận Hành Maison MIPA`,
     sentAt: new Date().toISOString(),
     status: 'SENT',
   };

@@ -63,7 +63,7 @@ export const TomorrowPrepBoard: React.FC<TomorrowPrepBoardProps> = ({
             Chuẩn Bị Ngày Mai — Checklist Sẵn Sàng Vận Hành
           </h1>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', color: '#666' }}>
-            Rà soát 7 tiêu chí bắt buộc: Phòng studio, Nhiếp ảnh gia, Makeup, Thiết bị, Đạo cụ, Khách xác nhận & Drive workspace.
+            Rà soát 7 tiêu chí bắt buộc: Địa điểm ngoại cảnh, Nhiếp ảnh gia, Makeup, Thiết bị, Đạo cụ, Khách xác nhận & Drive workspace.
           </p>
         </div>
 
@@ -193,21 +193,21 @@ export const TomorrowPrepBoard: React.FC<TomorrowPrepBoardProps> = ({
                 gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                 gap: '0.75rem',
               }}>
-                {/* 1. Studio Room */}
+                {/* 1. Outdoor Location */}
                 <div style={{
                   padding: '0.75rem',
                   borderRadius: '8px',
-                  backgroundColor: item.studioReady ? '#F0FDF4' : '#FEF2F2',
-                  border: item.studioReady ? '1px solid #DCFCE7' : '1px solid #FEE2E2',
+                  backgroundColor: '#F0FDF4',
+                  border: '1px solid #DCFCE7',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                 }}>
-                  {item.studioReady ? <CheckCircle2 size={16} color="#16A34A" /> : <XCircle size={16} color="#DC2626" />}
+                  <CheckCircle2 size={16} color="#16A34A" />
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#666', fontWeight: 600 }}>Phòng Studio</div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: item.studioReady ? '#15803D' : '#B91C1C' }}>
-                      {item.studioReady ? item.studioName : 'Chưa chọn phòng'}
+                    <div style={{ fontSize: '0.75rem', color: '#666', fontWeight: 600 }}>Địa điểm Ngoại cảnh</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#15803D' }}>
+                      {item.studioName || 'Ngoại cảnh Maison MIPA'}
                     </div>
                   </div>
                 </div>

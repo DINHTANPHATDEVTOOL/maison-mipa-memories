@@ -17,7 +17,7 @@ test.describe('Maison MIPA — Studio Operations V2 E2E Suite', () => {
 
     // Navigate to Management OS
     await page.locator('text=Lê Tấn Phát').first().click();
-    await page.getByRole('link', { name: /Studio Manager OS/i }).click();
+    await page.getByRole('link', { name: /(Studio Manager OS|Hệ thống quản lý Studio)/i }).click();
     await expect(page).toHaveURL(/\/management/);
 
     // =========================================================================
@@ -39,7 +39,7 @@ test.describe('Maison MIPA — Studio Operations V2 E2E Suite', () => {
     await tomorrowTabBtn.click();
 
     await expect(page.getByText('Chuẩn Bị Ngày Mai — Checklist Sẵn Sàng Vận Hành')).toBeVisible();
-    await expect(page.getByText('Phòng Studio').first()).toBeVisible();
+    await expect(page.getByText('Địa điểm Ngoại cảnh').first()).toBeVisible();
     await expect(page.getByText('Nhiếp ảnh gia').first()).toBeVisible();
     await expect(page.getByText('Máy & Ống kính').first()).toBeVisible();
 
@@ -50,8 +50,8 @@ test.describe('Maison MIPA — Studio Operations V2 E2E Suite', () => {
     await expect(opsCalendarBtn).toBeVisible();
     await opsCalendarBtn.click();
 
-    await expect(page.getByText('Operations Calendar — Lịch Vận Hành Studio')).toBeVisible();
-    await expect(page.getByText('Lịch Chụp Studio (Bookings)')).toBeVisible();
+    await expect(page.getByText(/Operations Calendar — Lịch Vận Hành/i)).toBeVisible();
+    await expect(page.getByText('Lịch Chụp Ngoại Cảnh (Bookings)')).toBeVisible();
     await expect(page.getByText('Nhân sự Nghỉ Phép (Leaves)')).toBeVisible();
 
     // =========================================================================

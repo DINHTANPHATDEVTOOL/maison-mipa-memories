@@ -203,7 +203,7 @@ export async function getUserNotifications(
           notificationList.push({
             id: cancelledId,
             title: `Đã hủy đơn #${b.bookingCode}`,
-            message: `Đơn của khách ${b.customerName || 'Khách'} đã hủy thành công, phòng ${b.studioName || 'Studio'} đã giải phóng slot.`,
+            message: `Đơn của khách ${b.customerName || 'Khách'} đã hủy thành công, khung giờ ngoại cảnh đã giải phóng slot.`,
             timestamp: b.updatedAt || bDate,
             read: readIds.has(cancelledId),
             type: 'booking',

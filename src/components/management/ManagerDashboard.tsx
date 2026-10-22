@@ -678,7 +678,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 🚨 CÓ {cancelRequestedBookings.length} ĐƠN ĐẶT LỊCH ĐANG YÊU CẦU HỦY TỪ KHÁCH HÀNG
               </div>
               <div style={{ fontSize: '0.82rem', color: '#7F1D1D', marginTop: '0.15rem' }}>
-                Khách hàng đã gửi yêu cầu hủy lịch. Vui lòng bấm kiểm tra và duyệt hủy (để giải phóng slot phòng) hoặc liên hệ khách giữ lịch.
+                Khách hàng đã gửi yêu cầu hủy lịch. Vui lòng bấm kiểm tra và duyệt hủy (để giải phóng slot lịch chụp) hoặc liên hệ khách giữ lịch.
               </div>
             </div>
           </div>
@@ -943,7 +943,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                         <div style={{ fontSize: '0.85rem', color: '#6E5F55' }}>
-                          🗓️ <strong>{b.bookingDate}</strong> lúc <strong>{b.startTime}</strong> ({b.studioName})
+                          🗓️ <strong>{b.bookingDate}</strong> lúc <strong>{b.startTime}</strong> ({b.conceptName || b.studioName || 'Ngoại cảnh'})
                         </div>
                         {b.bookingStatus !== 'CANCELLED' && b.bookingStatus !== 'COMPLETED' && (
                           <button
@@ -1219,7 +1219,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 <div>
                   <span style={{ color: '#8C6E53', fontWeight: 600 }}>Gói chụp & Studio:</span>
                   <div style={{ fontWeight: 700, color: '#604634' }}>{activeBookingTimeline.packageName}</div>
-                  <div style={{ color: '#6E5F55' }}>Phòng: {activeBookingTimeline.studioName}</div>
+                  <div style={{ color: '#6E5F55' }}>Địa điểm / Concept: {activeBookingTimeline.conceptName || activeBookingTimeline.studioName || 'Ngoại cảnh Maison MIPA'}</div>
                   <div style={{ color: '#6E5F55' }}>Thời gian: {activeBookingTimeline.bookingDate} ({activeBookingTimeline.startTime} - {activeBookingTimeline.endTime})</div>
                 </div>
 
@@ -1766,7 +1766,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   <strong style={{ color: '#43281C' }}>Gói chụp:</strong> {assigningBooking.packageName || assigningBooking.serviceName}
                 </div>
                 <div>
-                  <strong style={{ color: '#43281C' }}>Lịch chụp:</strong> {assigningBooking.bookingDate} lúc {assigningBooking.startTime} ({assigningBooking.studioName || 'Studio MIPA'})
+                  <strong style={{ color: '#43281C' }}>Lịch chụp:</strong> {assigningBooking.bookingDate} lúc {assigningBooking.startTime} ({assigningBooking.conceptName || assigningBooking.studioName || 'Ngoại cảnh Maison MIPA'})
                 </div>
                 <div>
                   <strong style={{ color: '#43281C' }}>Ca làm việc:</strong>{' '}
@@ -2606,12 +2606,12 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               </div>
 
               <div style={{ padding: '0.75rem 0.9rem', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '10px', fontSize: '0.82rem', color: '#991B1B', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                ⚠️ <strong>Cảnh báo:</strong> Thao tác này sẽ giải phóng slot phòng chụp và <strong>tự động gửi email thông báo hủy chính thức kèm lý do</strong> đến khách hàng <strong>{cancelModalBooking.customerEmail || cancelModalBooking.customerName}</strong>.
+                ⚠️ <strong>Cảnh báo:</strong> Thao tác này sẽ giải phóng slot lịch chụp ngoại cảnh và <strong>tự động gửi email thông báo hủy chính thức kèm lý do</strong> đến khách hàng <strong>{cancelModalBooking.customerEmail || cancelModalBooking.customerName}</strong>.
               </div>
 
               <div style={{ backgroundColor: '#FAF6EE', border: '1px solid #E6D7B9', borderRadius: '8px', padding: '0.7rem 0.85rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#4A3525' }}>
                 <div>📸 <strong>Gói:</strong> {cancelModalBooking.packageName} ({cancelModalBooking.serviceName})</div>
-                <div>📍 <strong>Phòng:</strong> {cancelModalBooking.studioName} • <strong>Lịch:</strong> {cancelModalBooking.bookingDate} {cancelModalBooking.startTime}</div>
+                <div>📍 <strong>Địa điểm / Concept:</strong> {cancelModalBooking.conceptName || cancelModalBooking.studioName || 'Ngoại cảnh'} • <strong>Lịch:</strong> {cancelModalBooking.bookingDate} {cancelModalBooking.startTime}</div>
                 {cancelModalBooking.customerPhone && <div>📞 <strong>SĐT khách:</strong> {cancelModalBooking.customerPhone}</div>}
               </div>
 

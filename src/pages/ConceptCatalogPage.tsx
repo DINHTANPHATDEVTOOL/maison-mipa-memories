@@ -281,7 +281,7 @@ export const ConceptCatalogPage: React.FC<ConceptCatalogPageProps> = ({ onOpenBo
             fontWeight: 300,
           }}
         >
-          Mỗi concept tại Maison MIPA được lấy cảm hứng từ những khoảnh khắc đời thường thiêng liêng nhất trong một tổ ấm — từ góc ban công đón nắng mai, phòng khách ấm cúng đến những nốt lặng đầy thi vị của tình yêu.
+          Mỗi concept tại Maison MIPA được lấy cảm hứng từ những khoảnh khắc đời thường thiêng liêng nhất trong cuộc sống — từ những con đường rợp bóng cây xanh Sài Gòn, bờ sông đón gió đến những nốt lặng đầy thi vị của tình yêu.
         </p>
       </header>
 

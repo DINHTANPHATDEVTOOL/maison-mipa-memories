@@ -1849,7 +1849,7 @@ export interface Database {
           id: string;
           employee_id: string;
           studio_room_id: string | null;
-          shift_date: string;
+          shift_date?: string | null;
           start_at: string;
           end_at: string;
           shift_type: string;
@@ -1862,7 +1862,7 @@ export interface Database {
           id?: string;
           employee_id: string;
           studio_room_id?: string | null;
-          shift_date: string;
+          shift_date?: string | null;
           start_at: string;
           end_at: string;
           shift_type?: string;
@@ -1875,7 +1875,7 @@ export interface Database {
           id?: string;
           employee_id?: string;
           studio_room_id?: string | null;
-          shift_date?: string;
+          shift_date?: string | null;
           start_at?: string;
           end_at?: string;
           shift_type?: string;

@@ -32,8 +32,8 @@ export interface AuthContextType {
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
-  // Demo-only helper strictly disabled in production
-  loginAsDemoRole?: (role: UserRole) => void;
+  // Demo & Testing role switcher helper
+  loginAsDemoRole?: (role: UserRole | string) => void;
 }
 
 export type ProfileFetchResult =
@@ -255,6 +255,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(resolvedUser);
               setIsRootOwner(resolvedOwner);
             }
+          }
+        } else if (isMounted && (isDemoMode || import.meta.env.DEV || import.meta.env.MODE === 'test')) {
+          if (typeof window !== 'undefined') {
+            try {
+              const savedRole = window.localStorage?.getItem('mipa_active_role_override') || window.sessionStorage?.getItem('mipa_active_role_override');
+              if (savedRole && CURRENT_USER_PROFILES[savedRole]) {
+                const demoProfile = CURRENT_USER_PROFILES[savedRole];
+                const isOwner = demoProfile.id === 'demo_owner' || demoProfile.id === 'user_owner' || demoProfile.id === 'user_admin';
+                setUser({ ...demoProfile, isRootOwner: isOwner });
+                setIsRootOwner(isOwner);
+              }
+            } catch {}
           }
         }
       } catch (err: any) {
@@ -738,6 +750,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const logout = useCallback(async (): Promise<void> => {
     setIsLoading(true);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage?.removeItem('mipa_active_role_override');
+        window.sessionStorage?.removeItem('mipa_active_role_override');
+      } catch {}
+    }
     try {
       await clearAuthoritativeAuthState(undefined, true);
     } finally {
@@ -746,19 +764,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [clearAuthoritativeAuthState]);
 
   /**
-   * Demo Mode Quick Login
+   * Demo & Testing Mode Quick Role Switcher
    */
-  const loginAsDemoRole = useCallback((targetRole: UserRole) => {
-    if (!isDemoMode) {
+  const loginAsDemoRole = useCallback((targetRole: UserRole | string) => {
+    const isAllowed = isDemoMode || import.meta.env.DEV || import.meta.env.MODE === 'test';
+    if (!isAllowed) {
       console.warn('Demo quick-login is strictly disabled in production mode.');
       return;
     }
 
-    const demoProfile = CURRENT_USER_PROFILES[targetRole];
+    let roleKey = targetRole;
+    if (targetRole === 'STAFF') roleKey = 'STAFF_PHOTOGRAPHER';
+    if (targetRole === 'PHOTOGRAPHER') roleKey = 'STAFF_PHOTOGRAPHER';
+    if (targetRole === 'RECEPTIONIST') roleKey = 'STAFF_RECEPTIONIST';
+    if (targetRole === 'MAKEUP') roleKey = 'STAFF_MAKEUP';
+    if (targetRole === 'EDITOR') roleKey = 'STAFF_EDITOR';
+
+    const demoProfile = CURRENT_USER_PROFILES[roleKey] || CURRENT_USER_PROFILES[targetRole];
     if (demoProfile) {
-      const isOwner = demoProfile.id === 'demo_owner' || demoProfile.id === 'user_owner';
+      const isOwner = demoProfile.id === 'demo_owner' || demoProfile.id === 'user_owner' || demoProfile.id === 'user_admin';
       setIsRootOwner(isOwner);
       setUser({ ...demoProfile, isRootOwner: isOwner });
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage?.setItem('mipa_active_role_override', roleKey);
+          window.sessionStorage?.setItem('mipa_active_role_override', roleKey);
+        } catch {}
+      }
+      window.dispatchEvent(new CustomEvent('mipa_role_switched', { detail: { role: demoProfile.role, staffRole: demoProfile.staffRole } }));
     }
   }, [isDemoMode]);
 

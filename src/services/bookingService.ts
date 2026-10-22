@@ -18,7 +18,7 @@ import { isIntervalOverlapping, timeToMinutes, minutesToTime } from './availabil
 import { assignBookingStaffV2 } from './staffSchedulingService';
 
 export class BookingConflictError extends Error {
-  constructor(message: string = 'Phòng studio đã có lịch đặt trong khoảng thời gian này. Vui lòng chọn khung giờ khác.') {
+  constructor(message: string = 'Khung giờ chụp ngoại cảnh đã có lịch đặt trong khoảng thời gian này. Vui lòng chọn khung giờ khác.') {
     super(message);
     this.name = 'BookingConflictError';
   }
@@ -192,7 +192,7 @@ export async function resolveEntityUuid(
 export async function createBooking(request: CreateBookingRequest): Promise<Booking> {
   // Input Validation
   if (!request.serviceId || !request.packageId || !request.studioId) {
-    throw new BookingValidationError('Vui lòng chọn đầy đủ Dịch vụ, Gói chụp và Phòng Studio.');
+    throw new BookingValidationError('Vui lòng chọn đầy đủ Dịch vụ, Gói chụp và Địa điểm chụp.');
   }
   if (!request.date || !request.timeSlot) {
     throw new BookingValidationError('Vui lòng chọn ngày và khung giờ chụp ảnh.');
@@ -229,7 +229,7 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
 
     if (error) {
       if (error.code === '23P01' || error.message?.includes('already booked') || error.message?.includes('conflict')) {
-        throw new BookingConflictError(error.message || 'Phòng studio đã có lịch đặt trong khoảng thời gian này.');
+        throw new BookingConflictError(error.message || 'Khung giờ chụp ngoại cảnh đã có lịch đặt trong khoảng thời gian này.');
       }
       throw new Error(`Lỗi tạo đơn đặt lịch: ${error.message}`);
     }
@@ -258,7 +258,7 @@ export { isWithinOperatingHours };
 
 export function createBookingInMemory(request: CreateBookingRequest): Booking {
   if (!request.serviceId || !request.packageId || !request.studioId) {
-    throw new BookingValidationError('Vui lòng chọn đầy đủ Dịch vụ, Gói chụp và Phòng Studio.');
+    throw new BookingValidationError('Vui lòng chọn đầy đủ Dịch vụ, Gói chụp và Địa điểm chụp.');
   }
   if (!request.date || !request.timeSlot) {
     throw new BookingValidationError('Vui lòng chọn ngày và khung giờ chụp ảnh.');
@@ -322,7 +322,7 @@ export function createBookingInMemory(request: CreateBookingRequest): Booking {
 
   if (conflicting) {
     throw new BookingConflictError(
-      `Phòng ${studio.name} đã có lịch đặt từ ${conflicting.startTime} đến ${conflicting.endTime}. Vui lòng chọn khung giờ khác.`
+      `${studio.name} đã có lịch đặt từ ${conflicting.startTime} đến ${conflicting.endTime}. Vui lòng chọn khung giờ khác.`
     );
   }
 
@@ -654,7 +654,7 @@ export async function confirmBookingDeposit(
 
     if (error) {
       if (error.code === '23P01' || error.message?.includes('đã có lịch')) {
-        throw new BookingConflictError(error.message || 'Khung giờ phòng studio đã có lịch đặt chính thức.');
+        throw new BookingConflictError(error.message || 'Khung giờ ngoại cảnh đã có lịch đặt chính thức.');
       }
       throw new Error(`Xác nhận cọc thất bại: ${error.message}`);
     }
@@ -690,7 +690,7 @@ export async function confirmBookingDeposit(
   });
 
   if (conflict) {
-    throw new BookingConflictError(`Phòng studio đã có lịch đặt chính thức cho khung giờ này (#${conflict.bookingCode}). Không thể xác nhận cọc.`);
+    throw new BookingConflictError(`Khung giờ ngoại cảnh đã có lịch đặt chính thức (#${conflict.bookingCode}). Không thể xác nhận cọc.`);
   }
 
   const confirmed: Booking = {
@@ -1145,13 +1145,13 @@ export function mapDatabaseRecordToDomain(record: any): Booking {
     endTime,
     studioId: record.studio_room_id || record.studio_id || record.studioId || '',
     studioName: (() => {
-      if (record.studio_name && record.studio_name !== 'Phòng Studio MIPA') return record.studio_name;
-      if (record.studioName && record.studioName !== 'Phòng Studio MIPA') return record.studioName;
+      if (record.studio_name && record.studio_name !== 'Phòng Studio MIPA' && record.studio_name !== 'Phòng Studio') return record.studio_name;
+      if (record.studioName && record.studioName !== 'Phòng Studio MIPA' && record.studioName !== 'Phòng Studio') return record.studioName;
       if (record.studio_rooms?.name) return record.studio_rooms.name;
       const stId = record.studio_room_id || record.studio_id || record.studioId;
       const uuid = SLUG_TO_UUID_MAP[stId] || stId;
       const found = INITIAL_STUDIO_ROOMS.find(r => r.id === stId || r.code === stId || r.id === uuid);
-      return found?.name || 'Phòng Studio MIPA';
+      return found?.name || 'Ngoại cảnh Maison MIPA';
     })(),
     addons: record.addons || [],
     conceptId: record.concept_id || record.conceptId,

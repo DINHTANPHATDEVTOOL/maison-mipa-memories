@@ -607,7 +607,7 @@ export async function getStudioRooms(): Promise<StudioRoom[]> {
 
     if (error) {
       console.error('Failed to load studio rooms from database:', error.message);
-      throw new Error(`Không thể tải danh sách phòng studio: ${error.message}`);
+      throw new Error(`Không thể tải danh sách địa điểm chụp: ${error.message}`);
     }
 
     if (!data || data.length === 0) {

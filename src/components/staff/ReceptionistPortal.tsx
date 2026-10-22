@@ -89,7 +89,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#6E5F55', display: 'flex', gap: '1rem', marginTop: '0.2rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Phone size={13} /> {b.customerPhone}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={13} /> {b.studioName}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={13} /> {b.conceptName || b.studioName || 'Ngoại cảnh Maison MIPA'}</span>
                     <span>Gói: <strong>{b.packageName}</strong></span>
                   </div>
                 </div>

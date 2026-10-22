@@ -44,7 +44,7 @@ describe('BookingWizard: Consecutive Slots & Shoot Location', () => {
     expect(locationInput.value).toBe('Công viên Tao Đàn, Quận 1 (Chụp ngoại cảnh hoàng hôn)');
 
     // Reset button appears and works
-    const resetBtn = screen.getByRole('button', { name: /Đặt lại địa chỉ tiệm/i });
+    const resetBtn = screen.getByRole('button', { name: /Đặt lại địa/i });
     expect(resetBtn).toBeInTheDocument();
     fireEvent.click(resetBtn);
     expect(locationInput.value).toBe(DEFAULT_SHOOT_LOCATION);

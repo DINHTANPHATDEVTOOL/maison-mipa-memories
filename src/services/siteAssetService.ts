@@ -58,7 +58,7 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
     id: 'home_atelier_showcase',
     page: 'HOME',
     label: 'Ảnh Không Gian Tiệm Ảnh (Atelier Darkroom)',
-    description: 'Góc phòng tiệm ảnh nghệ thuật, ánh sáng tự nhiên',
+    description: 'Góc tiệm ảnh nghệ thuật, ánh sáng tự nhiên',
     imageUrl: '/studio.png',
   },
   home_cta_banner: {
@@ -106,22 +106,22 @@ export const DEFAULT_SITE_ASSETS: Record<string, SiteAsset> = {
   atelier_room_1: {
     id: 'atelier_room_1',
     page: 'ATELIER',
-    label: 'Không Gian: Parisian Salon (Phòng 1)',
-    description: 'Phòng concept cổ điển Pháp phong cách Paris',
+    label: 'Không Gian Ngoại Cảnh: Parisian Salon',
+    description: 'Concept ngoại cảnh cổ điển Pháp phong cách Paris',
     imageUrl: '/studio.png',
   },
   atelier_room_2: {
     id: 'atelier_room_2',
     page: 'ATELIER',
-    label: 'Không Gian: Vintage Loft (Phòng 2)',
-    description: 'Phòng ánh sáng tự nhiên tone ấm vintage',
+    label: 'Không Gian Ngoại Cảnh: Vintage Loft',
+    description: 'Concept ngoại cảnh ánh sáng tự nhiên tone ấm vintage',
     imageUrl: '/hero-camera.jpg',
   },
   atelier_room_3: {
     id: 'atelier_room_3',
     page: 'ATELIER',
-    label: 'Không Gian: Garden Atelier (Phòng 3)',
-    description: 'Khu vực bối cảnh vườn & ánh sáng hoa tươi',
+    label: 'Không Gian Ngoại Cảnh: Garden Atelier',
+    description: 'Khu vực ngoại cảnh vườn hoa & ánh sáng tự nhiên',
     imageUrl: '/hero.webp',
   },
   brand_story_1: {

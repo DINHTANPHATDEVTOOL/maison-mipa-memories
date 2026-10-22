@@ -160,7 +160,7 @@ export async function getTomorrowPrepBoardData(): Promise<TomorrowPrepItem[]> {
           startTime: b.startTime,
           endTime: b.endTime,
           studioReady,
-          studioName: b.studioName || 'Phòng Studio MIPA',
+          studioName: b.studioName || 'Ngoại cảnh Maison MIPA',
           photographerReady,
           photographerName: photo?.employeeName,
           makeupReady,

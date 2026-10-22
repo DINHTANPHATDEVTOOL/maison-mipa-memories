@@ -235,7 +235,7 @@ export const DailyOperationsBoard: React.FC<DailyOperationsBoardProps> = ({
                         <strong>{booking.customerName}</strong> • {booking.serviceName}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.2rem' }}>
-                        ⏰ {booking.startTime} – {booking.endTime} • Phòng: {booking.studioName}
+                        ⏰ {booking.startTime} – {booking.endTime} • Ngoại cảnh: {booking.conceptName || booking.studioName || 'Maison MIPA'}
                       </div>
                     </div>
 

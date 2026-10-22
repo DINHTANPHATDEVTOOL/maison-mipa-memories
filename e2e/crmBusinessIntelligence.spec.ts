@@ -17,7 +17,7 @@ test.describe('Maison MIPA — CRM & Business Intelligence V1 E2E Suite', () => 
 
     // Navigate to Management OS
     await page.locator('text=Lê Tấn Phát').first().click();
-    await page.getByRole('link', { name: /Studio Manager OS/i }).click();
+    await page.getByRole('link', { name: /(Studio Manager OS|Hệ thống quản lý Studio)/i }).click();
     await expect(page).toHaveURL(/\/management/);
 
     // =========================================================================
@@ -127,8 +127,8 @@ test.describe('Maison MIPA — CRM & Business Intelligence V1 E2E Suite', () => 
     // Returning customers retention metric loads
     await expect(page.getByText('Khách Quay Lại (Retention)')).toBeVisible();
 
-    // Studio Room Utilization
-    await expect(page.getByText('Hiệu Suất & Công Suất Phòng Studio (Room Utilization)')).toBeVisible();
+    // Outdoor Schedule Utilization
+    await expect(page.getByText('Hiệu Suất Lịch Chụp Ngoại Cảnh (Schedule Utilization)')).toBeVisible();
   });
 
   test('2. Scenario N — Customer role is denied management CRM access', async ({ page }) => {

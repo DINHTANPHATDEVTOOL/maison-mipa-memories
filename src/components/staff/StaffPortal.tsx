@@ -28,7 +28,13 @@ export const StaffPortal: React.FC<StaffPortalProps> = ({ bookings, onUpdateStat
 
   // Determine active staff role; default to PHOTOGRAPHER if not set
   const initialRole: StaffRole = user?.staffRole || 'PHOTOGRAPHER';
-  const [activeRoleView, setActiveRoleView] = useState<StaffRole>(initialRole);
+  const [activeRoleView, setActiveRoleView] = useState<StaffRole | 'SHIFTS'>(initialRole);
+
+  React.useEffect(() => {
+    if (user?.staffRole) {
+      setActiveRoleView(user.staffRole);
+    }
+  }, [user?.staffRole]);
 
   // If user is Manager or Admin, allow role preview switcher
   const canSwitchRoles = role === 'MANAGER' || role === 'ADMIN';
@@ -37,7 +43,7 @@ export const StaffPortal: React.FC<StaffPortalProps> = ({ bookings, onUpdateStat
     <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 1.5rem' }}>
       
       {/* Role Switcher for Management/Supervision */}
-      {canSwitchRoles && (
+      {canSwitchRoles ? (
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -60,11 +66,11 @@ export const StaffPortal: React.FC<StaffPortalProps> = ({ bookings, onUpdateStat
               { id: 'PHOTOGRAPHER' as StaffRole, label: 'Nhiếp Ảnh', icon: Camera },
               { id: 'MAKEUP' as StaffRole, label: 'Make-up', icon: Sparkles },
               { id: 'EDITOR' as StaffRole, label: 'Hậu Kỳ', icon: Palette },
-              { id: 'SHIFTS' as any, label: 'Đăng Ký Ca Làm', icon: Calendar },
+              { id: 'SHIFTS' as const, label: 'Đăng Ký Ca Làm', icon: Calendar },
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveRoleView(tab.id)}
+                onClick={() => setActiveRoleView(tab.id as any)}
                 style={{
                   background: activeRoleView === tab.id ? '#8C6E53' : 'transparent',
                   color: activeRoleView === tab.id ? '#FFFDF6' : '#604634',
@@ -82,6 +88,68 @@ export const StaffPortal: React.FC<StaffPortalProps> = ({ bookings, onUpdateStat
                 <tab.icon size={13} /> {tab.label}
               </button>
             ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#FFFDF6',
+          border: '1px solid #EFE6C9',
+          borderRadius: '12px',
+          padding: '0.6rem 1.2rem',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '0.8rem',
+        }}>
+          <div style={{ fontSize: '0.88rem', color: '#604634', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {user?.staffRole === 'RECEPTIONIST' && <UserCheck size={18} color="#8C6E53" />}
+            {user?.staffRole === 'PHOTOGRAPHER' && <Camera size={18} color="#8C6E53" />}
+            {user?.staffRole === 'MAKEUP' && <Sparkles size={18} color="#8C6E53" />}
+            {user?.staffRole === 'EDITOR' && <Palette size={18} color="#8C6E53" />}
+            <span>Không gian làm việc: {user?.fullName || 'Chuyên Viên'} ({user?.staffRole || 'STAFF'})</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setActiveRoleView(initialRole)}
+              style={{
+                background: activeRoleView !== 'SHIFTS' ? '#8C6E53' : 'transparent',
+                color: activeRoleView !== 'SHIFTS' ? '#FFFDF6' : '#604634',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                fontSize: '0.82rem',
+                fontWeight: activeRoleView !== 'SHIFTS' ? 700 : 500,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <UserCheck size={14} /> Nhiệm vụ chuyên môn
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveRoleView('SHIFTS')}
+              style={{
+                background: activeRoleView === 'SHIFTS' ? '#8C6E53' : 'transparent',
+                color: activeRoleView === 'SHIFTS' ? '#FFFDF6' : '#604634',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                fontSize: '0.82rem',
+                fontWeight: activeRoleView === 'SHIFTS' ? 700 : 500,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <Calendar size={14} /> Đăng ký ca làm việc
+            </button>
           </div>
         </div>
       )}

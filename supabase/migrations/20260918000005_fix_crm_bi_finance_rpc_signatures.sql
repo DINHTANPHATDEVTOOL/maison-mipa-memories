@@ -113,9 +113,9 @@ BEGIN
     LEFT JOIN (
       SELECT 
         customer_id,
-        COUNT(id) FILTER (WHERE status = 'PENDING' AND due_at < now()) AS overdue_count,
-        COUNT(id) FILTER (WHERE status = 'PENDING' AND date_trunc('day', due_at AT TIME ZONE 'Asia/Ho_Chi_Minh') = date_trunc('day', now() AT TIME ZONE 'Asia/Ho_Chi_Minh')) AS today_count
-      FROM public.customer_crm_tasks
+        COUNT(id) FILTER (WHERE status IN ('TODO', 'IN_PROGRESS') AND due_at < now()) AS overdue_count,
+        COUNT(id) FILTER (WHERE status IN ('TODO', 'IN_PROGRESS') AND date_trunc('day', due_at AT TIME ZONE 'Asia/Ho_Chi_Minh') = date_trunc('day', now() AT TIME ZONE 'Asia/Ho_Chi_Minh')) AS today_count
+      FROM public.crm_follow_up_tasks
       GROUP BY customer_id
     ) c_tasks ON c_tasks.customer_id = p.id
     WHERE p.role = 'CUSTOMER'
